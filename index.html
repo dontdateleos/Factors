@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FACTORS</title>
+<title>DOGFOOD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -3363,6 +3363,38 @@
   .injury-meta{ font-family:var(--mono); font-size:10px; color:var(--dim); }
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
+  .chip-tray{ display:flex; gap:10px; margin-bottom:16px; }
+  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:6px; font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
+  .block-chip[data-block-type="strength"]{ background:var(--accent-dim); color:var(--text); }
+  .block-chip[data-block-type="run"]{ background:#3a3220; color:var(--warn); border-color:#4a3f28; }
+  .block-chip[data-block-type="mobility"]{ background:#2c3d44; color:#6fa8b8; border-color:#3a4d54; }
+  .block-chip.dragging{ opacity:0.4; }
+
+  .week-grid{ display:flex; flex-direction:column; gap:6px; }
+  .week-day-row{ display:flex; align-items:center; gap:8px; }
+  .week-day-label{ width:38px; flex-shrink:0; font-family:var(--mono); font-size:11px; color:var(--dim); text-transform:uppercase; }
+  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .week-slot.drag-over{ border-color:var(--accent); background:rgba(138,145,105,0.1); }
+  .week-slot.filled{ border-style:solid; color:var(--text); flex-direction:column; gap:2px; }
+  .week-slot.filled.strength{ border-color:var(--accent); background:rgba(138,145,105,0.08); }
+  .week-slot.filled.run{ border-color:var(--warn); background:rgba(194,163,95,0.08); }
+  .week-slot.filled.mobility{ border-color:#6fa8b8; background:rgba(111,168,184,0.08); }
+  .week-slot-type{ font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+  .week-slot-summary{ font-size:9px; color:var(--dim); }
+
+  #blockEditPanel{ border:1px solid var(--line); border-radius:6px; padding:16px; background:var(--panel); margin-top:16px; }
+  #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:13px; padding:8px; border-radius:4px; }
+  #blockEditPanel select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
+
+  .session-flow-section{ border:1px solid var(--line); border-radius:6px; margin-bottom:10px; overflow:hidden; background:var(--panel); }
+  .session-flow-header{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; }
+  .session-flow-header.active{ border-bottom:1px solid var(--line); }
+  .session-flow-title{ font-size:13px; font-weight:600; }
+  .session-flow-chevron{ color:var(--dim); font-size:12px; transition:transform 0.15s; }
+  .session-flow-header.active .session-flow-chevron{ transform:rotate(180deg); }
+  .session-flow-body{ padding:14px 16px; }
+
   .rec-card{ border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:14px; background:var(--panel); border-left:3px solid var(--dim); }
   .rec-card.reduce{ border-left-color:var(--bad); }
   .rec-card.add{ border-left-color:var(--accent); }
@@ -3408,7 +3440,7 @@
       <div class="skel-frame fB"></div>
     </div>
     <div>
-      <div class="eyebrow">FACTORS</div>
+      <div class="eyebrow">DOGFOOD</div>
       <h1>Daily Log</h1>
     </div>
   </div>
@@ -3423,17 +3455,306 @@
   <div class="tabs">
     <div class="tab active" data-tab="insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span>Insights</span></div>
     <div class="tab" data-tab="training"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span>Training</span></div>
-    <div class="tab" data-tab="warmup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Warm-up</span></div>
-    <div class="tab" data-tab="recovery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><span>Recovery</span></div>
-    <div class="tab" data-tab="injuries"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 20h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Injuries</span></div>
-    <div class="tab" data-tab="trends"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>Trends</span></div>
+    <div class="tab" data-tab="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg><span>Data</span></div>
   </div>
 </header>
 
 <main>
 
-  <!-- RECOVERY PANEL -->
-  <div class="panel" id="panel-recovery">
+  <!-- INSIGHTS PANEL -->
+  <div class="panel active" id="panel-insights">
+    <div class="gauge-wrap">
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line)" stroke-width="10"/>
+        <circle id="gaugeProgress" cx="75" cy="75" r="62" fill="none" stroke="var(--dim)" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6"
+          transform="rotate(-90 75 75)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;"/>
+      </svg>
+      <div class="gauge-center">
+        <div class="score-num" id="overallScoreOut" style="font-size:32px;">—</div>
+        <div class="score-label" id="overallScoreLabel">Overall</div>
+      </div>
+    </div>
+    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:8px;"></div>
+    <div class="score-note" style="margin-bottom:16px;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
+    <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
+      <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
+    </div>
+    <div id="recommendationCards"></div>
+
+    <div class="log">
+      <div class="log-title">Recommendation history</div>
+      <div id="recHistory"></div>
+    </div>
+  </div>
+
+
+  <!-- TRAINING PANEL -->
+  <div class="panel" id="panel-training">
+    <div class="session-type" id="trainingViewPills">
+      <div class="type-btn active" data-view="daily">Daily</div>
+      <div class="type-btn" data-view="weekly">Weekly</div>
+      <div class="type-btn" data-view="goals">Goals</div>
+      <div class="type-btn" data-view="warmup">Warm-up</div>
+    </div>
+
+    <div id="dailyTrainingView">
+    <div class="date-row">
+      <input type="date" id="trainingDate">
+      <span class="status" id="trainingStatusMsg" style="margin:0;"></span>
+    </div>
+
+    <div class="session-flow-section">
+      <div class="session-flow-body" style="display:block; padding:12px 16px;">
+        <button class="small" id="jumpToWarmupBtn">1. Warm-up →</button>
+      </div>
+    </div>
+
+    <div class="session-flow-section">
+      <div class="session-flow-header active" id="mainWorkoutFlowHeader">
+        <span class="session-flow-title">2. Main workout</span>
+        <span class="session-flow-chevron">▾</span>
+      </div>
+      <div class="session-flow-body" id="mainWorkoutFlowBody" style="display:block;">
+
+    <div class="session-type" id="sessionTypePills">
+      <div class="type-btn active" data-type="strength">Strength</div>
+      <div class="type-btn" data-type="run">Run</div>
+      <div class="type-btn" data-type="mobility">Mobility</div>
+    </div>
+
+    <div id="deloadBanner" class="morning-banner" style="display:none;">Deload week — sets and run distance auto-suggested at ~50% of your recent typical. Edit freely, this is just a starting point.</div>
+
+    <div class="field-row" style="margin-bottom:14px;">
+      <span class="field-label">Workout tag</span>
+      <select id="workoutTag">
+        <option value="">—</option>
+        <option value="full_body">Full Body</option>
+        <option value="push">Push</option>
+        <option value="pull">Pull</option>
+        <option value="legs">Legs</option>
+        <option value="upper">Upper</option>
+        <option value="lower">Lower</option>
+      </select>
+    </div>
+
+    <div class="group" id="strengthGroup">
+      <div class="group-head"><div class="group-title">Exercises</div><div class="group-sub">volume = sets × reps × kg</div></div>
+      <div class="fields">
+        <div class="field-row"><span class="field-label">Session focus</span>
+          <select id="sessionFocus">
+            <option value="strength">Strength (top set + back-off, 5×5, 3×5 — 3-6 reps)</option>
+            <option value="hypertrophy">Hypertrophy (8-12 reps)</option>
+            <option value="power">Power (1-5 reps, high intent)</option>
+            <option value="general">General / mixed (8-12 reps)</option>
+          </select>
+        </div>
+        <div class="score-note" id="sessionFocusNote"></div>
+        <div id="exerciseRows"></div>
+        <div class="add-row" id="addExerciseRow">+ add exercise</div>
+        <div class="volume-total">Total volume load: <span id="volumeTotal">0</span> kg</div>
+      </div>
+    </div>
+
+    <div class="group" id="runGroup" style="display:none;">
+      <div class="group-head"><div class="group-title">Run</div></div>
+      <div class="fields">
+        <div class="field-row"><span class="field-label">Type</span>
+          <select id="runType">
+            <option value="">—</option>
+            <option value="easy">Easy / Recovery</option>
+            <option value="long">Long run</option>
+            <option value="tempo">Tempo / Threshold</option>
+            <option value="interval">Intervals</option>
+            <option value="sprint">Sprints / Strides</option>
+            <option value="race">Race</option>
+          </select>
+        </div>
+        <div class="field-row"><span class="field-label">Distance (km)</span><input type="number" step="0.01" id="runDistance"></div>
+        <div class="field-row"><span class="field-label">Duration (min)</span><input type="number" step="0.1" id="runDuration"></div>
+        <div class="field-row"><span class="field-label">Avg pace</span><input type="text" id="runPace" readonly placeholder="auto"></div>
+      </div>
+    </div>
+
+    <div class="group" id="mobilityGroup" style="display:none;">
+      <div class="group-head"><div class="group-title">Stretches</div><div class="group-sub">sets × hold time</div></div>
+      <div class="fields">
+        <div id="stretchRows"></div>
+        <div class="add-row" id="addStretchRowBtn">+ add stretch</div>
+        <div class="volume-total">Total hold time: <span id="holdTotal">0</span>s</div>
+      </div>
+    </div>
+
+      </div>
+    </div>
+
+    <div class="session-flow-section">
+      <div class="session-flow-header" id="stretchFlowHeader">
+        <span class="session-flow-title">3. Post-exercise stretching</span>
+        <span class="session-flow-chevron">▾</span>
+      </div>
+      <div class="session-flow-body" id="stretchFlowBody" style="display:none;">
+        <button class="small" id="refreshTodayStretchBtn">Generate</button>
+        <div class="score-note" style="margin-top:8px;">Quick version — foam roll + dynamic only. Full protocol (static, PNF) is on the Warm-up tab.</div>
+        <div id="todaySessionStretchCards" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <div class="session-flow-section">
+      <div class="session-flow-header" id="cooldownFlowHeader">
+        <span class="session-flow-title">4. Cool-down</span>
+        <span class="session-flow-chevron">▾</span>
+      </div>
+      <div class="session-flow-body" id="cooldownFlowBody" style="display:none;">
+        <div class="score-note">5-10 min easy walk or light spin to bring heart rate down gradually · a few slow breaths, in through the nose · rehydrate. Kept intentionally light — no dedicated cool-down research has been reviewed for this app yet, this is general practice, not a validated protocol.</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><div class="group-title">Notes</div></div>
+      <div class="fields"><textarea id="trainingNotes" placeholder="How it felt, anything to flag..."></textarea></div>
+    </div>
+
+    <div class="log">
+      <div class="log-title">Recent sessions</div>
+      <div id="logListTraining"></div>
+    </div>
+    </div>
+
+    <div id="weeklyTrainingView" style="display:none;">
+      <div class="score-note" style="margin-bottom:14px;">Drag a block onto a day/slot to schedule it. Tap a scheduled block to edit what it actually is. Days with nothing scheduled are rest days — no block needed.</div>
+
+      <div class="field-row" style="margin-bottom:14px; padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--panel);">
+        <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
+        <label for="deloadWeekCheckbox" style="font-size:13px; flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
+      </div>
+
+      <div class="chip-tray" id="blockChipTray">
+        <div class="block-chip" draggable="true" data-block-type="strength">Strength</div>
+        <div class="block-chip" draggable="true" data-block-type="run">Run</div>
+        <div class="block-chip" draggable="true" data-block-type="mobility">Mobility</div>
+      </div>
+
+      <div class="group" style="margin-top:16px; margin-bottom:16px;">
+        <div class="group-head"><div class="group-title">Auto-generate run plan</div><div class="group-sub">only fills empty days</div></div>
+        <div class="fields">
+          <div class="field-row"><span class="field-label">Tier</span>
+            <select id="runTierSelect">
+              <option value="base">Base-building / novice</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced recreational</option>
+            </select>
+          </div>
+          <div class="score-note" id="runTierSuggestion"></div>
+          <button id="generateRunPlanBtn">Generate run plan</button>
+          <div id="runPlanResult" class="score-note"></div>
+        </div>
+      </div>
+
+      <div class="week-grid" id="weekGrid"></div>
+
+      <div id="blockEditPanel" style="display:none;"></div>
+
+      <div class="group" style="margin-top:24px;">
+        <div class="group-head"><div class="group-title">Weekly Load</div><div class="group-sub">macro — vs your own trailing average</div></div>
+        <div class="fields" id="macroInsightsBody"></div>
+      </div>
+    </div>
+
+    <div id="goalsView" style="display:none;">
+      <div class="group">
+        <div class="group-head"><div class="group-title">Primary goal</div><div class="group-sub">what training is actually for</div></div>
+        <div class="fields">
+          <div class="field-row"><span class="field-label">Type</span>
+            <select id="primaryGoalType">
+              <option value="strength">Strength</option>
+              <option value="hypertrophy">Hypertrophy / muscle gain</option>
+              <option value="running">Running performance</option>
+              <option value="speed">Speed (race time target)</option>
+              <option value="general_fitness">General fitness</option>
+              <option value="body_composition">Body composition</option>
+              <option value="mobility">Mobility</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+          <div class="field-row"><input type="text" id="primaryGoalDetail" placeholder="e.g. Improve squat strength, sub-25 5K"></div>
+          <div class="score-note">Optional target — only fill in what applies. Leave blank if there isn't a specific number yet.</div>
+          <div class="field-row"><span class="field-label">Target exercise</span><input type="text" id="primaryGoalExercise" placeholder="e.g. Back Squat"></div>
+          <div class="field-row"><span class="field-label">Target weight (kg)</span><input type="number" id="primaryGoalWeight"></div>
+          <div class="field-row"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" id="primaryGoalDistance" placeholder="for running/speed goals"></div>
+          <div class="field-row"><span class="field-label">Target time (min)</span><input type="number" step="0.1" id="primaryGoalTime" placeholder="for speed goals — e.g. 25 for 25:00"></div>
+          <div class="field-row"><span class="field-label">Target date</span><input type="date" id="primaryGoalDate"></div>
+        </div>
+      </div>
+
+      <div class="group" style="margin-top:16px;">
+        <div class="group-head"><div class="group-title">Secondary / maintenance goal</div><div class="group-sub">optional</div></div>
+        <div class="fields">
+          <div class="field-row"><input type="checkbox" id="hasSecondaryGoal" style="width:auto; flex:none;"><label for="hasSecondaryGoal" style="font-size:13px;">Add a secondary goal</label></div>
+          <div id="secondaryGoalFields" style="display:none;">
+            <div class="field-row"><span class="field-label">Type</span>
+              <select id="secondaryGoalType">
+                <option value="strength">Strength</option>
+                <option value="hypertrophy">Hypertrophy / muscle gain</option>
+                <option value="running">Running performance</option>
+                <option value="general_fitness">General fitness</option>
+                <option value="body_composition">Body composition</option>
+                <option value="mobility">Mobility</option>
+              </select>
+            </div>
+            <div class="field-row"><input type="text" id="secondaryGoalDetail" placeholder="e.g. maintain running fitness"></div>
+            <div class="field-row"><input type="checkbox" id="secondaryGoalMaintenance" style="width:auto; flex:none;" checked><label for="secondaryGoalMaintenance" style="font-size:13px;">This is maintenance only — don't prioritize progression over the primary goal</label></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
+      <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
+
+      <div class="group" style="margin-top:24px;">
+        <div class="group-head"><div class="group-title">Progress</div></div>
+        <div class="fields" id="goalProgressBody"></div>
+      </div>
+    </div>
+
+    <div id="warmupTrainingView" style="display:none;">
+    <div class="group">
+      <div class="group-head"><div class="group-title">Today's planned session</div></div>
+      <div class="fields">
+        <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
+        <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        <button class="primary" id="generateWarmupBtn">Generate warm-up</button>
+      </div>
+    </div>
+    <div class="score-note" style="margin-bottom:16px;">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
+    <div id="warmupCards"></div>
+
+    <div id="mobilitySection" style="display:none; margin-top:24px;">
+      <div class="group">
+        <div class="group-head"><div class="group-title">Post-Exercise Stretching</div><div class="group-sub">deeper — after training or standalone</div></div>
+        <div class="fields">
+          <div class="score-note">Factors in everything you've trained recently — strength, running, and logged mobility work — not just your warm-up areas. Foam rolling, static holds, and band-assisted PNF. Better suited after training than right before.</div>
+          <button id="generateMobilityBtn">Generate post-exercise stretching</button>
+        </div>
+      </div>
+      <div id="mobilityCards"></div>
+    </div>
+
+    <div class="score-note" style="margin-top:16px;">Log actual stretch sessions (sets × hold time) on the Training tab under the Mobility session type — this generator reads from that history.</div>
+    </div>
+  </div>
+
+  <!-- DATA PANEL (Recovery + Injuries + Trends) -->
+  <div class="panel" id="panel-data">
+    <div class="session-type" id="dataViewPills">
+      <div class="type-btn active" data-view="recovery">Recovery</div>
+      <div class="type-btn" data-view="injuries">Injuries</div>
+      <div class="type-btn" data-view="trends">Trends</div>
+    </div>
+
+    <div id="recoveryDataView">
     <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in — log today's recovery data to unlock today's Insights.</div>
     <div class="date-row">
       <input type="date" id="entryDate">
@@ -3473,9 +3794,9 @@
           <div class="disagree-note" id="sleepScoreFlag">⚠ delta exceeds ±10 — logged for review</div>
         </div>
         <div>
-          <div class="field-row"><span class="field-label">Wake events</span><span class="src-tag">OURA</span><input type="number" id="wakeOura" placeholder="count"></div>
-          <div class="field-row" style="margin-top:8px;"><span class="field-label"></span><span class="src-tag secondary">GARMIN</span><input type="number" id="wakeGarmin" placeholder="count"></div>
-          <div class="disagree-note" id="wakeFlag">⚠ delta exceeds ±2 — logged for review</div>
+          <div class="field-row"><span class="field-label">Wake time</span><span class="src-tag">OURA</span><input type="number" id="wakeTimeOura" placeholder="minutes"></div>
+          <div class="field-row" style="margin-top:8px;"><span class="field-label"></span><span class="src-tag secondary">GARMIN</span><input type="number" id="wakeTimeGarmin" placeholder="minutes"></div>
+          <div class="disagree-note" id="wakeTimeFlag">⚠ delta exceeds ±10min — logged for review</div>
         </div>
       </div>
     </div>
@@ -3545,78 +3866,41 @@
         <div id="bulkImportResult" class="score-note"></div>
       </div>
     </div>
-  </div>
-
-  <!-- TRAINING PANEL -->
-  <div class="panel" id="panel-training">
-    <div class="date-row">
-      <input type="date" id="trainingDate">
-      <span class="status" id="trainingStatusMsg" style="margin:0;"></span>
-    </div>
-
-    <div class="session-type" id="sessionTypePills">
-      <div class="type-btn active" data-type="strength">Strength</div>
-      <div class="type-btn" data-type="run">Run</div>
-      <div class="type-btn" data-type="mobility">Mobility</div>
-    </div>
-
-    <div class="field-row" style="margin-bottom:14px;">
-      <span class="field-label">Workout tag</span>
-      <select id="workoutTag">
-        <option value="">—</option>
-        <option value="full_body">Full Body</option>
-        <option value="push">Push</option>
-        <option value="pull">Pull</option>
-        <option value="legs">Legs</option>
-        <option value="upper">Upper</option>
-        <option value="lower">Lower</option>
-      </select>
-    </div>
-
-    <div class="group" id="strengthGroup">
-      <div class="group-head"><div class="group-title">Exercises</div><div class="group-sub">volume = sets × reps × kg</div></div>
+    <div class="group" style="margin-top:24px; border-color:var(--warn);">
+      <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--warn);">dev only — clears prior test data first</div></div>
       <div class="fields">
-        <div id="exerciseRows"></div>
-        <div class="add-row" id="addExerciseRow">+ add exercise</div>
-        <div class="volume-total">Total volume load: <span id="volumeTotal">0</span> kg</div>
+        <div class="score-note">Seeds realistic recovery + training history so you can see how Insights/Warm-up/Trends actually respond, without waiting weeks for real data. Seeding a new scenario replaces any previously-seeded test data — your real logged data is never touched.</div>
+        <div class="field-row"><span class="field-label">Scenario</span>
+          <select id="testScenarioSelect">
+            <option value="well_recovered">Well recovered</option>
+            <option value="poor_recovery">Poor recovery</option>
+            <option value="strength_progression">Strength progression</option>
+            <option value="high_leg_fatigue">High leg fatigue</option>
+            <option value="marathon_goal">Marathon-style running load</option>
+            <option value="hypertrophy_goal">Hypertrophy-style strength load</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="clearTestDataBtn">Clear test data</button>
+          <button id="seedTestScenarioBtn" class="primary">Seed scenario</button>
+        </div>
+        <div id="testDataResult" class="score-note"></div>
       </div>
     </div>
-
-    <div class="group" id="runGroup" style="display:none;">
-      <div class="group-head"><div class="group-title">Run</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Distance (km)</span><input type="number" step="0.01" id="runDistance"></div>
-        <div class="field-row"><span class="field-label">Duration (min)</span><input type="number" step="0.1" id="runDuration"></div>
-        <div class="field-row"><span class="field-label">Avg pace</span><input type="text" id="runPace" readonly placeholder="auto"></div>
-      </div>
     </div>
 
-    <div class="group" id="mobilityGroup" style="display:none;">
-      <div class="group-head"><div class="group-title">Stretches</div><div class="group-sub">sets × hold time</div></div>
-      <div class="fields">
-        <div id="stretchRows"></div>
-        <div class="add-row" id="addStretchRowBtn">+ add stretch</div>
-        <div class="volume-total">Total hold time: <span id="holdTotal">0</span>s</div>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-head"><div class="group-title">Notes</div></div>
-      <div class="fields"><textarea id="trainingNotes" placeholder="How it felt, anything to flag..."></textarea></div>
-    </div>
-
-    <div class="log">
-      <div class="log-title">Recent sessions</div>
-      <div id="logListTraining"></div>
-    </div>
-  </div>
-
-  <!-- INJURIES PANEL -->
-  <div class="panel" id="panel-injuries">
+    <div id="injuriesDataView" style="display:none;">
     <div class="group">
       <div class="group-head"><div class="group-title">Log new injury</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
+        <div class="field-row"><span class="field-label">Type</span>
+          <select id="injuryType">
+            <option value="general">General</option>
+            <option value="tendinopathy">Tendinopathy</option>
+            <option value="sprain_strain">Sprain / Strain</option>
+          </select>
+        </div>
         <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
         <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
         <div class="field-row"><span class="field-label">Half-life (days)</span><input type="number" id="injuryHalfLife" value="14"></div>
@@ -3629,62 +3913,9 @@
       <div class="log-title">Active &amp; recent injuries</div>
       <div id="injuryList"></div>
     </div>
-  </div>
-
-  <!-- INSIGHTS PANEL -->
-  <div class="panel active" id="panel-insights">
-    <div class="gauge-wrap">
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line)" stroke-width="10"/>
-        <circle id="gaugeProgress" cx="75" cy="75" r="62" fill="none" stroke="var(--dim)" stroke-width="10"
-          stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6"
-          transform="rotate(-90 75 75)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;"/>
-      </svg>
-      <div class="gauge-center">
-        <div class="score-num" id="overallScoreOut" style="font-size:32px;">—</div>
-        <div class="score-label" id="overallScoreLabel">Overall</div>
-      </div>
-    </div>
-    <div class="score-note" style="margin-bottom:16px;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
-    <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
-    <div id="cardStackCounter" class="log-title" style="margin-bottom:8px;"></div>
-    <div id="recommendationCards"></div>
-
-    <div class="log">
-      <div class="log-title">Recommendation history</div>
-      <div id="recHistory"></div>
-    </div>
-  </div>
-
-  <!-- WARM-UP & MOBILITY PANEL (merged) -->
-  <div class="panel" id="panel-warmup">
-    <div class="group">
-      <div class="group-head"><div class="group-title">Today's planned session</div></div>
-      <div class="fields">
-        <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
-        <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <button class="primary" id="generateWarmupBtn">Generate warm-up</button>
-      </div>
-    </div>
-    <div class="score-note" style="margin-bottom:16px;">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
-    <div id="warmupCards"></div>
-
-    <div id="mobilitySection" style="display:none; margin-top:24px;">
-      <div class="group">
-        <div class="group-head"><div class="group-title">Post-Exercise Stretching</div><div class="group-sub">deeper — after training or standalone</div></div>
-        <div class="fields">
-          <div class="score-note">Factors in everything you've trained recently — strength, running, and logged mobility work — not just your warm-up areas. Foam rolling, static holds, and band-assisted PNF. Better suited after training than right before.</div>
-          <button id="generateMobilityBtn">Generate post-exercise stretching</button>
-        </div>
-      </div>
-      <div id="mobilityCards"></div>
     </div>
 
-    <div class="score-note" style="margin-top:16px;">Log actual stretch sessions (sets × hold time) on the Training tab under the Mobility session type — this generator reads from that history.</div>
-  </div>
-
-  <!-- TRENDS PANEL -->
-  <div class="panel" id="panel-trends">
+    <div id="trendsDataView" style="display:none;">
     <div class="session-type" id="trendMetricPills">
       <div class="type-btn active" data-metric="hrv">HRV</div>
       <div class="type-btn" data-metric="sleepScore">Sleep</div>
@@ -3706,6 +3937,12 @@
     <div class="score-note" id="chartMetricNote" style="display:none;"></div>
     <div id="trendFlags"></div>
     <div class="score-note">Full history, no windowing — this is the view for spotting slow multi-month drift that trailing 7-14 day windows elsewhere in the app won't show.</div>
+
+    <div class="group" style="margin-top:24px;">
+      <div class="group-head"><div class="group-title">Adaptation Tracking</div><div class="group-sub">per exercise, recent trend</div></div>
+      <div class="fields" id="adaptationBody"></div>
+    </div>
+    </div>
   </div>
 
 </main>
@@ -3765,7 +4002,17 @@ if(!window.storage){
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 const panels = document.querySelectorAll('.panel');
-const footers = { recovery: document.getElementById('footerRecovery'), training: document.getElementById('footerTraining'), injuries: null, insights: null, warmup: null, trends: null };
+const footerTrainingEl = document.getElementById('footerTraining');
+const footerRecoveryEl = document.getElementById('footerRecovery');
+
+function updateFooterVisibility(){
+  const trainingActive = document.getElementById('panel-training').classList.contains('active');
+  const dataActive = document.getElementById('panel-data').classList.contains('active');
+  const trainingSubView = document.querySelector('#trainingViewPills .type-btn.active')?.dataset.view;
+  const dataSubView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view;
+  footerTrainingEl.style.display = (trainingActive && trainingSubView==='daily') ? 'flex' : 'none';
+  footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
+}
 
 function activateTab(name){
   tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
@@ -3774,12 +4021,45 @@ function activateTab(name){
     if(p===targetPanel){ p.classList.add('active'); p.classList.remove('panel-enter'); void p.offsetWidth; p.classList.add('panel-enter'); }
     else p.classList.remove('active');
   });
-  Object.keys(footers).forEach(k=>{ if(footers[k]) footers[k].style.display = (k===name) ? 'flex' : 'none'; });
-  if(name==='injuries') refreshInjuries();
   if(name==='insights') generateRecommendations();
-  if(name==='warmup'){ initWarmupTab(); }
-  if(name==='trends') renderTrendChart();
+  if(name==='training'){
+    const activeView = document.querySelector('#trainingViewPills .type-btn.active')?.dataset.view || 'daily';
+    activateTrainingSubView(activeView);
+  }
+  if(name==='data'){
+    const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
+    activateDataSubView(activeView);
+  }
+  updateFooterVisibility();
 }
+
+function activateTrainingSubView(view){
+  document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.getElementById('dailyTrainingView').style.display = view==='daily' ? 'block' : 'none';
+  document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
+  document.getElementById('goalsView').style.display = view==='goals' ? 'block' : 'none';
+  document.getElementById('warmupTrainingView').style.display = view==='warmup' ? 'block' : 'none';
+  if(view==='weekly'){ renderWeekGrid(); renderMacroInsights(); }
+  if(view==='goals'){ loadCurrentGoals(); }
+  if(view==='warmup'){ initWarmupTab(); }
+  updateFooterVisibility();
+}
+document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>activateTrainingSubView(btn.dataset.view));
+});
+
+function activateDataSubView(view){
+  document.querySelectorAll('#dataViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.getElementById('recoveryDataView').style.display = view==='recovery' ? 'block' : 'none';
+  document.getElementById('injuriesDataView').style.display = view==='injuries' ? 'block' : 'none';
+  document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
+  if(view==='injuries') refreshInjuries();
+  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); }
+  updateFooterVisibility();
+}
+document.querySelectorAll('#dataViewPills .type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>activateDataSubView(btn.dataset.view));
+});
 
 tabs.forEach(t=>{
   t.addEventListener('click', ()=>activateTab(t.dataset.tab));
@@ -3787,8 +4067,8 @@ tabs.forEach(t=>{
 
 
 /* ---------- RECOVERY ---------- */
-const THRESH = { hrv: 10, sleepScore: 10, wake: 2 };
-const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeOura','wakeGarmin','hrvGarmin','hrvOura',
+const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
+const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery'];
 
 const dateInput = document.getElementById('entryDate');
@@ -3852,7 +4132,7 @@ function toggleFlag(elId, a, b, thresh){
 
 function computeFlags(){
   toggleFlag('sleepScoreFlag', parseFloat(document.getElementById('sleepScoreOura').value), parseFloat(document.getElementById('sleepScoreGarmin').value), THRESH.sleepScore);
-  toggleFlag('wakeFlag', parseFloat(document.getElementById('wakeOura').value), parseFloat(document.getElementById('wakeGarmin').value), THRESH.wake);
+  toggleFlag('wakeTimeFlag', parseFloat(document.getElementById('wakeTimeOura').value), parseFloat(document.getElementById('wakeTimeGarmin').value), THRESH.wakeTime);
   toggleFlag('hrvFlag', parseFloat(document.getElementById('hrvGarmin').value), parseFloat(document.getElementById('hrvOura').value), THRESH.hrv);
 }
 recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('input', ()=>{ computeFlags(); computeScores(); computePredictedCapacity(); computeSleepDebt(); }); });
@@ -3874,6 +4154,11 @@ profileSelect.addEventListener('change', async ()=>{
 function currentGoalThresholds(){
   return GOAL_PROFILES[profileSelect.value] || GOAL_PROFILES.balanced;
 }
+
+/* ---------- STRENGTH/RUNNING LEVEL ----------
+   Manual novice/intermediate/advanced toggle removed — replaced by calculated levels
+   once strength-standards and running-time-standards research is back. See design doc
+   for status. */
 
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
@@ -3960,6 +4245,28 @@ function computeCapacityIndices(sessions){
   return out;
 }
 
+// Unifies the various scattered n>=5/n>=7 thresholds already used across Predicted
+// Capacity, acceptance-rate learning, and deload detection into one visible status.
+async function getBaselineStatus(){
+  const pairs = await getPairedData();
+  const pairedDays = pairs.length;
+  let stage, label, note;
+  if(pairedDays < 7){
+    stage = 'establishing';
+    label = 'Establishing baseline';
+    note = `${pairedDays} of 7 paired recovery+training days logged. Predicted Capacity and personalized modeling activate as this builds.`;
+  } else if(pairedDays < 28){
+    stage = 'learning';
+    label = 'Learning your patterns';
+    note = `${pairedDays} paired days logged. Predicted Capacity is active — Training Tolerance and Adaptation Tracking need ~4 weeks of history to activate.`;
+  } else {
+    stage = 'personalized';
+    label = 'Personalized';
+    note = `${pairedDays} paired days logged — enough history for tolerance and adaptation modeling.`;
+  }
+  return { stage, label, note, pairedDays };
+}
+
 async function getPairedData(){
   const sessions = await getAllTrainingSessions();
   const capacityByDate = computeCapacityIndices(sessions);
@@ -3975,7 +4282,7 @@ async function getPairedData(){
         capacity: capacityByDate[d],
         duration: e.durationHrs,
         hrvRatio,
-        wake: e.wakeOura,
+        wakeTime: e.wakeTimeOura,
         rhr: e.restingHR
       });
     } catch(e){}
@@ -3996,8 +4303,8 @@ async function computePredictedCapacity(){
     return;
   }
 
-  const predictorKeys = ['duration','hrvRatio','wake','rhr'];
-  const predictorLabels = { duration:'Sleep duration', hrvRatio:'HRV vs baseline', wake:'Wake events', rhr:'Resting HR' };
+  const predictorKeys = ['duration','hrvRatio','wakeTime','rhr'];
+  const predictorLabels = { duration:'Sleep duration', hrvRatio:'HRV vs baseline', wakeTime:'Wake time', rhr:'Resting HR' };
   const capacities = pairs.map(p=>p.capacity);
 
   const weights = {};
@@ -4018,7 +4325,7 @@ async function computePredictedCapacity(){
       const b = parseFloat(document.getElementById('hrvBaseline').value);
       return (!isNaN(h) && !isNaN(b) && b>0) ? h/b : null;
     })(),
-    wake: parseFloat(document.getElementById('wakeOura').value),
+    wakeTime: parseFloat(document.getElementById('wakeTimeOura').value),
     rhr: parseFloat(document.getElementById('restingHR').value)
   };
 
@@ -4075,31 +4382,36 @@ async function getTrailingAverages(beforeDate){
     if(!res || !res.keys) return null;
     const dates = res.keys.map(k=>k.replace('entry:','')).filter(d=>d < beforeDate).sort().reverse().slice(0,7);
     if(dates.length === 0) return null;
-    let durSum=0,durN=0, hrvSum=0,hrvN=0, wakeSum=0,wakeN=0;
+    let durSum=0,durN=0, hrvSum=0,hrvN=0, wakeTimeSum=0,wakeTimeN=0;
     for(const d of dates){
       const r = await window.storage.get(keyFor(d));
       const e = JSON.parse(r.value);
       if(e.durationHrs!=null){ durSum+=e.durationHrs; durN++; }
       if(e.hrvGarmin!=null){ hrvSum+=e.hrvGarmin; hrvN++; }
-      if(e.wakeOura!=null){ wakeSum+=e.wakeOura; wakeN++; }
+      if(e.wakeTimeOura!=null){ wakeTimeSum+=e.wakeTimeOura; wakeTimeN++; }
     }
     return {
       avgDuration: durN? durSum/durN : null,
       avgHRV: hrvN? hrvSum/hrvN : null,
-      avgWake: wakeN? wakeSum/wakeN : null
+      avgWakeTime: wakeTimeN? wakeTimeSum/wakeTimeN : null
     };
   } catch(e){ return null; }
 }
 
+// Wake-time penalty constant: 1.5 pts/min — v1 provisional, same as every other
+// scoring constant in this app (~60min awake = 0, ~20min = 76). Recalibrate once
+// there's enough logged wake-time history to check against real outcomes.
+const WAKE_TIME_PENALTY = 1.5;
+
 async function computeScores(){
   const duration = parseFloat(document.getElementById('durationHrs').value);
-  const wake = parseFloat(document.getElementById('wakeOura').value);
+  const wakeTime = parseFloat(document.getElementById('wakeTimeOura').value);
   const hrv = parseFloat(document.getElementById('hrvGarmin').value);
   const hrvBaseline = parseFloat(document.getElementById('hrvBaseline').value);
 
   const parts = [];
   if(!isNaN(duration)) parts.push(clamp(duration/8*100,0,100));
-  if(!isNaN(wake)) parts.push(clamp(100 - wake*15,0,100));
+  if(!isNaN(wakeTime)) parts.push(clamp(100 - wakeTime*WAKE_TIME_PENALTY,0,100));
   if(!isNaN(hrv) && !isNaN(hrvBaseline) && hrvBaseline>0) parts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const targetScore = parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
   document.getElementById('targetScoreOut').textContent = targetScore ?? '—';
@@ -4108,8 +4420,8 @@ async function computeScores(){
   const aParts = [];
   if(!isNaN(duration) && trailing && trailing.avgDuration) aParts.push(clamp(duration/trailing.avgDuration*100,0,100));
   else if(!isNaN(duration)) aParts.push(clamp(duration/8*100,0,100));
-  if(!isNaN(wake) && trailing && trailing.avgWake!=null) aParts.push(clamp(100 - (wake-trailing.avgWake)*15,0,100));
-  else if(!isNaN(wake)) aParts.push(clamp(100-wake*15,0,100));
+  if(!isNaN(wakeTime) && trailing && trailing.avgWakeTime!=null) aParts.push(clamp(100 - (wakeTime-trailing.avgWakeTime)*WAKE_TIME_PENALTY,0,100));
+  else if(!isNaN(wakeTime)) aParts.push(clamp(100-wakeTime*WAKE_TIME_PENALTY,0,100));
   if(!isNaN(hrv) && trailing && trailing.avgHRV) aParts.push(clamp(hrv/trailing.avgHRV*100,0,100));
   else if(!isNaN(hrv) && !isNaN(hrvBaseline) && hrvBaseline>0) aParts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const adaptiveScore = aParts.length ? Math.round(aParts.reduce((a,b)=>a+b,0)/aParts.length) : null;
@@ -4128,7 +4440,7 @@ function collectRecoveryEntry(){
   entry.disagreements = [];
   const checks = [
     ['sleepScore', entry.sleepScoreOura, entry.sleepScoreGarmin, THRESH.sleepScore],
-    ['wakeEvents', entry.wakeOura, entry.wakeGarmin, THRESH.wake],
+    ['wakeTime', entry.wakeTimeOura, entry.wakeTimeGarmin, THRESH.wakeTime],
     ['hrv', entry.hrvGarmin, entry.hrvOura, THRESH.hrv],
   ];
   checks.forEach(([metric,a,b,t])=>{
@@ -4209,13 +4521,15 @@ document.querySelectorAll('#sessionTypePills .type-btn').forEach(btn=>{
     document.getElementById('strengthGroup').style.display = sessionType==='strength' ? 'block':'none';
     document.getElementById('runGroup').style.display = sessionType==='run' ? 'block':'none';
     document.getElementById('mobilityGroup').style.display = sessionType==='mobility' ? 'block':'none';
+    applyDeloadSuggestions();
   });
 });
 
 const BODY_AREAS = {
   hips: 'Hips', hamstrings: 'Hamstrings', quads_knees: 'Quads/Knees',
   calves: 'Calves', ankles: 'Ankles', shoulders: 'Shoulders', chest: 'Chest',
-  thoracic: 'Thoracic/Upper back', lower_back: 'Lower back', full_body: 'Full body'
+  thoracic: 'Thoracic/Upper back', lower_back: 'Lower back',
+  biceps: 'Biceps', triceps: 'Triceps', full_body: 'Full body'
 };
 const MOVEMENT_TYPES = { squat:'Squat', hinge:'Hinge', push:'Push', pull:'Pull', carry:'Carry', core:'Core', isolation:'Isolation' };
 // v2 — replaces the earlier 70/30 guess. Per Cowork's research (Schoenfeld et al. 2019 declines
@@ -4237,9 +4551,11 @@ const EXERCISE_AREA_MAP = [
   [['back squat','squat','front squat','goblet squat','cossack squat'], 'quads_knees', 'hips', 'squat'],
   [['deadlift','rdl','romanian deadlift','good morning'], 'hamstrings', 'lower_back', 'hinge'],
   [['hip thrust','glute bridge','bulgarian split'], 'hips', 'hamstrings', 'hinge'],
-  [['incline press','bench press','push up'], 'chest', 'shoulders', 'push'],
-  [['overhead press','shoulder press'], 'shoulders', 'chest', 'push'],
-  [['pull up','row','lat pulldown','face pull'], 'thoracic', 'shoulders', 'pull'],
+  [['incline press','bench press','push up','machine press','chest press'], 'chest', 'triceps', 'push'],
+  [['overhead press','shoulder press'], 'shoulders', 'triceps', 'push'],
+  [['pull up','row','lat pulldown','face pull'], 'thoracic', 'biceps', 'pull'],
+  [['bicep curl','hammer curl','preacher curl','curl'], 'biceps', '', 'isolation'],
+  [['tricep pushdown','tricep extension','skull crusher','overhead extension','dip'], 'triceps', '', 'isolation'],
   [['calf raise'], 'calves', '', 'isolation'],
   [['ankle'], 'ankles', '', 'isolation'],
   [['back extension','superman'], 'lower_back', 'hamstrings', 'hinge']
@@ -4264,20 +4580,61 @@ function addExerciseRow(name='', sets='', reps='', weight='', primaryArea='', se
     <select class="ex-area">${areaOptionsHtml(primaryArea)}</select>
     <select class="ex-area-secondary">${areaOptionsHtml(secondaryArea)}</select>
     <select class="ex-movement">${movementOptionsHtml(movement)}</select>
-    <span class="remove-row">×</span>`;
+    <span class="remove-row">×</span>
+    <div class="set-groups-container" style="flex-basis:100%;"></div>
+    <div class="add-set-group" style="flex-basis:100%; font-size:10px; color:var(--accent); cursor:pointer; margin-top:2px;">+ different weight for back-off sets</div>`;
   row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateVolumeTotal(); });
   row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateVolumeTotal));
+  const groupsContainer = row.querySelector('.set-groups-container');
+  function addSetGroupRow(){
+    const grp = document.createElement('div');
+    grp.className = 'set-group-row';
+    grp.style.cssText = 'display:flex; gap:6px; margin-top:4px;';
+    grp.innerHTML = `
+      <input type="number" class="grp-sets" placeholder="sets" style="flex:1;">
+      <input type="number" class="grp-reps" placeholder="reps" style="flex:1;">
+      <input type="number" class="grp-weight" placeholder="kg" style="flex:1;">
+      <span class="remove-row" style="flex:none;">×</span>`;
+    grp.querySelector('.remove-row').addEventListener('click', ()=>{ grp.remove(); updateVolumeTotal(); });
+    grp.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateVolumeTotal));
+    groupsContainer.appendChild(grp);
+  }
+  row.querySelector('.add-set-group').addEventListener('click', addSetGroupRow);
   const nameInput = row.querySelector('.ex-name');
   const areaSelect = row.querySelector('.ex-area');
   const areaSecondarySelect = row.querySelector('.ex-area-secondary');
   const movementSelect = row.querySelector('.ex-movement');
-  nameInput.addEventListener('blur', ()=>{
+  nameInput.addEventListener('blur', async ()=>{
     if(!areaSelect.value && nameInput.value){
       const guess = guessTags(nameInput.value);
       if(guess){
         areaSelect.value = guess.primary;
         if(guess.secondary) areaSecondarySelect.value = guess.secondary;
         if(guess.movement) movementSelect.value = guess.movement;
+      }
+    }
+    const setsInput = row.querySelector('.ex-sets');
+    const repsInput = row.querySelector('.ex-reps');
+    const weightInput = row.querySelector('.ex-weight');
+    if(nameInput.value && !setsInput.value && !repsInput.value && !weightInput.value){
+      const isDeload = await isDeloadWeek(document.getElementById('trainingDate').value);
+      if(!isDeload){
+        const focus = document.getElementById('sessionFocus').value;
+        const suggestion = await suggestProgression(nameInput.value, areaSelect.value, focus);
+        if(suggestion){
+          setsInput.value = suggestion.sets;
+          repsInput.value = suggestion.reps;
+          weightInput.value = suggestion.weight;
+          updateVolumeTotal();
+          let noteEl = row.querySelector('.progression-note');
+          if(!noteEl){
+            noteEl = document.createElement('div');
+            noteEl.className = 'progression-note score-note';
+            noteEl.style.cssText = 'flex-basis:100%; margin-top:-4px; margin-bottom:4px;';
+            row.appendChild(noteEl);
+          }
+          noteEl.textContent = suggestion.note;
+        }
       }
     }
   });
@@ -4345,6 +4702,12 @@ function updateVolumeTotal(){
     const r = parseFloat(row.querySelector('.ex-reps').value)||0;
     const w = parseFloat(row.querySelector('.ex-weight').value)||0;
     total += s*r*w;
+    row.querySelectorAll('.set-group-row').forEach(grp=>{
+      const gs = parseFloat(grp.querySelector('.grp-sets').value)||0;
+      const gr = parseFloat(grp.querySelector('.grp-reps').value)||0;
+      const gw = parseFloat(grp.querySelector('.grp-weight').value)||0;
+      total += gs*gr*gw;
+    });
   });
   document.getElementById('volumeTotal').textContent = total.toLocaleString();
 }
@@ -4365,20 +4728,48 @@ function updateVolumeTotal(){
 function collectTrainingSession(){
   const session = { date: document.getElementById('trainingDate').value, type: sessionType, notes: document.getElementById('trainingNotes').value, timestamp: Date.now(), workoutTag: document.getElementById('workoutTag').value };
   if(sessionType==='strength'){
+    session.focus = document.getElementById('sessionFocus').value;
     session.exercises = [];
     let total=0;
     document.querySelectorAll('#exerciseRows .exercise-row').forEach(row=>{
       const name = row.querySelector('.ex-name').value;
-      const sets = parseFloat(row.querySelector('.ex-sets').value)||0;
-      const reps = parseFloat(row.querySelector('.ex-reps').value)||0;
-      const weight = parseFloat(row.querySelector('.ex-weight').value)||0;
       const primaryArea = row.querySelector('.ex-area').value;
       const secondaryArea = row.querySelector('.ex-area-secondary').value;
       const movement = row.querySelector('.ex-movement').value;
-      const volume = sets*reps*weight;
+
+      // Base row is always group 1; any .set-group-row elements are additional groups
+      // (e.g. top set + back-off). If no extra groups were added, this behaves exactly
+      // as a single sets/reps/weight entry always has.
+      const groups = [{
+        sets: parseFloat(row.querySelector('.ex-sets').value)||0,
+        reps: parseFloat(row.querySelector('.ex-reps').value)||0,
+        weight: parseFloat(row.querySelector('.ex-weight').value)||0
+      }];
+      row.querySelectorAll('.set-group-row').forEach(grp=>{
+        const gs = parseFloat(grp.querySelector('.grp-sets').value)||0;
+        const gr = parseFloat(grp.querySelector('.grp-reps').value)||0;
+        const gw = parseFloat(grp.querySelector('.grp-weight').value)||0;
+        if(gs>0) groups.push({ sets:gs, reps:gr, weight:gw });
+      });
+
+      const volume = groups.reduce((a,g)=>a+g.sets*g.reps*g.weight, 0);
+      // Backward-compatible aggregate: sets/volume are always exact (summed); reps/weight
+      // are a representative single number (last group — typically the working/back-off
+      // sets) so every existing function that reads e.sets/e.reps/e.weight/e.volume keeps
+      // working unmodified whether or not multiple groups were used.
+      const sets = groups.reduce((a,g)=>a+g.sets, 0);
+      const lastGroup = groups[groups.length-1];
+      const reps = lastGroup.reps;
+      const weight = lastGroup.weight;
       const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
       const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
-      if(name){ session.exercises.push({name,sets,reps,weight,area:primaryArea,secondaryArea,movement,volume,primaryVolume,secondaryVolume}); total+=volume; }
+
+      if(name){
+        const exercise = { name, sets, reps, weight, area:primaryArea, secondaryArea, movement, volume, primaryVolume, secondaryVolume };
+        if(groups.length > 1) exercise.setGroups = groups; // only stored when actually used
+        session.exercises.push(exercise);
+        total += volume;
+      }
     });
     session.totalVolume = total;
   } else if(sessionType==='mobility'){
@@ -4393,6 +4784,7 @@ function collectTrainingSession(){
     });
     session.totalHoldSeconds = total;
   } else {
+    session.runType = document.getElementById('runType').value;
     session.distanceKm = parseFloat(document.getElementById('runDistance').value)||null;
     session.durationMin = parseFloat(document.getElementById('runDuration').value)||null;
     session.pace = document.getElementById('runPace').value;
@@ -4403,6 +4795,7 @@ function collectTrainingSession(){
 function clearTrainingForm(){
   document.getElementById('exerciseRows').innerHTML=''; addExerciseRow(); updateVolumeTotal();
   document.getElementById('stretchRows').innerHTML=''; addStretchRow(); updateHoldTotal();
+  document.getElementById('runType').value='';
   document.getElementById('runDistance').value=''; document.getElementById('runDuration').value='';
   document.getElementById('runPace').value='';
   document.getElementById('trainingNotes').value='';
@@ -4437,7 +4830,7 @@ async function refreshTrainingLog(){
       let summary;
       if(s.type==='strength') summary = `${s.totalVolume||0} kg vol`;
       else if(s.type==='mobility') summary = `${Math.round((s.totalHoldSeconds||0)/60*10)/10} min hold`;
-      else summary = `${s.distanceKm||0} km`;
+      else summary = `${s.distanceKm||0} km${s.runType?' · '+s.runType:''}`;
       div.innerHTML = `<span>${s.date} · ${s.type}${s.workoutTag?' · '+s.workoutTag:''}</span><span>${summary}</span>`;
       list.appendChild(div);
     }
@@ -4469,6 +4862,87 @@ async function savePlan(){
   setTimeout(()=>{status.textContent='';},1800);
 }
 
+/* ---------- STRENGTH TEMPLATES + AUTO-PROGRESSION ---------- */
+const SESSION_FOCUS_INFO = {
+  strength:    { repLow:3, repHigh:6,  increment:{ lower:2.5, upper:1.25 }, label:'Strength — work toward a top set of ~5, or 5×5/3×5. Bigger jumps, lower reps.' },
+  hypertrophy: { repLow:8, repHigh:12, increment:{ lower:2.5, upper:1.25 }, label:'Hypertrophy — 3×8-12 or 4×8-10. Progress reps within range before adding weight.' },
+  power:       { repLow:1, repHigh:5,  increment:{ lower:2.5, upper:1.25 }, label:'Power — low reps, high intent, full rest between sets. Weight increases are small and infrequent — technical quality matters more than the number.' },
+  general:     { repLow:8, repHigh:12, increment:{ lower:2.5, upper:1.25 }, label:'General / mixed — standard 8-12 rep range.' }
+};
+
+function applySessionFocusDefault(){
+  const select = document.getElementById('sessionFocus');
+  getCurrentGoals(document.getElementById('trainingDate').value).then(goals=>{
+    if(goals && goals.primary && SESSION_FOCUS_INFO[goals.primary.type]){
+      select.value = goals.primary.type;
+    }
+    document.getElementById('sessionFocusNote').textContent = SESSION_FOCUS_INFO[select.value].label;
+  });
+}
+document.getElementById('sessionFocus').addEventListener('change', ()=>{
+  document.getElementById('sessionFocusNote').textContent = SESSION_FOCUS_INFO[document.getElementById('sessionFocus').value].label;
+});
+
+function suggestedIncrement(area){
+  const lowerBody = ['quads_knees','hamstrings','hips'].includes(area);
+  return lowerBody ? 2.5 : 1.25;
+}
+
+// Recovery-gated: if today's scores look poor, progression suggestions hold rather than
+// advance — same spirit as the REDUCE logic, applied at the individual-exercise level.
+async function getTodayRecoveryGate(){
+  try{
+    const r = await window.storage.get(keyFor(todayStr));
+    const entry = JSON.parse(r.value);
+    const trailing = await getTrailingAverages(todayStr);
+    const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
+    const goalT = currentGoalThresholds();
+    if((targetScore!=null && targetScore < goalT.scoreLow) || (adaptiveScore!=null && adaptiveScore < goalT.scoreLow)){
+      return 'poor';
+    }
+    return 'normal';
+  } catch(e){ return 'unknown'; }
+}
+
+// Double progression: advance weight once you hit the top of the goal-appropriate rep
+// range, otherwise add a rep at the same weight. Holds (or nudges down) if reps have
+// stalled below range for 2 sessions running, or if today's recovery looks poor.
+async function suggestProgression(exerciseName, area, focus){
+  const sessions = await getAllTrainingSessions();
+  const history = [];
+  sessions.forEach(s=>{
+    if(s.type==='strength' && s.exercises){
+      s.exercises.forEach(e=>{
+        if(e.name && exerciseName && e.name.trim().toLowerCase()===exerciseName.trim().toLowerCase() && e.weight){
+          history.push({ date: s.date, sets: e.sets, reps: e.reps, weight: e.weight });
+        }
+      });
+    }
+  });
+  if(history.length === 0) return null;
+  history.sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const last = history[history.length-1];
+  const prior = history.length>=2 ? history[history.length-2] : null;
+
+  const info = SESSION_FOCUS_INFO[focus] || SESSION_FOCUS_INFO.general;
+  const inc = suggestedIncrement(area);
+  const gate = await getTodayRecoveryGate();
+
+  if(gate === 'poor'){
+    return { sets: last.sets, reps: last.reps, weight: last.weight, note: 'Repeat last session — today\'s recovery suggests holding rather than progressing' };
+  }
+  if(last.reps >= info.repHigh){
+    return { sets: last.sets, reps: info.repLow, weight: Math.round((last.weight+inc)*2)/2, note: `+${inc}kg — hit top of rep range (${last.reps}) last session` };
+  }
+  if(last.reps < info.repLow && prior && prior.weight === last.weight && prior.reps < info.repLow){
+    return { sets: last.sets, reps: info.repLow, weight: Math.max(0, last.weight - inc), note: `-${inc}kg — reps below target range for 2 sessions running` };
+  }
+  if(last.reps < info.repHigh){
+    return { sets: last.sets, reps: Math.min(info.repHigh, last.reps+1), weight: last.weight, note: `Same weight — building toward ${info.repHigh} reps (last: ${last.reps})` };
+  }
+  return { sets: last.sets, reps: last.reps, weight: last.weight, note: 'Repeat last session' };
+}
+
 async function loadPlanForDate(date){
   const status = document.getElementById('trainingStatusMsg');
   try{
@@ -4482,11 +4956,678 @@ async function loadPlanForDate(date){
   } catch(e){
     document.getElementById('exerciseRows').innerHTML=''; addExerciseRow(); updateVolumeTotal();
   }
+  await applyDeloadSuggestions();
   setTimeout(()=>{status.textContent='';},1500);
 }
-document.getElementById('trainingDate').addEventListener('change', ()=>{
-  if(sessionType==='strength') loadPlanForDate(document.getElementById('trainingDate').value);
+document.getElementById('trainingDate').addEventListener('change', async ()=>{
+  if(sessionType==='strength') await loadPlanForDate(document.getElementById('trainingDate').value);
+  else await applyDeloadSuggestions();
+  applySessionFocusDefault();
 });
+
+/* ---------- WEEKLY PLANNER ---------- */
+/* ---------- UNIFIED SESSION FLOW (Daily view: warm-up → main workout → stretching → cool-down) ---------- */
+function toggleFlowSection(headerId, bodyId){
+  const header = document.getElementById(headerId);
+  const body = document.getElementById(bodyId);
+  header.addEventListener('click', ()=>{
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    header.classList.toggle('active', !isOpen);
+  });
+}
+toggleFlowSection('mainWorkoutFlowHeader', 'mainWorkoutFlowBody');
+toggleFlowSection('stretchFlowHeader', 'stretchFlowBody');
+toggleFlowSection('cooldownFlowHeader', 'cooldownFlowBody');
+
+document.getElementById('jumpToWarmupBtn').addEventListener('click', ()=>activateTrainingSubView('warmup'));
+
+async function renderTodaySessionStretch(){
+  const container = document.getElementById('todaySessionStretchCards');
+  container.innerHTML = '<div class="skeleton tall"></div>';
+  const { ordered, injuryByArea, loadFlagged, runFlagged, alreadyStretched } = await computePostExerciseAreas();
+  const remaining = ordered.filter(a=>!alreadyStretched[a]);
+  if(remaining.length === 0){
+    container.innerHTML = ordered.length
+      ? '<div class="log-entry">Everything flagged already stretched today.</div>'
+      : '<div class="log-entry">Log or plan training to generate stretching focus.</div>';
+    return;
+  }
+  const { selected } = selectWithinBudget(remaining, injuryByArea, MOBILITY_TIME_CAP, MOBILITY_TIME_PER_AREA);
+  let html = '';
+  selected.forEach(area=>{
+    const proto = MOBILITY_LIBRARY[area];
+    if(!proto) return;
+    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
+    html += `<div class="warm-card ${r.cls}" style="margin-bottom:8px;"><div class="warm-area">${BODY_AREAS[area]}</div><div class="warm-reason ${r.reasonCls}">${r.text}</div><div class="warm-drills"><strong style="color:var(--text);">Foam roll</strong> — ${proto.foamRoll}<br><br><strong style="color:var(--text);">Dynamic</strong> — ${proto.dynamic}</div></div>`;
+  });
+  container.innerHTML = html || '<div class="log-entry">Nothing to show.</div>';
+}
+document.getElementById('refreshTodayStretchBtn').addEventListener('click', renderTodaySessionStretch);
+
+document.getElementById('hasSecondaryGoal').addEventListener('change', (e)=>{
+  document.getElementById('secondaryGoalFields').style.display = e.target.checked ? 'block' : 'none';
+});
+
+function getWeekDates(){
+  const today = new Date(todayStr);
+  const dow = today.getDay();
+  const diffToMonday = (dow===0) ? -6 : 1-dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate()+diffToMonday);
+  const dates = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(monday);
+    d.setDate(monday.getDate()+i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
+const WEEK_DAY_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+
+// Provisional — within Bell et al.'s 40-60% cut range, same "flagged not fabricated"
+// treatment as every other constant in this app.
+const DELOAD_CUT = 0.5;
+
+function getWeekStartFor(date){
+  const d = new Date(date);
+  const dow = d.getDay();
+  const diffToMonday = (dow===0) ? -6 : 1-dow;
+  const monday = new Date(d);
+  monday.setDate(d.getDate()+diffToMonday);
+  return monday.toISOString().slice(0,10);
+}
+
+async function isDeloadWeek(date){
+  const weekStart = getWeekStartFor(date);
+  try{
+    const r = await window.storage.get(`weekmeta:${weekStart}`);
+    const meta = JSON.parse(r.value);
+    return !!meta.deload;
+  } catch(e){ return false; }
+}
+
+async function getTypicalValue(type, exerciseName){
+  const sessions = await getAllTrainingSessions();
+  const matches = [];
+  sessions.forEach(s=>{
+    if(type==='strength' && s.type==='strength' && s.exercises){
+      s.exercises.forEach(e=>{
+        if(e.name && exerciseName && e.name.trim().toLowerCase()===exerciseName.trim().toLowerCase() && e.sets){
+          matches.push(e.sets);
+        }
+      });
+    }
+    if(type==='run' && s.type==='run' && s.distanceKm){
+      matches.push(s.distanceKm);
+    }
+  });
+  if(matches.length===0) return null;
+  const recent = matches.slice(-3);
+  return recent.reduce((a,b)=>a+b,0)/recent.length;
+}
+
+async function applyDeloadSuggestions(){
+  const banner = document.getElementById('deloadBanner');
+  const date = document.getElementById('trainingDate').value;
+  const isDeload = await isDeloadWeek(date);
+  if(banner) banner.style.display = isDeload ? 'block' : 'none';
+  if(!isDeload) return;
+
+  if(sessionType === 'strength'){
+    for(const row of document.querySelectorAll('.exercise-row')){
+      const nameInput = row.querySelector('.ex-name');
+      const setsInput = row.querySelector('.ex-sets');
+      if(nameInput.value && !setsInput.value){
+        const typical = await getTypicalValue('strength', nameInput.value);
+        if(typical!=null){
+          setsInput.value = Math.max(1, Math.round(typical*(1-DELOAD_CUT)));
+          updateVolumeTotal();
+        }
+      }
+    }
+  } else if(sessionType === 'run'){
+    const distInput = document.getElementById('runDistance');
+    if(!distInput.value){
+      const typical = await getTypicalValue('run', null);
+      if(typical!=null){
+        distInput.value = Math.round(typical*(1-DELOAD_CUT)*100)/100;
+      }
+    }
+  }
+}
+
+function blockSummary(block){
+  if(block.type==='strength'){
+    const n = (block.details.exercises||[]).length;
+    return n ? `${n} exercise${n===1?'':'s'}` : 'tap to plan';
+  }
+  if(block.type==='run'){
+    if(!block.details.runType && !block.details.distanceKm) return 'tap to plan';
+    return [block.details.runType, block.details.distanceKm ? `${block.details.distanceKm}km` : null].filter(Boolean).join(' · ');
+  }
+  if(block.type==='mobility'){
+    const n = (block.details.stretches||[]).length;
+    return n ? `${n} stretch${n===1?'':'es'}` : 'tap to plan';
+  }
+  return '';
+}
+
+function renderSlotContent(slotEl, block){
+  if(block){
+    slotEl.className = `week-slot filled ${block.type}`;
+    slotEl.innerHTML = `<div class="week-slot-type">${block.type}</div><div class="week-slot-summary">${blockSummary(block)}</div>`;
+  } else {
+    slotEl.className = 'week-slot';
+    slotEl.textContent = '+';
+  }
+}
+
+async function renderWeekGrid(){
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  const dates = getWeekDates();
+
+  const checkbox = document.getElementById('deloadWeekCheckbox');
+  try{
+    const r = await window.storage.get(`weekmeta:${dates[0]}`);
+    checkbox.checked = !!JSON.parse(r.value).deload;
+  } catch(e){ checkbox.checked = false; }
+
+  const suggested = await suggestRunTier();
+  const tierSelect = document.getElementById('runTierSelect');
+  const suggestionNote = document.getElementById('runTierSuggestion');
+  if(suggested){
+    tierSelect.value = suggested;
+    suggestionNote.textContent = `Suggested from your trailing 4-week average running distance: ${RUN_PLAN_TEMPLATES[suggested].label}`;
+  } else {
+    suggestionNote.textContent = 'No running history yet to suggest a tier — defaulting to base-building.';
+  }
+
+  for(let i=0;i<7;i++){
+    const date = dates[i];
+    const row = document.createElement('div');
+    row.className = 'week-day-row';
+    const label = document.createElement('div');
+    label.className = 'week-day-label';
+    label.textContent = WEEK_DAY_LABELS[i] + (date===todayStr ? ' •' : '');
+    row.appendChild(label);
+    for(const slot of ['am','pm']){
+      const slotEl = document.createElement('div');
+      slotEl.dataset.date = date;
+      slotEl.dataset.slot = slot;
+      let block = null;
+      try{
+        const r = await window.storage.get(`weekplan:${date}:${slot}`);
+        block = JSON.parse(r.value);
+      } catch(e){}
+      renderSlotContent(slotEl, block);
+      slotEl.addEventListener('click', ()=> openBlockEditor(date, slot, block));
+      slotEl.addEventListener('dragover', e=>{ e.preventDefault(); slotEl.classList.add('drag-over'); });
+      slotEl.addEventListener('dragleave', ()=> slotEl.classList.remove('drag-over'));
+      slotEl.addEventListener('drop', e=>{
+        e.preventDefault();
+        slotEl.classList.remove('drag-over');
+        const type = e.dataTransfer.getData('text/block-type');
+        if(type) placeBlock(date, slot, type);
+      });
+      row.appendChild(slotEl);
+    }
+    grid.appendChild(row);
+  }
+}
+
+document.getElementById('deloadWeekCheckbox').addEventListener('change', async (e)=>{
+  const weekStart = getWeekDates()[0];
+  try{
+    await window.storage.set(`weekmeta:${weekStart}`, JSON.stringify({ deload: e.target.checked }));
+    showToast(e.target.checked ? 'Deload week set' : 'Deload week cleared');
+  } catch(err){
+    showToast('Save failed — try again', true);
+    e.target.checked = !e.target.checked;
+  }
+});
+
+document.getElementById('generateRunPlanBtn').addEventListener('click', async ()=>{
+  const tierKey = document.getElementById('runTierSelect').value;
+  const result = document.getElementById('runPlanResult');
+  result.textContent = 'Generating...';
+  try{
+    const { placed, tier, goalNote } = await generateRunPlan(tierKey);
+    if(placed === 0){
+      result.textContent = 'No empty days this week — clear a slot first or edit existing blocks directly.';
+      result.style.color = 'var(--warn)';
+    } else {
+      result.textContent = `Placed ${placed} run${placed===1?'':'s'} (${RUN_PLAN_TEMPLATES[tier].label}) into empty days. Tap any to add distance targets or adjust.${goalNote ? ' ' + goalNote + '.' : ''}`;
+      result.style.color = 'var(--good)';
+      showToast(`${placed} runs scheduled`);
+      renderWeekGrid();
+    }
+  } catch(e){
+    result.textContent = 'Generation failed — try again.';
+    result.style.color = 'var(--bad)';
+  }
+});
+
+async function placeBlock(date, slot, type){
+  const block = { type, details: type==='strength' ? {exercises:[]} : type==='run' ? {distanceKm:null, notes:''} : {stretches:[]} };
+  try{
+    const result = await window.storage.set(`weekplan:${date}:${slot}`, JSON.stringify(block));
+    if(!result) throw new Error('save failed');
+    showToast(`${type} scheduled`);
+  } catch(e){ showToast('Save failed — try again', true); return; }
+  await renderWeekGrid();
+  openBlockEditor(date, slot, block);
+}
+
+// Desktop drag (mouse)
+document.querySelectorAll('.block-chip').forEach(chip=>{
+  chip.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/block-type', chip.dataset.blockType);
+    chip.classList.add('dragging');
+  });
+  chip.addEventListener('dragend', ()=> chip.classList.remove('dragging'));
+});
+
+// Touch drag (mobile — the actual target device for this app)
+let touchDragType = null;
+let touchDragClone = null;
+function moveClone(touch){
+  if(!touchDragClone) return;
+  touchDragClone.style.left = (touch.clientX - 40) + 'px';
+  touchDragClone.style.top = (touch.clientY - 20) + 'px';
+}
+function highlightSlotUnder(touch){
+  document.querySelectorAll('.week-slot').forEach(s=>s.classList.remove('drag-over'));
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const slotEl = el ? el.closest('.week-slot') : null;
+  if(slotEl) slotEl.classList.add('drag-over');
+}
+document.querySelectorAll('.block-chip').forEach(chip=>{
+  chip.addEventListener('touchstart', e=>{
+    touchDragType = chip.dataset.blockType;
+    const rect = chip.getBoundingClientRect();
+    touchDragClone = chip.cloneNode(true);
+    touchDragClone.style.position = 'fixed';
+    touchDragClone.style.width = rect.width+'px';
+    touchDragClone.style.zIndex = 999;
+    touchDragClone.style.pointerEvents = 'none';
+    touchDragClone.style.opacity = '0.85';
+    document.body.appendChild(touchDragClone);
+    chip.classList.add('dragging');
+    moveClone(e.touches[0]);
+  }, {passive:true});
+  chip.addEventListener('touchmove', e=>{
+    if(!touchDragClone) return;
+    moveClone(e.touches[0]);
+    highlightSlotUnder(e.touches[0]);
+  }, {passive:true});
+  chip.addEventListener('touchend', e=>{
+    if(!touchDragClone) return;
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slotEl = el ? el.closest('.week-slot') : null;
+    document.querySelectorAll('.week-slot').forEach(s=>s.classList.remove('drag-over'));
+    document.querySelectorAll('.block-chip').forEach(c=>c.classList.remove('dragging'));
+    touchDragClone.remove();
+    touchDragClone = null;
+    if(slotEl && touchDragType){
+      placeBlock(slotEl.dataset.date, slotEl.dataset.slot, touchDragType);
+    }
+    touchDragType = null;
+  });
+});
+
+function openBlockEditor(date, slot, block){
+  const panel = document.getElementById('blockEditPanel');
+  if(!block){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
+  let fieldsHtml = '';
+  if(block.type === 'strength'){
+    fieldsHtml = `<div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
+  } else if(block.type === 'run'){
+    fieldsHtml = `
+      <div class="edit-row"><select id="weekRunType">
+        <option value="">— type —</option>
+        <option value="easy" ${block.details.runType==='easy'?'selected':''}>Easy / Recovery</option>
+        <option value="long" ${block.details.runType==='long'?'selected':''}>Long run</option>
+        <option value="tempo" ${block.details.runType==='tempo'?'selected':''}>Tempo / Threshold</option>
+        <option value="interval" ${block.details.runType==='interval'?'selected':''}>Intervals</option>
+        <option value="sprint" ${block.details.runType==='sprint'?'selected':''}>Sprints / Strides</option>
+        <option value="race" ${block.details.runType==='race'?'selected':''}>Race</option>
+      </select></div>
+      <div class="edit-row"><input type="number" id="weekRunDistance" placeholder="target distance (km)" value="${block.details.distanceKm ?? ''}"></div>
+      <div class="edit-row"><input type="text" id="weekRunNotes" placeholder="notes" value="${block.details.notes||''}"></div>`;
+  } else if(block.type === 'mobility'){
+    fieldsHtml = `<div id="weekStretchRows"></div><div class="add-row" id="addWeekStretchRow">+ add stretch</div>`;
+  }
+  panel.innerHTML = `
+    <div class="score-note" style="margin-bottom:12px;">${dayLabel} ${slot.toUpperCase()} — ${block.type}</div>
+    ${fieldsHtml}
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button id="deleteWeekBlockBtn" class="small">Delete</button>
+      <button id="saveWeekBlockBtn" class="primary">Save</button>
+    </div>`;
+
+  if(block.type==='strength'){
+    const rowsContainer = document.getElementById('weekExerciseRows');
+    function addWeekExRow(name='', area='', secondaryArea='', movement=''){
+      const row = document.createElement('div');
+      row.className = 'edit-row';
+      row.innerHTML = `
+        <input type="text" class="week-ex-name" placeholder="exercise" value="${name}">
+        <select class="week-ex-area">${areaOptionsHtml(area)}</select>
+        <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
+        <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
+        <span class="remove-row">×</span>`;
+      row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+      rowsContainer.appendChild(row);
+    }
+    (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex.name, ex.area, ex.secondaryArea, ex.movement));
+    if((block.details.exercises||[]).length===0) addWeekExRow();
+    document.getElementById('addWeekExerciseRow').addEventListener('click', ()=>addWeekExRow());
+  }
+
+  if(block.type==='mobility'){
+    const rowsContainer = document.getElementById('weekStretchRows');
+    function addWeekStretchRow(name='', area=''){
+      const row = document.createElement('div');
+      row.className = 'edit-row';
+      row.innerHTML = `
+        <input type="text" class="week-st-name" placeholder="stretch" value="${name}">
+        <select class="week-st-area">${areaOptionsHtml(area)}</select>
+        <span class="remove-row">×</span>`;
+      row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+      rowsContainer.appendChild(row);
+    }
+    (block.details.stretches||[]).forEach(st=>addWeekStretchRow(st.name, st.area));
+    if((block.details.stretches||[]).length===0) addWeekStretchRow();
+    document.getElementById('addWeekStretchRow').addEventListener('click', ()=>addWeekStretchRow());
+  }
+
+  document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
+    try{
+      await window.storage.delete(`weekplan:${date}:${slot}`);
+      showToast('Block removed');
+    } catch(e){ showToast('Delete failed — try again', true); }
+    panel.style.display = 'none';
+    renderWeekGrid();
+  });
+
+  document.getElementById('saveWeekBlockBtn').addEventListener('click', async ()=>{
+    let details;
+    if(block.type==='strength'){
+      const exercises = [];
+      document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
+        const name = row.querySelector('.week-ex-name').value.trim();
+        const area = row.querySelector('.week-ex-area').value;
+        const secondaryArea = row.querySelector('.week-ex-area2').value;
+        const movement = row.querySelector('.week-ex-movement').value;
+        if(name) exercises.push({name, area, secondaryArea, movement});
+      });
+      details = { exercises };
+    } else if(block.type==='run'){
+      details = {
+        runType: document.getElementById('weekRunType').value,
+        distanceKm: parseFloat(document.getElementById('weekRunDistance').value) || null,
+        notes: document.getElementById('weekRunNotes').value
+      };
+    } else if(block.type==='mobility'){
+      const stretches = [];
+      document.querySelectorAll('#weekStretchRows .edit-row').forEach(row=>{
+        const name = row.querySelector('.week-st-name').value.trim();
+        const area = row.querySelector('.week-st-area').value;
+        if(name) stretches.push({name, area});
+      });
+      details = { stretches };
+    }
+    try{
+      const result = await window.storage.set(`weekplan:${date}:${slot}`, JSON.stringify({ type: block.type, details }));
+      if(!result) throw new Error('save failed');
+      // mirror strength blocks into planned_session so the Daily tab's existing
+      // "load plan for date" behavior picks this up automatically when that day arrives
+      if(block.type==='strength' && details.exercises.length){
+        await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises: details.exercises }));
+      }
+      showToast('Saved');
+      panel.style.display = 'none';
+      renderWeekGrid();
+    } catch(e){ showToast('Save failed — try again', true); }
+  });
+}
+
+async function getWeekVolumeTotals(dates){
+  const sessions = await getAllTrainingSessions();
+  let strengthVolume = 0, runDistance = 0;
+  sessions.forEach(s=>{
+    if(dates.includes(s.date)){
+      if(s.type==='strength') strengthVolume += (s.totalVolume||0);
+      if(s.type==='run') runDistance += (s.distanceKm||0);
+    }
+  });
+  return { strengthVolume, runDistance };
+}
+
+function shiftWeek(dates, weeksBack){
+  return dates.map(d=>{
+    const dt = new Date(d);
+    dt.setDate(dt.getDate() - 7*weeksBack);
+    return dt.toISOString().slice(0,10);
+  });
+}
+
+// Weekly volume landmarks in sets/week, moderate-to-high intensity, per muscle group.
+// Source: Cowork research synthesis of current dose-response meta-analyses (Schoenfeld,
+// Pelland et al. 2025). Areas without a confident literature mapping (ankles, lower_back)
+// are intentionally left out rather than force-fit to a number that isn't well supported.
+const VOLUME_LANDMARKS = {
+  chest:       { mev: 7, mavLow: 10, mavHigh: 16, mrv: 20 },
+  thoracic:    { mev: 9, mavLow: 12, mavHigh: 18, mrv: 22 },
+  shoulders:   { mev: 7, mavLow: 12, mavHigh: 18, mrv: 23 },
+  quads_knees: { mev: 7, mavLow: 10, mavHigh: 16, mrv: 19 },
+  hamstrings:  { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
+  hips:        { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
+  biceps:      { mev: 5, mavLow: 10, mavHigh: 16, mrv: 22 },
+  triceps:     { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 17 },
+  calves:      { mev: 7, mavLow: 10, mavHigh: 15, mrv: 18 }
+};
+
+async function getWeeklySetsPerArea(dates){
+  const sessions = await getAllTrainingSessions();
+  const setsByArea = {};
+  sessions.forEach(s=>{
+    if(s.type!=='strength' || !s.exercises || !dates.includes(s.date)) return;
+    s.exercises.forEach(e=>{
+      const sets = e.sets || 0;
+      if(e.area){
+        setsByArea[e.area] = (setsByArea[e.area]||0) + sets*(e.secondaryArea ? VOLUME_SPLIT.primary : 1.0);
+      }
+      if(e.secondaryArea){
+        setsByArea[e.secondaryArea] = (setsByArea[e.secondaryArea]||0) + sets*VOLUME_SPLIT.secondary;
+      }
+    });
+  });
+  return setsByArea;
+}
+
+// Personal training tolerance: distinct from Predicted Capacity (which predicts TODAY's
+// capacity from recovery inputs). This asks a different question — at what weekly
+// training volume does THIS person's recovery trend actually start to decline. Reuses
+// the same correlation approach as Predicted Capacity, applied at the weekly level.
+// Gated by Baseline Establishment — needs real history to mean anything.
+async function computeTrainingTolerance(){
+  const baseline = await getBaselineStatus();
+  if(baseline.stage === 'establishing') return { insufficientData: true, reason: 'baseline' };
+
+  const thisWeekDates = getWeekDates();
+  const weeklyPairs = [];
+  for(let w=1; w<=10; w++){
+    const weekDates = shiftWeek(thisWeekDates, w);
+    const totals = await getWeekVolumeTotals(weekDates);
+    // Rough combined-load proxy — km scaled to be roughly comparable in magnitude to
+    // kg-volume. A heuristic, not a validated equivalence.
+    const combinedVolume = totals.strengthVolume + totals.runDistance*50;
+    if(combinedVolume <= 0) continue;
+
+    const nextWeekDates = shiftWeek(thisWeekDates, w-1);
+    let scoreSum=0, scoreN=0;
+    for(const d of nextWeekDates){
+      try{
+        const r = await window.storage.get(keyFor(d));
+        const e = JSON.parse(r.value);
+        const trailing = await getTrailingAverages(d);
+        const { targetScore, adaptiveScore } = scoresForEntry(e, trailing);
+        const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
+        if(parts.length){ scoreSum += parts.reduce((a,b)=>a+b,0)/parts.length; scoreN++; }
+      } catch(err){}
+    }
+    if(scoreN>0) weeklyPairs.push({ volume: combinedVolume, recovery: scoreSum/scoreN });
+  }
+
+  if(weeklyPairs.length < 4) return { insufficientData: true, reason: 'weeks', n: weeklyPairs.length };
+
+  const volumes = weeklyPairs.map(p=>p.volume);
+  const recoveries = weeklyPairs.map(p=>p.recovery);
+  const r = pearson(volumes, recoveries);
+
+  const sorted = [...weeklyPairs].sort((a,b)=>a.volume-b.volume);
+  const mid = Math.floor(sorted.length/2);
+  const lowerHalf = sorted.slice(0,mid);
+  const upperHalf = sorted.slice(mid);
+  const avgRecoveryLower = mean(lowerHalf.map(p=>p.recovery));
+  const avgRecoveryUpper = mean(upperHalf.map(p=>p.recovery));
+  const medianVolume = sorted[mid] ? Math.round(sorted[mid].volume) : null;
+
+  return {
+    n: weeklyPairs.length, r,
+    medianVolume,
+    avgRecoveryLower: Math.round(avgRecoveryLower),
+    avgRecoveryUpper: Math.round(avgRecoveryUpper),
+    flagged: r < -0.3 && (avgRecoveryLower - avgRecoveryUpper) >= 5
+  };
+}
+
+async function renderMacroInsights(){
+  const body = document.getElementById('macroInsightsBody');
+  body.innerHTML = '<div class="skeleton tall"></div>';
+
+  const thisWeekDates = getWeekDates();
+  const thisWeek = await getWeekVolumeTotals(thisWeekDates);
+
+  let priorStrengthSum=0, priorRunSum=0, priorWeeksCounted=0;
+  for(let w=1; w<=4; w++){
+    const dates = shiftWeek(thisWeekDates, w);
+    const totals = await getWeekVolumeTotals(dates);
+    if(totals.strengthVolume>0 || totals.runDistance>0){
+      priorStrengthSum += totals.strengthVolume;
+      priorRunSum += totals.runDistance;
+      priorWeeksCounted++;
+    }
+  }
+  const avgStrength = priorWeeksCounted ? priorStrengthSum/priorWeeksCounted : null;
+  const avgRun = priorWeeksCounted ? priorRunSum/priorWeeksCounted : null;
+
+  let html = '';
+  const strengthPct = (avgStrength && avgStrength>0) ? Math.round(((thisWeek.strengthVolume-avgStrength)/avgStrength)*100) : null;
+  html += `<div class="log-entry"><span>Strength volume</span><span>${thisWeek.strengthVolume.toLocaleString()} kg${strengthPct!=null?` (${strengthPct>=0?'+':''}${strengthPct}% vs avg)`:' (no history yet)'}</span></div>`;
+  const runPct = (avgRun && avgRun>0) ? Math.round(((thisWeek.runDistance-avgRun)/avgRun)*100) : null;
+  html += `<div class="log-entry"><span>Running distance</span><span>${thisWeek.runDistance.toFixed(1)}km${runPct!=null?` (${runPct>=0?'+':''}${runPct}% vs avg)`:' (no history yet)'}</span></div>`;
+
+  if(thisWeek.runDistance > 0){
+    const allSessions = await getAllTrainingSessions();
+    const thisWeekRuns = allSessions.filter(s=>s.type==='run' && thisWeekDates.includes(s.date));
+    const hardDist = thisWeekRuns.filter(s=>['tempo','interval'].includes(s.runType)).reduce((a,s)=>a+(s.distanceKm||0),0);
+    const hardPct = Math.round((hardDist/thisWeek.runDistance)*100);
+    const hardColor = hardPct > 25 ? 'var(--bad)' : 'var(--good)';
+    html += `<div class="log-entry"><span>Tempo + interval share</span><span style="color:${hardColor};">${hardPct}% of weekly distance${hardPct>25?' — above the ~20-25% guardrail':''}</span></div>`;
+  }
+
+  const sessions = await getAllTrainingSessions();
+  const areaTotalsThisWeek = {};
+  const areaTotalsPrior = {};
+  sessions.forEach(s=>{
+    if(s.type!=='strength' || !s.exercises) return;
+    const inThisWeek = thisWeekDates.includes(s.date);
+    const daysAgo = (new Date(todayStr) - new Date(s.date))/(1000*60*60*24);
+    const inPriorWindow = daysAgo>=7 && daysAgo<35;
+    s.exercises.forEach(e=>{
+      Object.keys(BODY_AREAS).forEach(area=>{
+        const v = exerciseAreaVolume(e, area);
+        if(v>0){
+          if(inThisWeek) areaTotalsThisWeek[area] = (areaTotalsThisWeek[area]||0)+v;
+          if(inPriorWindow) areaTotalsPrior[area] = (areaTotalsPrior[area]||0)+v;
+        }
+      });
+    });
+  });
+
+  const areaLines = Object.keys(areaTotalsThisWeek).map(area=>{
+    const thisWk = areaTotalsThisWeek[area];
+    const priorAvg = areaTotalsPrior[area] ? areaTotalsPrior[area]/4 : null;
+    let flag = '';
+    if(priorAvg && priorAvg>0){
+      const pct = Math.round(((thisWk-priorAvg)/priorAvg)*100);
+      if(Math.abs(pct)>=25) flag = ` ${pct>0?'▲':'▼'} ${pct>0?'+':''}${pct}%`;
+    }
+    return { area, thisWk, flag };
+  }).sort((a,b)=>b.thisWk-a.thisWk);
+
+  if(areaLines.length){
+    html += '<div class="log-title" style="margin-top:12px;">By area (this week)</div>';
+    areaLines.forEach(l=>{
+      html += `<div class="log-entry"><span>${BODY_AREAS[l.area]}</span><span>${Math.round(l.thisWk).toLocaleString()} kg${l.flag}</span></div>`;
+    });
+  }
+
+  const weekSets = await getWeeklySetsPerArea(thisWeekDates);
+  const landmarkAreas = Object.keys(weekSets).filter(a=>VOLUME_LANDMARKS[a]);
+  if(landmarkAreas.length){
+    html += '<div class="log-title" style="margin-top:12px;">vs published landmarks (sets/week)</div>';
+    landmarkAreas.sort((a,b)=>weekSets[b]-weekSets[a]).forEach(area=>{
+      const sets = Math.round(weekSets[area]*10)/10;
+      const l = VOLUME_LANDMARKS[area];
+      let note = '';
+      let color = 'var(--dim)';
+      if(sets < l.mev){ note = `below MEV (${l.mev})`; color = 'var(--bad)'; }
+      else if(sets > l.mrv){ note = `above typical MRV (${l.mrv})`; color = 'var(--bad)'; }
+      else if(sets >= l.mavLow && sets <= l.mavHigh){ note = 'within MAV range'; color = 'var(--good)'; }
+      html += `<div class="log-entry"><span>${BODY_AREAS[area]}</span><span style="color:${color};">${sets} sets — ${note}</span></div>`;
+    });
+    html += `<div class="score-note" style="margin-top:8px;">MEV/MAV/MRV = minimum effective / typical productive / upper range before diminishing returns, per current dose-response literature. General landmarks, not personalized — soreness resolution and performance trend matter more than hitting an exact number.</div>`;
+
+    const currentGoal = await getCurrentGoals(todayStr);
+    if(currentGoal && currentGoal.primary){
+      const gt = currentGoal.primary.type;
+      let goalNote = '';
+      if(gt === 'hypertrophy'){
+        goalNote = 'These landmarks are hypertrophy dose-response data — directly relevant to your goal. MAV-high end is a reasonable target if recovery supports it.';
+      } else if(gt === 'strength'){
+        goalNote = 'Heads up: these landmarks come from hypertrophy research, not strength-specific dose-response data. Useful as a rough volume sanity check, but low-rep strength work won\'t map cleanly onto set counts alone.';
+      } else if(gt === 'running'){
+        goalNote = 'Running is your primary goal — these strength landmarks matter less here than staying on the lower end to preserve recovery for running quality.';
+      }
+      if(goalNote) html += `<div class="score-note" style="margin-top:6px; color:var(--accent);">${goalNote}</div>`;
+    }
+  }
+
+  const tolerance = await computeTrainingTolerance();
+  html += '<div class="log-title" style="margin-top:16px;">Training Tolerance</div>';
+  if(tolerance.insufficientData){
+    if(tolerance.reason==='baseline'){
+      html += '<div class="log-entry">Still establishing baseline — see Insights for status.</div>';
+    } else {
+      html += `<div class="log-entry">${tolerance.n||0} of 4 weeks of paired volume+recovery data — needs a bit more history.</div>`;
+    }
+  } else if(tolerance.flagged){
+    html += `<div class="log-entry"><span style="color:var(--warn);">Higher-volume weeks tend to cost you recovery</span></div>`;
+    html += `<div class="score-note">Weeks above ~${tolerance.medianVolume} (combined load) are followed by recovery scores averaging ${tolerance.avgRecoveryLower - tolerance.avgRecoveryUpper}pts lower than lighter weeks (r=${tolerance.r.toFixed(2)}, n=${tolerance.n} weeks). This is a correlation from your own history, not a hard ceiling — worth watching, not a rule.</div>`;
+  } else {
+    html += `<div class="log-entry">No clear volume-vs-recovery pattern yet (r=${tolerance.r.toFixed(2)}, n=${tolerance.n} weeks) — your recovery doesn't show a strong relationship to weekly volume in this window.</div>`;
+  }
+
+  body.innerHTML = html;
+}
 
 /* ---------- INJURIES ---------- */
 function severityNow(initial, onsetDate, halfLife){
@@ -4502,6 +5643,7 @@ function severityAtDaysAgo(initial, onsetDate, halfLife, daysAgo){
 
 async function addInjury(){
   const part = document.getElementById('injuryPart').value.trim();
+  const type = document.getElementById('injuryType').value;
   const date = document.getElementById('injuryDate').value;
   const severity = parseFloat(document.getElementById('injurySeverity').value);
   const halfLife = parseFloat(document.getElementById('injuryHalfLife').value) || 14;
@@ -4509,12 +5651,13 @@ async function addInjury(){
   if(!part){ showToast('Enter a body part', true); return; }
   if(isNaN(severity)){ showToast('Enter a severity (1-10)', true); return; }
   const id = Date.now().toString();
-  const injury = { id, part, date, initialSeverity: severity, halfLife, notes, resolved: false };
+  const injury = { id, part, type, date, initialSeverity: severity, halfLife, notes, resolved: false };
   try{
     const result = await window.storage.set(`injury:${id}`, JSON.stringify(injury));
     if(!result) throw new Error('save failed');
     document.getElementById('injuryPart').value=''; document.getElementById('injurySeverity').value='';
     document.getElementById('injuryNotes').value=''; document.getElementById('injuryHalfLife').value='14';
+    document.getElementById('injuryType').value='general';
     showToast('Injury logged');
     refreshInjuries();
   } catch(e){
@@ -4568,7 +5711,7 @@ async function refreshInjuries(){
             <div class="mini-gauge-num" style="color:${sevColor};">${inj.resolved ? '✓' : sev.toFixed(1)}</div>
           </div>
         </div>
-        <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity} ${trendArrow}</div>
+        <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
         ${inj.notes ? `<div style="font-size:12px;margin-top:6px;color:var(--dim);">${inj.notes}</div>` : ''}
         <div class="injury-actions">
           ${!inj.resolved ? `<button class="small resolve-btn" data-id="${inj.id}">Mark resolved</button>` : ''}
@@ -4603,18 +5746,18 @@ async function refreshInjuries(){
 const REC_THRESH = { injurySeverityFlag: 3, injurySevereBlock: 5 }; // score/load thresholds now come from currentGoalThresholds()
 
 function scoresForEntry(entry, trailing){
-  const duration = entry.durationHrs, wake = entry.wakeOura, hrv = entry.hrvGarmin, hrvBaseline = entry.hrvBaseline;
+  const duration = entry.durationHrs, wakeTime = entry.wakeTimeOura, hrv = entry.hrvGarmin, hrvBaseline = entry.hrvBaseline;
   const tParts = [];
   if(duration!=null) tParts.push(clamp(duration/8*100,0,100));
-  if(wake!=null) tParts.push(clamp(100-wake*15,0,100));
+  if(wakeTime!=null) tParts.push(clamp(100-wakeTime*WAKE_TIME_PENALTY,0,100));
   if(hrv!=null && hrvBaseline) tParts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const targetScore = tParts.length ? Math.round(tParts.reduce((a,b)=>a+b,0)/tParts.length) : null;
 
   const aParts = [];
   if(duration!=null && trailing && trailing.avgDuration) aParts.push(clamp(duration/trailing.avgDuration*100,0,100));
   else if(duration!=null) aParts.push(clamp(duration/8*100,0,100));
-  if(wake!=null && trailing && trailing.avgWake!=null) aParts.push(clamp(100-(wake-trailing.avgWake)*15,0,100));
-  else if(wake!=null) aParts.push(clamp(100-wake*15,0,100));
+  if(wakeTime!=null && trailing && trailing.avgWakeTime!=null) aParts.push(clamp(100-(wakeTime-trailing.avgWakeTime)*WAKE_TIME_PENALTY,0,100));
+  else if(wakeTime!=null) aParts.push(clamp(100-wakeTime*WAKE_TIME_PENALTY,0,100));
   if(hrv!=null && trailing && trailing.avgHRV) aParts.push(clamp(hrv/trailing.avgHRV*100,0,100));
   else if(hrv!=null && hrvBaseline) aParts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const adaptiveScore = aParts.length ? Math.round(aParts.reduce((a,b)=>a+b,0)/aParts.length) : null;
@@ -4625,7 +5768,7 @@ function scoresForEntry(entry, trailing){
 async function capacityLabelForEntry(entry){
   const pairs = await getPairedData();
   if(pairs.length < 7) return { label:null, r:null };
-  const predictorKeys = ['duration','hrvRatio','wake','rhr'];
+  const predictorKeys = ['duration','hrvRatio','wakeTime','rhr'];
   const weights = {};
   predictorKeys.forEach(key=>{
     const valid = pairs.filter(p=>p[key]!=null && !isNaN(p[key]));
@@ -4634,7 +5777,7 @@ async function capacityLabelForEntry(entry){
     }
   });
   const hrvRatio = (entry.hrvGarmin!=null && entry.hrvBaseline) ? entry.hrvGarmin/entry.hrvBaseline : null;
-  const vals = { duration: entry.durationHrs, hrvRatio, wake: entry.wakeOura, rhr: entry.restingHR };
+  const vals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura, rhr: entry.restingHR };
   let sum=0, tot=0;
   predictorKeys.forEach(key=>{
     const w = weights[key], v = vals[key];
@@ -4662,6 +5805,8 @@ async function getActiveInjuries(){
 
 let cardQueue = [];
 let cardQueueIndex = 0;
+let lastDecisionKey = null;
+let lastDecisionIndex = null;
 
 function buildRecCard(type, title, signals, confidence, meta){
   const card = document.createElement('div');
@@ -4718,14 +5863,34 @@ function showNextCard(){
 async function logRecDecision(type, meta, decision, card){
   const id = Date.now().toString();
   try{
-    const result = await window.storage.set(`rec:${todayStr}:${id}`, JSON.stringify({ date: todayStr, type, meta, decision, timestamp: Date.now() }));
+    const key = `rec:${todayStr}:${id}`;
+    const result = await window.storage.set(key, JSON.stringify({ date: todayStr, type, meta, decision, timestamp: Date.now() }));
     if(!result) throw new Error('save failed');
     showToast(decision==='accepted' ? 'Accepted' : 'Dismissed');
+    lastDecisionKey = key;
+    lastDecisionIndex = cardQueueIndex;
+    document.getElementById('undoDecisionBtn').style.display = 'block';
   } catch(e){ showToast('Save failed — try again', true); console.error(e); }
   cardQueueIndex++;
   setTimeout(showNextCard, 220);
   refreshRecHistory();
 }
+
+document.getElementById('undoDecisionBtn').addEventListener('click', async ()=>{
+  if(lastDecisionKey == null) return;
+  try{
+    await window.storage.delete(lastDecisionKey);
+    cardQueueIndex = lastDecisionIndex;
+    lastDecisionKey = null;
+    lastDecisionIndex = null;
+    document.getElementById('undoDecisionBtn').style.display = 'none';
+    showNextCard();
+    refreshRecHistory();
+    showToast('Undone — card restored');
+  } catch(e){
+    showToast('Undo failed — try again', true);
+  }
+});
 
 async function getAcceptanceStats(){
   const res = await window.storage.list('rec:');
@@ -4786,8 +5951,14 @@ async function checkReturnToRunRule(){
   });
   if(lastWeek === 0 || thisWeek === 0) return null;   // gap but not a true 35-day restart — stay silent, not enough signal
   const increase = (thisWeek-lastWeek)/lastWeek;
+  // Per Nielsen et al. (2014): 10% functions as a soft reference, not a validated
+  // sharp cutoff — the evidence more clearly supports treating >30% as the thing
+  // to actively avoid. Flag both, but distinguish severity.
+  if(increase > 0.30){
+    return { mode:'weekly', severity:'hard', thisWeek, lastWeek, increasePct: Math.round(increase*100) };
+  }
   if(increase > 0.10){
-    return { mode:'weekly', thisWeek, lastWeek, increasePct: Math.round(increase*100) };
+    return { mode:'weekly', severity:'soft', thisWeek, lastWeek, increasePct: Math.round(increase*100) };
   }
   return null;
 }
@@ -4813,9 +5984,508 @@ function updateOverallScore(targetScore, adaptiveScore, goalT){
   else { out.style.color='var(--warn)'; gauge.style.stroke='var(--warn)'; label.textContent='Overall — typical'; }
 }
 
+async function isRestDayComing(daysAhead){
+  const d = new Date(todayStr);
+  d.setDate(d.getDate() + daysAhead);
+  const dateStr = d.toISOString().slice(0,10);
+  let hasBlock = false;
+  for(const slot of ['am','pm']){
+    try{ await window.storage.get(`weekplan:${dateStr}:${slot}`); hasBlock = true; } catch(e){}
+  }
+  return { isRest: !hasBlock, date: dateStr };
+}
+
+const LOWER_BODY_AREAS = ['hips','hamstrings','quads_knees','calves'];
+function isLowerBodyHeavySession(session){
+  if(session.type!=='strength' || !session.exercises || session.exercises.length===0) return false;
+  let lowerVol = 0, totalVol = 0;
+  session.exercises.forEach(e=>{
+    const vol = e.volume || 0;
+    totalVol += vol;
+    if(LOWER_BODY_AREAS.includes(e.area)) lowerVol += vol;
+  });
+  return totalVol > 0 && (lowerVol/totalVol) >= 0.5;
+}
+
+// Cross-modal 48h spacing — the research's clearest weekly-structuring finding: heavy
+// lower-body strength and quality running compete for the same recovery budget
+// (quads/hamstrings/glutes/calves + connective tissue), so hard-day spacing should span
+// both modalities, not just run-to-run. [heuristic extension of Doma et al. mechanisms,
+// not a directly-tested weekly cadence — flagged in the app the same way]
+async function checkCrossModalSpacing(){
+  const sessions = await getAllTrainingSessions();
+  const lowerBodyDays = sessions.filter(isLowerBodyHeavySession)
+    .map(s=>({ date: s.date, kind: 'lower-body strength' }));
+  const qualityRuns = sessions.filter(s=>s.type==='run' && ['tempo','interval','long'].includes(s.runType))
+    .map(s=>({ date: s.date, kind: `${s.runType} run` }));
+  const all = [...lowerBodyDays, ...qualityRuns].sort((a,b)=> new Date(a.date)-new Date(b.date));
+  for(let i=1;i<all.length;i++){
+    if(all[i].kind === all[i-1].kind) continue; // same-modality pairs handled by checkHardDaySpacing
+    const hoursApart = (new Date(all[i].date) - new Date(all[i-1].date))/(1000*60*60);
+    const daysAgo = (new Date(todayStr) - new Date(all[i].date))/(1000*60*60*24);
+    if(hoursApart < 48 && daysAgo >= 0 && daysAgo <= 7){
+      return { a: all[i-1], b: all[i], hoursApart: Math.round(hoursApart) };
+    }
+  }
+  return null;
+}
+
+async function checkHardDaySpacing(){
+  const sessions = await getAllTrainingSessions();
+  const hardRuns = sessions.filter(s=>s.type==='run' && ['tempo','interval'].includes(s.runType))
+    .sort((a,b)=> new Date(a.date)-new Date(b.date));
+  for(let i=1;i<hardRuns.length;i++){
+    const hoursApart = (new Date(hardRuns[i].date) - new Date(hardRuns[i-1].date))/(1000*60*60);
+    const daysAgo = (new Date(todayStr) - new Date(hardRuns[i].date))/(1000*60*60*24);
+    if(hoursApart < 48 && daysAgo >= 0 && daysAgo <= 7){
+      return { a: hardRuns[i-1], b: hardRuns[i], hoursApart: Math.round(hoursApart) };
+    }
+  }
+  return null;
+}
+
+async function getRestingHRBaseline(beforeDate){
+  const res = await window.storage.list('entry:');
+  if(!res||!res.keys) return null;
+  const dates = res.keys.map(k=>k.replace('entry:','')).filter(d=>d<beforeDate).sort().reverse().slice(0,7);
+  let sum=0, n=0;
+  for(const d of dates){
+    try{
+      const r = await window.storage.get(keyFor(d));
+      const e = JSON.parse(r.value);
+      if(e.restingHR!=null){ sum+=e.restingHR; n++; }
+    } catch(err){}
+  }
+  return n ? sum/n : null;
+}
+
+// Readiness gate for a scheduled hard (tempo/interval) run.
+// Fires only if 2+ of the 3 objective signals are present (no RPE/soreness input, since
+// this app deliberately excludes subjective tracking).
+async function checkHRVDecline3Day(){
+  // A single low HRV reading isn't a fatigue signal (Buchheit 2014 — HRV can follow a
+  // bell-shaped trajectory across a training block, so a lone dip can reflect normal
+  // adaptation rather than accumulating fatigue). This checks for a genuine 3-consecutive-
+  // day pattern of being below your own rolling baseline, not a single morning reading.
+  const ratios = [];
+  for(let i=0;i<3;i++){
+    const d = new Date(todayStr); d.setDate(d.getDate()-i);
+    const dateStr = d.toISOString().slice(0,10);
+    try{
+      const r = await window.storage.get(keyFor(dateStr));
+      const e = JSON.parse(r.value);
+      if(e.hrvGarmin!=null && e.hrvBaseline){
+        ratios.push(e.hrvGarmin/e.hrvBaseline);
+      } else {
+        return { declining: false }; // missing data breaks the consecutive-day check
+      }
+    } catch(err){ return { declining: false }; }
+  }
+  const declining = ratios.length === 3 && ratios.every(r=>r < 1);
+  return { declining, ratios };
+}
+
+async function checkHardSessionReadiness(entry){
+  let todayRunType = null;
+  for(const slot of ['am','pm']){
+    try{
+      const r = await window.storage.get(`weekplan:${todayStr}:${slot}`);
+      const block = JSON.parse(r.value);
+      if(block.type==='run' && ['tempo','interval'].includes(block.details.runType)) todayRunType = block.details.runType;
+    } catch(e){}
+  }
+  if(!todayRunType) return null;
+
+  const reasons = [];
+  const rhrBaseline = await getRestingHRBaseline(todayStr);
+  if(entry.restingHR!=null && rhrBaseline!=null && entry.restingHR > rhrBaseline+5){
+    reasons.push(`Resting HR ${entry.restingHR} is ${(entry.restingHR-rhrBaseline).toFixed(1)}bpm above your 7-day baseline (${rhrBaseline.toFixed(1)})`);
+  }
+  const hrvTrend = await checkHRVDecline3Day();
+  if(hrvTrend.declining){
+    reasons.push(`HRV has been below your rolling baseline for 3 consecutive days — a sustained trend, not a single low reading`);
+  }
+  if(entry.durationHrs!=null && entry.durationHrs < 6){
+    reasons.push(`Sleep ${entry.durationHrs}h — under 6h last night`);
+  }
+  // Cross-modal signal: resistance training itself measurably suppresses HRV/parasympathetic
+  // markers (Marasingha-Arachchige et al. 2022), so a heavy lower-body session yesterday is a
+  // plausible real contributor to today's readiness — not just prior running load.
+  const yesterday = new Date(todayStr); yesterday.setDate(yesterday.getDate()-1);
+  const yesterdayStr = yesterday.toISOString().slice(0,10);
+  const sessions = await getAllTrainingSessions();
+  const hadHeavyLowerBodyYesterday = sessions.some(s=> s.date===yesterdayStr && isLowerBodyHeavySession(s));
+  if(hadHeavyLowerBodyYesterday){
+    reasons.push(`Heavy lower-body strength session yesterday — resistance training itself suppresses HRV/recovery markers, plausibly contributing to today's readiness independent of running load`);
+  }
+  if(reasons.length >= 2) return { runType: todayRunType, reasons };
+  return null;
+}
+
+// Weekly run templates by training-load tier, from Cowork's running research.
+// Base-building deliberately has qualityCount:0 — "build 8-12 weeks of easy volume
+// first" per the source. Distance ranges in km (converted from the source's mi ranges).
+const RUN_PLAN_TEMPLATES = {
+  base:         { label: 'Base-building / novice', runsPerWeek: 4, longCount: 1, qualityCount: 0, minKm: 24, maxKm: 40 },
+  intermediate: { label: 'Intermediate',            runsPerWeek: 5, longCount: 1, qualityCount: 1, minKm: 40, maxKm: 64 },
+  advanced:     { label: 'Advanced recreational',   runsPerWeek: 6, longCount: 1, qualityCount: 2, minKm: 64, maxKm: 88 }
+};
+
+/* ---------- GOALS ---------- */
+const GOAL_TYPE_LABELS = {
+  strength:'Strength', hypertrophy:'Hypertrophy / muscle gain', running:'Running performance', speed:'Speed (race time)',
+  general_fitness:'General fitness', body_composition:'Body composition', mobility:'Mobility', hybrid:'Hybrid'
+};
+
+async function getCurrentGoals(asOfDate){
+  const res = await window.storage.list('goals:');
+  if(!res||!res.keys||res.keys.length===0) return null;
+  const dates = res.keys.map(k=>k.replace('goals:','')).filter(d=>d<=(asOfDate||todayStr)).sort().reverse();
+  if(dates.length===0) return null;
+  try{ const r = await window.storage.get(`goals:${dates[0]}`); return JSON.parse(r.value); } catch(e){ return null; }
+}
+
+async function loadCurrentGoals(){
+  const goals = await getCurrentGoals(todayStr);
+  if(goals && goals.primary){
+    document.getElementById('primaryGoalType').value = goals.primary.type || 'strength';
+    document.getElementById('primaryGoalDetail').value = goals.primary.detail || '';
+    document.getElementById('primaryGoalExercise').value = goals.primary.targetExercise || '';
+    document.getElementById('primaryGoalWeight').value = goals.primary.targetWeight ?? '';
+    document.getElementById('primaryGoalDistance').value = goals.primary.targetDistance ?? '';
+    document.getElementById('primaryGoalTime').value = goals.primary.targetTime ?? '';
+    document.getElementById('primaryGoalDate').value = goals.primary.targetDate || '';
+    if(goals.secondary){
+      document.getElementById('hasSecondaryGoal').checked = true;
+      document.getElementById('secondaryGoalFields').style.display = 'block';
+      document.getElementById('secondaryGoalType').value = goals.secondary.type || 'general_fitness';
+      document.getElementById('secondaryGoalDetail').value = goals.secondary.detail || '';
+      document.getElementById('secondaryGoalMaintenance').checked = !!goals.secondary.isMaintenance;
+    } else {
+      document.getElementById('hasSecondaryGoal').checked = false;
+      document.getElementById('secondaryGoalFields').style.display = 'none';
+    }
+  }
+  await renderGoalProgress();
+}
+
+// Shared current-value lookup, reused by the timeline (keeps the per-type lookup logic
+// in one place rather than duplicated between the progress card and timeline checks).
+async function getGoalCurrentValue(p){
+  if((p.type==='strength' || p.type==='hypertrophy') && p.targetExercise && p.targetWeight){
+    const sessions = await getAllTrainingSessions();
+    let best = null;
+    sessions.forEach(s=>{
+      if(s.type==='strength' && s.exercises){
+        s.exercises.forEach(e=>{
+          if(e.name && e.name.trim().toLowerCase()===p.targetExercise.trim().toLowerCase() && e.weight){
+            if(!best || e.weight > best.weight) best = { weight: e.weight, date: s.date };
+          }
+        });
+      }
+    });
+    return best ? { value: best.weight, unit:'kg', better:'higher' } : null;
+  }
+  if(p.type==='running' && p.targetDistance){
+    const sessions = await getAllTrainingSessions();
+    const now = new Date(todayStr);
+    let longest = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm){
+        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
+        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
+      }
+    });
+    return longest ? { value: longest.distanceKm, unit:'km', better:'higher' } : null;
+  }
+  if(p.type==='speed' && p.targetDistance && p.targetTime){
+    const sessions = await getAllTrainingSessions();
+    const now = new Date(todayStr);
+    let bestProjected = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm && s.durationMin){
+        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
+        const withinRange = Math.abs(s.distanceKm - p.targetDistance) / p.targetDistance <= 0.15;
+        if(daysAgo>=0 && daysAgo<=60 && withinRange){
+          const paceMinPerKm = s.durationMin / s.distanceKm;
+          const projectedTime = paceMinPerKm * p.targetDistance;
+          if(!bestProjected || projectedTime < bestProjected.time) bestProjected = { time: projectedTime };
+        }
+      }
+    });
+    return bestProjected ? { value: bestProjected.time, unit:'min', better:'lower' } : null;
+  }
+  return null;
+}
+
+function goalTargetValue(p){
+  if((p.type==='strength'||p.type==='hypertrophy') && p.targetWeight) return p.targetWeight;
+  if(p.type==='running' && p.targetDistance) return p.targetDistance;
+  if(p.type==='speed' && p.targetTime) return p.targetTime;
+  return null;
+}
+
+// Deliberately simple linear interpolation between current baseline and target —
+// "structured and easy to follow" checkpoints, not a fabricated periodization curve.
+function buildGoalTimeline(startValue, startDate, endValue, endDate){
+  const start = new Date(startDate), end = new Date(endDate);
+  const totalDays = (end-start)/(1000*60*60*24);
+  if(totalDays <= 0) return [];
+  return [0.25,0.5,0.75,1.0].map(frac=>{
+    const d = new Date(start); d.setDate(d.getDate() + Math.round(totalDays*frac));
+    return { date: d.toISOString().slice(0,10), expectedValue: Math.round((startValue + (endValue-startValue)*frac)*10)/10 };
+  });
+}
+
+document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
+  const result = document.getElementById('saveGoalsResult');
+  const primary = {
+    type: document.getElementById('primaryGoalType').value,
+    detail: document.getElementById('primaryGoalDetail').value.trim(),
+    targetExercise: document.getElementById('primaryGoalExercise').value.trim(),
+    targetWeight: parseFloat(document.getElementById('primaryGoalWeight').value) || null,
+    targetDistance: parseFloat(document.getElementById('primaryGoalDistance').value) || null,
+    targetTime: parseFloat(document.getElementById('primaryGoalTime').value) || null,
+    targetDate: document.getElementById('primaryGoalDate').value || null
+  };
+  if(!primary.detail){ showToast('Add a bit of detail for the primary goal', true); return; }
+
+  const targetVal = goalTargetValue(primary);
+  if(targetVal!=null && primary.targetDate){
+    const current = await getGoalCurrentValue(primary);
+    if(current!=null){
+      primary.timeline = buildGoalTimeline(current.value, todayStr, targetVal, primary.targetDate);
+      primary.timelineUnit = current.unit;
+    }
+  }
+
+  const record = { date: todayStr, primary };
+  if(document.getElementById('hasSecondaryGoal').checked){
+    record.secondary = {
+      type: document.getElementById('secondaryGoalType').value,
+      detail: document.getElementById('secondaryGoalDetail').value.trim(),
+      isMaintenance: document.getElementById('secondaryGoalMaintenance').checked
+    };
+  }
+  try{
+    const res = await window.storage.set(`goals:${todayStr}`, JSON.stringify(record));
+    if(!res) throw new Error('save failed');
+    result.textContent = 'Goals saved.'; result.style.color = 'var(--good)';
+    showToast('Goals saved');
+    await renderGoalProgress();
+  } catch(e){
+    result.textContent = 'Save failed — try again.'; result.style.color = 'var(--bad)';
+  }
+});
+
+async function renderGoalProgress(){
+  const body = document.getElementById('goalProgressBody');
+  const goals = await getCurrentGoals(todayStr);
+  if(!goals || !goals.primary){
+    body.innerHTML = '<div class="log-entry">No goal set yet — save a primary goal above.</div>';
+    return;
+  }
+  const p = goals.primary;
+  let html = `<div class="log-entry"><span>Primary</span><span>${GOAL_TYPE_LABELS[p.type]}</span></div>`;
+  html += `<div class="score-note" style="margin-bottom:8px;">${p.detail}</div>`;
+
+  if((p.type==='strength' || p.type==='hypertrophy') && p.targetExercise && p.targetWeight){
+    const sessions = await getAllTrainingSessions();
+    let best = null;
+    sessions.forEach(s=>{
+      if(s.type==='strength' && s.exercises){
+        s.exercises.forEach(e=>{
+          if(e.name && e.name.trim().toLowerCase()===p.targetExercise.trim().toLowerCase() && e.weight){
+            if(!best || e.weight > best.weight || (e.weight===best.weight && s.date > best.date)) best = { weight: e.weight, date: s.date };
+          }
+        });
+      }
+    });
+    if(best){
+      const remaining = p.targetWeight - best.weight;
+      html += `<div class="log-entry"><span>${p.targetExercise}</span><span>${best.weight}kg (as of ${best.date}) → target ${p.targetWeight}kg${remaining>0?` — ${remaining.toFixed(1)}kg to go`:' — target reached'}</span></div>`;
+    } else {
+      html += `<div class="log-entry"><span>${p.targetExercise}</span><span>No logged sessions found yet for this exercise name</span></div>`;
+    }
+  } else if(p.type==='running' && p.targetDistance){
+    const sessions = await getAllTrainingSessions();
+    const now = new Date(todayStr);
+    let longest = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm){
+        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
+        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
+      }
+    });
+    if(longest){
+      html += `<div class="log-entry"><span>Longest run (30d)</span><span>${longest.distanceKm}km (${longest.date}) → target ${p.targetDistance}km</span></div>`;
+    } else {
+      html += `<div class="log-entry"><span>Running progress</span><span>No runs logged in the last 30 days yet</span></div>`;
+    }
+  } else if(p.type==='speed' && p.targetDistance && p.targetTime){
+    // Finds runs within ±15% of target distance, projects each to an equivalent time at
+    // the exact target distance using that run's own pace, takes the best projection.
+    // This is a pace-based estimate, not a race result — flagged as such in the UI.
+    const sessions = await getAllTrainingSessions();
+    const now = new Date(todayStr);
+    let bestProjected = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm && s.durationMin){
+        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
+        const withinRange = Math.abs(s.distanceKm - p.targetDistance) / p.targetDistance <= 0.15;
+        if(daysAgo>=0 && daysAgo<=60 && withinRange){
+          const paceMinPerKm = s.durationMin / s.distanceKm;
+          const projectedTime = paceMinPerKm * p.targetDistance;
+          if(!bestProjected || projectedTime < bestProjected.time) bestProjected = { time: projectedTime, date: s.date, actualDistance: s.distanceKm };
+        }
+      }
+    });
+    if(bestProjected){
+      const remaining = bestProjected.time - p.targetTime;
+      const fmtTime = m => `${Math.floor(m)}:${Math.round((m%1)*60).toString().padStart(2,'0')}`;
+      html += `<div class="log-entry"><span>Best pace, projected to ${p.targetDistance}km</span><span>~${fmtTime(bestProjected.time)} (from ${bestProjected.actualDistance}km on ${bestProjected.date}) → target ${fmtTime(p.targetTime)}${remaining>0?` — ${fmtTime(remaining)} to shave`:' — target pace reached'}</span></div>`;
+      html += `<div class="score-note">Pace-projected from a nearby-distance run, not an actual timed effort at ${p.targetDistance}km — treat as a rough estimate.</div>`;
+    } else {
+      html += `<div class="log-entry"><span>Speed progress</span><span>No runs within ~15% of ${p.targetDistance}km logged in the last 60 days yet</span></div>`;
+    }
+  } else {
+    html += `<div class="log-entry"><span>Progress</span><span>No specific trackable target set — add a target exercise/weight or distance above to track automatically</span></div>`;
+  }
+
+  if(p.timeline && p.timeline.length){
+    html += '<div class="log-title" style="margin-top:12px;">Timeline</div>';
+    const current = await getGoalCurrentValue(p);
+    const now = new Date(todayStr);
+    p.timeline.forEach(cp=>{
+      const passed = new Date(cp.date) <= now;
+      let status = 'upcoming', color = 'var(--dim)';
+      if(passed && current){
+        const onTrack = current.better==='higher' ? current.value >= cp.expectedValue : current.value <= cp.expectedValue;
+        status = onTrack ? 'on track' : 'behind';
+        color = onTrack ? 'var(--good)' : 'var(--bad)';
+      }
+      html += `<div class="log-entry"><span>${cp.date}</span><span style="color:${color};">${cp.expectedValue}${p.timelineUnit} — ${status}</span></div>`;
+    });
+    html += '<div class="score-note">Straight-line checkpoints between your baseline and target — a simple pace-check, not a periodization plan.</div>';
+  }
+
+  if(goals.secondary){
+    html += `<div class="log-title" style="margin-top:12px;">Secondary${goals.secondary.isMaintenance?' (maintenance)':''}</div>`;
+    html += `<div class="log-entry"><span>${GOAL_TYPE_LABELS[goals.secondary.type]}</span><span>${goals.secondary.detail||''}</span></div>`;
+  }
+
+  body.innerHTML = html;
+}
+
+async function suggestRunTier(){
+  const thisWeekDates = getWeekDates();
+  let sum=0, weeks=0;
+  for(let w=1; w<=4; w++){
+    const dates = shiftWeek(thisWeekDates, w);
+    const totals = await getWeekVolumeTotals(dates);
+    if(totals.runDistance>0){ sum+=totals.runDistance; weeks++; }
+  }
+  if(weeks === 0) return null;
+  const avg = sum/weeks;
+  if(avg >= RUN_PLAN_TEMPLATES.advanced.minKm) return 'advanced';
+  if(avg >= RUN_PLAN_TEMPLATES.intermediate.minKm) return 'intermediate';
+  return 'base';
+}
+
+// Places runs into empty day-slots only — never touches a day that already has
+// anything scheduled. Long run goes to the last empty day (weekend-leaning), quality
+// sessions get placed with a minimum 2-day gap between them (48h+ hard-day spacing),
+// remaining slots filled with easy runs up to the tier's weekly run count.
+async function generateRunPlan(tierKey){
+  const tier = { ...RUN_PLAN_TEMPLATES[tierKey] }; // copy — may be adjusted by goal below
+  let goalNote = null;
+  const goals = await getCurrentGoals(todayStr);
+  if(goals && goals.primary && goals.primary.type !== 'running' && goals.secondary &&
+     goals.secondary.type === 'running' && goals.secondary.isMaintenance && tier.qualityCount > 0){
+    tier.qualityCount = Math.max(0, tier.qualityCount - 1);
+    goalNote = 'Reduced quality sessions — running is a maintenance goal while your primary goal is elsewhere';
+  }
+
+  const dates = getWeekDates();
+  const emptyDates = [];
+  for(const date of dates){
+    let hasBlock = false;
+    for(const slot of ['am','pm']){
+      try{ await window.storage.get(`weekplan:${date}:${slot}`); hasBlock = true; } catch(e){}
+    }
+    if(!hasBlock) emptyDates.push(date);
+  }
+  if(emptyDates.length === 0) return { placed: 0 };
+
+  const toPlace = [];
+  if(tier.longCount > 0){
+    toPlace.push({ date: emptyDates[emptyDates.length-1], runType: 'long' });
+  }
+  const usedDates = new Set(toPlace.map(t=>t.date));
+  let qualityPlaced = 0;
+  for(const d of emptyDates){
+    if(usedDates.has(d) || qualityPlaced >= tier.qualityCount) continue;
+    const lastQualityDate = toPlace.filter(t=>['tempo','interval'].includes(t.runType)).map(t=>t.date).pop();
+    if(lastQualityDate){
+      const gap = Math.abs(new Date(d) - new Date(lastQualityDate))/(1000*60*60*24);
+      if(gap < 2) continue;
+    }
+    toPlace.push({ date: d, runType: qualityPlaced===0 ? 'tempo' : 'interval' });
+    usedDates.add(d);
+    qualityPlaced++;
+  }
+  let easyNeeded = tier.runsPerWeek - toPlace.length;
+  for(const d of emptyDates){
+    if(usedDates.has(d) || easyNeeded<=0) continue;
+    toPlace.push({ date: d, runType: 'easy' });
+    usedDates.add(d);
+    easyNeeded--;
+  }
+
+  for(const item of toPlace){
+    await window.storage.set(`weekplan:${item.date}:am`, JSON.stringify({
+      type: 'run',
+      details: { runType: item.runType, distanceKm: null, notes: 'Auto-generated starting point — adjust freely' }
+    }));
+  }
+  return { placed: toPlace.length, tier: tierKey, goalNote };
+}
+
+async function checkDeloadDue(){
+  const thisWeekDates = getWeekDates();
+  const weeklyTotals = [];
+  for(let w=0; w<=7; w++){
+    const dates = shiftWeek(thisWeekDates, w);
+    const totals = await getWeekVolumeTotals(dates);
+    weeklyTotals.push(totals.strengthVolume);
+  }
+  const activeWeeks = weeklyTotals.filter(v=>v>0);
+  if(activeWeeks.length < 5) return null; // not enough history to judge
+
+  let deloadFound = false;
+  for(let i=1; i<=6; i++){
+    if(weeklyTotals[i] > 0 && weeklyTotals[i+1] > 0){
+      const drop = (weeklyTotals[i+1]-weeklyTotals[i])/weeklyTotals[i+1];
+      if(drop >= 0.3){ deloadFound = true; break; }
+    }
+  }
+  if(deloadFound) return null;
+
+  const avg8wk = activeWeeks.reduce((a,b)=>a+b,0)/activeWeeks.length;
+  if(weeklyTotals[0] >= avg8wk * 0.9){
+    return { thisWeek: weeklyTotals[0], avg8wk };
+  }
+  return null;
+}
+
 async function generateRecommendations(){
   const container = document.getElementById('recommendationCards');
   container.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div><div class="skeleton short"></div>';
+
+  const baseline = await getBaselineStatus();
+  const baselineEl = document.getElementById('baselineStatus');
+  const baselineColor = baseline.stage==='personalized' ? 'var(--good)' : baseline.stage==='learning' ? 'var(--warn)' : 'var(--dim)';
+  baselineEl.innerHTML = `<span style="color:${baselineColor};">${baseline.label}</span> — ${baseline.note}`;
 
   let entry;
   try{ const r = await window.storage.get(keyFor(todayStr)); entry = JSON.parse(r.value); }
@@ -4838,6 +6508,16 @@ async function generateRecommendations(){
   if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow) reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`);
   if(capacityLabel === 'below typical') reduceSignals.push('Predicted Capacity: below typical');
   if(entry.loadRatio!=null && entry.loadRatio > goalT.loadRatioHigh) reduceSignals.push(`Load ratio ${entry.loadRatio} (above ${goalT.loadRatioHigh})`);
+  // Cross-modal: a stacked hard-running window can contribute even when strength-specific
+  // load ratio looks normal in isolation — the two systems shouldn't stay fully unaware
+  // of each other (hybrid training research, section 6.4).
+  const recentSessions = await getAllTrainingSessions();
+  const recentHardRun = recentSessions.some(s=>{
+    if(s.type!=='run' || !['tempo','interval','long'].includes(s.runType)) return false;
+    const daysAgo = (new Date(todayStr) - new Date(s.date))/(1000*60*60*24);
+    return daysAgo >= 0 && daysAgo <= 2;
+  });
+  if(recentHardRun) reduceSignals.push('Hard/quality run in the last 48h — contributing recovery load independent of strength-specific volume');
 
   const addSignals = [];
   if(targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
@@ -4847,16 +6527,78 @@ async function generateRecommendations(){
 
   cardQueue = [];
   cardQueueIndex = 0;
+  lastDecisionKey = null;
+  lastDecisionIndex = null;
+  document.getElementById('undoDecisionBtn').style.display = 'none';
 
   if(reduceSignals.length >= 2){
-    cardQueue.push({ type:'reduce', title:'Pull back volume or intensity today', signals:reduceSignals,
-      confidence: reduceSignals.length>=3?'high':'medium', meta:{ signals: reduceSignals } });
+    // Load/capacity signals can be dampened by a scheduled rest day — but only if
+    // the actual recovery metrics (Target/Adaptive, driven by sleep+HRV+wake time)
+    // aren't among the signals. If sleep/HRV genuinely look bad, the rest day
+    // doesn't override that; this only softens "volume looks big" on its own.
+    const recoveryMetricSignals = reduceSignals.filter(s=> s.includes('Target score') || s.includes('Adaptive score'));
+    const loadOnly = recoveryMetricSignals.length === 0;
+    let restInfo = null;
+    if(loadOnly){
+      const tomorrow = await isRestDayComing(1);
+      restInfo = tomorrow.isRest ? tomorrow : null;
+      if(!restInfo){
+        const dayAfter = await isRestDayComing(2);
+        restInfo = dayAfter.isRest ? dayAfter : null;
+      }
+    }
+    if(loadOnly && restInfo){
+      cardQueue.push({ type:'hold', title:'Holding steady — rest day scheduled soon',
+        signals:[...reduceSignals, `Rest day scheduled ${restInfo.date} — sleep and HRV look normal, so the load signal alone isn't enough to reduce today. Recheck if that changes.`],
+        confidence:null, meta:{} });
+    } else {
+      cardQueue.push({ type:'reduce', title:'Pull back — cut sets before cutting load', signals:[...reduceSignals, 'Reducing volume (sets) before intensity preserves the strength stimulus while cutting cumulative tissue stress (Bell et al., deload practice review)'],
+        confidence: reduceSignals.length>=3?'high':'medium', meta:{ signals: reduceSignals } });
+    }
   } else if(addSignals.length >= 2 && !severeInjury){
     cardQueue.push({ type:'add', title:'Window to push volume or intensity today', signals:addSignals,
       confidence: addSignals.length>=3?'high':'medium', meta:{ signals: addSignals } });
   } else {
     cardQueue.push({ type:'hold', title:'Hold steady — no corroborated signal to change plan', signals:['Fewer than 2 signals agree in either direction'], confidence:null, meta:{} });
   }
+
+// Phase-appropriate exercise focus by area, condensed from Cowork's research (JOSPT,
+// Frontiers, APTA, and sports-medicine systematic reviews). Severity tier stands in for
+// rehab phase since it already decays over time the way a real phase would progress —
+// high severity ≈ acute/early, mid ≈ progressive loading, low ≈ return-to-activity.
+// Only areas with a confident literature mapping are included.
+const INJURY_PROTOCOLS = {
+  lower_back: {
+    high: 'Acute phase: pain-guided movement, walking, gentle motor control (bird-dog, dead-bug, bracing). Daily, low load, short bouts — avoid prolonged bed rest.',
+    mid: 'Sub-acute: motor control progressions + directional-preference work. 2-3x/week, 2-3 sets of 8-12 reps.',
+    low: 'Return to load: hip-hinge pattern training (RDL, trap-bar deadlift), general strength work. Consistent loading matters more than the specific exercise chosen.'
+  },
+  shoulders: {
+    high: 'Early/pain-dominant: isometric external/internal rotation, scapular setting, pain-free active ROM. Daily, sub-maximal isometrics (~5x30-45s).',
+    mid: 'Progressive loading: external rotation, scaption, prone Y/T/W, serratus punch, rows. 2-3x/week, 2-3 sets of 10-15 reps.',
+    low: 'Return to activity: overhead loading progressions, criteria-based (pain ≤3/10, full ROM) — not purely time-based.'
+  },
+  quads_knees: {
+    high: 'Early: closed-kinetic-chain work — quad sets, mini-squats, leg press. Daily submaximal, ROM- and swelling-guided.',
+    mid: 'Progressive: CKC progression (squats, step-downs). 3x/week, 2-3 sets of 8-12 reps. Persistent quad strength deficits are one of the strongest predictors of poor long-term outcomes.',
+    low: 'Return to sport: combined CKC + full-ROM work, criteria-based (limb symmetry ≥90%) rather than purely time-based.'
+  },
+  ankles: {
+    high: 'Acute: pain-free ROM, isometric eversion/dorsiflexion, protected weight-bearing. Daily, low intensity.',
+    mid: 'Sub-acute: single-leg balance (firm → unstable surface), wobble board, resisted band eversion. 3-5x/week — proprioceptive training is one of the more robust injury-prevention effects in the literature.',
+    low: 'Return to sport: multi-directional hop/landing drills, reactive balance, criteria-based progression.'
+  }
+};
+function severityTier(sev){ return sev >= 6 ? 'high' : sev >= 3 ? 'mid' : 'low'; }
+
+// Tendinopathy uses different loading philosophy (isometric → HSR/eccentric → plyometric)
+// rather than the generic progressive-loading tables above — Cook & Purdam's
+// reactive-to-degenerative continuum model. Achilles/patellar sub-mapped via area.
+const TENDINOPATHY_PROTOCOL = {
+  high: 'Reactive/painful phase: isometric loading for immediate analgesic effect — wall sit or leg press hold (patellar) / heel-raise hold (Achilles), 5×30-45s at ~70% effort, daily.',
+  mid: 'Progressive loading: heavy-slow-resistance (3-4s tempo up/down), 3x/week, 3-4 sets of 6-15 reps — or an eccentric heel-drop program, 3×15 reps, 2×/day. HSR and eccentric show comparable long-term efficacy; HSR is often better tolerated (less session pain).',
+  low: 'Return to sport: plyometric and energy-storage loading (hopping, bounding) reintroduced progressively, criteria-based on pain ≤3/10 next-day — not purely time-based.'
+};
 
   injuries.forEach(inj=>{
     const p = inj.part.toLowerCase();
@@ -4868,6 +6610,12 @@ async function generateRecommendations(){
     const matchedExNames = (plannedExAreas[area]||[]);
     const signals = [`Current severity ${inj.currentSeverity.toFixed(1)} (onset ${inj.date})`, 'Avoid movements loading this area directly today'];
     if(matchedExNames.length) signals.push(`Planned exercises affected: ${matchedExNames.join(', ')} — consider reducing load/volume or substituting`);
+    if(inj.type === 'tendinopathy'){
+      const tendonLabel = area==='calves' ? '(Achilles)' : area==='quads_knees' ? '(patellar)' : '';
+      signals.push(`Tendinopathy protocol ${tendonLabel}: ${TENDINOPATHY_PROTOCOL[severityTier(inj.currentSeverity)]}`);
+    } else if(area && INJURY_PROTOCOLS[area]){
+      signals.push(INJURY_PROTOCOLS[area][severityTier(inj.currentSeverity)]);
+    }
     cardQueue.push({ type:'modify', title:`Modify around: ${inj.part}`, signals, confidence:null, meta:{ injuryId: inj.id, part: inj.part } });
   });
 
@@ -4877,10 +6625,38 @@ async function generateRecommendations(){
       signals:[`This run: ${runFlag.distanceKm.toFixed(2)}km (above the ${runFlag.capKm}km provisional cap)`,
        'Cap sourced from Brigham & Women\'s Hospital return-to-running protocol — one clinic\'s upper bound, not a personalized threshold'],
       confidence:null, meta:{} });
-  } else if(runFlag && runFlag.mode === 'weekly'){
+  } else if(runFlag && runFlag.mode === 'weekly' && runFlag.severity === 'hard'){
+    cardQueue.push({ type:'reduce', title:'Running volume jump above the hard ceiling',
+      signals:[`This week: ${runFlag.thisWeek.toFixed(1)}km vs last week: ${runFlag.lastWeek.toFixed(1)}km (+${runFlag.increasePct}%)`,
+       'Nielsen et al. 2014: increases above 30% week-over-week showed the clearest injury association — this is the ceiling to actively avoid, not just a soft target'],
+      confidence:'high', meta:{} });
+  } else if(runFlag && runFlag.mode === 'weekly' && runFlag.severity === 'soft'){
     cardQueue.push({ type:'modify', title:'Running volume increasing quickly',
       signals:[`This week: ${runFlag.thisWeek.toFixed(1)}km vs last week: ${runFlag.lastWeek.toFixed(1)}km (+${runFlag.increasePct}%)`,
-       'Conservative return-to-run guidance suggests capping weekly increases around 10%'],
+       '10% functions as a soft reference rather than a hard rule (Nielsen et al.) — worth noting, not urgent on its own'],
+      confidence:null, meta:{} });
+  }
+
+  const spacingFlag = await checkHardDaySpacing();
+  if(spacingFlag){
+    cardQueue.push({ type:'modify', title:'Hard runs scheduled too close together',
+      signals:[`${spacingFlag.a.runType} on ${spacingFlag.a.date} and ${spacingFlag.b.runType} on ${spacingFlag.b.date} — ${spacingFlag.hoursApart}h apart`,
+       'Recreational/intermediate runners generally need a minimum of 48h between tempo/interval sessions — moderate-confidence inference, not a dedicated dose-response study'],
+      confidence:null, meta:{} });
+  }
+
+  const crossModalFlag = await checkCrossModalSpacing();
+  if(crossModalFlag){
+    cardQueue.push({ type:'modify', title:'Heavy lower-body day close to a quality run',
+      signals:[`${crossModalFlag.a.kind} on ${crossModalFlag.a.date} and ${crossModalFlag.b.kind} on ${crossModalFlag.b.date} — ${crossModalFlag.hoursApart}h apart`,
+       'Heavy squat/deadlift/lunge work and hard running compete for the same recovery budget (quads/hamstrings/glutes/calves) — ≥48h spacing where the schedule allows is standard practice, extrapolated from muscle-damage/glycogen recovery timelines rather than a directly-tested weekly cadence'],
+      confidence:null, meta:{} });
+  }
+
+  const readinessFlag = await checkHardSessionReadiness(entry);
+  if(readinessFlag){
+    cardQueue.push({ type:'modify', title:`Consider downgrading today's ${readinessFlag.runType} run`,
+      signals:[...readinessFlag.reasons, 'Downgrade rather than cancel — shorten tempo duration, cut interval reps, or convert to easy'],
       confidence:null, meta:{} });
   }
 
@@ -4898,6 +6674,18 @@ async function generateRecommendations(){
       signals:[r.text, 'No logged stretching for this area in the past week — see Suggested Mobility on the Warm-up tab'],
       confidence:null, meta:{} });
   });
+
+  // Deload check — flags if no deload-sized volume drop has occurred in ~6 weeks
+  // while current volume is at/above the trailing average. 4-8 week proactive
+  // deload cadence per Bell et al.'s practical deload review.
+  const deloadInfo = await checkDeloadDue();
+  if(deloadInfo){
+    cardQueue.push({ type:'modify', title:'Consider a deload week',
+      signals:[`No deload-sized volume drop (≥30% week-over-week) detected in the past 6 weeks`,
+        `This week's strength volume: ${Math.round(deloadInfo.thisWeek).toLocaleString()}kg, at or above your 8-week average`,
+        'Evidence-consistent approach: ~40-60% volume cut for 5-7 days at maintained-to-slightly-reduced intensity'],
+      confidence:null, meta:{} });
+  }
 
   showNextCard();
 
@@ -4995,6 +6783,52 @@ function renderTrendFlags(points){
   }</div>`;
 }
 
+// Per-exercise adaptation trend: is this movement progressing, plateaued, or declining
+// for this specific person, based on their last 3 logged instances. Simple first-vs-last
+// comparison, not a statistical model — deliberately readable, not overfit to noisy data.
+async function computeAdaptationTracking(){
+  const sessions = await getAllTrainingSessions();
+  const byExercise = {};
+  sessions.forEach(s=>{
+    if(s.type==='strength' && s.exercises){
+      s.exercises.forEach(e=>{
+        if(e.name && e.weight){
+          const key = e.name.trim().toLowerCase();
+          (byExercise[key] = byExercise[key]||[]).push({ date: s.date, weight: e.weight, name: e.name });
+        }
+      });
+    }
+  });
+  const results = [];
+  Object.values(byExercise).forEach(history=>{
+    if(history.length < 3) return;
+    history.sort((a,b)=> new Date(a.date)-new Date(b.date));
+    const recent = history.slice(-3);
+    const weights = recent.map(h=>h.weight);
+    const delta = weights[weights.length-1] - weights[0];
+    const trend = delta > 0 ? 'progressing' : delta < 0 ? 'declining' : 'plateaued';
+    results.push({ name: recent[recent.length-1].name, trend, from: weights[0], to: weights[weights.length-1], sessions: history.length });
+  });
+  return results.sort((a,b)=> b.sessions - a.sessions);
+}
+
+async function renderAdaptationTracking(){
+  const body = document.getElementById('adaptationBody');
+  body.innerHTML = '<div class="skeleton"></div>';
+  const results = await computeAdaptationTracking();
+  if(results.length === 0){
+    body.innerHTML = '<div class="log-entry">Log the same exercise 3+ times to see its trend here.</div>';
+    return;
+  }
+  const trendColor = { progressing:'var(--good)', plateaued:'var(--warn)', declining:'var(--bad)' };
+  let html = '';
+  results.slice(0,10).forEach(r=>{
+    html += `<div class="log-entry"><span>${r.name}</span><span style="color:${trendColor[r.trend]};">${r.trend} (${r.from}→${r.to}kg)</span></div>`;
+  });
+  html += '<div class="score-note" style="margin-top:8px;">Based on your last 3 logged instances of each exercise — a simple direction check, not a forecast.</div>';
+  body.innerHTML = html;
+}
+
 async function renderTrendChart(){
   const res = await window.storage.list('entry:');
   if(!res||!res.keys||res.keys.length===0) return;
@@ -5089,6 +6923,8 @@ const WARMUP_LIBRARY = {
   ankles: ['ankle mobility circles', 'weighted ankle rocks', 'band ankle dorsiflexion drives'],
   shoulders: ['band pull-aparts', 'arm circles', 'scap push-ups', 'band dislocates'],
   chest: ['band chest opener', 'push-up variations, light', 'foam roll upper back/chest opener'],
+  biceps: ['light band curls, high reps', 'arm circles', 'wrist/forearm rotations'],
+  triceps: ['band pushdowns, light', 'arm circles', 'light bodyweight dips, partial range'],
   thoracic: ['cat-cow', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'foam roll thoracic extensions'],
   lower_back: ['cat-cow', 'bird dog', 'glute bridges', 'band pull-throughs, light'],
   full_body: ['light general activation — easy cardio + dynamic stretch circuit']
@@ -5139,6 +6975,18 @@ const MOBILITY_LIBRARY = {
     static: 'Doorway pec stretch, 45-60s each side',
     dynamic: 'Band chest openers, 10-12 reps',
     pnf: 'Band-assisted pec PNF: contract 6s → relax → deepen, 3-4 cycles'
+  },
+  biceps: {
+    foamRoll: 'Roll the front of the upper arm gently, 30-45s each side (light pressure — this area bruises easily)',
+    static: 'Extended-arm wall bicep stretch, 30-45s each side',
+    dynamic: 'Arm circles + light band curls, 10-12 reps',
+    pnf: 'Band-assisted bicep PNF: contract into band 6s → relax → deepen, 3-4 cycles each side'
+  },
+  triceps: {
+    foamRoll: 'Roll the back of the upper arm, 45-60s each side',
+    static: 'Overhead tricep stretch, 30-45s each side',
+    dynamic: 'Band pushdowns + arm circles, 10-12 reps',
+    pnf: 'Band-assisted tricep PNF: contract 6s → relax → deepen, 3-4 cycles each side'
   },
   thoracic: {
     foamRoll: 'Foam roll thoracic spine extensions, 10-12 slow passes',
@@ -5301,6 +7149,12 @@ async function computeWarmupAreas(){
   const plannedAreas = new Set(Object.keys(exercisesByArea));
   selectedPlanTypes.forEach(key=> PLAN_TYPES[key].areas.forEach(a=>plannedAreas.add(a)));
 
+  // Ankle dorsiflexion is a known technical prerequisite for squat depth, not just a
+  // fatigue/injury concern — flag it whenever a squat-pattern movement is planned,
+  // independent of load or injury status.
+  const squatAnkleFlag = plannedExercises.some(ex=>ex.movement==='squat');
+  if(squatAnkleFlag) plannedAreas.add('ankles');
+
   const allAreas = new Set([...Object.keys(injuryByArea), ...plannedAreas]);
   const loadFlagged = {};
   for(const area of allAreas){
@@ -5323,10 +7177,10 @@ async function computeWarmupAreas(){
     return score(b) - score(a);
   });
 
-  return { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, doneToday, doneTrailing7 };
+  return { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, doneToday, doneTrailing7, squatAnkleFlag };
 }
 
-function areaReason(area, injuryByArea, loadFlagged, runFlagged){
+function areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag){
   runFlagged = runFlagged || {};
   if(injuryByArea[area]){
     return { cls:'injury', reasonCls:'injury', text:`Injury flagged — ${injuryByArea[area].part}, severity ${injuryByArea[area].currentSeverity.toFixed(1)}` };
@@ -5334,6 +7188,8 @@ function areaReason(area, injuryByArea, loadFlagged, runFlagged){
     return { cls:'load', reasonCls:'load', text:`Load increased recently — ${loadFlagged[area].toFixed(2)}x vs prior week` };
   } else if(runFlagged[area]){
     return { cls:'load', reasonCls:'load', text:`Running volume increased — ${runFlagged[area].toFixed(2)}x vs prior week` };
+  } else if(area==='ankles' && squatAnkleFlag){
+    return { cls:'planned', reasonCls:'', text:'Ankle dorsiflexion supports squat depth — technical prerequisite, not a fatigue flag' };
   }
   return { cls:'planned', reasonCls:'', text:'Planned session prep' };
 }
@@ -5365,6 +7221,26 @@ async function computePostExerciseAreas(){
   return { ...base, ordered, ranToday, alreadyStretched };
 }
 
+const WARMUP_TIME_CAP = 12;       // target 10-15 min
+const WARMUP_TIME_PER_AREA = 3;   // ~2 curated drills per area
+const MOBILITY_TIME_CAP = 28;     // target up to 30 min
+const MOBILITY_TIME_PER_AREA = 7; // foam roll + dynamic + static + PNF per area
+
+// Always keeps injury-flagged areas (non-negotiable); trims everything else to fit
+// the time budget, taking `ordered` (already priority-sorted) from the top down.
+function selectWithinBudget(ordered, injuryByArea, cap, perAreaCost){
+  const selected = [];
+  let running = 0;
+  ordered.forEach(area=>{
+    const isInjury = !!injuryByArea[area];
+    if(isInjury || running + perAreaCost <= cap){
+      selected.push(area);
+      running += perAreaCost;
+    }
+  });
+  return { selected, estMinutes: running };
+}
+
 async function generateWarmup(){
   const container = document.getElementById('warmupCards');
   const mobilityContainer = document.getElementById('mobilityCards');
@@ -5373,17 +7249,27 @@ async function generateWarmup(){
 
   await window.storage.set(`plan:${todayStr}`, JSON.stringify({ date: todayStr, planTypes: Array.from(selectedPlanTypes) }));
 
-  const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea } = await computeWarmupAreas();
+  const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, squatAnkleFlag } = await computeWarmupAreas();
 
   if(ordered.length === 0){
     container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session (Training tab) or select a session type above, then Generate</span></div>';
     return;
   }
 
-  container.innerHTML = '';
-  ordered.forEach(area=>{
-    const drills = WARMUP_LIBRARY[area] || [];
-    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
+  const { selected, estMinutes } = selectWithinBudget(ordered, injuryByArea, WARMUP_TIME_CAP, WARMUP_TIME_PER_AREA);
+
+  container.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes+5} min (RAMP structure) · ${selected.length} focus area${selected.length===1?'':'s'}</div>`;
+
+  // RAMP framework (Jeffreys, 2007) — the area cards below cover Activate + Mobilize;
+  // bookending with Raise and Potentiate matches the full evidence-supported structure.
+  const raiseCard = document.createElement('div');
+  raiseCard.className = 'warm-card planned';
+  raiseCard.innerHTML = `<div class="warm-area">Raise</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">· Easy cardio (bike, jog, skip) — elevate heart rate, breathing, muscle temperature</div>`;
+  container.appendChild(raiseCard);
+
+  selected.forEach(area=>{
+    const drills = (WARMUP_LIBRARY[area] || []).slice(0, 2);   // curated top picks, not the full list
+    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag);
     const plannedNote = exercisesByArea[area] ? `<div class="warm-reason" style="margin-top:-6px;margin-bottom:10px;">Planned: ${exercisesByArea[area].join(', ')}</div>` : '';
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
@@ -5395,6 +7281,11 @@ async function generateWarmup(){
     container.appendChild(card);
   });
 
+  const potentiateCard = document.createElement('div');
+  potentiateCard.className = 'warm-card planned';
+  potentiateCard.innerHTML = `<div class="warm-area">Potentiate</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">· Ramp-up sets of your first working movement — build toward working weight/pace progressively rather than jumping straight in</div>`;
+  container.appendChild(potentiateCard);
+
   document.getElementById('mobilitySection').style.display = 'block';
 }
 
@@ -5402,12 +7293,17 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
   const mobilityContainer = document.getElementById('mobilityCards');
   mobilityContainer.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
   const { ordered, injuryByArea, loadFlagged, runFlagged, ranToday, alreadyStretched } = await computePostExerciseAreas();
-  if(ordered.length === 0){
-    mobilityContainer.innerHTML = '<div class="log-entry">Nothing flagged yet — log a strength session, a run, or a plan to generate stretching focus areas.</div>';
+  const remaining = ordered.filter(a=> !alreadyStretched[a]);   // skip areas already addressed today — don't spend budget on them
+  if(remaining.length === 0){
+    mobilityContainer.innerHTML = ordered.length
+      ? '<div class="log-entry">Everything flagged has already been stretched today.</div>'
+      : '<div class="log-entry">Nothing flagged yet — log a strength session, a run, or a plan to generate stretching focus areas.</div>';
     return;
   }
-  mobilityContainer.innerHTML = '';
-  ordered.forEach(area=>{
+  const { selected, estMinutes } = selectWithinBudget(remaining, injuryByArea, MOBILITY_TIME_CAP, MOBILITY_TIME_PER_AREA);
+
+  mobilityContainer.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes} min · ${selected.length} area${selected.length===1?'':'s'}</div>`;
+  selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
     if(!proto) return;
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
@@ -5415,13 +7311,11 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
     if(r.cls==='planned' && ranToday && ['ankles','calves','hips','hamstrings'].includes(area)){
       reasonText = 'Worked by today\'s run';
     }
-    const doneNote = alreadyStretched[area] ? '<div class="warm-reason" style="margin-top:-6px;margin-bottom:10px; color:var(--good);">Already logged mobility work here today</div>' : '';
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
     card.innerHTML = `
       <div class="warm-area">${BODY_AREAS[area]}</div>
       <div class="warm-reason ${r.reasonCls}">${reasonText}</div>
-      ${doneNote}
       <div class="warm-drills">
         <strong style="color:var(--text);">Foam roll</strong> — ${proto.foamRoll}<br><br>
         <strong style="color:var(--text);">Dynamic</strong> — ${proto.dynamic}<br><br>
@@ -5433,6 +7327,142 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
 });
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
+/* ---------- TEST SCENARIOS (dev tool) ----------
+   Writes real data through the same storage keys the app reads normally, so Insights,
+   Warm-up, and Trends respond exactly as they would to real logged history. Every key
+   written is tracked in testdata:seeded so Clear can remove precisely those keys and
+   nothing else — real logged data is never touched by seed or clear. */
+function mkExercise(name, sets, reps, weight, area, secondaryArea){
+  const volume = sets*reps*weight;
+  const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
+  const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
+  return { name, sets, reps, weight, area, secondaryArea: secondaryArea||'', movement:'', volume, primaryVolume, secondaryVolume };
+}
+
+async function clearTestData(){
+  let count = 0;
+  try{
+    const r = await window.storage.get('testdata:seeded');
+    const keys = JSON.parse(r.value);
+    for(const k of keys){ try{ await window.storage.delete(k); count++; } catch(e){} }
+    await window.storage.delete('testdata:seeded');
+  } catch(e){ /* nothing seeded yet */ }
+  return count;
+}
+
+async function seedTestScenario(scenarioKey){
+  await clearTestData();
+  const seededKeys = [];
+  const dateOffset = daysAgo => { const d = new Date(todayStr); d.setDate(d.getDate()-daysAgo); return d.toISOString().slice(0,10); };
+
+  async function seedEntry(daysAgo, fields){
+    const date = dateOffset(daysAgo);
+    const key = `entry:${date}`;
+    await window.storage.set(key, JSON.stringify({ date, ...fields }));
+    seededKeys.push(key);
+  }
+  async function seedSession(daysAgo, session){
+    const date = dateOffset(daysAgo);
+    const key = `training:${date}:${Date.now()}${Math.floor(Math.random()*1000)}`;
+    await window.storage.set(key, JSON.stringify({ date, timestamp: Date.now(), ...session }));
+    seededKeys.push(key);
+  }
+
+  if(scenarioKey === 'well_recovered'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:7.8, sleepScoreOura:85, sleepScoreGarmin:83, wakeTimeOura:12, wakeTimeGarmin:14,
+        hrvGarmin:62, hrvOura:60, hrvBaseline:58, restingHR:50, loadRatio:0.9, trainingStatus:'maintaining',
+        readinessOura:88, bodyBattery:85 });
+    }
+    const ex = [mkExercise('Back Squat',4,5,80,'quads_knees')];
+    await seedSession(1, { type:'strength', totalVolume: ex.reduce((a,e)=>a+e.volume,0), workoutTag:'legs', exercises: ex, notes:'' });
+
+  } else if(scenarioKey === 'poor_recovery'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:5.4, sleepScoreOura:52, sleepScoreGarmin:50, wakeTimeOura:48, wakeTimeGarmin:52,
+        hrvGarmin:38, hrvOura:36, hrvBaseline:58, restingHR:64, loadRatio:1.9, trainingStatus:'overreaching',
+        readinessOura:48, bodyBattery:35 });
+    }
+    for(let i=1;i<=4;i++){
+      const ex = [mkExercise('Back Squat',5,5,100,'quads_knees')];
+      await seedSession(i, { type:'strength', totalVolume: ex.reduce((a,e)=>a+e.volume,0), workoutTag:'legs', exercises: ex, notes:'' });
+    }
+
+  } else if(scenarioKey === 'strength_progression'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:7.5, sleepScoreOura:80, wakeTimeOura:15, hrvGarmin:58, hrvBaseline:55, restingHR:52,
+        loadRatio:1.1, readinessOura:80, bodyBattery:78 });
+    }
+    const weights = [90,90,92.5,92.5,95,95,97.5];
+    for(let i=6;i>=0;i--){
+      const ex = [mkExercise('Back Squat',4,5,weights[6-i],'quads_knees')];
+      await seedSession(i, { type:'strength', totalVolume: ex.reduce((a,e)=>a+e.volume,0), workoutTag:'legs', exercises: ex, notes:'' });
+    }
+
+  } else if(scenarioKey === 'high_leg_fatigue'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:7.6, sleepScoreOura:82, wakeTimeOura:14, hrvGarmin:60, hrvBaseline:58, restingHR:51,
+        loadRatio:1.0, readinessOura:83, bodyBattery:80 });
+    }
+    for(let i=0;i<=3;i++){
+      const ex = [mkExercise('Back Squat',5,5,100,'quads_knees'), mkExercise('Romanian Deadlift',3,8,70,'hamstrings')];
+      await seedSession(i*2, { type:'strength', totalVolume: ex.reduce((a,e)=>a+e.volume,0), workoutTag:'legs', exercises: ex, notes:'' });
+    }
+
+  } else if(scenarioKey === 'marathon_goal'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:7.4, sleepScoreOura:78, wakeTimeOura:16, hrvGarmin:56, hrvBaseline:55, restingHR:53,
+        loadRatio:1.0, readinessOura:78, bodyBattery:75 });
+    }
+    await seedSession(6, { type:'run', runType:'long', distanceKm:18, durationMin:105, pace:'5:50/km' });
+    await seedSession(4, { type:'run', runType:'tempo', distanceKm:8, durationMin:38, pace:'4:45/km' });
+    await seedSession(2, { type:'run', runType:'easy', distanceKm:6, durationMin:36, pace:'6:00/km' });
+    await seedSession(1, { type:'run', runType:'interval', distanceKm:7, durationMin:35, pace:'5:00/km' });
+
+  } else if(scenarioKey === 'hypertrophy_goal'){
+    for(let i=0;i<7;i++){
+      await seedEntry(i, { durationHrs:7.7, sleepScoreOura:81, wakeTimeOura:13, hrvGarmin:59, hrvBaseline:57, restingHR:52,
+        loadRatio:1.1, readinessOura:81, bodyBattery:79 });
+    }
+    for(let i=0;i<=4;i++){
+      const isPush = i%2===0;
+      const ex = [mkExercise(isPush?'Incline Press':'Lat Pulldown', 4, 10, isPush?50:55, isPush?'chest':'thoracic', isPush?'triceps':'biceps')];
+      await seedSession(i, { type:'strength', totalVolume: ex.reduce((a,e)=>a+e.volume,0), workoutTag: isPush?'push':'pull', exercises: ex, notes:'' });
+    }
+  }
+
+  await window.storage.set('testdata:seeded', JSON.stringify(seededKeys));
+  return seededKeys.length;
+}
+
+document.getElementById('seedTestScenarioBtn').addEventListener('click', async ()=>{
+  const scenario = document.getElementById('testScenarioSelect').value;
+  const result = document.getElementById('testDataResult');
+  result.textContent = 'Seeding...'; result.style.color = 'var(--dim)';
+  try{
+    const count = await seedTestScenario(scenario);
+    result.textContent = `Seeded ${count} record(s). Reload Insights/Warm-up/Trends to see the effect.`;
+    result.style.color = 'var(--good)';
+    showToast('Test scenario seeded');
+  } catch(e){
+    result.textContent = 'Seeding failed — try again.';
+    result.style.color = 'var(--bad)';
+  }
+});
+
+document.getElementById('clearTestDataBtn').addEventListener('click', async ()=>{
+  const result = document.getElementById('testDataResult');
+  try{
+    const count = await clearTestData();
+    result.textContent = count ? `Cleared ${count} test record(s).` : 'No test data was seeded.';
+    result.style.color = 'var(--good)';
+    showToast('Test data cleared');
+  } catch(e){
+    result.textContent = 'Clear failed — try again.';
+    result.style.color = 'var(--bad)';
+  }
+});
+
 document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
   const output = document.getElementById('exportOutput');
   const result = document.getElementById('exportResult');
@@ -5528,13 +7558,15 @@ refreshRecoveryLog();
 refreshTrainingLog();
 computePredictedCapacity();
 computeSleepDebt();
+applySessionFocusDefault();
 loadGoalProfile().then(async ()=>{
   try{
     await window.storage.get(keyFor(todayStr));
     activateTab('insights');
   } catch(e){
     document.getElementById('morningBanner').style.display = 'block';
-    activateTab('recovery');
+    activateTab('data');
+    activateDataSubView('recovery');
   }
 });
 </script>
