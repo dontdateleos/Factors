@@ -3497,7 +3497,6 @@
       <div class="type-btn active" data-view="daily">Daily</div>
       <div class="type-btn" data-view="weekly">Weekly</div>
       <div class="type-btn" data-view="goals">Goals</div>
-      <div class="type-btn" data-view="warmup">Warm-up</div>
     </div>
 
     <div id="dailyTrainingView">
@@ -3507,10 +3506,36 @@
     </div>
 
     <div class="session-flow-section">
-      <div class="session-flow-body" style="display:block; padding:12px 16px;">
-        <button class="small" id="jumpToWarmupBtn">1. Warm-up →</button>
+      <div class="session-flow-header" id="warmupFlowHeader">
+        <span class="session-flow-title">1. Warm-up</span>
+        <span class="session-flow-chevron">▾</span>
+      </div>
+      <div class="session-flow-body" id="warmupFlowBody" style="display:none;">
+    <div class="group">
+      <div class="group-head"><div class="group-title">Today's planned session</div></div>
+      <div class="fields">
+        <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
+        <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        <button class="primary" id="generateWarmupBtn">Generate warm-up</button>
       </div>
     </div>
+    <div class="score-note" style="margin-bottom:16px;">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
+    <div id="warmupCards"></div>
+
+    <div id="mobilitySection" style="display:none; margin-top:24px;">
+      <div class="group">
+        <div class="group-head"><div class="group-title">Post-Exercise Stretching</div><div class="group-sub">deeper — after training or standalone</div></div>
+        <div class="fields">
+          <div class="score-note">Factors in everything you've trained recently — strength, running, and logged mobility work — not just your warm-up areas. Foam rolling, static holds, and band-assisted PNF. Better suited after training than right before.</div>
+          <button id="generateMobilityBtn">Generate post-exercise stretching</button>
+        </div>
+      </div>
+      <div id="mobilityCards"></div>
+    </div>
+
+    <div class="score-note" style="margin-top:16px;">Log actual stretch sessions (sets × hold time) on the Training tab under the Mobility session type — this generator reads from that history.</div>
+    </div>
+      </div>
 
     <div class="session-flow-section">
       <div class="session-flow-header active" id="mainWorkoutFlowHeader">
@@ -3719,31 +3744,6 @@
       </div>
     </div>
 
-    <div id="warmupTrainingView" style="display:none;">
-    <div class="group">
-      <div class="group-head"><div class="group-title">Today's planned session</div></div>
-      <div class="fields">
-        <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
-        <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <button class="primary" id="generateWarmupBtn">Generate warm-up</button>
-      </div>
-    </div>
-    <div class="score-note" style="margin-bottom:16px;">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
-    <div id="warmupCards"></div>
-
-    <div id="mobilitySection" style="display:none; margin-top:24px;">
-      <div class="group">
-        <div class="group-head"><div class="group-title">Post-Exercise Stretching</div><div class="group-sub">deeper — after training or standalone</div></div>
-        <div class="fields">
-          <div class="score-note">Factors in everything you've trained recently — strength, running, and logged mobility work — not just your warm-up areas. Foam rolling, static holds, and band-assisted PNF. Better suited after training than right before.</div>
-          <button id="generateMobilityBtn">Generate post-exercise stretching</button>
-        </div>
-      </div>
-      <div id="mobilityCards"></div>
-    </div>
-
-    <div class="score-note" style="margin-top:16px;">Log actual stretch sessions (sets × hold time) on the Training tab under the Mobility session type — this generator reads from that history.</div>
-    </div>
   </div>
 
   <!-- DATA PANEL (Recovery + Injuries + Trends) -->
@@ -4038,10 +4038,9 @@ function activateTrainingSubView(view){
   document.getElementById('dailyTrainingView').style.display = view==='daily' ? 'block' : 'none';
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
   document.getElementById('goalsView').style.display = view==='goals' ? 'block' : 'none';
-  document.getElementById('warmupTrainingView').style.display = view==='warmup' ? 'block' : 'none';
   if(view==='weekly'){ renderWeekGrid(); renderMacroInsights(); }
   if(view==='goals'){ loadCurrentGoals(); }
-  if(view==='warmup'){ initWarmupTab(); }
+  if(view==='daily'){ initWarmupTab(); }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -4976,11 +4975,10 @@ function toggleFlowSection(headerId, bodyId){
     header.classList.toggle('active', !isOpen);
   });
 }
+toggleFlowSection('warmupFlowHeader', 'warmupFlowBody');
 toggleFlowSection('mainWorkoutFlowHeader', 'mainWorkoutFlowBody');
 toggleFlowSection('stretchFlowHeader', 'stretchFlowBody');
 toggleFlowSection('cooldownFlowHeader', 'cooldownFlowBody');
-
-document.getElementById('jumpToWarmupBtn').addEventListener('click', ()=>activateTrainingSubView('warmup'));
 
 async function renderTodaySessionStretch(){
   const container = document.getElementById('todaySessionStretchCards');
