@@ -29,10 +29,20 @@
   .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; }
   h1{ font-size:22px; font-weight:600; margin:4px 0 14px; letter-spacing:-0.01em; }
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--mono); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   .tab svg{ width:18px; height:18px; }
-  .tab.active{ color:var(--text); border-bottom-color:var(--accent); }
+  .tab.active{ color:var(--text); border-bottom-color:var(--accent); background:var(--accent-dim); border-radius:8px 8px 0 0; }
   .gauge-wrap{ position:relative; width:150px; height:150px; margin:8px auto 20px; }
+  .gauge-wrap::before{
+    content:''; position:absolute; top:50%; left:50%; width:190px; height:190px;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(138,145,105,0.28) 0%, rgba(138,145,105,0) 68%);
+    pointer-events:none; z-index:0;
+    animation: gaugeGlow 4.5s ease-in-out infinite;
+  }
+  @keyframes gaugeGlow{ 0%,100%{ opacity:0.65; } 50%{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){ .gauge-wrap::before{ animation:none; opacity:0.85; } }
+  .gauge-wrap svg, .gauge-center{ position:relative; z-index:1; }
   .gauge-center{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 
   .morning-banner{ background:var(--accent-dim); color:var(--text); border:1px solid var(--accent); border-radius:6px; padding:12px 14px; font-size:13px; margin-bottom:16px; line-height:1.4; }
@@ -1312,42 +1322,42 @@
       46.0px 36.0px 0 #a85c2e;
   }
   .profile-row{ display:flex; align-items:center; gap:8px; padding:10px 0 12px; }
-  .profile-row label{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
+  .profile-row label{ font-family:var(--sans); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
   .profile-row select{ flex:1; font-size:12px; padding:6px 8px; }
   main{ padding:20px; max-width:520px; margin:0 auto; }
   .panel{ display:none; }
   .panel.active{ display:block; }
 
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  input[type=date]{ background:var(--panel); border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:13px; padding:8px 10px; border-radius:4px; }
+  input[type=date]{ background:var(--panel); border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px 10px; border-radius:4px; }
 
   .group{ border:1px solid var(--line); border-radius:6px; margin-bottom:16px; overflow:hidden; background:var(--panel); }
   .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:14px 16px 10px; border-bottom:1px solid var(--line); }
   .group-title{ font-size:14px; font-weight:600; }
-  .group-sub{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; flex-basis:100%; text-align:left; }
+  .group-sub{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.08em; flex-basis:100%; text-align:left; }
   .fields{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:12px; }
   .field-row{ display:flex; gap:10px; align-items:center; }
-  .field-label{ font-family:var(--mono); font-size:12px; color:var(--dim); width:112px; flex-shrink:0; }
+  .field-label{ font-family:var(--sans); font-size:12px; color:var(--dim); width:112px; flex-shrink:0; }
   .src-tag{ font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:3px; color:var(--bg); background:var(--accent); width:52px; text-align:center; flex-shrink:0; }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--text); }
-  input[type=number], input[type=text], select, textarea{ flex:1; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:14px; padding:8px 10px; border-radius:4px; min-width:0; }
+  input[type=number], input[type=text], select, textarea{ flex:1; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:14px; padding:8px 10px; border-radius:4px; min-width:0; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); font-size:13px; }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
-  .disagree-note{ font-family:var(--mono); font-size:10px; color:var(--bad); margin-top:2px; display:none; }
+  .disagree-note{ font-family:var(--sans); font-size:10px; color:var(--bad); margin-top:2px; display:none; }
   .disagree-note.show{ display:block; }
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
   .score-card{ flex:1; border:1px solid var(--line); border-radius:6px; padding:14px; background:var(--panel); text-align:center; }
   .score-num{ font-family:var(--mono); font-size:28px; font-weight:500; color:var(--accent); }
-  .score-label{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
+  .score-label{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.08em; margin-top:4px; }
   .score-note{ font-size:10px; color:var(--dim); margin-top:8px; line-height:1.4; }
 
   footer{ position:fixed; bottom:0; left:0; right:0; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--line); display:flex; gap:10px; }
-  button{ font-family:var(--mono); font-size:12px; letter-spacing:0.04em; text-transform:uppercase; padding:13px 16px; border-radius:5px; border:1px solid var(--line); background:var(--panel); color:var(--text); flex:1; cursor:pointer; transition:transform 0.12s ease; }
+  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.04em;  padding:13px 16px; border-radius:5px; border:1px solid var(--line); background:var(--panel); color:var(--text); flex:1; cursor:pointer; transition:transform 0.12s ease; }
   button:active, .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; }
-  .empty-state span{ font-family:var(--mono); font-size:12px; }
+  .empty-state span{ font-family:var(--sans); font-size:12px; }
   header.collapsed{ padding:12px 20px 0; }
   header.collapsed h1{ font-size:0; margin:0; height:0; overflow:hidden; }
   header.collapsed .eyebrow{ font-size:0; height:0; overflow:hidden; margin:0; }
@@ -1359,16 +1369,16 @@
   button.primary{ background:var(--accent); color:var(--bg); border-color:var(--accent); font-weight:600; }
   button.small{ flex:none; padding:8px 12px; font-size:11px; }
   button:active{ opacity:0.8; }
-  .status{ font-family:var(--mono); font-size:11px; color:var(--dim); text-align:center; margin-top:8px; min-height:14px; }
+  .status{ font-family:var(--sans); font-size:11px; color:var(--dim); text-align:center; margin-top:8px; min-height:14px; }
 
   .log{ margin-top:24px; }
-  .log-title{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--dim); margin-bottom:8px; }
-  .log-entry{ font-family:var(--mono); font-size:11px; color:var(--dim); display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .log-title{ font-family:var(--sans); font-size:11px;  letter-spacing:0.08em; color:var(--dim); margin-bottom:8px; }
+  .log-entry{ font-family:var(--sans); font-size:11px; color:var(--dim); display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
   .log-entry:hover{ color:var(--text); }
   .d-badge{ color:var(--bad); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:14px; }
-  .type-btn{ flex:1; text-align:center; padding:10px; border:1px solid var(--line); border-radius:5px; font-family:var(--mono); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
+  .type-btn{ flex:1; text-align:center; padding:10px; border:1px solid var(--line); border-radius:5px; font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
   .type-btn.active{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
 
   .exercise-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
@@ -1376,8 +1386,8 @@
   .exercise-row input[type=number]{ flex:1; min-width:62px; }
   .exercise-row select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
   .remove-row{ font-family:var(--mono); color:var(--bad); font-size:16px; cursor:pointer; padding:0 4px; flex:none; }
-  .add-row{ font-family:var(--mono); font-size:11px; color:var(--accent); cursor:pointer; text-align:center; padding:8px; border:1px dashed var(--line); border-radius:4px; }
-  .volume-total{ font-family:var(--mono); font-size:12px; color:var(--dim); text-align:right; margin-top:8px; }
+  .add-row{ font-family:var(--sans); font-size:11px; color:var(--accent); cursor:pointer; text-align:center; padding:8px; border:1px dashed var(--line); border-radius:4px; }
+  .volume-total{ font-family:var(--sans); font-size:12px; color:var(--dim); text-align:right; margin-top:8px; }
   .volume-total span{ color:var(--accent); font-weight:500; }
 
   .injury-card{ border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:10px; background:var(--panel); }
@@ -1387,11 +1397,11 @@
   .injury-sev.low{ color:var(--good); }
   .injury-sev.mid{ color:var(--warn); }
   .injury-sev.high{ color:var(--bad); }
-  .injury-meta{ font-family:var(--mono); font-size:10px; color:var(--dim); }
+  .injury-meta{ font-family:var(--sans); font-size:10px; color:var(--dim); }
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
   .chip-tray{ display:flex; gap:10px; margin-bottom:16px; }
-  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:6px; font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
+  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:6px; font-family:var(--sans); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
   .block-chip[data-block-type="strength"]{ background:var(--accent-dim); color:var(--text); }
   .block-chip[data-block-type="run"]{ background:#3a3220; color:var(--warn); border-color:#4a3f28; }
   .block-chip[data-block-type="mobility"]{ background:#2c3d44; color:#6fa8b8; border-color:#3a4d54; }
@@ -1399,14 +1409,14 @@
 
   .week-grid{ display:flex; flex-direction:column; gap:6px; }
   .week-day-row{ display:flex; align-items:center; gap:8px; }
-  .week-day-label{ width:38px; flex-shrink:0; font-family:var(--mono); font-size:11px; color:var(--dim); text-transform:uppercase; }
-  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .week-day-label{ width:38px; flex-shrink:0; font-family:var(--sans); font-size:11px; color:var(--dim);  }
+  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
   .week-slot.drag-over{ border-color:var(--accent); background:rgba(138,145,105,0.1); }
   .week-slot.filled{ border-style:solid; color:var(--text); flex-direction:column; gap:2px; }
   .week-slot.filled.strength{ border-color:var(--accent); background:rgba(138,145,105,0.08); }
   .week-slot.filled.run{ border-color:var(--warn); background:rgba(194,163,95,0.08); }
   .week-slot.filled.mobility{ border-color:#6fa8b8; background:rgba(111,168,184,0.08); }
-  .week-slot-type{ font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+  .week-slot-type{ font-weight:600;  letter-spacing:0.04em; }
   .week-slot-summary{ font-size:9px; color:var(--dim); }
 
   #blockEditPanel{ border:1px solid var(--line); border-radius:6px; padding:16px; background:var(--panel); margin-top:16px; }
@@ -1415,11 +1425,11 @@
   #skillGoalRows select{ flex:1; min-width:90px; font-size:12px; }
   .goal-row{ border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:10px; background:var(--panel); }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .goal-priority-badge{ font-family:var(--mono); font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; }
+  .goal-priority-badge{ font-family:var(--sans); font-size:10px; color:var(--accent);  letter-spacing:0.06em; }
   .goal-row-controls{ display:flex; gap:10px; align-items:center; }
   .goal-row-controls button{ padding:2px 8px; font-size:12px; }
   .goal-row .field-row{ margin-bottom:8px; }
-  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--mono); font-size:13px; padding:8px; border-radius:4px; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px; border-radius:4px; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
 
   .session-flow-section{ border:1px solid var(--line); border-radius:6px; margin-bottom:10px; overflow:hidden; background:var(--panel); }
@@ -1436,31 +1446,31 @@
   .rec-card.modify{ border-left-color:var(--warn); }
   .rec-card.hold{ border-left-color:var(--dim); }
   .rec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .rec-type{ font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; }
+  .rec-type{ font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:0.06em;  }
   .rec-type.reduce{ color:var(--bad); }
   .rec-type.add{ color:var(--accent); }
   .rec-type.modify{ color:var(--warn); }
   .rec-type.hold{ color:var(--dim); }
-  .rec-conf{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; border:1px solid var(--line); padding:2px 6px; border-radius:3px; }
+  .rec-conf{ font-family:var(--sans); font-size:10px; color:var(--dim);  border:1px solid var(--line); padding:2px 6px; border-radius:3px; }
   .rec-title{ font-size:14px; margin-bottom:8px; }
-  .rec-signals{ font-family:var(--mono); font-size:11px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
+  .rec-signals{ font-family:var(--sans); font-size:11px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
   .rec-actions{ display:flex; gap:8px; }
 
-  .plan-pill{ font-family:var(--mono); font-size:11px; padding:8px 12px; border:1px solid var(--line); border-radius:16px; color:var(--dim); cursor:pointer; }
+  .plan-pill{ font-family:var(--sans); font-size:11px; padding:8px 12px; border:1px solid var(--line); border-radius:16px; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
   .warm-card{ border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:14px; background:var(--panel); border-left:3px solid var(--dim); }
   .warm-card.injury{ border-left-color:var(--bad); }
   .warm-card.load{ border-left-color:var(--warn); }
   .warm-card.planned{ border-left-color:var(--accent); }
   .warm-area{ font-size:14px; font-weight:600; margin-bottom:2px; }
-  .warm-reason{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+  .warm-reason{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.06em; margin-bottom:10px; }
   .warm-reason.injury{ color:var(--bad); }
   .warm-reason.load{ color:var(--warn); }
   .warm-drills{ font-size:13px; line-height:1.9; }
-  .trend-flag{ font-family:var(--mono); font-size:12px; padding:10px 12px; border-left:2px solid var(--dim); background:var(--panel); border-radius:4px; margin-bottom:8px; line-height:1.5; }
+  .trend-flag{ font-family:var(--sans); font-size:12px; padding:10px 12px; border-left:2px solid var(--dim); background:var(--panel); border-radius:4px; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:0.03em; padding:12px 20px; border-radius:24px; opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s; z-index:100; white-space:nowrap; }
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:0.03em; padding:12px 20px; border-radius:24px; opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s; z-index:100; white-space:nowrap; }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
 </style>
@@ -1497,8 +1507,8 @@
   <div class="panel active" id="panel-insights">
     <div class="gauge-wrap">
       <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line)" stroke-width="10"/>
-        <circle id="gaugeProgress" cx="75" cy="75" r="62" fill="none" stroke="var(--dim)" stroke-width="10"
+        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line)" stroke-width="13"/>
+        <circle id="gaugeProgress" cx="75" cy="75" r="62" fill="none" stroke="var(--dim)" stroke-width="13"
           stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6"
           transform="rotate(-90 75 75)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;"/>
       </svg>
@@ -1507,8 +1517,8 @@
         <div class="score-label" id="overallScoreLabel">Overall</div>
       </div>
     </div>
-    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:8px;"></div>
-    <div class="score-note" style="margin-bottom:16px;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
+    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:10px; opacity:0.75;"></div>
+    <div class="score-note" style="margin-bottom:16px; font-size:10px; opacity:0.65; text-align:center;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
@@ -1734,6 +1744,9 @@
         </div>
       </div>
 
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="small" id="clearAllWeekBtn">Clear all</button>
+      </div>
       <div class="week-grid" id="weekGrid"></div>
 
       <div id="blockEditPanel" style="display:none;"></div>
@@ -1804,6 +1817,14 @@
         <div class="group-head"><div class="group-title">Generate Program</div><div class="group-sub">blends goals + training setup, hybrid strength/running research · fills empty days</div></div>
         <div class="fields">
           <div class="score-note">Allocates available days between strength and running by priority + evidence-based ratios (not an even split). Spreads days to reduce heavy-lift/key-run adjacency. Only touches empty days.</div>
+          <div class="field-row"><span class="field-label">Split</span>
+            <select id="programSplitOverride">
+              <option value="auto">Auto (recommended)</option>
+              <option value="full_body">Full Body</option>
+              <option value="upper_lower">Upper / Lower</option>
+              <option value="ppl">Push / Pull / Legs</option>
+            </select>
+          </div>
           <div class="field-row"><span class="field-label">Weeks</span>
             <select id="programWeeksSelect">
               <option value="1">1 (this week only)</option>
@@ -1813,6 +1834,7 @@
           </div>
           <button id="generateProgramFromGoalsBtn" class="primary">Generate program from goals</button>
           <div id="generateProgramResult" class="score-note"></div>
+          <div id="goToDailyLink" style="display:none; margin-top:8px;"><button class="small" id="goToDailyBtn">View today's plan →</button></div>
         </div>
       </div>
 
@@ -3393,6 +3415,23 @@ function renderSlotContent(slotEl, block){
   }
 }
 
+document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear every scheduled block this week? This cannot be undone.')) return;
+  const dates = getWeekDates();
+  let cleared = 0;
+  for(const date of dates){
+    for(const slot of ['am','pm']){
+      try{
+        await window.storage.get(`weekplan:${date}:${slot}`);
+        await window.storage.delete(`weekplan:${date}:${slot}`);
+        cleared++;
+      } catch(e){}
+    }
+  }
+  showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear');
+  renderWeekGrid();
+});
+
 async function renderWeekGrid(){
   const grid = document.getElementById('weekGrid');
   grid.innerHTML = '';
@@ -4250,9 +4289,9 @@ function updateOverallScore(targetScore, adaptiveScore, goalT){
   animateNumber(out, prev, overall, 500);
   const offset = CIRCUMFERENCE * (1 - clamp(overall,0,100)/100);
   gauge.setAttribute('stroke-dashoffset', offset);
-  if(overall < goalT.scoreLow){ out.style.color='var(--bad)'; gauge.style.stroke='var(--bad)'; label.textContent='Overall — below typical'; }
-  else if(overall > goalT.scoreHigh){ out.style.color='var(--accent)'; gauge.style.stroke='var(--accent)'; label.textContent='Overall — above typical'; }
-  else { out.style.color='var(--warn)'; gauge.style.stroke='var(--warn)'; label.textContent='Overall — typical'; }
+  if(overall < goalT.scoreLow){ out.style.color='var(--bad)'; gauge.style.stroke='var(--bad)'; label.textContent='Below typical'; }
+  else if(overall > goalT.scoreHigh){ out.style.color='var(--accent)'; gauge.style.stroke='var(--accent)'; label.textContent='Above typical'; }
+  else { out.style.color='var(--warn)'; gauge.style.stroke='var(--warn)'; label.textContent='Typical'; }
 }
 
 async function isRestDayComing(daysAhead){
@@ -5132,8 +5171,8 @@ function determineHybridPlan(goalList, totalDays){
   let strengthSessions, runningSessions;
   if(emphasis === 'strength'){
     runningSessions = secondaryLevel==='maintenance'
-      ? Math.min(2, Math.floor(totalDays/3))
-      : Math.min(3, Math.floor(totalDays*0.35));
+      ? Math.min(2, Math.round(totalDays/3))
+      : Math.min(3, Math.round(totalDays*0.35));
     strengthSessions = totalDays - runningSessions;
     const floorStrength = Math.ceil(totalDays*0.5); // consensus floor, not lab-derived
     if(strengthSessions < floorStrength){
@@ -5227,22 +5266,56 @@ function interleaveDatesSpacingAware(dates, strengthCount, runCount, splitType){
 // 6-7 days when a smaller rotation covers the same ground. Own design choice.
 const MOBILITY_ONLY_MAX_SESSIONS = 4;
 
+// Dosing per mobility skill — sets × hold time. Own design choice (moderate, sustainable
+// volume for a stretch-progression practice), not derived from a specific study.
+const MOBILITY_SKILL_DOSING = {
+  pike: { sets: 3, holdSeconds: 30 },
+  bridge: { sets: 3, holdSeconds: 20 },
+  frontsplits: { sets: 3, holdSeconds: 30 }
+};
+
+// Builds an actual structured entry for a skill goal — level context, real dosing, and
+// (every other session) a light readiness-test of the NEXT level, rather than repeating
+// "do pike" identically every single generated day with no progression logic at all.
+function buildMobilitySkillStretches(sg, dayIndex){
+  const tree = PROGRESSION_TREES.mobility[sg.skill];
+  if(!tree) return [];
+  const dosing = MOBILITY_SKILL_DOSING[sg.skill] || { sets: 3, holdSeconds: 30 };
+  const stretches = [];
+  const currentLevel = tree.levels[sg.levelIndex];
+  stretches.push({ name: `${tree.label} (Level ${sg.levelIndex+1}/${tree.levels.length}): ${currentLevel} — ${dosing.sets}×${dosing.holdSeconds}s`, area:'' });
+  if(dayIndex % 2 === 1 && sg.levelIndex < tree.levels.length-1){
+    const nextLevel = tree.levels[sg.levelIndex+1];
+    stretches.push({ name: `${tree.label} readiness test — next level: ${nextLevel}. Light attempt, 1×${Math.round(dosing.holdSeconds*0.5)}s, gauge how close you are`, area:'' });
+  }
+  return stretches;
+}
+
 async function generateMobilityProgram(numSessions, forcedDates){
   const dates = forcedDates || await getAvailableEmptyDates();
   const placedDates = dates.slice(0, numSessions);
   if(placedDates.length === 0) return { placed: 0 };
 
   const goals = await getCurrentGoals(todayStr);
-  const mobilityGoals = ((goals && goals.skillGoals) || []).filter(sg=>sg.category==='mobility');
+  let mobilityGoals = ((goals && goals.skillGoals) || []).filter(sg=>sg.category==='mobility');
+  const hasBroadMobilityGoal = goals && goals.list && goals.list.some(g=>g.type==='mobility');
+  // A broad "be mobile" goal with no specific skill attached can't actually be
+  // progressed — there's no level to advance. Auto-seed real progression skills
+  // (starting at level 1) rather than falling back to generic area-library rotation
+  // with no structure at all.
+  if(mobilityGoals.length === 0 && hasBroadMobilityGoal){
+    mobilityGoals = [{ category:'mobility', skill:'pike', levelIndex:0 }, { category:'mobility', skill:'bridge', levelIndex:0 }];
+  }
+
   const allAreas = Object.keys(MOBILITY_LIBRARY);
   let areaCursor = 0;
   let placed = 0;
 
-  for(const date of placedDates){
+  for(let dayIdx=0; dayIdx<placedDates.length; dayIdx++){
+    const date = placedDates[dayIdx];
     const stretches = [];
     mobilityGoals.forEach(sg=>{
-      const tree = PROGRESSION_TREES.mobility[sg.skill];
-      if(tree) stretches.push({ name: `${tree.label}: ${tree.levels[sg.levelIndex]}`, area:'' });
+      stretches.push(...buildMobilitySkillStretches(sg, dayIdx));
     });
     for(let k=0; k<2 && areaCursor<allAreas.length; k++){
       const area = allAreas[areaCursor % allAreas.length];
@@ -5254,7 +5327,7 @@ async function generateMobilityProgram(numSessions, forcedDates){
     } catch(e){
       await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
         type:'mobility',
-        details: { stretches, notes:'Auto-generated from your mobility goal — rotates through areas across the week' }
+        details: { stretches, notes: mobilityGoals.length ? 'Auto-generated — real progression tracking, tap in to adjust level once you\'ve tested it' : 'Auto-generated from your mobility goal — rotates through areas across the week' }
       }));
       placed++;
     }
@@ -5262,7 +5335,7 @@ async function generateMobilityProgram(numSessions, forcedDates){
   return { placed };
 }
 
-async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, blockPhase){
+async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, blockPhase, splitOverride){
   let setup;
   try{ const r = await window.storage.get('settings:trainingSetup'); setup = JSON.parse(r.value); }
   catch(e){ return { error:'no-setup' }; }
@@ -5286,7 +5359,22 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
   const result = { plan };
 
   const emptyDates = await getAvailableEmptyDates(weekDatesOverride);
-  const splitType = plan.strengthSessions <= 2 ? 'full_body' : plan.strengthSessions <= 4 ? 'upper_lower' : 'ppl';
+  // Session count alone was choosing the split, ignoring stated session-length preference —
+  // someone who wants 3-4 LONG sessions and full-body coverage was getting pushed into
+  // upper/lower or PPL just because of the count. Auto mode now factors in length too;
+  // splitOverride ('full_body'/'upper_lower'/'ppl') skips this entirely when set explicitly.
+  let splitType = splitOverride;
+  if(!splitType || splitType === 'auto'){
+    const sessionLength = parseInt(setup.sessionLength, 10) || 45;
+    if(plan.strengthSessions <= 2){
+      splitType = 'full_body';
+    } else if(sessionLength >= 60){
+      splitType = plan.strengthSessions <= 4 ? 'full_body' : 'upper_lower';
+    } else {
+      splitType = plan.strengthSessions <= 4 ? 'upper_lower' : 'ppl';
+    }
+  }
+  result.splitAuto = !splitOverride || splitOverride === 'auto';
   let strengthDates = emptyDates, runDates = emptyDates;
   if(plan.strengthSessions > 0 && plan.runningSessions > 0){
     const { aDates, bDates, unresolvedAdjacency } = interleaveDatesSpacingAware(emptyDates, plan.strengthSessions, plan.runningSessions, splitType);
@@ -5364,7 +5452,7 @@ function getBlockPhase(weekNum, isDeload){
   return 'intensification'; // week 3
 }
 
-async function generateMultiWeekProgram(numWeeks){
+async function generateMultiWeekProgram(numWeeks, splitOverride){
   const weekResults = [];
   for(let w=0; w<numWeeks; w++){
     const weekNum = w+1; // 1-indexed for display and deload cadence
@@ -5377,7 +5465,7 @@ async function generateMultiWeekProgram(numWeeks){
 
     const volumeWaveNote = getVolumeWaveNote(weekNum, isDeload);
     const blockPhase = getBlockPhase(weekNum, isDeload);
-    const r = await generateProgramFromGoals(weekDates, volumeWaveNote, blockPhase);
+    const r = await generateProgramFromGoals(weekDates, volumeWaveNote, blockPhase, splitOverride);
     weekResults.push({ weekNum, isDeload, blockPhase, result: r });
     if(r.error) break; // stop early if something's fundamentally missing (no setup/goals)
   }
@@ -5406,11 +5494,14 @@ function describeWeekResult(r, weekNum, isDeload){
 
 document.getElementById('generateProgramFromGoalsBtn').addEventListener('click', async ()=>{
   const result = document.getElementById('generateProgramResult');
+  const dailyLink = document.getElementById('goToDailyLink');
+  dailyLink.style.display = 'none';
   const numWeeks = parseInt(document.getElementById('programWeeksSelect').value, 10);
+  const splitOverride = document.getElementById('programSplitOverride').value;
   result.textContent = 'Generating...';
   result.style.color = 'var(--dim)';
   try{
-    const weekResults = await generateMultiWeekProgram(numWeeks);
+    const weekResults = await generateMultiWeekProgram(numWeeks, splitOverride);
     const first = weekResults[0];
 
     if(first.result.error){
@@ -5433,20 +5524,26 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     if(first.result.plan.emphasis==='strength' || first.result.plan.emphasis==='running'){
       msg += ` Ratio/floors from concurrent strength+running research (some thresholds are coaching consensus, not lab-derived).`;
     }
+    if(!first.result.splitAuto) msg += ` Split set manually — auto-recommendation skipped.`;
     if(first.result.spacingApplied){
       msg += first.result.unresolvedAdjacency
         ? ` Tried to keep heavy lift days away from running days, but couldn't fully resolve it with this many available days — check the Weekly grid for a heavy lift landing next to a run.`
         : ` Heavy lift days kept non-adjacent to running days where the available days allowed.`;
     }
-    if(!first.result.mobilityHandled) msg += ' Mobility goal noted but not yet served by a dedicated generator.';
+    if(!first.result.mobilityHandled) msg += ' No mobility goal set, so no mobility sessions generated — add one in Skill Goals or the Goals list above.';
     if(numWeeks > 1) msg += ' Deload weeks use the same auto-prefill as the manual deload checkbox — nothing new to learn.';
     result.textContent = msg;
     result.style.color = 'var(--good)';
     showToast(`${numWeeks} week${numWeeks===1?'':'s'} generated`);
+    dailyLink.style.display = 'block';
   } catch(e){
     result.textContent = 'Generation failed — try again.';
     result.style.color = 'var(--bad)';
   }
+});
+document.getElementById('goToDailyBtn').addEventListener('click', ()=>{
+  activateTab('training');
+  activateTrainingSubView('daily');
 });
 
 // Shared across all generators — finds this week's fully-empty weekplan slots, filtered to
@@ -5561,10 +5658,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     const remaining = emptyDates.filter(d=>!placedDates.includes(d));
     const mobDate = remaining[0] || placedDates[placedDates.length-1];
     const slot = remaining[0] ? 'am' : 'pm';
-    const stretches = mobilityGoals.map(sg=>{
-      const tree = PROGRESSION_TREES.mobility[sg.skill];
-      return { name: `${tree.label}: ${tree.levels[sg.levelIndex]}`, area:'' };
-    });
+    const stretches = mobilityGoals.flatMap(sg => buildMobilitySkillStretches(sg, 0));
     try{
       let existingStretches = [];
       try{
@@ -5699,7 +5793,8 @@ async function generateRecommendations(){
   let entry;
   try{ const r = await window.storage.get(keyFor(todayStr)); entry = JSON.parse(r.value); }
   catch(e){
-    container.innerHTML = '<div class="log-entry">Log today\'s recovery entry first — recommendations need today\'s data.</div>';
+    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:600;">Log today\'s recovery to unlock today\'s recommendations →</div>';
+    document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
     refreshRecHistory();
     return;
   }
