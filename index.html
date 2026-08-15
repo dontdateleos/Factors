@@ -6,46 +6,58 @@
 <title>DOGFOOD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
 
   :root{
-    --bg:#0c0d0b;
-    --panel:#131410;
-    --line:#2a2c25;
-    --text:#e9e7de;
-    --dim:#8b8d81;
-    --accent:#8a9169;
-    --accent-dim:#4f5340;
-    --bad:#a9694f;
-    --warn:#c2a35f;
-    --good:#8a9169;
+    --bg:#fbfaf6;
+    --panel:#ffffff;
+    --line:#1c1d17;
+    --text:#0c0d0b;
+    --dim:#5c5e50;
+    --accent:#c9da4a;
+    --accent-ink:#5c6b0f;
+    --accent-dim:#e8edc4;
+    --bad:#e8391a;
+    --warn:#d98a00;
+    --good:#5c6b0f;
     --bone:#e9e2c8;
+    --ink:#0c0d0b;
     --mono: 'IBM Plex Mono', monospace;
-    --sans: 'Space Grotesk', sans-serif;
+    --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --border-bold:#0c0d0b;
+    --block-lime:#c9da4a;
+    --block-orange:#ffad6e;
+    --block-blue:#7dd8ef;
+    --block-yellow:#ffd400;
+    --block-purple:#c2b0f7;
+    --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
+    --shadow-btn: 4px 4px 0 var(--border-bold);
+    --shadow-primary: 4px 4px 0 var(--accent);
   }
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; }
-  header{ padding:24px 20px 0; position:sticky; top:0; background:var(--bg); z-index:10; border-bottom:1px solid var(--line); }
-  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; }
-  h1{ font-size:22px; font-weight:600; margin:4px 0 14px; letter-spacing:-0.01em; }
-  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  header{ padding:18px 14px 0; position:sticky; top:0; background:var(--bg); z-index:10; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; }
+  h1{ font-size:46px; font-weight:700; margin:0 0 14px; letter-spacing:-0.03em; line-height:0.92; text-transform:uppercase; }
+  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px; }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  .tab-icon-wrap{ position:relative; display:inline-flex; }
+  .tab-badge{ position:absolute; top:-7px; right:-10px; min-width:16px; height:16px; padding:0 3px; border-radius:0; border:1.5px solid var(--bg); background:var(--text); color:var(--bg); font-family:var(--sans); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1; }
+  .tab-index{ position:absolute; top:-7px; left:-11px; font-family:var(--mono); font-size:8px; font-weight:700; color:inherit; line-height:1; }
+  .tab-badge:empty{ display:none; }
   .tab svg{ width:18px; height:18px; }
-  .tab.active{ color:var(--text); border-bottom-color:var(--accent); background:var(--accent-dim); border-radius:8px 8px 0 0; }
-  .gauge-wrap{ position:relative; width:150px; height:150px; margin:8px auto 20px; }
-  .gauge-wrap::before{
-    content:''; position:absolute; top:50%; left:50%; width:190px; height:190px;
-    transform:translate(-50%,-50%);
-    background:radial-gradient(circle, rgba(138,145,105,0.28) 0%, rgba(138,145,105,0) 68%);
-    pointer-events:none; z-index:0;
-    animation: gaugeGlow 4.5s ease-in-out infinite;
-  }
-  @keyframes gaugeGlow{ 0%,100%{ opacity:0.65; } 50%{ opacity:1; } }
-  @media (prefers-reduced-motion: reduce){ .gauge-wrap::before{ animation:none; opacity:0.85; } }
-  .gauge-wrap svg, .gauge-center{ position:relative; z-index:1; }
-  .gauge-center{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .tab.active{ color:var(--text); border-bottom-color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
+  .tab[data-tab="insights"].active{ background:var(--block-lime); }
+  .tab[data-tab="training"].active{ background:var(--block-orange); }
+  .tab[data-tab="goals"].active{ background:var(--block-blue); }
+  .tab[data-tab="data"].active{ background:var(--block-yellow); }
+  body.tab-insights main, body.tab-insights{ background:var(--block-lime); }
+  body.tab-training main, body.tab-training{ background:var(--block-orange); }
+  body.tab-goals main, body.tab-goals{ background:var(--block-blue); }
+  body.tab-data main, body.tab-data{ background:var(--block-yellow); }
+  .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
 
-  .morning-banner{ background:var(--accent-dim); color:var(--text); border:1px solid var(--accent); border-radius:6px; padding:12px 14px; font-size:13px; margin-bottom:16px; line-height:1.4; }
+  .morning-banner{ background:transparent; color:var(--text); border:2px solid var(--border-bold); border-radius:0; padding:16px 16px; font-size:14px; font-weight:600; margin-bottom:22px; line-height:1.35; box-shadow:4px 4px 0 var(--border-bold); }
 
   .panel.active.panel-enter{ animation: panelFade 0.28s ease; }
   @keyframes panelFade{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
@@ -54,7 +66,7 @@
   .rec-card, .warm-card, .injury-card{ animation: cardIn 0.3s ease; }
 
   @keyframes shimmer{ 0%{ background-position:-200px 0; } 100%{ background-position:200px 0; } }
-  .skeleton{ height:16px; border-radius:4px; margin-bottom:10px; background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
+  .skeleton{ height:16px; border-radius:0; margin-bottom:10px; background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
   .skeleton.short{ width:40%; }
   .skeleton.tall{ height:60px; }
 
@@ -66,6 +78,7 @@
 
   .header-brand{ display:flex; align-items:center; gap:14px; }
   .skeleton-logo{ position:relative; width:28px; height:26px; flex-shrink:0; transform:scale(0.55); transform-origin:left center; overflow:visible; }
+  .skeleton-logo::before{ content:''; position:absolute; top:-6px; left:-8px; width:90px; height:85px; background:var(--ink); z-index:-1; }
   .skel-frame{ position:absolute; top:2px; left:-2px; width:1.4px; height:1.4px; background:transparent; }
   .skel-frame.fA{
     box-shadow:
@@ -1324,37 +1337,41 @@
   .profile-row{ display:flex; align-items:center; gap:8px; padding:10px 0 12px; }
   .profile-row label{ font-family:var(--sans); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
   .profile-row select{ flex:1; font-size:12px; padding:6px 8px; }
-  main{ padding:20px; max-width:520px; margin:0 auto; }
+  main{ padding:16px 14px 14px; max-width:520px; margin:0 auto; }
   .panel{ display:none; }
   .panel.active{ display:block; }
 
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  input[type=date]{ background:var(--panel); border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px 10px; border-radius:4px; }
+  input[type=date]{ background:var(--panel); border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px 10px; border-radius:0; }
 
-  .group{ border:1px solid var(--line); border-radius:6px; margin-bottom:16px; overflow:hidden; background:var(--panel); }
-  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:14px 16px 10px; border-bottom:1px solid var(--line); }
-  .group-title{ font-size:14px; font-weight:600; }
+  .group{ margin-bottom:22px; background:transparent; }
+  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:12px 14px 8px; border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
+  .group-title{ font-size:18px; font-weight:700; letter-spacing:-0.005em; text-transform:uppercase; }
   .group-sub{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.08em; flex-basis:100%; text-align:left; }
-  .fields{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+  .fields{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .field-label{ font-family:var(--sans); font-size:12px; color:var(--dim); width:112px; flex-shrink:0; }
-  .src-tag{ font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:3px; color:var(--bg); background:var(--accent); width:52px; text-align:center; flex-shrink:0; }
+  .src-tag{ font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:0; color:var(--text); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:700; }
+  .src-tag.oura{ background:var(--block-purple); }
+  .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--text); }
-  input[type=number], input[type=text], select, textarea{ flex:1; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:14px; padding:8px 10px; border-radius:4px; min-width:0; }
+  input[type=number], input[type=text], select, textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:14px; padding:8px 10px; border-radius:0; min-width:0; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); font-size:13px; }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
   .disagree-note{ font-family:var(--sans); font-size:10px; color:var(--bad); margin-top:2px; display:none; }
   .disagree-note.show{ display:block; }
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
-  .score-card{ flex:1; border:1px solid var(--line); border-radius:6px; padding:14px; background:var(--panel); text-align:center; }
-  .score-num{ font-family:var(--mono); font-size:28px; font-weight:500; color:var(--accent); }
+  .score-card{ flex:1; border:2px solid var(--border-bold); border-radius:0; padding:14px; background:transparent; text-align:center; }
+  .score-num{ font-family:var(--mono); font-size:58px; font-weight:700; color:var(--text); letter-spacing:-0.03em; }
   .score-label{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.08em; margin-top:4px; }
   .score-note{ font-size:10px; color:var(--dim); margin-top:8px; line-height:1.4; }
 
-  footer{ position:fixed; bottom:0; left:0; right:0; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--line); display:flex; gap:10px; }
-  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.04em;  padding:13px 16px; border-radius:5px; border:1px solid var(--line); background:var(--panel); color:var(--text); flex:1; cursor:pointer; transition:transform 0.12s ease; }
-  button:active, .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
+  footer{ position:fixed; bottom:0; left:0; right:0; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
+  footer button{ border-radius:0; margin:0 -1px; }
+  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.04em; text-transform:uppercase; font-weight:700; padding:13px 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--panel); color:var(--text); flex:1; cursor:pointer; box-shadow:var(--shadow-btn); transition:transform 0.08s ease, box-shadow 0.08s ease; }
+  button:active{ transform:translate(4px,4px); box-shadow:0 0 0 var(--line); }
+  .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; }
   .empty-state span{ font-family:var(--sans); font-size:12px; }
@@ -1366,7 +1383,8 @@
   .trend-arrow{ font-size:11px; margin-left:4px; }
   .trend-arrow.down{ color:var(--good); }
   .trend-arrow.up{ color:var(--bad); }
-  button.primary{ background:var(--accent); color:var(--bg); border-color:var(--accent); font-weight:600; }
+  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:700; box-shadow:4px 4px 0 var(--border-bold); }
+  button.primary:active{ box-shadow:0 0 0 var(--border-bold); }
   button.small{ flex:none; padding:8px 12px; font-size:11px; }
   button:active{ opacity:0.8; }
   .status{ font-family:var(--sans); font-size:11px; color:var(--dim); text-align:center; margin-top:8px; min-height:14px; }
@@ -1378,19 +1396,19 @@
   .d-badge{ color:var(--bad); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:14px; }
-  .type-btn{ flex:1; text-align:center; padding:10px; border:1px solid var(--line); border-radius:5px; font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
-  .type-btn.active{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
+  .type-btn{ flex:1; text-align:center; padding:10px; border:1px solid var(--line); border-radius:0; font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
+  .type-btn.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
 
   .exercise-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   .exercise-row input[type=text]{ flex:2; min-width:110px; }
   .exercise-row input[type=number]{ flex:1; min-width:62px; }
   .exercise-row select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
   .remove-row{ font-family:var(--mono); color:var(--bad); font-size:16px; cursor:pointer; padding:0 4px; flex:none; }
-  .add-row{ font-family:var(--sans); font-size:11px; color:var(--accent); cursor:pointer; text-align:center; padding:8px; border:1px dashed var(--line); border-radius:4px; }
+  .add-row{ font-family:var(--sans); font-size:11px; color:var(--text); font-weight:700; cursor:pointer; text-align:center; padding:8px; border:2px dashed var(--border-bold); border-radius:0; }
   .volume-total{ font-family:var(--sans); font-size:12px; color:var(--dim); text-align:right; margin-top:8px; }
-  .volume-total span{ color:var(--accent); font-weight:500; }
+  .volume-total span{ color:var(--text); font-weight:700; }
 
-  .injury-card{ border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:10px; background:var(--panel); }
+  .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:14px; margin-bottom:10px; background:transparent; }
   .injury-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .injury-part{ font-weight:600; font-size:14px; }
   .injury-sev{ font-family:var(--mono); font-size:20px; }
@@ -1401,38 +1419,36 @@
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
   .chip-tray{ display:flex; gap:10px; margin-bottom:16px; }
-  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:6px; font-family:var(--sans); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
-  .block-chip[data-block-type="strength"]{ background:var(--accent-dim); color:var(--text); }
-  .block-chip[data-block-type="run"]{ background:#3a3220; color:var(--warn); border-color:#4a3f28; }
-  .block-chip[data-block-type="mobility"]{ background:#2c3d44; color:#6fa8b8; border-color:#3a4d54; }
+  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:0; font-family:var(--sans); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
+  .block-chip[data-block-type="strength"]{ background:transparent; color:var(--text); }
+  .block-chip[data-block-type="run"]{ background:transparent; color:var(--text); }
+  .block-chip[data-block-type="mobility"]{ background:transparent; color:var(--text); }
   .block-chip.dragging{ opacity:0.4; }
 
   .week-grid{ display:flex; flex-direction:column; gap:6px; }
   .week-day-row{ display:flex; align-items:center; gap:8px; }
   .week-day-label{ width:38px; flex-shrink:0; font-family:var(--sans); font-size:11px; color:var(--dim);  }
-  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
-  .week-slot.drag-over{ border-color:var(--accent); background:rgba(138,145,105,0.1); }
-  .week-slot.filled{ border-style:solid; color:var(--text); flex-direction:column; gap:2px; }
-  .week-slot.filled.strength{ border-color:var(--accent); background:rgba(138,145,105,0.08); }
-  .week-slot.filled.run{ border-color:var(--warn); background:rgba(194,163,95,0.08); }
-  .week-slot.filled.mobility{ border-color:#6fa8b8; background:rgba(111,168,184,0.08); }
+  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:0; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .week-slot.drag-over{ border-color:var(--border-bold); background:rgba(0,0,0,0.08); }
+  .week-slot.filled{ border-style:solid; border-color:var(--border-bold); border-width:2px; color:var(--text); flex-direction:column; gap:2px; }
   .week-slot-type{ font-weight:600;  letter-spacing:0.04em; }
   .week-slot-summary{ font-size:9px; color:var(--dim); }
 
-  #blockEditPanel{ border:1px solid var(--line); border-radius:6px; padding:16px; background:var(--panel); margin-top:16px; }
+  #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   #skillGoalRows .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   #skillGoalRows select{ flex:1; min-width:90px; font-size:12px; }
-  .goal-row{ border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:10px; background:var(--panel); }
+  .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .goal-priority-badge{ font-family:var(--sans); font-size:10px; color:var(--accent);  letter-spacing:0.06em; }
+  .goal-priority-badge{ font-family:var(--sans); font-size:11px; color:var(--text); letter-spacing:0.06em; font-weight:700; display:flex; align-items:baseline; gap:6px; }
+  .goal-priority-num{ font-size:26px; font-weight:700; letter-spacing:-0.02em; }
   .goal-row-controls{ display:flex; gap:10px; align-items:center; }
   .goal-row-controls button{ padding:2px 8px; font-size:12px; }
   .goal-row .field-row{ margin-bottom:8px; }
-  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:#0f100d; border:1px solid var(--line); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px; border-radius:4px; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
 
-  .session-flow-section{ border:1px solid var(--line); border-radius:6px; margin-bottom:10px; overflow:hidden; background:var(--panel); }
+  .session-flow-section{ border:2px solid var(--border-bold); border-radius:0; margin-bottom:10px; overflow:hidden; background:transparent; }
   .session-flow-header{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; }
   .session-flow-header.active{ border-bottom:1px solid var(--line); }
   .session-flow-title{ font-size:13px; font-weight:600; }
@@ -1440,25 +1456,25 @@
   .session-flow-header.active .session-flow-chevron{ transform:rotate(180deg); }
   .session-flow-body{ padding:14px 16px; }
 
-  .rec-card{ border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:14px; background:var(--panel); border-left:3px solid var(--dim); }
+  .rec-card{ border:2px solid var(--border-bold); border-radius:0; padding:16px; margin-bottom:14px; background:transparent; border-left:3px solid var(--dim); }
   .rec-card.reduce{ border-left-color:var(--bad); }
   .rec-card.add{ border-left-color:var(--accent); }
   .rec-card.modify{ border-left-color:var(--warn); }
   .rec-card.hold{ border-left-color:var(--dim); }
   .rec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .rec-type{ font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:0.06em;  }
-  .rec-type.reduce{ color:var(--bad); }
-  .rec-type.add{ color:var(--accent); }
-  .rec-type.modify{ color:var(--warn); }
-  .rec-type.hold{ color:var(--dim); }
-  .rec-conf{ font-family:var(--sans); font-size:10px; color:var(--dim);  border:1px solid var(--line); padding:2px 6px; border-radius:3px; }
+  .rec-type{ font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.04em; padding:4px 10px; display:inline-block; text-transform:uppercase; transform:rotate(-2deg); border:2px solid var(--border-bold); }
+  .rec-type.reduce{ background:var(--bad); color:var(--bg); }
+  .rec-type.add{ background:var(--accent); color:var(--bg); }
+  .rec-type.modify{ background:var(--warn); color:var(--bg); }
+  .rec-type.hold{ background:var(--dim); color:var(--bg); }
+  .rec-conf{ font-family:var(--sans); font-size:10px; color:var(--dim);  border:1px solid var(--line); padding:2px 6px; border-radius:0; }
   .rec-title{ font-size:14px; margin-bottom:8px; }
   .rec-signals{ font-family:var(--sans); font-size:11px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
   .rec-actions{ display:flex; gap:8px; }
 
-  .plan-pill{ font-family:var(--sans); font-size:11px; padding:8px 12px; border:1px solid var(--line); border-radius:16px; color:var(--dim); cursor:pointer; }
-  .plan-pill.active{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
-  .warm-card{ border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:14px; background:var(--panel); border-left:3px solid var(--dim); }
+  .plan-pill{ font-family:var(--sans); font-size:11px; padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
+  .plan-pill.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
+  .warm-card{ border:2px solid var(--border-bold); border-radius:0; padding:16px; margin-bottom:14px; background:transparent; border-left:3px solid var(--dim); }
   .warm-card.injury{ border-left-color:var(--bad); }
   .warm-card.load{ border-left-color:var(--warn); }
   .warm-card.planned{ border-left-color:var(--accent); }
@@ -1467,10 +1483,10 @@
   .warm-reason.injury{ color:var(--bad); }
   .warm-reason.load{ color:var(--warn); }
   .warm-drills{ font-size:13px; line-height:1.9; }
-  .trend-flag{ font-family:var(--sans); font-size:12px; padding:10px 12px; border-left:2px solid var(--dim); background:var(--panel); border-radius:4px; margin-bottom:8px; line-height:1.5; }
+  .trend-flag{ font-family:var(--sans); font-size:12px; padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:0.03em; padding:12px 20px; border-radius:24px; opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s; z-index:100; white-space:nowrap; }
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s; z-index:100; white-space:nowrap; box-shadow:3px 3px 0 var(--accent-dim); }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
 </style>
@@ -1480,9 +1496,6 @@
 <div id="toast"></div>
 <header>
   <div class="header-brand">
-    <div class="skeleton-logo">
-      <div class="skel-frame fA"></div>
-    </div>
     <div>
       <div class="eyebrow">DOGFOOD</div>
       <h1>Daily Log</h1>
@@ -1497,25 +1510,19 @@
     </select>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span>Insights</span></div>
-    <div class="tab" data-tab="training"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span>Training</span></div>
-    <div class="tab" data-tab="goals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg><span>Goals</span></div>
-    <div class="tab" data-tab="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg><span>Data</span></div>
+    <div class="tab active" data-tab="insights"><span class="tab-icon-wrap"><span class="tab-index">01</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span class="tab-badge" id="badge-insights"></span></span><span>Insights</span></div>
+    <div class="tab" data-tab="training"><span class="tab-icon-wrap"><span class="tab-index">02</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span class="tab-badge" id="badge-training"></span></span><span>Training</span></div>
+    <div class="tab" data-tab="goals"><span class="tab-icon-wrap"><span class="tab-index">03</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg><span class="tab-badge" id="badge-goals"></span></span><span>Goals</span></div>
+    <div class="tab" data-tab="data"><span class="tab-icon-wrap"><span class="tab-index">04</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg><span class="tab-badge" id="badge-data"></span></span><span>Data</span></div>
   </div>
+</header>
 
+<main>
   <!-- INSIGHTS PANEL -->
   <div class="panel active" id="panel-insights">
     <div class="gauge-wrap">
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line)" stroke-width="13"/>
-        <circle id="gaugeProgress" cx="75" cy="75" r="62" fill="none" stroke="var(--dim)" stroke-width="13"
-          stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6"
-          transform="rotate(-90 75 75)" style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;"/>
-      </svg>
-      <div class="gauge-center">
-        <div class="score-num" id="overallScoreOut" style="font-size:32px;">—</div>
-        <div class="score-label" id="overallScoreLabel">Overall</div>
-      </div>
+      <div class="score-num" id="overallScoreOut">✳</div>
+      <div class="score-label" id="overallScoreLabel">Overall</div>
     </div>
     <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:10px; opacity:0.75;"></div>
     <div class="score-note" style="margin-bottom:16px; font-size:10px; opacity:0.65; text-align:center;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
@@ -1557,7 +1564,6 @@
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
         <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <button class="primary" id="generateWarmupBtn">Generate warm-up</button>
       </div>
     </div>
     <div class="score-note" style="margin-bottom:16px;">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
@@ -1662,8 +1668,7 @@
         <span class="session-flow-chevron">▾</span>
       </div>
       <div class="session-flow-body" id="stretchFlowBody" style="display:none;">
-        <button class="small" id="refreshTodayStretchBtn">Generate</button>
-        <div class="score-note" style="margin-top:8px;">Quick version — foam roll + dynamic only. Full protocol (static, PNF) is on the Warm-up tab.</div>
+        <div class="score-note">Quick version — foam roll + dynamic only. Full protocol (static, PNF) is on the Warm-up tab.</div>
         <div id="todaySessionStretchCards" style="margin-top:10px;"></div>
       </div>
     </div>
@@ -1692,7 +1697,7 @@
     <div id="weeklyTrainingView" style="display:none;">
       <div class="score-note" style="margin-bottom:14px;">Drag a block onto a day/slot to schedule it. Tap a scheduled block to edit what it actually is. Days with nothing scheduled are rest days — no block needed.</div>
 
-      <div class="field-row" style="margin-bottom:14px; padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--panel);">
+      <div class="field-row" style="margin-bottom:14px; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent;">
         <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
         <label for="deloadWeekCheckbox" style="font-size:13px; flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
       </div>
@@ -1888,12 +1893,12 @@
       <div class="fields">
         <div class="field-row"><span class="field-label">Duration (hrs)</span><input type="number" step="0.1" id="durationHrs" placeholder="e.g. 7.5"></div>
         <div>
-          <div class="field-row"><span class="field-label">Score</span><span class="src-tag">OURA</span><input type="number" id="sleepScoreOura" placeholder="0-100"></div>
+          <div class="field-row"><span class="field-label">Score</span><span class="src-tag oura">OURA</span><input type="number" id="sleepScoreOura" placeholder="0-100"></div>
           <div class="field-row" style="margin-top:8px;"><span class="field-label"></span><span class="src-tag secondary">GARMIN</span><input type="number" id="sleepScoreGarmin" placeholder="0-100"></div>
           <div class="disagree-note" id="sleepScoreFlag">⚠ delta exceeds ±10 — logged for review</div>
         </div>
         <div>
-          <div class="field-row"><span class="field-label">Wake time</span><span class="src-tag">OURA</span><input type="number" id="wakeTimeOura" placeholder="minutes"></div>
+          <div class="field-row"><span class="field-label">Wake time</span><span class="src-tag oura">OURA</span><input type="number" id="wakeTimeOura" placeholder="minutes"></div>
           <div class="field-row" style="margin-top:8px;"><span class="field-label"></span><span class="src-tag secondary">GARMIN</span><input type="number" id="wakeTimeGarmin" placeholder="minutes"></div>
           <div class="disagree-note" id="wakeTimeFlag">⚠ delta exceeds ±10min — logged for review</div>
         </div>
@@ -1904,7 +1909,7 @@
       <div class="group-head"><div class="group-title">HRV</div><div class="group-sub">canonical: garmin</div></div>
       <div class="fields">
         <div>
-          <div class="field-row"><span class="field-label">HRV (ms)</span><span class="src-tag">GARMIN</span><input type="number" id="hrvGarmin" placeholder="ms"></div>
+          <div class="field-row"><span class="field-label">HRV (ms)</span><span class="src-tag garmin">GARMIN</span><input type="number" id="hrvGarmin" placeholder="ms"></div>
           <div class="field-row" style="margin-top:8px;"><span class="field-label"></span><span class="src-tag secondary">OURA</span><input type="number" id="hrvOura" placeholder="ms"></div>
           <div class="disagree-note" id="hrvFlag">⚠ delta exceeds ±10ms — logged for review</div>
         </div>
@@ -1929,7 +1934,7 @@
     <div class="group">
       <div class="group-head"><div class="group-title">Readiness</div><div class="group-sub">directional only</div></div>
       <div class="fields">
-        <div class="field-row"><span class="field-label">Readiness</span><span class="src-tag">OURA</span><input type="number" id="readinessOura" placeholder="0-100"></div>
+        <div class="field-row"><span class="field-label">Readiness</span><span class="src-tag oura">OURA</span><input type="number" id="readinessOura" placeholder="0-100"></div>
         <div class="field-row"><span class="field-label">Body Battery</span><span class="src-tag secondary">GARMIN</span><input type="number" id="bodyBattery" placeholder="0-100"></div>
       </div>
     </div>
@@ -2113,8 +2118,42 @@ function updateFooterVisibility(){
   footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
 }
 
+async function updateTabBadges(){
+  // Insights — pending recommendations waiting for a decision
+  const insightsCount = (typeof cardQueue !== 'undefined' && Array.isArray(cardQueue))
+    ? cardQueue.length - (typeof cardQueueIndex !== 'undefined' ? cardQueueIndex : 0) : 0;
+  document.getElementById('badge-insights').textContent = insightsCount > 0 ? String(insightsCount) : '';
+
+  // Training — sessions scheduled this week
+  let trainingCount = 0;
+  try{
+    const dates = getWeekDates();
+    for(const date of dates){
+      for(const slot of ['am','pm']){
+        try{ await window.storage.get(`weekplan:${date}:${slot}`); trainingCount++; } catch(e){}
+      }
+    }
+  } catch(e){}
+  document.getElementById('badge-training').textContent = trainingCount > 0 ? String(trainingCount) : '';
+
+  // Goals — how many of the 5 priority slots are actually filled
+  let goalsCount = 0;
+  try{
+    const goals = await getCurrentGoals(todayStr);
+    goalsCount = (goals && goals.list) ? goals.list.length : 0;
+  } catch(e){}
+  document.getElementById('badge-goals').textContent = goalsCount > 0 ? String(goalsCount) : '';
+
+  // Data — active injuries flagged as needing attention
+  let injuryCount = 0;
+  try{ injuryCount = (await getActiveInjuries()).length; } catch(e){}
+  document.getElementById('badge-data').textContent = injuryCount > 0 ? String(injuryCount) : '';
+}
+
 function activateTab(name){
   tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.body.className = document.body.className.replace(/\btab-\w+\b/g, '').trim();
+  document.body.classList.add('tab-'+name);
   const targetPanel = document.getElementById('panel-'+name);
   panels.forEach(p=>{
     if(p===targetPanel){ p.classList.add('active'); p.classList.remove('panel-enter'); void p.offsetWidth; p.classList.add('panel-enter'); }
@@ -2131,6 +2170,8 @@ function activateTab(name){
     activateDataSubView(activeView);
   }
   updateFooterVisibility();
+  updateTabBadges();
+  setTimeout(updateTabBadges, 400);
 }
 
 function activateTrainingSubView(view){
@@ -2138,7 +2179,12 @@ function activateTrainingSubView(view){
   document.getElementById('dailyTrainingView').style.display = view==='daily' ? 'block' : 'none';
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
   if(view==='weekly'){ renderWeekGrid(); renderMacroInsights(); }
-  if(view==='daily'){ initWarmupTab(); }
+  if(view==='daily'){
+    initWarmupTab();
+    if(sessionType==='strength') loadPlanForDate(document.getElementById('trainingDate').value);
+    generateWarmup();
+    renderTodaySessionStretch();
+  }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -2628,7 +2674,7 @@ const BODY_AREAS = {
   thoracic: 'Thoracic/Upper back', lower_back: 'Lower back',
   biceps: 'Biceps', triceps: 'Triceps', full_body: 'Full body'
 };
-const MOVEMENT_TYPES = { squat:'Squat', hinge:'Hinge', push:'Push', pull:'Pull', carry:'Carry', core:'Core', isolation:'Isolation' };
+const MOVEMENT_TYPES = { squat:'Squat', hinge:'Hinge', push:'Push', pull:'Pull', lunge:'Lunge', carry:'Carry', core:'Core', isolation:'Isolation' };
 // v2 — replaces the earlier 70/30 guess. Per Cowork's research (Schoenfeld et al. 2019 declines
 // to give a fraction; RP gives zero credit to secondary; Stronger by Science/Hevy use flat 1.0/0.5):
 // primary gets full credit, secondary is tracked as a SEPARATE indirect-stimulus number at 50%,
@@ -2642,6 +2688,95 @@ function areaOptionsHtml(selected, allowBlank){
 function movementOptionsHtml(selected){
   return '<option value="">movement</option>' + Object.keys(MOVEMENT_TYPES).map(k=>
     `<option value="${k}" ${k===selected?'selected':''}>${MOVEMENT_TYPES[k]}</option>`).join('');
+}
+
+/* ---------- EXERCISE_LIBRARY (Phase F.1 of the Exercise Intelligence report, 2026-08-15) ----------
+   Scoped deliberately: 68 exercises with the fields F.1 actually needs (rich aliases +
+   existing area/movement vocabulary), not the report's full ~35-field D.1 schema — that
+   would take far longer to populate accurately than to build well, and F.1 doesn't need it.
+   Also deliberately stays within the EXISTING 12 BODY_AREAS / 7 MOVEMENT_TYPES rather than
+   the report's proposed ~24-area expansion (D.2) — that requires updating VOLUME_LANDMARKS
+   and other fixed lists in lockstep (the report's own G.3 risk) and is separate work.
+   This is a pure superset of the old EXERCISE_AREA_MAP: tried first, falls back to the
+   original 11-keyword scan unchanged if no match, so nothing that worked before regresses. */
+const EXERCISE_LIBRARY = {
+  back_squat: { name:"Back Squat", aliases:["back squat", "barbell squat", "high bar squat", "low bar squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:0,sprint:2,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0}, goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
+  front_squat: { name:"Front Squat", aliases:["front squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:1,power:1,mobility:0,calisthenics:0} },
+  goblet_squat: { name:"Goblet Squat", aliases:["goblet squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["dumbbell", "kettlebell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:2,endurance:1,running:1,power:0,mobility:1,calisthenics:0} },
+  box_squat: { name:"Box Squat", aliases:["box squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell", "box"], evidenceConfidence:"coaching_consensus" },
+  cossack_squat: { name:"Cossack Squat", aliases:["cossack squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
+  safety_bar_squat: { name:"Safety Bar Squat", aliases:["safety bar squat", "ssb squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"coaching_consensus" },
+  bulgarian_split_squat: { name:"Bulgarian Split Squat", aliases:["bulgarian split squat", "rear foot elevated split squat", "rfess"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"intermediate", equipment:["dumbbell", "barbell", "bodyweight"], evidenceConfidence:"systematic_review", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:2,plyometricReactive:0} },
+  walking_lunge: { name:"Walking Lunge", aliases:["walking lunge", "lunge"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"beginner", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
+  leg_press: { name:"Leg Press", aliases:["leg press"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  leg_extension: { name:"Leg Extension", aliases:["leg extension", "quad extension"], category:"isolation", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis" },
+  pistol_squat: { name:"Pistol Squat", aliases:["pistol squat", "one leg squat", "single leg squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  deadlift: { name:"Deadlift", aliases:["deadlift", "conventional deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
+  trap_bar_deadlift: { name:"Trap Bar Deadlift", aliases:["trap bar deadlift", "hex bar deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"quads_knees", movement:"hinge", difficulty:"beginner", equipment:["trap_bar"], evidenceConfidence:"coaching_consensus", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
+  rdl: { name:"Romanian Deadlift", aliases:["rdl", "romanian deadlift", "stiff leg deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", stretchingSuitable:false, stretchingRationale:"Lengthened-position hamstring loading at the bottom of the hinge — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains.", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:2,power:0,mobility:1,calisthenics:0} },
+  good_morning: { name:"Good Morning", aliases:["good morning"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus" },
+  hip_thrust: { name:"Hip Thrust", aliases:["hip thrust", "barbell hip thrust"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["barbell", "bodyweight"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
+  glute_bridge: { name:"Glute Bridge", aliases:["glute bridge"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true, runningRelevance:{economy:0,durability:1,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
+  back_extension: { name:"Back Extension", aliases:["back extension", "hyperextension"], category:"secondary_strength", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["machine", "bodyweight"], evidenceConfidence:"coaching_consensus" },
+  superman: { name:"Superman", aliases:["superman"], category:"core", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  leg_curl: { name:"Leg Curl", aliases:["leg curl", "hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis" },
+  nordic_curl: { name:"Nordic Hamstring Curl", aliases:["nordic curl", "nordic hamstring curl"], category:"bulletproofing", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight", "partner"], evidenceConfidence:"rct", stretchingSuitable:false, stretchingRationale:"Deep lengthened-position hamstring loading — Alizadeh et al. 2022 found full-ROM strength work produces ROM gains equal to dedicated stretching, with no added benefit from stacking extra static stretching on top.", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:1,singleLegStrength:0,plyometricReactive:0} },
+  bench_press: { name:"Bench Press", aliases:["bench press", "flat bench", "barbell bench"], category:"main_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
+  incline_press: { name:"Incline Bench Press", aliases:["incline press", "incline bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis" },
+  dumbbell_bench_press: { name:"Dumbbell Bench Press", aliases:["dumbbell bench press", "db bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:1,calisthenics:0} },
+  machine_chest_press: { name:"Machine Chest Press", aliases:["machine press", "chest press"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  cable_fly: { name:"Cable Fly", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus" },
+  overhead_press: { name:"Overhead Press", aliases:["overhead press", "strict press", "shoulder press", "military press"], category:"main_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:1,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
+  dumbbell_shoulder_press: { name:"Dumbbell Shoulder Press", aliases:["dumbbell shoulder press", "db shoulder press"], category:"secondary_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
+  lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis" },
+  tricep_pushdown: { name:"Tricep Pushdown", aliases:["tricep pushdown", "tricep extension", "pushdown"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis" },
+  skull_crusher: { name:"Skull Crusher", aliases:["skull crusher", "overhead extension", "french press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis" },
+  push_up: { name:"Push-up", aliases:["push up", "pushup"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  dip: { name:"Dip", aliases:["dip", "bar dip", "ring dip"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  handstand_pushup: { name:"Handstand Push-up", aliases:["handstand push up", "hspu"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  planche: { name:"Planche", aliases:["planche"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"chest", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  pull_up: { name:"Pull-up", aliases:["pull up", "pullup", "chin up"], category:"calisthenics", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:0,power:0,mobility:0,calisthenics:3} },
+  one_arm_pull_up: { name:"One-Arm Pull-up", aliases:["one arm pull up", "oapu"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  lat_pulldown: { name:"Lat Pulldown", aliases:["lat pulldown", "pulldown"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  barbell_row: { name:"Barbell Row", aliases:["barbell row", "bent over row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  dumbbell_row: { name:"Dumbbell Row", aliases:["dumbbell row", "db row", "single arm row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
+  seated_cable_row: { name:"Seated Cable Row", aliases:["seated row", "cable row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis" },
+  face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"shoulders", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus" },
+  bicep_curl: { name:"Bicep Curl", aliases:["bicep curl", "curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "barbell"], evidenceConfidence:"meta_analysis" },
+  hammer_curl: { name:"Hammer Curl", aliases:["hammer curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
+  preacher_curl: { name:"Preacher Curl", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis" },
+  front_lever: { name:"Front Lever", aliases:["front lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  back_lever: { name:"Back Lever", aliases:["back lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  muscle_up: { name:"Muscle-up", aliases:["muscle up", "muscleup"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  calf_raise: { name:"Calf Raise", aliases:["calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "machine"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:2,sprint:0,acceleration:0,tendonCapacity:2,singleLegStrength:0,plyometricReactive:0} },
+  tibialis_raise: { name:"Tibialis Raise", aliases:["tibialis raise", "tib raise"], category:"bulletproofing", area:"ankles", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "band"], evidenceConfidence:"coaching_consensus", runningRelevance:{economy:0,durability:0,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },  // Honest 0s per E.3 point 4 — no direct evidence TA strengthening prevents shin splints, despite common recommendation
+  atg_split_squat: { name:"ATG Split Squat", aliases:["atg split squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"ankles", movement:"lunge", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Full-depth lengthened quad/hip loading by design — per Alizadeh et al. 2022, this already provides the ROM stimulus dedicated static stretching would target." },
+  sissy_squat: { name:"Sissy Squat", aliases:["sissy squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Lengthened-position quad loading — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains, so extra static stretching adds little here." },
+  band_external_rotation: { name:"Band External Rotation", aliases:["band external rotation", "cuff rotation"], category:"bulletproofing", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["band"], evidenceConfidence:"coaching_consensus", warmupSuitable:true },
+  wrist_curl: { name:"Wrist Curl", aliases:["wrist curl"], category:"bulletproofing", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus" },
+  dead_hang: { name:"Dead Hang", aliases:["dead hang"], category:"bulletproofing", area:"thoracic", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  copenhagen_plank: { name:"Copenhagen Plank", aliases:["copenhagen plank"], category:"bulletproofing", area:"hips", secondaryArea:"", movement:"core", difficulty:"intermediate", equipment:["bodyweight", "bench"], evidenceConfidence:"rct", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
+  l_sit: { name:"L-sit", aliases:["l sit", "lsit"], category:"calisthenics_progression", area:"hips", secondaryArea:"triceps", movement:"core", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  plank: { name:"Plank", aliases:["plank"], category:"core", area:"hips", secondaryArea:"", movement:"core", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  hanging_leg_raise: { name:"Hanging Leg Raise", aliases:["hanging leg raise", "leg raise"], category:"core", area:"hips", secondaryArea:"", movement:"core", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  pogos: { name:"Pogos", aliases:["pogos", "pogo jumps", "ankle bounces"], category:"power", area:"calves", secondaryArea:"ankles", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"meta_analysis", warmupSuitable:true, runningRelevance:{economy:2,durability:0,sprint:1,acceleration:1,tendonCapacity:1,singleLegStrength:0,plyometricReactive:3} },
+  box_jump: { name:"Box Jump", aliases:["box jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["box"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:2,durability:0,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:3} },
+  depth_jump: { name:"Depth Jump", aliases:["depth jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["box"], evidenceConfidence:"meta_analysis" },
+  broad_jump: { name:"Broad Jump", aliases:["broad jump", "standing long jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"meta_analysis" },
+  a_skip: { name:"A-Skip", aliases:["a skip", "a-skip"], category:"running_drill", area:"quads_knees", secondaryArea:"hips", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true, runningRelevance:{economy:0,durability:0,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },  // Honest 0s per E.3 point 10 — coaching tradition, no causal RCT links drill practice to race performance
+  high_knees: { name:"High Knees", aliases:["high knees"], category:"running_drill", area:"quads_knees", secondaryArea:"hips", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true },
+  bounding: { name:"Bounding", aliases:["bounding"], category:"running_drill", area:"quads_knees", secondaryArea:"hips", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true },
+  hang_clean: { name:"Hang Clean", aliases:["hang clean"], category:"power", area:"hips", secondaryArea:"quads_knees", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"meta_analysis" },
+  medicine_ball_throw: { name:"Medicine Ball Throw", aliases:["medicine ball throw", "med ball throw", "med ball slam"], category:"power", area:"chest", secondaryArea:"hips", movement:"push", difficulty:"beginner", equipment:["medicine_ball"], evidenceConfidence:"coaching_consensus" },
+};
+
+function guessTagsFromLibrary(name){
+  const n = name.toLowerCase().trim();
+  for(const id in EXERCISE_LIBRARY){
+    const ex = EXERCISE_LIBRARY[id];
+    if(ex.aliases.some(a => n.includes(a))) return { primary: ex.area, secondary: ex.secondaryArea, movement: ex.movement, exerciseId: id };
+  }
+  return null;
 }
 
 const EXERCISE_AREA_MAP = [
@@ -2658,6 +2793,8 @@ const EXERCISE_AREA_MAP = [
   [['back extension','superman'], 'lower_back', 'hamstrings', 'hinge']
 ];
 function guessTags(name){
+  const libMatch = guessTagsFromLibrary(name);
+  if(libMatch) return libMatch;
   const n = name.toLowerCase();
   for(const [keys, primary, secondary, movement] of EXERCISE_AREA_MAP){
     if(keys.some(k=>n.includes(k))) return { primary, secondary, movement };
@@ -2862,7 +2999,9 @@ function collectTrainingSession(){
       const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
 
       if(name){
-        const exercise = { name, sets, reps, weight, area:primaryArea, secondaryArea, movement, volume, primaryVolume, secondaryVolume };
+        const libMatch = guessTagsFromLibrary(name);
+        const exerciseId = libMatch ? libMatch.exerciseId : null;
+        const exercise = { name, sets, reps, weight, area:primaryArea, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId };
         if(groups.length > 1) exercise.setGroups = groups; // only stored when actually used
         session.exercises.push(exercise);
         total += volume;
@@ -2947,12 +3086,14 @@ async function savePlan(){
     let area = row.querySelector('.ex-area').value;
     let secondaryArea = row.querySelector('.ex-area-secondary').value;
     let movement = row.querySelector('.ex-movement').value;
+    let exerciseId = null;
+    const guess = name ? guessTags(name) : null;
+    if(guess && guess.exerciseId) exerciseId = guess.exerciseId;
     // Fallback: area is normally set on the name field's blur event, but that can miss
     // on mobile (touch timing) or if the exercise name didn't match a known keyword.
     // Re-attempt right before saving so an exercise never silently drops out of
     // warm-up/stretching generation with no error shown.
     if(name && !area){
-      const guess = guessTags(name);
       if(guess){
         area = guess.primary;
         secondaryArea = secondaryArea || guess.secondary || '';
@@ -2964,7 +3105,7 @@ async function savePlan(){
         unmatched.push(name);
       }
     }
-    if(name) exercises.push({ name, area, secondaryArea, movement });
+    if(name) exercises.push({ name, area, secondaryArea, movement, exerciseId });
   });
   const workoutTag = document.getElementById('workoutTag').value;
   const status = document.getElementById('trainingStatusMsg');
@@ -3106,6 +3247,8 @@ document.getElementById('trainingDate').addEventListener('change', async ()=>{
   if(sessionType==='strength') await loadPlanForDate(document.getElementById('trainingDate').value);
   else await applyDeloadSuggestions();
   applySessionFocusDefault();
+  generateWarmup();
+  renderTodaySessionStretch();
 });
 
 /* ---------- WEEKLY PLANNER ---------- */
@@ -3145,11 +3288,11 @@ async function renderTodaySessionStretch(){
   });
   container.innerHTML = html || '<div class="log-entry">Nothing to show.</div>';
 }
-document.getElementById('refreshTodayStretchBtn').addEventListener('click', renderTodaySessionStretch);
 
 function updateGoalPriorityBadges(){
   document.querySelectorAll('#goalListRows .goal-row .goal-priority-badge').forEach((badge,i)=>{
-    badge.textContent = i===0 ? 'Priority 1 (top)' : `Priority ${i+1}`;
+    const num = String(i+1).padStart(2,'0');
+    badge.innerHTML = `<span class="goal-priority-num">${num}</span>${i===0 ? ' TOP PRIORITY' : ''}`;
   });
   const rows = document.querySelectorAll('#goalListRows .goal-row');
   document.getElementById('addGoalRow').style.display = rows.length >= 5 ? 'none' : 'block';
@@ -3673,7 +3816,9 @@ function openBlockEditor(date, slot, block){
         const area = row.querySelector('.week-ex-area').value;
         const secondaryArea = row.querySelector('.week-ex-area2').value;
         const movement = row.querySelector('.week-ex-movement').value;
-        if(name) exercises.push({name, area, secondaryArea, movement});
+        const guess = name ? guessTags(name) : null;
+        const exerciseId = (guess && guess.exerciseId) ? guess.exerciseId : null;
+        if(name) exercises.push({name, area, secondaryArea, movement, exerciseId});
       });
       details = { exercises };
     } else if(block.type==='run'){
@@ -3970,6 +4115,9 @@ async function addInjury(){
     document.getElementById('injuryType').value='general';
     showToast('Injury logged');
     refreshInjuries();
+    generateWarmup();
+    renderTodaySessionStretch();
+    updateTabBadges();
   } catch(e){
     showToast('Save failed — try again', true);
     console.error(e);
@@ -4276,22 +4424,18 @@ async function checkReturnToRunRule(){
 function updateOverallScore(targetScore, adaptiveScore, goalT){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
-  const gauge = document.getElementById('gaugeProgress');
-  const CIRCUMFERENCE = 389.6;
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
   if(parts.length === 0){
-    out.textContent='—'; label.textContent='Overall'; out.style.color='var(--dim)';
-    gauge.style.stroke = 'var(--dim)'; gauge.setAttribute('stroke-dashoffset', CIRCUMFERENCE);
+    out.textContent='✳'; label.textContent='Overall';
     return;
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
-  const prev = parseInt(out.textContent) || overall;
+  const prevNum = parseInt(out.textContent);
+  const prev = isNaN(prevNum) ? overall : prevNum;
   animateNumber(out, prev, overall, 500);
-  const offset = CIRCUMFERENCE * (1 - clamp(overall,0,100)/100);
-  gauge.setAttribute('stroke-dashoffset', offset);
-  if(overall < goalT.scoreLow){ out.style.color='var(--bad)'; gauge.style.stroke='var(--bad)'; label.textContent='Below typical'; }
-  else if(overall > goalT.scoreHigh){ out.style.color='var(--accent)'; gauge.style.stroke='var(--accent)'; label.textContent='Above typical'; }
-  else { out.style.color='var(--warn)'; gauge.style.stroke='var(--warn)'; label.textContent='Typical'; }
+  if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
+  else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
+  else { label.textContent='Typical'; }
 }
 
 async function isRestDayComing(daysAhead){
@@ -4925,7 +5069,7 @@ async function renderGoalProgress(){
     html += `<div style="display:flex; align-items:center; gap:10px; margin-top:${i>0?'16px':'0'};">`;
     html += renderProgressRing(ringPercent);
     html += `<div style="flex:1;">`;
-    html += `<div class="log-title" style="margin:0;">Priority ${i+1}${i===0?' (top)':''} — ${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
+    html += `<div class="log-title" style="margin:0;"><span style="font-weight:700;">P${i+1}</span> ${i===0?'(top) ':''}— ${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
     html += `<div class="score-note" style="margin:2px 0 0;">${g.detail}</div>`;
     html += `</div></div>`;
     html += await renderSingleGoalProgress(g);
@@ -5047,10 +5191,45 @@ async function checkVariationDue(exerciseName){
 
 // Combines both: learned preference first, cold-start default if no history, then checks
 // whether the learned lift is due for a rotation before returning what to actually use.
+// F.5 of the exercise intelligence report: goal-aware selection for the cold-start case
+// specifically, where the app currently falls back to a generic hardcoded default
+// regardless of the user's actual goals. Deliberately does NOT touch the learned-frequency
+// path — an established routine (real logged behavior) is a stronger signal than an
+// abstract goal-suitability score and shouldn't be second-guessed by it.
+function goalTypeToSuitabilityField(goalType){
+  const map = { strength:'strength', hypertrophy:'hypertrophy', running:'running', speed:'running',
+                body_composition:'hypertrophy', mobility:'mobility', general_fitness:'strength', hybrid:'strength' };
+  return map[goalType] || 'strength';
+}
+function selectMainLiftByGoal(tag, goalList){
+  const movement = TAG_TO_MOVEMENT[tag];
+  if(!goalList || goalList.length===0) return null;
+  const candidates = Object.values(EXERCISE_LIBRARY)
+    .filter(ex => ex.goalSuitability && ex.movement===movement && (ex.category==='main_strength' || ex.category==='secondary_strength'));
+  if(candidates.length===0) return null;
+
+  const maxRank = goalList.length;
+  let best = null, bestScore = 0;
+  candidates.forEach(ex=>{
+    let score = 0;
+    goalList.forEach((g, i)=>{
+      const field = goalTypeToSuitabilityField(g.type);
+      const weight = (maxRank - i) * (g.isMaintenance ? 0.5 : 1);
+      score += (ex.goalSuitability[field] || 0) * weight;
+    });
+    if(score > bestScore){ bestScore = score; best = ex; }
+  });
+  if(!best) return null;
+  return { name: best.name, area: best.area, secondaryArea: best.secondaryArea, movement };
+}
+
 async function getMainLiftForTag(tag){
   const movement = TAG_TO_MOVEMENT[tag];
   const learned = await getPreferredLift(movement);
   if(!learned){
+    const goals = await getCurrentGoals(todayStr);
+    const goalPick = (goals && goals.list) ? selectMainLiftByGoal(tag, goals.list) : null;
+    if(goalPick) return goalPick;
     const fallback = MAIN_LIFT_DEFAULTS[tag];
     return fallback ? { ...fallback } : null;
   }
@@ -5152,10 +5331,32 @@ function distributeSessionFocuses(goalList, strengthSessionCount, blockPhase){
 // below are explicitly NOT meta-analytic findings — Robineau/Rønnestad/Støren support the
 // general shape, but these specific numbers are the research's own coaching-consensus
 // estimates, not a lab-derived cutoff. Flagged as such wherever they surface in the UI.
-function determineHybridPlan(goalList, totalDays){
-  if(totalDays === 0) return null;
-  const liftGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='lift');
-  const runGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='run');
+function determineHybridPlan(goalList, totalDaysRaw){
+  if(totalDaysRaw === 0) return null;
+  // Reserve at least one rest day once there's enough available days to do so.
+  // Previously every single marked-available day got filled regardless of goal —
+  // that's bad program design independent of what's being trained, not a hybrid-
+  // specific issue. "Available" should mean a ceiling, not a mandate to fill everything.
+  const totalDays = totalDaysRaw >= 3 ? totalDaysRaw - 1 : totalDaysRaw;
+
+  const hybridGoal = goalList.find(g => g.type==='hybrid');
+  let liftGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='lift');
+  let runGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='run');
+  // "Hybrid" as a goal type explicitly means both strength AND running — the domain
+  // map's default classification (lift-only) was silently discarding the running half
+  // of what the goal actually means whenever Hybrid was the only relevant goal.
+  if(hybridGoal){
+    if(!liftGoal) liftGoal = hybridGoal;
+    if(!runGoal) runGoal = hybridGoal;
+  }
+
+  if(liftGoal===runGoal && liftGoal){
+    // A standalone Hybrid goal (nothing else covering either domain) — genuine
+    // balanced split, not defaulting to the running-priority ratio formula, which
+    // assumes running explicitly outranks strength rather than being tied with it.
+    const strengthSessions = Math.round(totalDays/2);
+    return { emphasis:'balanced', strengthSessions, runningSessions: totalDays-strengthSessions, liftGoal, runGoal, secondaryLevel:'modest_progress' };
+  }
 
   // Single-modality bypass (Section 4) — no hybrid trade-off logic applies at all if the
   // other modality isn't actually a stated goal.
@@ -5519,7 +5720,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
       return;
     }
 
-    const emphasisLabel = { 'strength-only':'strength-only', 'running-only':'running-only', 'mobility-only':'mobility-only', strength:'strength-focused hybrid', running:'running-focused hybrid' }[first.result.plan.emphasis];
+    const emphasisLabel = { 'strength-only':'strength-only', 'running-only':'running-only', 'mobility-only':'mobility-only', strength:'strength-focused hybrid', running:'running-focused hybrid', balanced:'balanced hybrid' }[first.result.plan.emphasis];
     let msg = `${emphasisLabel} — ` + validLines.map(l=>l.text).join(' · ');
     if(first.result.plan.emphasis==='strength' || first.result.plan.emphasis==='running'){
       msg += ` Ratio/floors from concurrent strength+running research (some thresholds are coaching consensus, not lab-derived).`;
@@ -5602,6 +5803,26 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   } catch(e){}
   const bulletproofingCap = sessionLength <= 30 ? 1 : sessionLength <= 45 ? 2 : 99;
 
+  // A secondary main lift per movement, genuinely distinct (not just a lighter variation)
+  // — used when the SAME movement pattern recurs within a week's generation, so a split
+  // with two 'lower' days doesn't silently repeat the exact same squat twice.
+  const SECONDARY_MAIN_LIFT = {
+    squat: { name:'Front Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
+    push:  { name:'Overhead Press', area:'chest', secondaryArea:'triceps', movement:'push' },
+    pull:  { name:'Barbell Row', area:'thoracic', secondaryArea:'biceps', movement:'pull' }
+  };
+  function getAlternateLiftForMovement(movement, currentLift){
+    const key = currentLift.name.trim().toLowerCase();
+    const variations = VARIATION_LIBRARY[key];
+    if(variations && variations.length){
+      return { name: `${variations[0]} (varied — avoiding a repeat within the week)`, area: currentLift.area, secondaryArea: currentLift.secondaryArea, movement };
+    }
+    const secondary = SECONDARY_MAIN_LIFT[movement];
+    if(secondary && secondary.name.toLowerCase() !== key) return { ...secondary };
+    return null;
+  }
+  const usedMovementsThisWeek = {};
+
   const placedDates = emptyDates.slice(0, dayTags.length);
   let mobilityCompanionPlaced = 0;
 
@@ -5609,9 +5830,17 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     const date = placedDates[i];
     const tag = dayTags[i];
     const exercises = [];
+    const movement = TAG_TO_MOVEMENT[tag];
 
-    const mainLift = await getMainLiftForTag(tag);
-    if(mainLift) exercises.push({ ...mainLift });
+    let mainLift = await getMainLiftForTag(tag);
+    if(mainLift && usedMovementsThisWeek[movement] && usedMovementsThisWeek[movement].includes(mainLift.name)){
+      const altLift = getAlternateLiftForMovement(movement, mainLift);
+      if(altLift) mainLift = altLift;
+    }
+    if(mainLift){
+      exercises.push({ ...mainLift });
+      (usedMovementsThisWeek[movement] = usedMovementsThisWeek[movement] || []).push(mainLift.name);
+    }
 
     exerciseGoals.forEach(sg=>{
       const tree = PROGRESSION_TREES.exercise[sg.skill];
@@ -5624,9 +5853,33 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     if(compArea === null) compArea = i % 2 === 0 ? 'upper' : 'lower'; // full_body — alternate by day
 
     if(includeBulletproofing){
-      BULLETPROOFING_LIBRARY[compArea].slice(0, bulletproofingCap).forEach(ex=>{
-        exercises.push({ name: ex.name, area:'', secondaryArea:'', movement:'' });
-      });
+      // F.4 of the exercise intelligence report: prefer running-support exercises over
+      // generic bulletproofing picks when a running goal is genuinely active — "strength
+      // should support running rather than adding random leg volume." Falls back to the
+      // exact original BULLETPROOFING_LIBRARY behavior when there's no running goal, or
+      // when the library has no strong runningRelevance candidate for this area.
+      const hasRunningGoal = goals && goals.list && goals.list.some(g => g.type==='running' && !g.isMaintenance);
+      let accessoryPicks = null;
+      if(hasRunningGoal){
+        const areasForComp = compArea==='lower'
+          ? ['hamstrings','calves','quads_knees','hips','ankles']
+          : ['shoulders','chest','thoracic','biceps','triceps'];
+        const runningCandidates = Object.values(EXERCISE_LIBRARY)
+          .filter(ex => ex.runningRelevance && areasForComp.includes(ex.area))
+          .map(ex => ({ ex, score: Math.max(ex.runningRelevance.durability, ex.runningRelevance.tendonCapacity, ex.runningRelevance.singleLegStrength) }))
+          .filter(c => c.score >= 2)
+          .sort((a,b) => b.score - a.score);
+        if(runningCandidates.length){
+          accessoryPicks = runningCandidates.slice(0, bulletproofingCap).map(c => ({ name: c.ex.name, area:'', secondaryArea:'', movement:'' }));
+        }
+      }
+      if(accessoryPicks){
+        exercises.push(...accessoryPicks);
+      } else {
+        BULLETPROOFING_LIBRARY[compArea].slice(0, bulletproofingCap).forEach(ex=>{
+          exercises.push({ name: ex.name, area:'', secondaryArea:'', movement:'' });
+        });
+      }
     }
 
     const plannedFocus = focusSequence && focusSequence[i] ? focusSequence[i] : null;
@@ -5637,6 +5890,10 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       details: { exercises, workoutTag: tag, plannedFocus,
         notes: 'Auto-generated — adjust weights/reps freely, this is a starting structure' + (volumeWaveNote ? ' — ' + volumeWaveNote : '') + focusNote }
     }));
+    // Mirror to planned_session — Daily view reads from here, not from weekplan directly.
+    // Without this, generated content only showed up if you manually tapped the Weekly
+    // block and re-saved it; Daily itself stayed blank for anything auto-generated.
+    await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag: tag }));
 
     if(includeBulletproofing && multiSessionOk){
       const mobAreas = compArea === 'upper' ? ['shoulders','thoracic','chest'] : ['hips','quads_knees'];
@@ -6190,12 +6447,12 @@ async function renderTrendChart(){
   renderTrendFlags(aggregated);
 
   const METRIC_COLORS = {
-    hrv: { line:'#6fa8b8', fill:'rgba(111,168,184,0.15)' },
-    sleepScore: { line:'#8a9169', fill:'rgba(138,145,105,0.15)' },
-    loadRatio: { line:'#c2a35f', fill:'rgba(194,163,95,0.15)' },
-    sleepDebt: { line:'#a9694f', fill:'rgba(169,105,79,0.15)' },
-    weight: { line:'#c17a52', fill:'rgba(193,122,82,0.15)' },
-    bodyFat: { line:'#c2a35f', fill:'rgba(194,163,95,0.12)' }
+    hrv: { line:'#4ec9e8', fill:'rgba(78,201,232,0.15)' },
+    sleepScore: { line:'#c9da4a', fill:'rgba(201,218,74,0.15)' },
+    loadRatio: { line:'#ffc23d', fill:'rgba(255,194,61,0.15)' },
+    sleepDebt: { line:'#ff5c3d', fill:'rgba(255,92,61,0.15)' },
+    weight: { line:'#ff8c4a', fill:'rgba(255,140,74,0.15)' },
+    bodyFat: { line:'#ffc23d', fill:'rgba(255,194,61,0.12)' }
   };
   const mc = METRIC_COLORS[selectedTrendMetric] || METRIC_COLORS.sleepScore;
 
@@ -6354,6 +6611,7 @@ function initWarmupTab(){
       pill.addEventListener('click', ()=>{
         pill.classList.toggle('active');
         if(selectedPlanTypes.has(key)) selectedPlanTypes.delete(key); else selectedPlanTypes.add(key);
+        generateWarmup();
       });
       container.appendChild(pill);
     });
@@ -6375,7 +6633,6 @@ async function refreshPlanSourceDisplay(){
     label.style.display = 'block';
   }
 }
-document.getElementById('generateWarmupBtn').addEventListener('click', generateWarmup);
 
 function matchInjuryToArea(injuries){
   const areaHit = {};
@@ -6473,9 +6730,10 @@ async function computeWarmupAreas(){
   selectedPlanTypes.forEach(key=> PLAN_TYPES[key].areas.forEach(a=>plannedAreas.add(a)));
 
   // Ankle dorsiflexion is a known technical prerequisite for squat depth, not just a
-  // fatigue/injury concern — flag it whenever a squat-pattern movement is planned,
-  // independent of load or injury status.
-  const squatAnkleFlag = plannedExercises.some(ex=>ex.movement==='squat');
+  // fatigue/injury concern — flag it whenever a squat- or lunge-pattern movement is
+  // planned, independent of load or injury status. Generalized per F.2 of the exercise
+  // intelligence report: single-leg squat-pattern work needs the same ankle prep.
+  const squatAnkleFlag = plannedExercises.some(ex=>ex.movement==='squat' || ex.movement==='lunge');
   if(squatAnkleFlag) plannedAreas.add('ankles');
 
   const allAreas = new Set([...Object.keys(injuryByArea), ...plannedAreas]);
@@ -6512,7 +6770,7 @@ function areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag)
   } else if(runFlagged[area]){
     return { cls:'load', reasonCls:'load', text:`Running volume increased — ${runFlagged[area].toFixed(2)}x vs prior week` };
   } else if(area==='ankles' && squatAnkleFlag){
-    return { cls:'planned', reasonCls:'', text:'Ankle dorsiflexion supports squat depth — technical prerequisite, not a fatigue flag' };
+    return { cls:'planned', reasonCls:'', text:'Ankle dorsiflexion supports squat/lunge depth — technical prerequisite, not a fatigue flag' };
   }
   return { cls:'planned', reasonCls:'', text:'Planned session prep' };
 }
@@ -6529,6 +6787,17 @@ async function computePostExerciseAreas(){
   const runAreas = ['ankles','calves','hips','hamstrings'];
   const ranToday = todaysSessions.some(s=>s.type==='run' && s.distanceKm);
   if(ranToday) runAreas.forEach(a=>workedAreas.add(a));
+
+  // Today's actually-logged strength exercises should contribute their areas too — this
+  // was missing entirely before (only planned sessions and run areas were considered),
+  // meaning post-exercise stretching couldn't reason about a strength session that wasn't
+  // pre-planned, and F.3's exercise-level logic below could never actually fire for it.
+  todaysSessions.filter(s=>s.type==='strength' && s.exercises).forEach(s=>{
+    s.exercises.forEach(e=>{
+      if(e.area) workedAreas.add(e.area);
+      if(e.secondaryArea) workedAreas.add(e.secondaryArea);
+    });
+  });
 
   const alreadyStretched = {};
   todaysSessions.filter(s=>s.type==='mobility' && s.stretches).forEach(s=>{
@@ -6590,8 +6859,24 @@ async function generateWarmup(){
   raiseCard.innerHTML = `<div class="warm-area">Raise</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">· Easy cardio (bike, jog, skip) — elevate heart rate, breathing, muscle temperature</div>`;
   container.appendChild(raiseCard);
 
+  // Per F.2 of the exercise intelligence report: supplement the static two-drill picks
+  // with warmupSuitable exercises from EXERCISE_LIBRARY for the same area, and rotate
+  // which two get shown day-to-day instead of always the same first two — a deterministic
+  // rotation keyed to the date, not random, so it's stable within a single day.
+  const dayIndex = new Date(todayStr).getDate();
+  function getWarmupDrills(area){
+    const staticDrills = WARMUP_LIBRARY[area] || [];
+    const libraryDrills = Object.values(EXERCISE_LIBRARY)
+      .filter(ex => ex.warmupSuitable && (ex.area===area || ex.secondaryArea===area))
+      .map(ex => ex.name);
+    const pool = [...staticDrills, ...libraryDrills];
+    if(pool.length <= 2) return pool;
+    const start = dayIndex % pool.length;
+    return [pool[start], pool[(start+1) % pool.length]];
+  }
+
   selected.forEach(area=>{
-    const drills = (WARMUP_LIBRARY[area] || []).slice(0, 2);   // curated top picks, not the full list
+    const drills = getWarmupDrills(area);
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag);
     const plannedNote = exercisesByArea[area] ? `<div class="warm-reason" style="margin-top:-6px;margin-bottom:10px;">Planned: ${exercisesByArea[area].join(', ')}</div>` : '';
     const card = document.createElement('div');
@@ -6625,6 +6910,24 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
   }
   const { selected, estMinutes } = selectWithinBudget(remaining, injuryByArea, MOBILITY_TIME_CAP, MOBILITY_TIME_PER_AREA);
 
+  // Per F.3 of the exercise intelligence report: reason at the exercise level where
+  // possible, using what was actually logged today (not just planned). Alizadeh et al.
+  // 2022 found full-ROM/lengthened-position strength work produces ROM gains equal to
+  // dedicated static stretching — stacking extra static stretching on top adds little.
+  // Only the "static" component is affected; foam roll/dynamic/PNF serve other purposes
+  // this specific finding doesn't address, so those stay as-is.
+  const todaysSessions = (await getAllTrainingSessions()).filter(s=>s.date===todayStr && s.type==='strength' && s.exercises);
+  const stretchingNotesByArea = {};
+  todaysSessions.forEach(s=>{
+    s.exercises.forEach(e=>{
+      if(e.exerciseId && EXERCISE_LIBRARY[e.exerciseId] && EXERCISE_LIBRARY[e.exerciseId].stretchingSuitable === false){
+        const rationale = EXERCISE_LIBRARY[e.exerciseId].stretchingRationale;
+        if(e.area) stretchingNotesByArea[e.area] = { exerciseName: e.name, rationale };
+        if(e.secondaryArea && !stretchingNotesByArea[e.secondaryArea]) stretchingNotesByArea[e.secondaryArea] = { exerciseName: e.name, rationale };
+      }
+    });
+  });
+
   mobilityContainer.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes} min · ${selected.length} area${selected.length===1?'':'s'}</div>`;
   selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
@@ -6634,6 +6937,10 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
     if(r.cls==='planned' && ranToday && ['ankles','calves','hips','hamstrings'].includes(area)){
       reasonText = 'Worked by today\'s run';
     }
+    const skipNote = stretchingNotesByArea[area];
+    const staticLine = skipNote
+      ? `<strong style="color:var(--text);">Static</strong> — Optional today: ${skipNote.exerciseName} already covered this (${skipNote.rationale})`
+      : `<strong style="color:var(--text);">Static</strong> — ${proto.static}`;
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
     card.innerHTML = `
@@ -6642,7 +6949,7 @@ document.getElementById('generateMobilityBtn').addEventListener('click', async (
       <div class="warm-drills">
         <strong style="color:var(--text);">Foam roll</strong> — ${proto.foamRoll}<br><br>
         <strong style="color:var(--text);">Dynamic</strong> — ${proto.dynamic}<br><br>
-        <strong style="color:var(--text);">Static</strong> — ${proto.static}<br><br>
+        ${staticLine}<br><br>
         <strong style="color:var(--text);">PNF (band-assisted)</strong> — ${proto.pnf}
       </div>`;
     mobilityContainer.appendChild(card);
