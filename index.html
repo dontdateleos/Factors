@@ -26,41 +26,44 @@
     --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --border-bold:#0c0d0b;
     --block-lime:#c9da4a;
-    --block-orange:#ffad6e;
+    --block-orange:#ff9442;
     --block-blue:#7dd8ef;
     --block-yellow:#ffd400;
     --block-purple:#c2b0f7;
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
-    --shadow-btn: 4px 4px 0 var(--border-bold);
+    --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
   }
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; }
   header{ padding:18px 14px 0; position:sticky; top:0; background:var(--bg); z-index:10; border-bottom:1px solid var(--line); }
   .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; }
+  .eyebrow::before{ content:'[ '; }
+  .eyebrow::after{ content:' ]'; }
   h1{ font-size:46px; font-weight:700; margin:0 0 14px; letter-spacing:-0.03em; line-height:0.92; text-transform:uppercase; }
+  h1::before{ content:'[ '; }
+  h1::after{ content:' ]'; }
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px; }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
-  .tab-icon-wrap{ position:relative; display:inline-flex; }
-  .tab-badge{ position:absolute; top:-7px; right:-10px; min-width:16px; height:16px; padding:0 3px; border-radius:0; border:1.5px solid var(--bg); background:var(--text); color:var(--bg); font-family:var(--sans); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1; }
-  .tab-index{ position:absolute; top:-7px; left:-11px; font-family:var(--mono); font-size:8px; font-weight:700; color:inherit; line-height:1; }
-  .tab-badge:empty{ display:none; }
   .tab svg{ width:18px; height:18px; }
   .tab.active{ color:var(--text); border-bottom-color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
   .tab[data-tab="insights"].active{ background:var(--block-lime); }
   .tab[data-tab="training"].active{ background:var(--block-orange); }
   .tab[data-tab="goals"].active{ background:var(--block-blue); }
+  .tab[data-tab="injuries"].active{ background:var(--block-purple); }
   .tab[data-tab="data"].active{ background:var(--block-yellow); }
   body.tab-insights main, body.tab-insights{ background:var(--block-lime); }
   body.tab-training main, body.tab-training{ background:var(--block-orange); }
   body.tab-goals main, body.tab-goals{ background:var(--block-blue); }
+  body.tab-injuries main, body.tab-injuries{ background:var(--block-purple); }
   body.tab-data main, body.tab-data{ background:var(--block-yellow); }
   .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
 
   .morning-banner{ background:transparent; color:var(--text); border:2px solid var(--border-bold); border-radius:0; padding:16px 16px; font-size:14px; font-weight:600; margin-bottom:22px; line-height:1.35; box-shadow:4px 4px 0 var(--border-bold); }
 
-  .panel.active.panel-enter{ animation: panelFade 0.28s ease; }
-  @keyframes panelFade{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  .panel.active.panel-enter{ animation: panelSnap 0.16s steps(4, end); }
+  @keyframes panelSnap{ 0%{ transform:translateX(-10px); } 100%{ transform:translateX(0); } }
+  @media (prefers-reduced-motion: reduce){ .panel.active.panel-enter{ animation:none; } }
 
   @keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
   .rec-card, .warm-card, .injury-card{ animation: cardIn 0.3s ease; }
@@ -1369,8 +1372,8 @@
 
   footer{ position:fixed; bottom:0; left:0; right:0; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
-  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.04em; text-transform:uppercase; font-weight:700; padding:13px 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--panel); color:var(--text); flex:1; cursor:pointer; box-shadow:var(--shadow-btn); transition:transform 0.08s ease, box-shadow 0.08s ease; }
-  button:active{ transform:translate(4px,4px); box-shadow:0 0 0 var(--line); }
+  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.04em; text-transform:uppercase; font-weight:700; padding:13px 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--text); color:var(--bg); flex:1; cursor:pointer; box-shadow:var(--shadow-btn); transition:transform 0.08s ease, box-shadow 0.08s ease; }
+  button:active{ transform:translate(6px,6px); box-shadow:0 0 0 var(--line); }
   .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; }
@@ -1383,10 +1386,11 @@
   .trend-arrow{ font-size:11px; margin-left:4px; }
   .trend-arrow.down{ color:var(--good); }
   .trend-arrow.up{ color:var(--bad); }
-  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:700; box-shadow:4px 4px 0 var(--border-bold); }
+  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:700; box-shadow:6px 6px 0 var(--border-bold); }
   button.primary:active{ box-shadow:0 0 0 var(--border-bold); }
   button.small{ flex:none; padding:8px 12px; font-size:11px; }
-  button:active{ opacity:0.8; }
+  button.outline{ background:transparent; color:var(--text); }
+  button.outline:active{ background:var(--text); color:var(--bg); }
   .status{ font-family:var(--sans); font-size:11px; color:var(--dim); text-align:center; margin-top:8px; min-height:14px; }
 
   .log{ margin-top:24px; }
@@ -1418,24 +1422,20 @@
   .injury-meta{ font-family:var(--sans); font-size:10px; color:var(--dim); }
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
-  .chip-tray{ display:flex; gap:10px; margin-bottom:16px; }
-  .block-chip{ flex:1; text-align:center; padding:14px 8px; border-radius:0; font-family:var(--sans); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; cursor:grab; border:1px solid var(--line); }
-  .block-chip[data-block-type="strength"]{ background:transparent; color:var(--text); }
-  .block-chip[data-block-type="run"]{ background:transparent; color:var(--text); }
-  .block-chip[data-block-type="mobility"]{ background:transparent; color:var(--text); }
-  .block-chip.dragging{ opacity:0.4; }
 
   .week-grid{ display:flex; flex-direction:column; gap:6px; }
   .week-day-row{ display:flex; align-items:center; gap:8px; }
   .week-day-label{ width:38px; flex-shrink:0; font-family:var(--sans); font-size:11px; color:var(--dim);  }
-  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:0; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
-  .week-slot.drag-over{ border-color:var(--border-bold); background:rgba(0,0,0,0.08); }
+  .week-slot{ flex:1; min-height:44px; border:1px dashed var(--line); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; padding:4px; cursor:pointer; transition:border-color 0.15s, background 0.15s; }
+  .week-slot-empty-symbol{ font-size:14px; line-height:1; }
+  .week-slot-empty-label{ font-family:var(--mono); font-size:8px; text-transform:uppercase; letter-spacing:0.06em; }
   .week-slot.filled{ border-style:solid; border-color:var(--border-bold); border-width:2px; color:var(--text); flex-direction:column; gap:2px; }
   .week-slot-type{ font-weight:600;  letter-spacing:0.04em; }
   .week-slot-summary{ font-size:9px; color:var(--dim); }
 
   #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+  #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
   #skillGoalRows .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   #skillGoalRows select{ flex:1; min-width:90px; font-size:12px; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
@@ -1448,15 +1448,40 @@
   #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:13px; padding:8px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:11px; padding:8px 4px; }
 
-  .session-flow-section{ border:2px solid var(--border-bold); border-radius:0; margin-bottom:10px; overflow:hidden; background:transparent; }
+  .session-flow-section{ border:none; border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; margin-bottom:0; overflow:visible; background:transparent; }
   .session-flow-header{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; }
   .session-flow-header.active{ border-bottom:1px solid var(--line); }
   .session-flow-title{ font-size:13px; font-weight:600; }
+  .session-flow-title.secondary{ font-weight:500; color:var(--dim); }
   .session-flow-chevron{ color:var(--dim); font-size:12px; transition:transform 0.15s; }
   .session-flow-header.active .session-flow-chevron{ transform:rotate(180deg); }
   .session-flow-body{ padding:14px 16px; }
+  .entry-mode-toggle{ display:flex; gap:0; margin-bottom:14px; }
+  #mainWorkoutFlowBody.auto-mode #sessionTypePills,
+  #mainWorkoutFlowBody.auto-mode .field-row:has(#workoutTag),
+  #mainWorkoutFlowBody.auto-mode .field-row:has(#sessionFocus),
+  #mainWorkoutFlowBody.auto-mode #sessionFocusNote,
+  #mainWorkoutFlowBody.auto-mode #addExerciseRow,
+  #mainWorkoutFlowBody.auto-mode .volume-total,
+  #mainWorkoutFlowBody.auto-mode .ex-tags-toggle,
+  #mainWorkoutFlowBody.auto-mode .ex-tags-row,
+  #mainWorkoutFlowBody.auto-mode .remove-row,
+  #mainWorkoutFlowBody.auto-mode .add-set-group{ display:none !important; }
+  #mainWorkoutFlowBody.auto-mode .ex-name{ flex:3; min-width:140px; }
 
-  .rec-card{ border:2px solid var(--border-bold); border-radius:0; padding:16px; margin-bottom:14px; background:transparent; border-left:3px solid var(--dim); }
+  .rec-card{ position:relative; border-radius:0; padding:16px; margin-bottom:14px; background:transparent; }
+  .rec-card::before{
+    content:''; position:absolute; inset:-2px; pointer-events:none;
+    background:
+      linear-gradient(var(--border-bold), var(--border-bold)) top left / 18px 3px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) top left / 3px 18px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) top right / 18px 3px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) top right / 3px 18px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) bottom left / 18px 3px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) bottom left / 3px 18px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) bottom right / 18px 3px no-repeat,
+      linear-gradient(var(--border-bold), var(--border-bold)) bottom right / 3px 18px no-repeat;
+  }
   .rec-card.reduce{ border-left-color:var(--bad); }
   .rec-card.add{ border-left-color:var(--accent); }
   .rec-card.modify{ border-left-color:var(--warn); }
@@ -1467,7 +1492,7 @@
   .rec-type.add{ background:var(--accent); color:var(--bg); }
   .rec-type.modify{ background:var(--warn); color:var(--bg); }
   .rec-type.hold{ background:var(--dim); color:var(--bg); }
-  .rec-conf{ font-family:var(--sans); font-size:10px; color:var(--dim);  border:1px solid var(--line); padding:2px 6px; border-radius:0; }
+  .rec-conf{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
   .rec-title{ font-size:14px; margin-bottom:8px; }
   .rec-signals{ font-family:var(--sans); font-size:11px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
   .rec-actions{ display:flex; gap:8px; }
@@ -1486,7 +1511,8 @@
   .trend-flag{ font-family:var(--sans); font-size:12px; padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.25s, transform 0.25s; z-index:100; white-space:nowrap; box-shadow:3px 3px 0 var(--accent-dim); }
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; box-shadow:3px 3px 0 var(--accent-dim); }
+  @media (prefers-reduced-motion: reduce){ #toast{ transition:opacity 0.1s linear; } }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
 </style>
@@ -1496,10 +1522,7 @@
 <div id="toast"></div>
 <header>
   <div class="header-brand">
-    <div>
-      <div class="eyebrow">DOGFOOD</div>
-      <h1>Daily Log</h1>
-    </div>
+    <h1>Dogfood</h1>
   </div>
   <div class="profile-row">
     <label>Goal</label>
@@ -1510,10 +1533,11 @@
     </select>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights"><span class="tab-icon-wrap"><span class="tab-index">01</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span class="tab-badge" id="badge-insights"></span></span><span>Insights</span></div>
-    <div class="tab" data-tab="training"><span class="tab-icon-wrap"><span class="tab-index">02</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span class="tab-badge" id="badge-training"></span></span><span>Training</span></div>
-    <div class="tab" data-tab="goals"><span class="tab-icon-wrap"><span class="tab-index">03</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg><span class="tab-badge" id="badge-goals"></span></span><span>Goals</span></div>
-    <div class="tab" data-tab="data"><span class="tab-icon-wrap"><span class="tab-index">04</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg><span class="tab-badge" id="badge-data"></span></span><span>Data</span></div>
+    <div class="tab active" data-tab="insights"><span>Today</span></div>
+    <div class="tab" data-tab="training"><span>Training</span></div>
+    <div class="tab" data-tab="goals"><span>Goals</span></div>
+    <div class="tab" data-tab="injuries"><span>Injuries</span></div>
+    <div class="tab" data-tab="data"><span>Data</span></div>
   </div>
 </header>
 
@@ -1525,15 +1549,25 @@
       <div class="score-label" id="overallScoreLabel">Overall</div>
     </div>
     <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:10px; opacity:0.75;"></div>
-    <div class="score-note" style="margin-bottom:16px; font-size:10px; opacity:0.65; text-align:center;">Recommendations fire only when ≥2 signals corroborate. Swipe right to accept, left to dismiss.</div>
+    <div class="score-note" style="margin-bottom:16px; font-size:10px; opacity:0.65; text-align:center;">Recommendations fire only when ≥2 signals corroborate.</div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
-      <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
-    </div>
-    <div id="recommendationCards"></div>
 
-    <div class="log">
+    <div class="session-type" id="todaySessionTypePills">
+      <div class="type-btn active" data-type="strength">Strength</div>
+      <div class="type-btn" data-type="run">Run</div>
+      <div class="type-btn" data-type="mobility">Mobility</div>
+    </div>
+
+    <div id="todayWorkoutArea" style="margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
+        <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
+      </div>
+      <div id="recommendationCards"></div>
+      <div id="todayWorkoutSummary"></div>
+    </div>
+
+    <div class="log" style="margin-top:16px;">
       <div class="log-title">Recommendation history</div>
       <div id="recHistory"></div>
     </div>
@@ -1553,9 +1587,9 @@
       <span class="status" id="trainingStatusMsg" style="margin:0;"></span>
     </div>
 
-    <div class="session-flow-section">
+    <div class="session-flow-section" id="warmupSection" style="display:none;">
       <div class="session-flow-header" id="warmupFlowHeader">
-        <span class="session-flow-title">1. Warm-up</span>
+        <span class="session-flow-title secondary">1. Warm-up</span>
         <span class="session-flow-chevron">▾</span>
       </div>
       <div class="session-flow-body" id="warmupFlowBody" style="display:none;">
@@ -1591,6 +1625,12 @@
       </div>
       <div class="session-flow-body" id="mainWorkoutFlowBody" style="display:block;">
 
+    <div class="entry-mode-toggle" id="entryModeToggle" style="display:none;">
+      <div class="type-btn active" data-mode="auto">Auto</div>
+      <div class="type-btn" data-mode="manual">Manual</div>
+    </div>
+    <div class="score-note" id="entryModeNote" style="display:none; margin-bottom:14px;"></div>
+
     <div class="session-type" id="sessionTypePills">
       <div class="type-btn active" data-type="strength">Strength</div>
       <div class="type-btn" data-type="run">Run</div>
@@ -1617,7 +1657,7 @@
       <div class="fields">
         <div class="field-row"><span class="field-label">Session focus</span>
           <select id="sessionFocus">
-            <option value="strength">Strength (top set + back-off, 5×5, 3×5 — 3-6 reps)</option>
+            <option value="strength">Strength (3-6 reps)</option>
             <option value="hypertrophy">Hypertrophy (8-12 reps)</option>
             <option value="power">Power (1-5 reps, high intent)</option>
             <option value="general">General / mixed (8-12 reps)</option>
@@ -1662,9 +1702,9 @@
       </div>
     </div>
 
-    <div class="session-flow-section">
+    <div class="session-flow-section" id="stretchSection" style="display:none;">
       <div class="session-flow-header" id="stretchFlowHeader">
-        <span class="session-flow-title">3. Post-exercise stretching</span>
+        <span class="session-flow-title secondary">3. Post-exercise stretching</span>
         <span class="session-flow-chevron">▾</span>
       </div>
       <div class="session-flow-body" id="stretchFlowBody" style="display:none;">
@@ -1673,9 +1713,9 @@
       </div>
     </div>
 
-    <div class="session-flow-section">
+    <div class="session-flow-section" id="cooldownSection" style="display:none;">
       <div class="session-flow-header" id="cooldownFlowHeader">
-        <span class="session-flow-title">4. Cool-down</span>
+        <span class="session-flow-title secondary">4. Cool-down</span>
         <span class="session-flow-chevron">▾</span>
       </div>
       <div class="session-flow-body" id="cooldownFlowBody" style="display:none;">
@@ -1695,22 +1735,27 @@
     </div>
 
     <div id="weeklyTrainingView" style="display:none;">
-      <div class="score-note" style="margin-bottom:14px;">Drag a block onto a day/slot to schedule it. Tap a scheduled block to edit what it actually is. Days with nothing scheduled are rest days — no block needed.</div>
+      <div class="score-note" style="margin-bottom:14px;">Tap a day/slot to schedule it. Tap a scheduled block to edit what it actually is. Days with nothing scheduled are rest days — no block needed.</div>
 
-      <div class="field-row" style="margin-bottom:14px; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent;">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="small" id="clearAllWeekBtn">Clear all</button>
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+
+      <div id="blockEditPanel" style="display:none;"></div>
+
+      <div class="field-row" style="margin-top:16px; margin-bottom:14px; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent;">
         <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
         <label for="deloadWeekCheckbox" style="font-size:13px; flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
       </div>
 
-      <div class="chip-tray" id="blockChipTray">
-        <div class="block-chip" draggable="true" data-block-type="strength">Strength</div>
-        <div class="block-chip" draggable="true" data-block-type="run">Run</div>
-        <div class="block-chip" draggable="true" data-block-type="mobility">Mobility</div>
-      </div>
-
-      <div class="group" style="margin-top:16px;">
-        <div class="group-head"><div class="group-title">Auto-generate strength program</div><div class="group-sub">learns your main lifts · suggests variation rotation · only fills empty days</div></div>
-        <div class="fields">
+      <div class="group" style="margin-bottom:16px;">
+        <div class="group-head" id="generateProgramToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+          <div class="group-title">Generate a program</div>
+          <span id="generateProgramChevron" style="font-size:12px; color:var(--dim); transition:transform 0.15s;">▾</span>
+        </div>
+        <div class="fields" id="generateProgramBody" style="display:none;">
+          <div class="log-title" style="margin-bottom:0;">Strength — learns your main lifts, suggests variation rotation, only fills empty days</div>
           <div class="field-row"><span class="field-label">Sessions/week</span>
             <select id="programSessionsSelect">
               <option value="2">2</option>
@@ -1730,12 +1775,8 @@
           <div class="field-row"><input type="checkbox" id="includeBulletproofingCheckbox" checked style="width:auto; flex:none;"><label for="includeBulletproofingCheckbox" style="font-size:13px;">Include bulletproofing + complementary mobility (train lower → bulletproof/mobilize upper, and vice versa)</label></div>
           <button id="generateStrengthProgramBtn">Generate strength program</button>
           <div id="strengthProgramResult" class="score-note"></div>
-        </div>
-      </div>
 
-      <div class="group" style="margin-top:16px; margin-bottom:16px;">
-        <div class="group-head"><div class="group-title">Auto-generate run plan</div><div class="group-sub">only fills empty days</div></div>
-        <div class="fields">
+          <div class="log-title" style="margin-bottom:0; margin-top:14px;">Running — only fills empty days</div>
           <div class="field-row"><span class="field-label">Tier</span>
             <select id="runTierSelect">
               <option value="base">Base-building / novice</option>
@@ -1748,13 +1789,6 @@
           <div id="runPlanResult" class="score-note"></div>
         </div>
       </div>
-
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button class="small" id="clearAllWeekBtn">Clear all</button>
-      </div>
-      <div class="week-grid" id="weekGrid"></div>
-
-      <div id="blockEditPanel" style="display:none;"></div>
 
       <div class="group" style="margin-top:24px;">
         <div class="group-head"><div class="group-title">Weekly Load</div><div class="group-sub">macro — vs your own trailing average</div></div>
@@ -1785,7 +1819,7 @@
       </div>
 
       <div class="group" style="margin-top:16px;">
-        <div class="group-head"><div class="group-title">Goals</div><div class="group-sub">up to 5, ordered by priority</div></div>
+        <div class="group-head"><div class="group-title">Goals</div><div class="group-sub">up to 3, ordered by priority</div></div>
         <div class="fields">
           <div class="score-note">Reorder with ↑↓ — the top goal gets the most weight in generated programs. As broad or specific as you want: "get stronger", "improve running", or "sub-25 5K by June" all work.</div>
           <div id="goalListRows"></div>
@@ -1804,19 +1838,6 @@
 
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
-
-      <div class="group" style="margin-top:24px;">
-        <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
-        <div class="fields">
-          <div class="field-row"><span class="field-label">Standard</span>
-            <select id="strengthStandardSex">
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div id="athleteLevelBody"></div>
-        </div>
-      </div>
 
       <div class="group" style="margin-top:24px; border-color:var(--accent);">
         <div class="group-head"><div class="group-title">Generate Program</div><div class="group-sub">blends goals + training setup, hybrid strength/running research · fills empty days</div></div>
@@ -1849,17 +1870,43 @@
       </div>
   </div>
 
+  <!-- INJURIES PANEL -->
+  <div class="panel" id="panel-injuries">
+    <div class="group">
+      <div class="group-head"><div class="group-title">Log new injury</div></div>
+      <div class="fields">
+        <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
+        <div class="field-row"><span class="field-label">Type</span>
+          <select id="injuryType">
+            <option value="general">General</option>
+            <option value="tendinopathy">Tendinopathy</option>
+            <option value="sprain_strain">Sprain / Strain</option>
+          </select>
+        </div>
+        <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
+        <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
+        <div class="field-row"><span class="field-label">Half-life (days)</span><input type="number" id="injuryHalfLife" value="14"></div>
+        <textarea id="injuryNotes" placeholder="Notes..."></textarea>
+        <button class="primary" id="addInjuryBtn">Add injury</button>
+      </div>
+    </div>
 
-  <!-- DATA PANEL (Recovery + Injuries + Trends) -->
+    <div class="log">
+      <div class="log-title">Active &amp; recent injuries</div>
+      <div id="injuryList"></div>
+    </div>
+  </div>
+
+
+  <!-- DATA PANEL (Recovery + Trends) -->
   <div class="panel" id="panel-data">
     <div class="session-type" id="dataViewPills">
       <div class="type-btn active" data-view="recovery">Recovery</div>
-      <div class="type-btn" data-view="injuries">Injuries</div>
       <div class="type-btn" data-view="trends">Trends</div>
     </div>
 
     <div id="recoveryDataView">
-    <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in — log today's recovery data to unlock today's Insights.</div>
+    <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in — log today's recovery data to unlock Today.</div>
     <div class="date-row">
       <input type="date" id="entryDate">
       <span class="status" id="loadStatus" style="margin:0;"></span>
@@ -1970,10 +2017,18 @@
         <div id="bulkImportResult" class="score-note"></div>
       </div>
     </div>
+    <div class="group" style="margin-top:24px; border-color:var(--bad);">
+      <div class="group-head"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div></div>
+      <div class="fields">
+        <div class="score-note">Wipes every entry, plan, goal, injury, and setting — a true blank slate, as if you'd just installed this. Export a backup above first if you want to keep anything. This cannot be undone.</div>
+        <button id="clearAllDataBtn" style="border-color:var(--bad);">Clear all data</button>
+        <div id="clearAllDataResult" class="score-note"></div>
+      </div>
+    </div>
     <div class="group" style="margin-top:24px; border-color:var(--warn);">
       <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--warn);">dev only — clears prior test data first</div></div>
       <div class="fields">
-        <div class="score-note">Seeds realistic recovery + training history so you can see how Insights/Warm-up/Trends actually respond, without waiting weeks for real data. Seeding a new scenario replaces any previously-seeded test data — your real logged data is never touched.</div>
+        <div class="score-note">Seeds realistic recovery + training history so you can see how Today/Warm-up/Trends actually respond, without waiting weeks for real data. Seeding a new scenario replaces any previously-seeded test data — your real logged data is never touched.</div>
         <div class="field-row"><span class="field-label">Scenario</span>
           <select id="testScenarioSelect">
             <option value="well_recovered">Well recovered</option>
@@ -1993,33 +2048,19 @@
     </div>
     </div>
 
-    <div id="injuriesDataView" style="display:none;">
-    <div class="group">
-      <div class="group-head"><div class="group-title">Log new injury</div></div>
+    <div id="trendsDataView" style="display:none;">
+    <div class="group" style="margin-bottom:16px;">
+      <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
       <div class="fields">
-        <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
-        <div class="field-row"><span class="field-label">Type</span>
-          <select id="injuryType">
-            <option value="general">General</option>
-            <option value="tendinopathy">Tendinopathy</option>
-            <option value="sprain_strain">Sprain / Strain</option>
+        <div class="field-row"><span class="field-label">Standard</span>
+          <select id="strengthStandardSex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
         </div>
-        <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
-        <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
-        <div class="field-row"><span class="field-label">Half-life (days)</span><input type="number" id="injuryHalfLife" value="14"></div>
-        <textarea id="injuryNotes" placeholder="Notes..."></textarea>
-        <button class="primary" id="addInjuryBtn">Add injury</button>
+        <div id="athleteLevelBody"></div>
       </div>
     </div>
-
-    <div class="log">
-      <div class="log-title">Active &amp; recent injuries</div>
-      <div id="injuryList"></div>
-    </div>
-    </div>
-
-    <div id="trendsDataView" style="display:none;">
     <div class="session-type" id="trendMetricPills">
       <div class="type-btn active" data-metric="hrv">HRV</div>
       <div class="type-btn" data-metric="sleepScore">Sleep</div>
@@ -2118,38 +2159,6 @@ function updateFooterVisibility(){
   footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
 }
 
-async function updateTabBadges(){
-  // Insights — pending recommendations waiting for a decision
-  const insightsCount = (typeof cardQueue !== 'undefined' && Array.isArray(cardQueue))
-    ? cardQueue.length - (typeof cardQueueIndex !== 'undefined' ? cardQueueIndex : 0) : 0;
-  document.getElementById('badge-insights').textContent = insightsCount > 0 ? String(insightsCount) : '';
-
-  // Training — sessions scheduled this week
-  let trainingCount = 0;
-  try{
-    const dates = getWeekDates();
-    for(const date of dates){
-      for(const slot of ['am','pm']){
-        try{ await window.storage.get(`weekplan:${date}:${slot}`); trainingCount++; } catch(e){}
-      }
-    }
-  } catch(e){}
-  document.getElementById('badge-training').textContent = trainingCount > 0 ? String(trainingCount) : '';
-
-  // Goals — how many of the 5 priority slots are actually filled
-  let goalsCount = 0;
-  try{
-    const goals = await getCurrentGoals(todayStr);
-    goalsCount = (goals && goals.list) ? goals.list.length : 0;
-  } catch(e){}
-  document.getElementById('badge-goals').textContent = goalsCount > 0 ? String(goalsCount) : '';
-
-  // Data — active injuries flagged as needing attention
-  let injuryCount = 0;
-  try{ injuryCount = (await getActiveInjuries()).length; } catch(e){}
-  document.getElementById('badge-data').textContent = injuryCount > 0 ? String(injuryCount) : '';
-}
-
 function activateTab(name){
   tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.body.className = document.body.className.replace(/\btab-\w+\b/g, '').trim();
@@ -2159,19 +2168,18 @@ function activateTab(name){
     if(p===targetPanel){ p.classList.add('active'); p.classList.remove('panel-enter'); void p.offsetWidth; p.classList.add('panel-enter'); }
     else p.classList.remove('active');
   });
-  if(name==='insights') generateRecommendations();
+  if(name==='insights'){ generateRecommendations(); renderTodayWorkoutSummary(); }
   if(name==='training'){
     const activeView = document.querySelector('#trainingViewPills .type-btn.active')?.dataset.view || 'daily';
     activateTrainingSubView(activeView);
   }
   if(name==='goals') loadCurrentGoals();
+  if(name==='injuries') refreshInjuries();
   if(name==='data'){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
     activateDataSubView(activeView);
   }
   updateFooterVisibility();
-  updateTabBadges();
-  setTimeout(updateTabBadges, 400);
 }
 
 function activateTrainingSubView(view){
@@ -2194,10 +2202,8 @@ document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
 function activateDataSubView(view){
   document.querySelectorAll('#dataViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('recoveryDataView').style.display = view==='recovery' ? 'block' : 'none';
-  document.getElementById('injuriesDataView').style.display = view==='injuries' ? 'block' : 'none';
   document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
-  if(view==='injuries') refreshInjuries();
-  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); }
+  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
   updateFooterVisibility();
 }
 document.querySelectorAll('#dataViewPills .type-btn').forEach(btn=>{
@@ -2700,55 +2706,55 @@ function movementOptionsHtml(selected){
    This is a pure superset of the old EXERCISE_AREA_MAP: tried first, falls back to the
    original 11-keyword scan unchanged if no match, so nothing that worked before regresses. */
 const EXERCISE_LIBRARY = {
-  back_squat: { name:"Back Squat", aliases:["back squat", "barbell squat", "high bar squat", "low bar squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:0,sprint:2,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0}, goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
-  front_squat: { name:"Front Squat", aliases:["front squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:1,power:1,mobility:0,calisthenics:0} },
+  back_squat: { name:"Back Squat", aliases:["back squat", "barbell squat", "high bar squat", "low bar squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"S", tierEvidence:"high", regionalEmphasis:{"vastus_lateralis": "high"}, runningRelevance:{economy:0,durability:0,sprint:2,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0}, goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
+  front_squat: { name:"Front Squat", aliases:["front squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"S", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:1,power:1,mobility:0,calisthenics:0} },
   goblet_squat: { name:"Goblet Squat", aliases:["goblet squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["dumbbell", "kettlebell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:2,endurance:1,running:1,power:0,mobility:1,calisthenics:0} },
   box_squat: { name:"Box Squat", aliases:["box squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell", "box"], evidenceConfidence:"coaching_consensus" },
   cossack_squat: { name:"Cossack Squat", aliases:["cossack squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
   safety_bar_squat: { name:"Safety Bar Squat", aliases:["safety bar squat", "ssb squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"coaching_consensus" },
-  bulgarian_split_squat: { name:"Bulgarian Split Squat", aliases:["bulgarian split squat", "rear foot elevated split squat", "rfess"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"intermediate", equipment:["dumbbell", "barbell", "bodyweight"], evidenceConfidence:"systematic_review", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:2,plyometricReactive:0} },
+  bulgarian_split_squat: { name:"Bulgarian Split Squat", aliases:["bulgarian split squat", "rear foot elevated split squat", "rfess"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"intermediate", equipment:["dumbbell", "barbell", "bodyweight"], evidenceConfidence:"systematic_review", strengthTier:"A", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:2,plyometricReactive:0} },
   walking_lunge: { name:"Walking Lunge", aliases:["walking lunge", "lunge"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"beginner", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
-  leg_press: { name:"Leg Press", aliases:["leg press"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
-  leg_extension: { name:"Leg Extension", aliases:["leg extension", "quad extension"], category:"isolation", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis" },
+  leg_press: { name:"Leg Press", aliases:["leg press"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  leg_extension: { name:"Leg Extension", aliases:["leg extension", "quad extension"], category:"isolation", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"high", regionalEmphasis:{"rectus_femoris": "high"}, tierNote:"Per Kassiano et al. 2026 (PMID 41379528): leg extension produces significantly greater rectus femoris growth than back squat; back squat produces significantly greater distal vastus lateralis growth. Not interchangeable for regional quad development." },
   pistol_squat: { name:"Pistol Squat", aliases:["pistol squat", "one leg squat", "single leg squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  deadlift: { name:"Deadlift", aliases:["deadlift", "conventional deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
+  deadlift: { name:"Deadlift", aliases:["deadlift", "conventional deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
   trap_bar_deadlift: { name:"Trap Bar Deadlift", aliases:["trap bar deadlift", "hex bar deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"quads_knees", movement:"hinge", difficulty:"beginner", equipment:["trap_bar"], evidenceConfidence:"coaching_consensus", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
-  rdl: { name:"Romanian Deadlift", aliases:["rdl", "romanian deadlift", "stiff leg deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", stretchingSuitable:false, stretchingRationale:"Lengthened-position hamstring loading at the bottom of the hinge — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains.", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:2,power:0,mobility:1,calisthenics:0} },
-  good_morning: { name:"Good Morning", aliases:["good morning"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus" },
-  hip_thrust: { name:"Hip Thrust", aliases:["hip thrust", "barbell hip thrust"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["barbell", "bodyweight"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
+  rdl: { name:"Romanian Deadlift", aliases:["rdl", "romanian deadlift", "stiff leg deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", stretchingSuitable:false, stretchingRationale:"Lengthened-position hamstring loading at the bottom of the hinge — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains.", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:2,power:0,mobility:1,calisthenics:0} },
+  good_morning: { name:"Good Morning", aliases:["good morning"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  hip_thrust: { name:"Hip Thrust", aliases:["hip thrust", "barbell hip thrust"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["barbell", "bodyweight"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"high", tierNote:"Per Plotkin et al. 2023 (PMID 37461495): hip thrust and back squat produce statistically similar glute hypertrophy despite hip thrust showing much higher EMG amplitude \u2014 EMG did not predict the hypertrophy outcome. Squats additionally grew the quads/adductors; hip thrust did not.", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
   glute_bridge: { name:"Glute Bridge", aliases:["glute bridge"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true, runningRelevance:{economy:0,durability:1,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
   back_extension: { name:"Back Extension", aliases:["back extension", "hyperextension"], category:"secondary_strength", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["machine", "bodyweight"], evidenceConfidence:"coaching_consensus" },
   superman: { name:"Superman", aliases:["superman"], category:"core", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   leg_curl: { name:"Leg Curl", aliases:["leg curl", "hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis" },
-  nordic_curl: { name:"Nordic Hamstring Curl", aliases:["nordic curl", "nordic hamstring curl"], category:"bulletproofing", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight", "partner"], evidenceConfidence:"rct", stretchingSuitable:false, stretchingRationale:"Deep lengthened-position hamstring loading — Alizadeh et al. 2022 found full-ROM strength work produces ROM gains equal to dedicated stretching, with no added benefit from stacking extra static stretching on top.", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:1,singleLegStrength:0,plyometricReactive:0} },
-  bench_press: { name:"Bench Press", aliases:["bench press", "flat bench", "barbell bench"], category:"main_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
-  incline_press: { name:"Incline Bench Press", aliases:["incline press", "incline bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis" },
-  dumbbell_bench_press: { name:"Dumbbell Bench Press", aliases:["dumbbell bench press", "db bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:1,calisthenics:0} },
-  machine_chest_press: { name:"Machine Chest Press", aliases:["machine press", "chest press"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
-  cable_fly: { name:"Cable Fly", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus" },
-  overhead_press: { name:"Overhead Press", aliases:["overhead press", "strict press", "shoulder press", "military press"], category:"main_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:1,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
-  dumbbell_shoulder_press: { name:"Dumbbell Shoulder Press", aliases:["dumbbell shoulder press", "db shoulder press"], category:"secondary_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
-  lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis" },
-  tricep_pushdown: { name:"Tricep Pushdown", aliases:["tricep pushdown", "tricep extension", "pushdown"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis" },
-  skull_crusher: { name:"Skull Crusher", aliases:["skull crusher", "overhead extension", "french press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis" },
+  nordic_curl: { name:"Nordic Hamstring Curl", aliases:["nordic curl", "nordic hamstring curl"], category:"bulletproofing", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight", "partner"], evidenceConfidence:"rct", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Regional hamstring hypertrophy from Nordic curls (knee-flexion emphasis) differs from hip-extension-dominant exercises like RDL \u2014 not fully interchangeable for complete hamstring development.", stretchingSuitable:false, stretchingRationale:"Deep lengthened-position hamstring loading — Alizadeh et al. 2022 found full-ROM strength work produces ROM gains equal to dedicated stretching, with no added benefit from stacking extra static stretching on top.", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:1,singleLegStrength:0,plyometricReactive:0} },
+  bench_press: { name:"Bench Press", aliases:["bench press", "flat bench", "barbell bench"], category:"main_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"high", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
+  incline_press: { name:"Incline Bench Press", aliases:["incline press", "incline bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", tierNote:"Incline pressing shifts emphasis toward the clavicular (upper) pec region relative to flat pressing \u2014 not simply a flat-press substitute." },
+  dumbbell_bench_press: { name:"Dumbbell Bench Press", aliases:["dumbbell bench press", "db bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:1,calisthenics:0} },
+  machine_chest_press: { name:"Machine Chest Press", aliases:["machine press", "chest press"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  cable_fly: { name:"Cable Fly", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  overhead_press: { name:"Overhead Press", aliases:["overhead press", "strict press", "shoulder press", "military press"], category:"main_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:1,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
+  dumbbell_shoulder_press: { name:"Dumbbell Shoulder Press", aliases:["dumbbell shoulder press", "db shoulder press"], category:"secondary_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"B", tierEvidence:"low" },
+  lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy despite different resistance-curve theory \u2014 equipment choice should follow comfort/progression/preference, not assumed superiority." },
+  tricep_pushdown: { name:"Tricep Pushdown", aliases:["tricep pushdown", "tricep extension", "pushdown"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  skull_crusher: { name:"Skull Crusher", aliases:["skull crusher", "overhead extension", "french press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate" },
   push_up: { name:"Push-up", aliases:["push up", "pushup"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   dip: { name:"Dip", aliases:["dip", "bar dip", "ring dip"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   handstand_pushup: { name:"Handstand Push-up", aliases:["handstand push up", "hspu"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   planche: { name:"Planche", aliases:["planche"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"chest", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  pull_up: { name:"Pull-up", aliases:["pull up", "pullup", "chin up"], category:"calisthenics", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:0,power:0,mobility:0,calisthenics:3} },
+  pull_up: { name:"Pull-up", aliases:["pull up", "pullup", "chin up"], category:"calisthenics", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:0,power:0,mobility:0,calisthenics:3} },
   one_arm_pull_up: { name:"One-Arm Pull-up", aliases:["one arm pull up", "oapu"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  lat_pulldown: { name:"Lat Pulldown", aliases:["lat pulldown", "pulldown"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
-  barbell_row: { name:"Barbell Row", aliases:["barbell row", "bent over row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:2,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
-  dumbbell_row: { name:"Dumbbell Row", aliases:["dumbbell row", "db row", "single arm row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
-  seated_cable_row: { name:"Seated Cable Row", aliases:["seated row", "cable row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis" },
-  face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"shoulders", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus" },
-  bicep_curl: { name:"Bicep Curl", aliases:["bicep curl", "curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "barbell"], evidenceConfidence:"meta_analysis" },
-  hammer_curl: { name:"Hammer Curl", aliases:["hammer curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis" },
-  preacher_curl: { name:"Preacher Curl", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis" },
+  lat_pulldown: { name:"Lat Pulldown", aliases:["lat pulldown", "pulldown"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  barbell_row: { name:"Barbell Row", aliases:["barbell row", "bent over row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
+  dumbbell_row: { name:"Dumbbell Row", aliases:["dumbbell row", "db row", "single arm row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  seated_cable_row: { name:"Seated Cable Row", aliases:["seated row", "cable row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"shoulders", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  bicep_curl: { name:"Bicep Curl", aliases:["bicep curl", "curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "barbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  hammer_curl: { name:"Hammer Curl", aliases:["hammer curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  preacher_curl: { name:"Preacher Curl", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"biceps_distal": "moderate"}, tierNote:"Preacher and incline curls train the biceps at different joint angles/lengths and produce different proximal/distal hypertrophy patterns \u2014 not interchangeable for complete biceps development." },
   front_lever: { name:"Front Lever", aliases:["front lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   back_lever: { name:"Back Lever", aliases:["back lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   muscle_up: { name:"Muscle-up", aliases:["muscle up", "muscleup"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  calf_raise: { name:"Calf Raise", aliases:["calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "machine"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:0,durability:2,sprint:0,acceleration:0,tendonCapacity:2,singleLegStrength:0,plyometricReactive:0} },
+  calf_raise: { name:"Calf Raise", aliases:["calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"high", regionalEmphasis:{"gastrocnemius": "high"}, tierNote:"Straight-knee (standing) calf raises produce significantly greater gastrocnemius growth than bent-knee (seated) \u2014 well-supported (Kinoshita et al. 2023). The common belief that seated calf raises are specifically superior for soleus growth is weaker than often claimed: in the same study the standing-vs-seated soleus difference was not statistically significant, and ankle dorsiflexion range was not matched between conditions, limiting how much weight that specific comparison can bear.", runningRelevance:{economy:0,durability:2,sprint:0,acceleration:0,tendonCapacity:2,singleLegStrength:0,plyometricReactive:0} },
   tibialis_raise: { name:"Tibialis Raise", aliases:["tibialis raise", "tib raise"], category:"bulletproofing", area:"ankles", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "band"], evidenceConfidence:"coaching_consensus", runningRelevance:{economy:0,durability:0,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },  // Honest 0s per E.3 point 4 — no direct evidence TA strengthening prevents shin splints, despite common recommendation
   atg_split_squat: { name:"ATG Split Squat", aliases:["atg split squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"ankles", movement:"lunge", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Full-depth lengthened quad/hip loading by design — per Alizadeh et al. 2022, this already provides the ROM stimulus dedicated static stretching would target." },
   sissy_squat: { name:"Sissy Squat", aliases:["sissy squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Lengthened-position quad loading — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains, so extra static stretching adds little here." },
@@ -2768,15 +2774,41 @@ const EXERCISE_LIBRARY = {
   bounding: { name:"Bounding", aliases:["bounding"], category:"running_drill", area:"quads_knees", secondaryArea:"hips", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true },
   hang_clean: { name:"Hang Clean", aliases:["hang clean"], category:"power", area:"hips", secondaryArea:"quads_knees", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"meta_analysis" },
   medicine_ball_throw: { name:"Medicine Ball Throw", aliases:["medicine ball throw", "med ball throw", "med ball slam"], category:"power", area:"chest", secondaryArea:"hips", movement:"push", difficulty:"beginner", equipment:["medicine_ball"], evidenceConfidence:"coaching_consensus" },
+
+  hack_squat: { name:"Hack Squat", aliases:["hack squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["machine"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
+  seated_calf_raise: { name:"Seated Calf Raise", aliases:["seated calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"rct", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"soleus": "moderate"}, tierNote:"Per Kinoshita et al. 2023: soleus growth from seated (bent-knee) work was not significantly different from standing in this study, and ankle ROM was not matched between conditions \u2014 the gastroc/soleus split is directionally real (soleus does not cross the knee, so bent-knee doesn't disadvantage it the way it disadvantages the gastrocnemius) but the specific \"seated is optimal for soleus\" claim carries only moderate confidence." },
+  donkey_calf_raise: { name:"Donkey Calf Raise", aliases:["donkey calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["machine"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low", regionalEmphasis:{"gastrocnemius": "high"} },
+  cable_hip_abduction: { name:"Cable Hip Abduction", aliases:["cable hip abduction", "cable abduction"], category:"isolation", area:"hips", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
+  hip_abduction_machine: { name:"Hip Abduction Machine", aliases:["hip abduction machine"], category:"isolation", area:"hips", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  reverse_fly: { name:"Reverse Fly", aliases:["reverse fly", "rear delt fly"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
+  cable_lateral_raise: { name:"Cable Lateral Raise", aliases:["cable lateral raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"rct", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy \u2014 pick by equipment/comfort/preference, not assumed resistance-curve superiority." },
+  close_grip_bench_press: { name:"Close-Grip Bench Press", aliases:["close grip bench", "close-grip bench press"], category:"secondary_strength", area:"triceps", secondaryArea:"chest", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"A", powerTier:"S", tierEvidence:"low" },
+  jm_press: { name:"JM Press", aliases:["jm press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  overhead_tricep_extension: { name:"Overhead Cable Extension", aliases:["overhead cable extension", "overhead tricep extension"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"rct", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"The triceps long head crosses the shoulder joint \u2014 overhead positions train it at a longer muscle length. Comparisons of overhead vs. neutral-arm elbow extension have found greater triceps hypertrophy from the overhead position." },
+  incline_db_curl: { name:"Incline Dumbbell Curl", aliases:["incline db curl", "incline dumbbell curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"rct", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"biceps_long_head": "moderate"}, tierNote:"Preacher/incline curls train the biceps at different lengths and produce different proximal/distal hypertrophy patterns than standing curls \u2014 not fully interchangeable." },
+  cable_curl: { name:"Cable Curl", aliases:["cable curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
+  chest_supported_row: { name:"Chest-Supported Row", aliases:["chest supported row", "chest-supported row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["machine", "dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  kettlebell_swing: { name:"Kettlebell Swing", aliases:["kettlebell swing", "kb swing"], category:"power", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"A", tierEvidence:"low" },
+  power_clean: { name:"Power Clean", aliases:["power clean"], category:"power", area:"hips", secondaryArea:"quads_knees", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"C", powerTier:"S", tierEvidence:"moderate" },
+  countermovement_jump: { name:"Countermovement Jump", aliases:["countermovement jump", "cmj"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"C", powerTier:"S", tierEvidence:"moderate" },
+  trap_bar_jump: { name:"Trap Bar Jump", aliases:["trap bar jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["trap_bar"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"A", tierEvidence:"low" },
+  lateral_step_up: { name:"Lateral Step-Up", aliases:["lateral step up", "lateral step-up"], category:"secondary_strength", area:"hips", secondaryArea:"quads_knees", movement:"lunge", difficulty:"intermediate", equipment:["box", "bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"A", tierEvidence:"low" },
+  single_leg_squat: { name:"Single-Leg Squat", aliases:["single leg squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"B", powerTier:"A", tierEvidence:"low" },
 };
 
 function guessTagsFromLibrary(name){
   const n = name.toLowerCase().trim();
+  let best = null, bestAliasLen = 0;
   for(const id in EXERCISE_LIBRARY){
     const ex = EXERCISE_LIBRARY[id];
-    if(ex.aliases.some(a => n.includes(a))) return { primary: ex.area, secondary: ex.secondaryArea, movement: ex.movement, exerciseId: id };
+    ex.aliases.forEach(a=>{
+      if(n.includes(a) && a.length > bestAliasLen){
+        bestAliasLen = a.length;
+        best = { primary: ex.area, secondary: ex.secondaryArea, movement: ex.movement, exerciseId: id };
+      }
+    });
   }
-  return null;
+  return best;
 }
 
 const EXERCISE_AREA_MAP = [
@@ -2811,12 +2843,22 @@ function addExerciseRow(name='', sets='', reps='', weight='', primaryArea='', se
     <input type="number" class="ex-sets" placeholder="sets" value="${sets}">
     <input type="number" class="ex-reps" placeholder="reps" value="${reps}">
     <input type="number" class="ex-weight" placeholder="kg" value="${weight}">
-    <select class="ex-area">${areaOptionsHtml(primaryArea)}</select>
-    <select class="ex-area-secondary">${areaOptionsHtml(secondaryArea)}</select>
-    <select class="ex-movement">${movementOptionsHtml(movement)}</select>
     <span class="remove-row">×</span>
+    <div class="ex-tags-toggle" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
+    <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
+      <select class="ex-area">${areaOptionsHtml(primaryArea)}</select>
+      <select class="ex-area-secondary">${areaOptionsHtml(secondaryArea)}</select>
+      <select class="ex-movement">${movementOptionsHtml(movement)}</select>
+    </div>
     <div class="set-groups-container" style="flex-basis:100%;"></div>
-    <div class="add-set-group" style="flex-basis:100%; font-size:10px; color:var(--accent); cursor:pointer; margin-top:2px;">+ different weight for back-off sets</div>`;
+    <div class="add-set-group" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--text); cursor:pointer; margin-top:2px; text-decoration:underline;">+ different weight for back-off sets</div>`;
+  const tagsToggle = row.querySelector('.ex-tags-toggle');
+  const tagsRow = row.querySelector('.ex-tags-row');
+  tagsToggle.addEventListener('click', ()=>{
+    const isHidden = tagsRow.style.display === 'none';
+    tagsRow.style.display = isHidden ? 'flex' : 'none';
+    tagsToggle.textContent = isHidden ? 'hide tags' : 'edit tags';
+  });
   row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateVolumeTotal(); });
   row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateVolumeTotal));
   const groupsContainer = row.querySelector('.set-groups-container');
@@ -3229,6 +3271,7 @@ async function suggestProgression(exerciseName, area, focus){
 
 async function loadPlanForDate(date){
   const status = document.getElementById('trainingStatusMsg');
+  const toggle = document.getElementById('entryModeToggle');
   try{
     const r = await window.storage.get(`planned_session:${date}`);
     const plan = JSON.parse(r.value);
@@ -3237,12 +3280,33 @@ async function loadPlanForDate(date){
     if(plan.workoutTag) document.getElementById('workoutTag').value = plan.workoutTag;
     updateVolumeTotal();
     status.textContent = 'plan loaded';
+    toggle.style.display = 'flex';
+    setEntryMode('auto');
   } catch(e){
     document.getElementById('exerciseRows').innerHTML=''; addExerciseRow(); updateVolumeTotal();
+    toggle.style.display = 'none';
+    setEntryMode('manual');
   }
   await applyDeloadSuggestions();
   setTimeout(()=>{status.textContent='';},1500);
 }
+function setEntryMode(mode){
+  const body = document.getElementById('mainWorkoutFlowBody');
+  const note = document.getElementById('entryModeNote');
+  document.querySelectorAll('#entryModeToggle .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  if(mode==='auto'){
+    body.classList.add('auto-mode');
+    note.style.display = 'block';
+    note.textContent = "Showing today's generated plan — log sets/reps/weight as you go. Switch to Manual to change exercises or add detail.";
+  } else {
+    body.classList.remove('auto-mode');
+    note.style.display = 'none';
+  }
+}
+document.querySelectorAll('#entryModeToggle .type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>setEntryMode(btn.dataset.mode));
+});
+
 document.getElementById('trainingDate').addEventListener('change', async ()=>{
   if(sessionType==='strength') await loadPlanForDate(document.getElementById('trainingDate').value);
   else await applyDeloadSuggestions();
@@ -3295,13 +3359,26 @@ function updateGoalPriorityBadges(){
     badge.innerHTML = `<span class="goal-priority-num">${num}</span>${i===0 ? ' TOP PRIORITY' : ''}`;
   });
   const rows = document.querySelectorAll('#goalListRows .goal-row');
-  document.getElementById('addGoalRow').style.display = rows.length >= 5 ? 'none' : 'block';
+  document.getElementById('addGoalRow').style.display = rows.length >= 3 ? 'none' : 'block';
 }
 
+const GOAL_TYPE_FIELDS = {
+  strength: ['exercise','weight'],
+  hypertrophy: ['exercise','weight'],
+  running: ['distance','time'],
+  hyrox: ['time'],
+};
+function updateGoalFieldVisibility(row){
+  const type = row.querySelector('.goal-type').value;
+  const relevant = GOAL_TYPE_FIELDS[type] || [];
+  row.querySelectorAll('[data-goal-field]').forEach(fieldRow=>{
+    fieldRow.style.display = relevant.includes(fieldRow.dataset.goalField) ? 'flex' : 'none';
+  });
+}
 function addGoalRow(goal){
   goal = goal || {};
   const container = document.getElementById('goalListRows');
-  if(container.querySelectorAll('.goal-row').length >= 5) return;
+  if(container.querySelectorAll('.goal-row').length >= 3) return;
   const row = document.createElement('div');
   row.className = 'goal-row';
   row.innerHTML = `
@@ -3318,18 +3395,14 @@ function addGoalRow(goal){
         <option value="strength">Strength</option>
         <option value="hypertrophy">Hypertrophy / muscle gain</option>
         <option value="running">Running performance</option>
-        <option value="speed">Speed (race time target)</option>
-        <option value="general_fitness">General fitness</option>
-        <option value="body_composition">Body composition</option>
-        <option value="mobility">Mobility</option>
-        <option value="hybrid">Hybrid</option>
+        <option value="hyrox">Hyrox</option>
       </select>
     </div>
     <div class="field-row"><input type="text" class="goal-detail" placeholder="e.g. Get stronger, sub-25 5K by June"></div>
-    <div class="field-row"><span class="field-label">Target exercise</span><input type="text" class="goal-target-exercise" placeholder="e.g. Back Squat"></div>
-    <div class="field-row"><span class="field-label">Target weight (kg)</span><input type="number" class="goal-target-weight"></div>
-    <div class="field-row"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance"></div>
-    <div class="field-row"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time"></div>
+    <div class="field-row" data-goal-field="exercise"><span class="field-label">Target exercise</span><input type="text" class="goal-target-exercise" placeholder="e.g. Back Squat"></div>
+    <div class="field-row" data-goal-field="weight"><span class="field-label">Target weight (kg)</span><input type="number" class="goal-target-weight"></div>
+    <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance"></div>
+    <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time"></div>
     <div class="field-row"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
     <div class="field-row"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;"><label style="font-size:12px;">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
 
@@ -3341,6 +3414,8 @@ function addGoalRow(goal){
   row.querySelector('.goal-target-time').value = goal.targetTime ?? '';
   row.querySelector('.goal-target-date').value = goal.targetDate || '';
   row.querySelector('.goal-maintenance').checked = !!goal.isMaintenance;
+  updateGoalFieldVisibility(row);
+  row.querySelector('.goal-type').addEventListener('change', ()=>updateGoalFieldVisibility(row));
 
   row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateGoalPriorityBadges(); });
   row.querySelector('.goal-move-up').addEventListener('click', ()=>{
@@ -3393,7 +3468,7 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
   } catch(e){ showToast('Save failed — try again', true); }
 });
 
-function addSkillGoalRow(category, skillKey, levelIndex){
+function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance){
   category = category || 'exercise';
   const container = document.getElementById('skillGoalRows');
   const row = document.createElement('div');
@@ -3403,12 +3478,38 @@ function addSkillGoalRow(category, skillKey, levelIndex){
     <select class="skg-category">${catOptions}</select>
     <select class="skg-skill"></select>
     <select class="skg-level"></select>
+    <div class="score-note skg-detail" style="margin-top:-4px;"></div>
+    <div class="field-row" style="flex-basis:100%;"><input type="checkbox" class="skg-maintenance" style="width:auto; flex:none;" ${isMaintenance?'checked':''}><label style="font-size:12px;">Maintenance — keep this in rotation without pushing further while I focus elsewhere</label></div>
+    <div class="score-note skg-warning" style="color:var(--bad); display:none;"></div>
     <span class="remove-row">×</span>`;
   container.appendChild(row);
 
   const catSelect = row.querySelector('.skg-category');
   const skillSelect = row.querySelector('.skg-skill');
   const levelSelect = row.querySelector('.skg-level');
+  const detailEl = row.querySelector('.skg-detail');
+  const maintCheckbox = row.querySelector('.skg-maintenance');
+  const warningEl = row.querySelector('.skg-warning');
+
+  function checkPushPullCap(){
+    warningEl.style.display = 'none';
+    if(catSelect.value !== 'exercise' || maintCheckbox.checked) return;
+    const tree = PROGRESSION_TREES.exercise[skillSelect.value];
+    if(!tree || (tree.movement!=='push' && tree.movement!=='pull')) return;
+    const others = Array.from(document.querySelectorAll('#skillGoalRows .edit-row')).filter(r=>r!==row);
+    const activeSameMovement = others.some(r=>{
+      const rCat = r.querySelector('.skg-category').value;
+      const rSkill = r.querySelector('.skg-skill').value;
+      const rMaint = r.querySelector('.skg-maintenance').checked;
+      if(rCat!=='exercise' || rMaint) return false;
+      const rTree = PROGRESSION_TREES.exercise[rSkill];
+      return rTree && rTree.movement===tree.movement;
+    });
+    if(activeSameMovement){
+      warningEl.textContent = `Already have an active ${tree.movement} skill — coaching consensus is one primary push + one primary pull skill at a time. Consider marking one as maintenance.`;
+      warningEl.style.display = 'block';
+    }
+  }
 
   function populateSkills(selectedSkill){
     const tree = PROGRESSION_TREES[catSelect.value];
@@ -3421,14 +3522,26 @@ function addSkillGoalRow(category, skillKey, levelIndex){
     const skill = tree[skillSelect.value];
     levelSelect.innerHTML = skill.levels.map((lv,i)=>
       `<option value="${i}" ${i===selectedLevel?'selected':''}>${i+1}. ${lv}</option>`).join('');
+    updateLevelDetail();
+    checkPushPullCap();
+  }
+  function updateLevelDetail(){
+    const tree = PROGRESSION_TREES[catSelect.value];
+    const skill = tree[skillSelect.value];
+    const idx = parseInt(levelSelect.value, 10);
+    const detail = skill.levelDetails && skill.levelDetails[idx];
+    detailEl.textContent = detail ? `Target: ${detail.holdOrRepTarget} — ${detail.advancementCriteria}` : '';
   }
 
   catSelect.addEventListener('change', ()=>populateSkills());
   skillSelect.addEventListener('change', ()=>populateLevels());
+  levelSelect.addEventListener('change', updateLevelDetail);
+  maintCheckbox.addEventListener('change', checkPushPullCap);
   row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
 
   populateSkills(skillKey);
   if(levelIndex!=null) populateLevels(levelIndex);
+  checkPushPullCap();
 }
 document.getElementById('addSkillGoalRow').addEventListener('click', ()=>addSkillGoalRow());
 
@@ -3554,10 +3667,17 @@ function renderSlotContent(slotEl, block){
     slotEl.innerHTML = `<div class="week-slot-type">${block.type}</div><div class="week-slot-summary">${blockSummary(block)}</div>`;
   } else {
     slotEl.className = 'week-slot';
-    slotEl.textContent = '+';
+    slotEl.innerHTML = `<div class="week-slot-empty-symbol">✳</div><div class="week-slot-empty-label">rest</div>`;
   }
 }
 
+document.getElementById('generateProgramToggleHeader').addEventListener('click', ()=>{
+  const body = document.getElementById('generateProgramBody');
+  const chevron = document.getElementById('generateProgramChevron');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'flex' : 'none';
+  chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+});
 document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
   if(!confirm('Clear every scheduled block this week? This cannot be undone.')) return;
   const dates = getWeekDates();
@@ -3615,14 +3735,6 @@ async function renderWeekGrid(){
       } catch(e){}
       renderSlotContent(slotEl, block);
       slotEl.addEventListener('click', ()=> openBlockEditor(date, slot, block));
-      slotEl.addEventListener('dragover', e=>{ e.preventDefault(); slotEl.classList.add('drag-over'); });
-      slotEl.addEventListener('dragleave', ()=> slotEl.classList.remove('drag-over'));
-      slotEl.addEventListener('drop', e=>{
-        e.preventDefault();
-        slotEl.classList.remove('drag-over');
-        const type = e.dataTransfer.getData('text/block-type');
-        if(type) placeBlock(date, slot, type);
-      });
       row.appendChild(slotEl);
     }
     grid.appendChild(row);
@@ -3672,69 +3784,24 @@ async function placeBlock(date, slot, type){
   openBlockEditor(date, slot, block);
 }
 
-// Desktop drag (mouse)
-document.querySelectorAll('.block-chip').forEach(chip=>{
-  chip.addEventListener('dragstart', e=>{
-    e.dataTransfer.setData('text/block-type', chip.dataset.blockType);
-    chip.classList.add('dragging');
-  });
-  chip.addEventListener('dragend', ()=> chip.classList.remove('dragging'));
-});
-
-// Touch drag (mobile — the actual target device for this app)
-let touchDragType = null;
-let touchDragClone = null;
-function moveClone(touch){
-  if(!touchDragClone) return;
-  touchDragClone.style.left = (touch.clientX - 40) + 'px';
-  touchDragClone.style.top = (touch.clientY - 20) + 'px';
-}
-function highlightSlotUnder(touch){
-  document.querySelectorAll('.week-slot').forEach(s=>s.classList.remove('drag-over'));
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  const slotEl = el ? el.closest('.week-slot') : null;
-  if(slotEl) slotEl.classList.add('drag-over');
-}
-document.querySelectorAll('.block-chip').forEach(chip=>{
-  chip.addEventListener('touchstart', e=>{
-    touchDragType = chip.dataset.blockType;
-    const rect = chip.getBoundingClientRect();
-    touchDragClone = chip.cloneNode(true);
-    touchDragClone.style.position = 'fixed';
-    touchDragClone.style.width = rect.width+'px';
-    touchDragClone.style.zIndex = 999;
-    touchDragClone.style.pointerEvents = 'none';
-    touchDragClone.style.opacity = '0.85';
-    document.body.appendChild(touchDragClone);
-    chip.classList.add('dragging');
-    moveClone(e.touches[0]);
-  }, {passive:true});
-  chip.addEventListener('touchmove', e=>{
-    if(!touchDragClone) return;
-    moveClone(e.touches[0]);
-    highlightSlotUnder(e.touches[0]);
-  }, {passive:true});
-  chip.addEventListener('touchend', e=>{
-    if(!touchDragClone) return;
-    const touch = e.changedTouches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const slotEl = el ? el.closest('.week-slot') : null;
-    document.querySelectorAll('.week-slot').forEach(s=>s.classList.remove('drag-over'));
-    document.querySelectorAll('.block-chip').forEach(c=>c.classList.remove('dragging'));
-    touchDragClone.remove();
-    touchDragClone = null;
-    if(slotEl && touchDragType){
-      placeBlock(slotEl.dataset.date, slotEl.dataset.slot, touchDragType);
-    }
-    touchDragType = null;
-  });
-});
-
 function openBlockEditor(date, slot, block){
   const panel = document.getElementById('blockEditPanel');
-  if(!block){ panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
+  if(!block){
+    panel.style.display = 'block';
+    panel.innerHTML = `
+      <div class="log-title" style="margin-bottom:10px;">${dayLabel} ${slot.toUpperCase()} — choose a type</div>
+      <div class="session-type">
+        <div class="type-btn" data-pick-type="strength">Strength</div>
+        <div class="type-btn" data-pick-type="run">Run</div>
+        <div class="type-btn" data-pick-type="mobility">Mobility</div>
+      </div>`;
+    panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
+      btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
+    });
+    return;
+  }
+  panel.style.display = 'block';
   let fieldsHtml = '';
   if(block.type === 'strength'){
     fieldsHtml = `<div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
@@ -3758,7 +3825,7 @@ function openBlockEditor(date, slot, block){
     <div class="score-note" style="margin-bottom:12px;">${dayLabel} ${slot.toUpperCase()} — ${block.type}</div>
     ${fieldsHtml}
     <div style="display:flex; gap:8px; margin-top:12px;">
-      <button id="deleteWeekBlockBtn" class="small">Delete</button>
+      <button id="deleteWeekBlockBtn" class="small outline">Delete</button>
       <button id="saveWeekBlockBtn" class="primary">Save</button>
     </div>`;
 
@@ -3769,11 +3836,21 @@ function openBlockEditor(date, slot, block){
       row.className = 'edit-row';
       row.innerHTML = `
         <input type="text" class="week-ex-name" placeholder="exercise" value="${name}">
-        <select class="week-ex-area">${areaOptionsHtml(area)}</select>
-        <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
-        <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
-        <span class="remove-row">×</span>`;
+        <span class="remove-row">×</span>
+        <div class="ex-tags-toggle" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
+        <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
+          <select class="week-ex-area">${areaOptionsHtml(area)}</select>
+          <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
+          <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
+        </div>`;
       row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+      const tagsToggle = row.querySelector('.ex-tags-toggle');
+      const tagsRow = row.querySelector('.ex-tags-row');
+      tagsToggle.addEventListener('click', ()=>{
+        const isHidden = tagsRow.style.display === 'none';
+        tagsRow.style.display = isHidden ? 'flex' : 'none';
+        tagsToggle.textContent = isHidden ? 'hide tags' : 'edit tags';
+      });
       rowsContainer.appendChild(row);
     }
     (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex.name, ex.area, ex.secondaryArea, ex.movement));
@@ -3813,11 +3890,16 @@ function openBlockEditor(date, slot, block){
       const exercises = [];
       document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
         const name = row.querySelector('.week-ex-name').value.trim();
-        const area = row.querySelector('.week-ex-area').value;
-        const secondaryArea = row.querySelector('.week-ex-area2').value;
-        const movement = row.querySelector('.week-ex-movement').value;
+        let area = row.querySelector('.week-ex-area').value;
+        let secondaryArea = row.querySelector('.week-ex-area2').value;
+        let movement = row.querySelector('.week-ex-movement').value;
         const guess = name ? guessTags(name) : null;
         const exerciseId = (guess && guess.exerciseId) ? guess.exerciseId : null;
+        if(guess && !area){
+          area = guess.primary;
+          secondaryArea = secondaryArea || guess.secondary || '';
+          movement = movement || guess.movement || '';
+        }
         if(name) exercises.push({name, area, secondaryArea, movement, exerciseId});
       });
       details = { exercises };
@@ -4070,7 +4152,7 @@ async function renderMacroInsights(){
   html += '<div class="log-title" style="margin-top:16px;">Training Tolerance</div>';
   if(tolerance.insufficientData){
     if(tolerance.reason==='baseline'){
-      html += '<div class="log-entry">Still establishing baseline — see Insights for status.</div>';
+      html += '<div class="log-entry">Still establishing baseline — see Today for status.</div>';
     } else {
       html += `<div class="log-entry">${tolerance.n||0} of 4 weeks of paired volume+recovery data — needs a bit more history.</div>`;
     }
@@ -4117,7 +4199,6 @@ async function addInjury(){
     refreshInjuries();
     generateWarmup();
     renderTodaySessionStretch();
-    updateTabBadges();
   } catch(e){
     showToast('Save failed — try again', true);
     console.error(e);
@@ -4282,24 +4363,6 @@ function buildRecCard(type, title, signals, confidence, meta){
     </div>`;
   card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card));
   card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card));
-
-  let startX = 0, deltaX = 0, dragging = false;
-  card.style.touchAction = 'pan-y';
-  card.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; dragging = true; card.style.transition='none'; });
-  card.addEventListener('touchmove', e=>{
-    if(!dragging) return;
-    deltaX = e.touches[0].clientX - startX;
-    card.style.transform = `translateX(${deltaX}px) rotate(${deltaX/30}deg)`;
-    card.style.opacity = 1 - Math.min(Math.abs(deltaX)/300, 0.5);
-  });
-  card.addEventListener('touchend', ()=>{
-    dragging = false;
-    card.style.transition = 'transform 0.25s, opacity 0.25s';
-    if(deltaX > 90){ card.style.transform = `translateX(400px) rotate(15deg)`; logRecDecision(type, meta, 'accepted', card); }
-    else if(deltaX < -90){ card.style.transform = `translateX(-400px) rotate(-15deg)`; logRecDecision(type, meta, 'dismissed', card); }
-    else { card.style.transform = ''; card.style.opacity = '1'; }
-    deltaX = 0;
-  });
   return card;
 }
 
@@ -4587,8 +4650,7 @@ const RUN_PLAN_TEMPLATES = {
 
 /* ---------- GOALS ---------- */
 const GOAL_TYPE_LABELS = {
-  strength:'Strength', hypertrophy:'Hypertrophy / muscle gain', running:'Running performance', speed:'Speed (race time)',
-  general_fitness:'General fitness', body_composition:'Body composition', mobility:'Mobility', hybrid:'Hybrid'
+  strength:'Strength', hypertrophy:'Hypertrophy / muscle gain', running:'Running performance', hyrox:'Hyrox'
 };
 
 /* ---------- ATHLETE LEVEL (calculated, replacing the manual novice/intermediate/advanced toggle) ----------
@@ -4613,18 +4675,142 @@ const GOAL_TYPE_LABELS = {
    same "coaching heuristic" treatment applies. */
 const PROGRESSION_TREES = {
   exercise: {
-    pullup:      { label:'Pull-up', researched:true, movement:'pull',
-      levels:['Dead hang','Scapular pulls','Flexed-arm hang','Negatives','Band-assisted / jumping','Full strict','Archer','Weighted','One-arm'] },
-    pushup:      { label:'Push-up', researched:true, movement:'push',
-      levels:['Wall','Incline','Knee','Full','Diamond / decline','Archer','One-arm'] },
+    pullup: { label:'Pull-up', researched:true, movement:'pull',
+      levels:["Dead hang", "Scapular pulls", "Flexed-arm hang", "Negatives", "Band-assisted / jumping", "Full strict", "Archer", "Weighted", "One-arm"],
+      levelDetails:[
+        {holdOrRepTarget:"20-30s hold", advancementCriteria:"Hold 20-30s with active shoulders (no passive hanging/shrugging)", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x8-10 reps", advancementCriteria:"Can initiate scap depression/retraction with control, no shrug compensation", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-20s hold", advancementCriteria:"Hold with elbows flexed, chin near bar, before attempting negatives \u2014 own extension, not in D.4 source", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5 reps, 5s controlled descent", advancementCriteria:"Consistent 5s+ eccentric with no free-fall at any point", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5-8 reps", advancementCriteria:"Complete full ROM reps with lightest band that still requires real effort", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"8-10 reps", advancementCriteria:"8-10 consecutive strict reps, full ROM, no kip", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3-5 reps/side", advancementCriteria:"Consistent 5/side with full extension of the working arm", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward ~60-70% bodyweight added", advancementCriteria:"Multiple reps for sets at 60-70% BW added load", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"terminal goal", advancementCriteria:"n/a \u2014 this is the endpoint of the ladder", evidence:"coaching_consensus"}
+      ] },
+    pushup: { label:'Push-up', researched:true, movement:'push',
+      levels:["Wall", "Incline", "Knee", "Full", "Diamond / decline", "Archer", "One-arm"],
+      levelDetails:[
+        {holdOrRepTarget:"3x15-20 reps", advancementCriteria:"Comfortable at high rep counts with full ROM before progressing to incline", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x12-15 reps", advancementCriteria:"Decrease incline height over time as reps become easy", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x12-15 reps", advancementCriteria:"Full ROM (chest to floor) at the knee-supported position", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward 25 reps", advancementCriteria:"25 consecutive full-ROM reps before adding difficulty", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward 15 reps", advancementCriteria:"15 reps full ROM, elbows tracking correctly", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward 8/side", advancementCriteria:"8/side with full extension of the working arm", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"5/side, build via assisted practice first", advancementCriteria:"Terminal goal \u2014 D.4 recommends an assisted (elevated/band) intermediate step before attempting full", evidence:"coaching_consensus"}
+      ] },
     pistolsquat: { label:'Pistol Squat', researched:true, movement:'squat',
-      levels:['Bodyweight squat mastery','Box/chair-assisted (decreasing height)','Assisted','Negatives','Full','Weighted / shrimp'] },
-    dip:         { label:'Dip', researched:true, movement:'push',
-      levels:['Bench dip','Straight-bar / reduced ROM','Full ROM','Weighted','Ring / archer','One-arm-assisted'] },
-    handstand:   { label:'Handstand', researched:true, movement:'push',
-      levels:['Wrist prep','Wall (chest-to-wall)','Wall (back-to-wall)','Tuck/straddle freestanding','Freestanding','Handstand push-up progressions'] },
-    muscleup:    { label:'Muscle-up', researched:false, movement:'pull',
-      levels:['Strict pull-up ×8-10 + dip ×10-15 (prerequisite)','False grip hang','Explosive pull-up (chest-to-bar)','Transition negatives','Banded muscle-up','Kipping muscle-up','Strict muscle-up'] }
+      levels:["Bodyweight squat mastery", "Box/chair-assisted (decreasing height)", "Assisted", "Negatives", "Full", "Weighted / shrimp"],
+      levelDetails:[
+        {holdOrRepTarget:"3x15-20 reps", advancementCriteria:"Full-depth bodyweight squats with adequate ankle mobility (heels stay down)", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x8-10 reps/leg", advancementCriteria:"Lower box height once current height feels controlled, not effortful", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5-8 reps/leg", advancementCriteria:"Progressively reduce assistance (TRX/ring/counterbalance) over time", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5 reps/leg, 3-5s descent", advancementCriteria:"Fully controlled descent with no loss of balance", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3-5 reps/leg", advancementCriteria:"Unassisted full-depth reps, consistent across both legs", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"advanced/terminal variant", advancementCriteria:"n/a \u2014 added load or shrimp-squat variation for continued progress", evidence:"coaching_consensus"}
+      ] },
+    dip: { label:'Dip', researched:true, movement:'push',
+      levels:["Bench dip", "Straight-bar / reduced ROM", "Full ROM", "Weighted", "Ring / archer", "One-arm-assisted"],
+      levelDetails:[
+        {holdOrRepTarget:"3x12-15 reps", advancementCriteria:"Full ROM at the bench before moving to bar work", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x8-10 reps, partial range", advancementCriteria:"Building range of motion toward full depth over time", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"8-12 reps", advancementCriteria:"8-12 consecutive full-ROM reps before adding load", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"sets of 5-8, load 10%\u219250%+ BW", advancementCriteria:"Progressively add load while keeping full ROM", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5-8 reps", advancementCriteria:"Rings add a stability demand beyond the bar version \u2014 expect a step back in load/reps initially", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"advanced/terminal variant", advancementCriteria:"n/a \u2014 band or partner-assisted single-arm work", evidence:"coaching_consensus"}
+      ] },
+    handstand: { label:'Handstand', researched:true, movement:'push',
+      levels:["Wrist prep", "Wall (chest-to-wall)", "Wall (back-to-wall)", "Tuck/straddle freestanding", "Freestanding", "Handstand push-up progressions"],
+      levelDetails:[
+        {holdOrRepTarget:"2-3 min/day mobility + loading", advancementCriteria:"Comfortable wrist loading before attempting any holds", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"45-60s hold", advancementCriteria:"Hold 45-60s with straight body line before progressing to back-to-wall", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"60s+ hold", advancementCriteria:"Hold 60s+ with control before attempting freestanding balance work", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"15-30 attempts/session", advancementCriteria:"Volume-based, not hold-based \u2014 frequency of attempts matters more than duration at this stage", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s+ hold", advancementCriteria:"Consistent freestanding balance across multiple attempts", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"see Handstand Push-up tree", advancementCriteria:"Separate progression \u2014 linked once freestanding handstand is established", evidence:"coaching_consensus"}
+      ] },
+    muscleup: { label:'Muscle-up', researched:false, movement:'pull',
+      levels:["Strict pull-up \u00d78-10 + dip \u00d710-15 (prerequisite)", "False grip hang", "Explosive pull-up (chest-to-bar)", "Transition negatives", "Banded muscle-up", "Kipping muscle-up", "Strict muscle-up"],
+      levelDetails:[
+        {holdOrRepTarget:"8-15 strict pull-ups + 8-10 strict dips", advancementCriteria:"Both prerequisites met before starting muscle-up-specific work", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"20-30s hold", advancementCriteria:"Comfortable false-grip hold (rings) before adding explosive pulling", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"4x5 reps", advancementCriteria:"Chest-to-bar height consistently, with power not momentum", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x5 reps, slow controlled", advancementCriteria:"Controlled negative through the transition specifically, not just the pull or dip portions", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x3 reps", advancementCriteria:"Band-assisted reps with decreasing band tension over time", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"first unassisted reps", advancementCriteria:"Momentum-assisted reps before attempting strict", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"terminal goal", advancementCriteria:"n/a \u2014 strict, no kip", evidence:"coaching_consensus"}
+      ] },
+    handstand_pushup: { label:"Handstand Push-up", researched:false, movement:"push",
+      levels:["Pike push-up", "Elevated pike push-up", "Wall-supported negative HSPU", "Deficit wall HSPU", "Full wall HSPU", "Freestanding HSPU"],
+      levelDetails:[
+        {holdOrRepTarget:"10-15 reps", advancementCriteria:"Full ROM pike push-ups before elevating feet", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-45s holds", advancementCriteria:"Held pike position at increasing elevation, building shoulder loading tolerance", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10 reps, 3-5s eccentric", advancementCriteria:"Controlled negative against the wall before attempting concentric work", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x3 reps", advancementCriteria:"Deficit adds range \u2014 full ROM through the deficit before removing it", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward multiple reps", advancementCriteria:"Full wall-supported reps, consistent, before removing wall support", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"terminal goal", advancementCriteria:"Requires a freestanding handstand prerequisite \u2014 do not attempt without it", evidence:"coaching_consensus"}
+      ] },
+    lsit: { label:"L-sit", researched:false, movement:"core",
+      levels:["Compression hold (feet down)", "Single-foot lift", "Tuck L-sit", "One-leg-extended tuck", "Single-leg-extended L-sit", "Full L-sit"],
+      levelDetails:[
+        {holdOrRepTarget:"hold, build duration", advancementCriteria:"Comfortable compression hold before lifting either foot", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"hold, alternate feet", advancementCriteria:"Can lift and hold one foot with control", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"hold, build duration", advancementCriteria:"Both knees held to chest, hips fully extended", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"hold, build duration", advancementCriteria:"One leg extended while the other stays tucked", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"5s/side", advancementCriteria:"Single leg extended, alternating sides, before attempting both", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-20s", advancementCriteria:"Terminal goal for this branch \u2014 parallel straddle branch exists for flexibility-limited athletes", evidence:"coaching_consensus"}
+      ] },
+    frontlever: { label:"Front Lever", researched:false, movement:"pull",
+      levels:["Tuck", "Advanced tuck", "Single-leg", "Half-lay straddle", "Straddle", "Full front lever"],
+      levelDetails:[
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Meets the hold/eccentric target before progressing to the next stage", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Same criteria, more extended body position", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"One leg extended, held symmetrically on both sides over time", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Both legs extended in a wide straddle, partial lay-back", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Full straddle, narrowing the straddle angle over time", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Terminal goal \u2014 legs together, fully horizontal", evidence:"coaching_consensus"}
+      ] },
+    backlever: { label:"Back Lever", researched:false, movement:"pull",
+      levels:["Hollow body", "Inverted hang", "Skin-the-cat", "Tuck", "Advanced tuck", "Single-leg", "Straddle", "Full back lever"],
+      levelDetails:[
+        {holdOrRepTarget:"30-60s", advancementCriteria:"Solid hollow-body position and control before inverting", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"Comfortable inverted hang before adding the dynamic bridge", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"10-15 reps, dynamic", advancementCriteria:"Controlled through the full bridge motion both directions", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"Static tuck hold at target duration", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"More extended tuck position, same duration target", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"One leg extended, both sides trained evenly", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"Both legs extended in straddle", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-60s", advancementCriteria:"Terminal goal \u2014 legs together, fully horizontal", evidence:"coaching_consensus"}
+      ] },
+    planche: { label:"Planche", researched:false, movement:"push",
+      levels:["Planche lean", "Tuck planche", "Advanced tuck", "Straddle", "Full planche"],
+      levelDetails:[
+        {holdOrRepTarget:"10-30s", advancementCriteria:"Progressively increase lean angle while maintaining straight arms", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x10s", advancementCriteria:"Full tuck off the ground with control before extending", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x10s", advancementCriteria:"Hips higher, knees further from chest than basic tuck", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"3x10s, narrowing over time", advancementCriteria:"Straddle angle narrows as strength improves \u2014 this is the main volume stage", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"terminal goal", advancementCriteria:"Caution: Rosaci et al. 2025 EMG found common preconditioning drills for this skill family activate muscles differently from the target position \u2014 even well-established progressions may not transfer as assumed", evidence:"coaching_consensus"}
+      ] },
+    onearmpullup: { label:"One-Arm Pull-up", researched:false, movement:"pull",
+      levels:["15-20 strict pull-ups", "Weighted pull-up (~1.5\u00d7 bodyweight total)", "One-arm dead hang", "Flex-hang holds + negatives", "Archer pull-up", "Assisted / uneven-grip variants", "Full one-arm pull-up"],
+      levelDetails:[
+        {holdOrRepTarget:"15-20 reps", advancementCriteria:"Strict, full ROM, before adding load", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"work toward ~1.5x bodyweight total", advancementCriteria:"Multiple reps at this load before single-arm work begins", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"30-40s/side", advancementCriteria:"Full dead hang on one arm, both sides trained evenly", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"hold + negatives", advancementCriteria:"Flexed-arm hold duration and controlled negatives both improving", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"build reps/side", advancementCriteria:"Full extension of the assisting arm, working arm doing the true work", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"build reps", advancementCriteria:"Progressively reduce external assistance (towel, band, self-assist)", evidence:"coaching_consensus"},
+        {holdOrRepTarget:"terminal goal", advancementCriteria:"Caution: keep frequency to 2-3x/week \u2014 near-universal coaching recommendation due to elbow-tendon load concerns, itself not clinically validated but worth respecting", evidence:"coaching_consensus"}
+      ] },
+    nordiccurl: { label:"Nordic Hamstring Curl", researched:true, movement:"isolation",
+      levels:["Isometric / activation holds", "Partial-ROM band/partner-assisted curl", "Full-ROM assisted curl", "Unassisted full Nordic curl", "Added-load / slider variations"],
+      levelDetails:[
+        {holdOrRepTarget:"per Alt et al. 2023 protocol", advancementCriteria:"The one calisthenics-adjacent progression with real trial backing (n=1 case study, kinematic/EMG-measured across 20 variations, 6 empirically-ordered levels)", evidence:"rct"},
+        {holdOrRepTarget:"per Alt et al. 2023 protocol", advancementCriteria:"Band or partner assistance through partial range", evidence:"rct"},
+        {holdOrRepTarget:"per Alt et al. 2023 protocol", advancementCriteria:"Full range with assistance still present", evidence:"rct"},
+        {holdOrRepTarget:"3x5-8 reps", advancementCriteria:"Unassisted, full range \u2014 injury-reduction literature (van Dyk et al. 2019, ~51%) is for this exercise, contested per Impellizzeri reappraisal", evidence:"rct"},
+        {holdOrRepTarget:"progressive load", advancementCriteria:"Terminal goal \u2014 added external load or slider-based variations", evidence:"rct"}
+      ] },
   },
   mobility: {
     pike:        { label:'Pike Fold', researched:false,
@@ -4774,11 +4960,10 @@ async function loadCurrentGoals(){
   }
   document.getElementById('skillGoalRows').innerHTML = '';
   if(goals && goals.skillGoals && goals.skillGoals.length){
-    goals.skillGoals.forEach(sg=>addSkillGoalRow(sg.category, sg.skill, sg.levelIndex));
+    goals.skillGoals.forEach(sg=>addSkillGoalRow(sg.category, sg.skill, sg.levelIndex, sg.isMaintenance));
   }
   await loadTrainingSetup();
   await renderGoalProgress();
-  await renderAthleteLevel();
 }
 
 async function renderAthleteLevel(){
@@ -4846,19 +5031,7 @@ async function getGoalCurrentValue(p){
     });
     return best ? { value: best.weight, unit:'kg', better:'higher' } : null;
   }
-  if(p.type==='running' && p.targetDistance){
-    const sessions = await getAllTrainingSessions();
-    const now = new Date(todayStr);
-    let longest = null;
-    sessions.forEach(s=>{
-      if(s.type==='run' && s.distanceKm){
-        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
-        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
-      }
-    });
-    return longest ? { value: longest.distanceKm, unit:'km', better:'higher' } : null;
-  }
-  if(p.type==='speed' && p.targetDistance && p.targetTime){
+  if(p.type==='running' && p.targetDistance && p.targetTime){
     const sessions = await getAllTrainingSessions();
     const now = new Date(todayStr);
     let bestProjected = null;
@@ -4875,13 +5048,26 @@ async function getGoalCurrentValue(p){
     });
     return bestProjected ? { value: bestProjected.time, unit:'min', better:'lower' } : null;
   }
+  if(p.type==='running' && p.targetDistance){
+    const sessions = await getAllTrainingSessions();
+    const now = new Date(todayStr);
+    let longest = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm){
+        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
+        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
+      }
+    });
+    return longest ? { value: longest.distanceKm, unit:'km', better:'higher' } : null;
+  }
   return null;
 }
 
 function goalTargetValue(p){
   if((p.type==='strength'||p.type==='hypertrophy') && p.targetWeight) return p.targetWeight;
+  if(p.type==='running' && p.targetTime) return p.targetTime;
   if(p.type==='running' && p.targetDistance) return p.targetDistance;
-  if(p.type==='speed' && p.targetTime) return p.targetTime;
+  if(p.type==='hyrox' && p.targetTime) return p.targetTime;
   return null;
 }
 
@@ -4958,7 +5144,8 @@ document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
     const category = row.querySelector('.skg-category').value;
     const skill = row.querySelector('.skg-skill').value;
     const levelIndex = parseInt(row.querySelector('.skg-level').value, 10);
-    record.skillGoals.push({ category, skill, levelIndex });
+    const isMaintenance = row.querySelector('.skg-maintenance').checked;
+    record.skillGoals.push({ category, skill, levelIndex, isMaintenance });
   });
   try{
     const res = await window.storage.set(`goals:${todayStr}`, JSON.stringify(record));
@@ -4991,22 +5178,7 @@ async function renderSingleGoalProgress(p){
     } else {
       html += `<div class="log-entry"><span>${p.targetExercise}</span><span>No logged sessions found yet for this exercise name</span></div>`;
     }
-  } else if(p.type==='running' && p.targetDistance){
-    const sessions = await getAllTrainingSessions();
-    const now = new Date(todayStr);
-    let longest = null;
-    sessions.forEach(s=>{
-      if(s.type==='run' && s.distanceKm){
-        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
-        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
-      }
-    });
-    if(longest){
-      html += `<div class="log-entry"><span>Longest run (30d)</span><span>${longest.distanceKm}km (${longest.date}) → target ${p.targetDistance}km</span></div>`;
-    } else {
-      html += `<div class="log-entry"><span>Running progress</span><span>No runs logged in the last 30 days yet</span></div>`;
-    }
-  } else if(p.type==='speed' && p.targetDistance && p.targetTime){
+  } else if(p.type==='running' && p.targetDistance && p.targetTime){
     // Finds runs within ±15% of target distance, projects each to an equivalent time at
     // the exact target distance using that run's own pace, takes the best projection.
     // This is a pace-based estimate, not a race result — flagged as such in the UI.
@@ -5031,6 +5203,21 @@ async function renderSingleGoalProgress(p){
       html += `<div class="score-note">Pace-projected from a nearby-distance run, not an actual timed effort at ${p.targetDistance}km — treat as a rough estimate.</div>`;
     } else {
       html += `<div class="log-entry"><span>Speed progress</span><span>No runs within ~15% of ${p.targetDistance}km logged in the last 60 days yet</span></div>`;
+    }
+  } else if(p.type==='running' && p.targetDistance){
+    const sessions = await getAllTrainingSessions();
+    const now2 = new Date(todayStr);
+    let longest = null;
+    sessions.forEach(s=>{
+      if(s.type==='run' && s.distanceKm){
+        const daysAgo = (now2-new Date(s.date))/(1000*60*60*24);
+        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
+      }
+    });
+    if(longest){
+      html += `<div class="log-entry"><span>Longest run (30d)</span><span>${longest.distanceKm}km (${longest.date}) → target ${p.targetDistance}km</span></div>`;
+    } else {
+      html += `<div class="log-entry"><span>Running progress</span><span>No runs logged in the last 30 days yet</span></div>`;
     }
   } else {
     html += `<div class="log-entry"><span>Progress</span><span>No specific trackable target set — add a target exercise/weight or distance above to track automatically</span></div>`;
@@ -5124,6 +5311,7 @@ const MAIN_LIFT_DEFAULTS = {
   legs:  { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
   upper: { name:'Bench Press', area:'chest', secondaryArea:'triceps', movement:'push' },
   push:  { name:'Bench Press', area:'chest', secondaryArea:'triceps', movement:'push' },
+  hinge: { name:'Romanian Deadlift', area:'hamstrings', secondaryArea:'lower_back', movement:'hinge' },
   pull:  { name:'Pull-up', area:'thoracic', secondaryArea:'biceps', movement:'pull' },
   full_body: { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' }
 };
@@ -5271,9 +5459,8 @@ function movementFitsTag(movement, tag){
    movement-matched skill goals). The only real day-level competition is strength vs. running,
    and the ratio depends on which is the priority emphasis — not an even 3-way split. */
 const GOAL_DOMAIN = {
-  strength:'lift', hypertrophy:'lift', body_composition:'lift', hybrid:'lift', general_fitness:'lift',
-  running:'run', speed:'run',
-  mobility:'mobility'
+  strength:'lift', hypertrophy:'lift',
+  running:'run'
 };
 
 /* ---------- REAL PERIODIZATION ----------
@@ -5291,8 +5478,7 @@ const GOAL_DOMAIN = {
 function liftGoalToFocus(goalType){
   if(goalType==='strength') return 'strength';
   if(goalType==='hypertrophy') return 'hypertrophy';
-  if(goalType==='body_composition') return 'hypertrophy';
-  if(goalType==='general_fitness' || goalType==='hybrid') return 'general';
+  if(goalType==='hyrox') return 'general';
   return 'general';
 }
 
@@ -5339,19 +5525,19 @@ function determineHybridPlan(goalList, totalDaysRaw){
   // specific issue. "Available" should mean a ceiling, not a mandate to fill everything.
   const totalDays = totalDaysRaw >= 3 ? totalDaysRaw - 1 : totalDaysRaw;
 
-  const hybridGoal = goalList.find(g => g.type==='hybrid');
+  const hyroxGoal = goalList.find(g => g.type==='hyrox');
   let liftGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='lift');
   let runGoal = goalList.find(g => GOAL_DOMAIN[g.type]==='run');
-  // "Hybrid" as a goal type explicitly means both strength AND running — the domain
-  // map's default classification (lift-only) was silently discarding the running half
-  // of what the goal actually means whenever Hybrid was the only relevant goal.
-  if(hybridGoal){
-    if(!liftGoal) liftGoal = hybridGoal;
-    if(!runGoal) runGoal = hybridGoal;
+  // "Hyrox" as a goal type explicitly means both strength AND running — the race format
+  // combines running segments with functional strength stations, so a Hyrox goal alone
+  // needs the same dual-domain handling "Hybrid" used to get, not a lift-only default.
+  if(hyroxGoal){
+    if(!liftGoal) liftGoal = hyroxGoal;
+    if(!runGoal) runGoal = hyroxGoal;
   }
 
   if(liftGoal===runGoal && liftGoal){
-    // A standalone Hybrid goal (nothing else covering either domain) — genuine
+    // A standalone Hyrox goal (nothing else covering either domain) — genuine
     // balanced split, not defaulting to the running-priority ratio formula, which
     // assumes running explicitly outranks strength rather than being tied with it.
     const strengthSessions = Math.round(totalDays/2);
@@ -5395,7 +5581,176 @@ function isHeavyStrengthTag(tag){
   return tag==='lower' || tag==='legs' || tag==='full_body';
 }
 
-// Two-step: (1) spread WHICH date-indices get used evenly across the FULL available
+// Pure run-type sequence — mirrors generateRunPlan's own long/quality/easy assignment
+// logic, but decoupled from actual dates so it can run BEFORE date placement. This is
+// the direct fix for the gap where run type (easy vs. hard) was only known AFTER dates
+// were already locked in, meaning the adjacency system couldn't tell a genuinely hard
+// running day from an easy one when deciding where to place it.
+function computeRunTypeSequence(runCount, tier){
+  const seq = new Array(runCount).fill('easy');
+  if(runCount === 0) return seq;
+  let longIdx = -1;
+  if(tier.longCount > 0){
+    longIdx = runCount - 1;
+    seq[longIdx] = 'long';
+  }
+  let qualityPlaced = 0;
+  const qualityTypes = ['tempo','interval'];
+  for(let i=0; i<runCount && qualityPlaced<tier.qualityCount; i++){
+    if(i===longIdx) continue;
+    const prevIsQuality = i>0 && qualityTypes.includes(seq[i-1]);
+    if(prevIsQuality) continue; // keep at least one easy slot between quality sessions
+    seq[i] = qualityTypes[Math.min(qualityPlaced, qualityTypes.length-1)];
+    qualityPlaced++;
+  }
+  return seq;
+}
+
+// Training-stress adjacency: conflict weight between a strength-day type and a run type,
+// per the concurrent-training literature synthesis — heavy lower-body strength paired with
+// hard running (interval/tempo/long) is the genuine high-conflict pairing; light/upper
+// strength paired with easy running is low-conflict and reasonable to combine on one day
+// when the week benefits from it. This replaces the old model where ANY running day was
+// treated as equally worth separating from ANY heavy strength day.
+const STRENGTH_RUN_CONFLICT = {
+  heavy_lower: { long:3, interval:3, tempo:3, easy:2, none:0 },
+  light:       { long:1, interval:1, tempo:1, easy:0, none:0 }
+};
+function strengthConflictCategory(tag){
+  return isHeavyStrengthTag(tag) ? 'heavy_lower' : 'light';
+}
+function conflictWeight(strengthTag, runType){
+  if(!strengthTag || !runType) return 0;
+  const cat = strengthConflictCategory(strengthTag);
+  return (STRENGTH_RUN_CONFLICT[cat] && STRENGTH_RUN_CONFLICT[cat][runType]) || 0;
+}
+
+// Builds a full week's strength+run date assignment, allowing same-day combination when
+// it's genuinely beneficial (a low-conflict pairing that frees up a day elsewhere to become
+// a real rest day, or reduces total adjacency conflict) rather than always forcing every
+// session onto its own separate date. Starts from an evenly-spread baseline (proven good at
+// using slack across the week), then hill-climbs: tries merging each strength/run pair onto
+// one date and keeps the merge only if it improves the total score. Same-day conflict is
+// weighted more heavily than adjacent-day conflict, and genuine full rest days are rewarded,
+// scaling with how loaded the week already is (more sessions -> rest days matter more).
+function buildWeeklySchedule(availableDates, strengthTags, runTypes){
+  const strengthCount = strengthTags.length, runCount = runTypes.length;
+  const total = strengthCount + runCount;
+  if(total === 0) return { slots: availableDates.map(()=>({strength:null, run:null})) };
+
+  const dayCount = availableDates.length;
+  const slots = availableDates.map(()=>({ strength:null, run:null }));
+  const overflowStrength = [], overflowRun = [];
+
+  if(dayCount === 0) return { strengthDates:[], runDates:[], sameDayCount:0, finalScore:0 };
+
+  // Baseline: spread up to dayCount sessions one-per-day (evenly across slack), exactly
+  // as before. Anything beyond dayCount genuinely cannot get its own day — queue it as
+  // overflow to be placed via same-day combination below, rather than searching forever
+  // for a day-slot that doesn't exist.
+  const placementCount = Math.min(total, dayCount);
+  let usedIndices = [];
+  for(let k=0; k<placementCount; k++){
+    usedIndices.push(Math.round(k * (dayCount-1) / Math.max(1, placementCount-1)));
+  }
+  usedIndices = [...new Set(usedIndices)];
+  let guard = 0;
+  while(usedIndices.length < placementCount && guard < dayCount*2){
+    guard++;
+    for(let i=0; i<dayCount; i++){
+      if(!usedIndices.includes(i)){ usedIndices.push(i); break; }
+    }
+  }
+  usedIndices.sort((a,b)=>a-b);
+
+  let sPlaced=0, rPlaced=0;
+  usedIndices.forEach((idx,k)=>{
+    const idealS = (k+1) * strengthCount / placementCount;
+    if(sPlaced < strengthCount && (sPlaced < idealS || rPlaced >= runCount)){
+      slots[idx].strength = sPlaced; sPlaced++;
+    } else if(rPlaced < runCount){
+      slots[idx].run = rPlaced; rPlaced++;
+    } else if(sPlaced < strengthCount){
+      slots[idx].strength = sPlaced; sPlaced++;
+    }
+  });
+  while(sPlaced < strengthCount){ overflowStrength.push(sPlaced); sPlaced++; }
+  while(rPlaced < runCount){ overflowRun.push(rPlaced); rPlaced++; }
+
+  // Place overflow (more sessions than days) onto whichever existing slot has the lowest
+  // added conflict — this only triggers when the week is genuinely too tight for full
+  // separation, which is exactly the case same-day combination exists to handle.
+  function placeOverflow(kind, idx){
+    let bestSlot = 0, bestAdded = Infinity;
+    for(let i=0;i<slots.length;i++){
+      if(kind==='strength' && slots[i].strength!=null) continue;
+      if(kind==='run' && slots[i].run!=null) continue;
+      const s = kind==='strength' ? strengthTags[idx] : (slots[i].strength!=null ? strengthTags[slots[i].strength] : null);
+      const r = kind==='run' ? runTypes[idx] : (slots[i].run!=null ? runTypes[slots[i].run] : null);
+      const added = conflictWeight(s, r);
+      if(added < bestAdded){ bestAdded = added; bestSlot = i; }
+    }
+    if(kind==='strength') slots[bestSlot].strength = idx; else slots[bestSlot].run = idx;
+  }
+  overflowStrength.forEach(idx=>placeOverflow('strength', idx));
+  overflowRun.forEach(idx=>placeOverflow('run', idx));
+
+  const restWeight = Math.min(1.5, 0.4 + total * 0.15); // higher-workload weeks value rest days more
+  function scoreOf(candidateSlots){
+    let conflict = 0;
+    candidateSlots.forEach(sl=>{
+      const s = sl.strength!=null ? strengthTags[sl.strength] : null;
+      const r = sl.run!=null ? runTypes[sl.run] : null;
+      if(s && r) conflict += conflictWeight(s, r) * 2; // same-day = full weight
+    });
+    for(let i=0;i<candidateSlots.length-1;i++){
+      const sA = candidateSlots[i].strength!=null ? strengthTags[candidateSlots[i].strength] : null;
+      const rA = candidateSlots[i].run!=null ? runTypes[candidateSlots[i].run] : null;
+      const sB = candidateSlots[i+1].strength!=null ? strengthTags[candidateSlots[i+1].strength] : null;
+      const rB = candidateSlots[i+1].run!=null ? runTypes[candidateSlots[i+1].run] : null;
+      if(sA && rB) conflict += conflictWeight(sA, rB); // adjacent-day = half weight (implicit, no *2)
+      if(rA && sB) conflict += conflictWeight(sB, rA);
+    }
+    const restDays = candidateSlots.filter(sl=>sl.strength==null && sl.run==null).length;
+    return conflict - restDays * restWeight;
+  }
+
+  let bestSlots = slots.map(s=>({...s}));
+  let bestScore = scoreOf(bestSlots);
+
+  // Hill-climb: try merging each (strength-slot, run-slot) pair that's currently on
+  // different dates onto the strength-slot's date, freeing the run-slot's date. Accept
+  // only if it improves the score. Bounded — small search space (<=7 days) so this
+  // converges fast without needing a full combinatorial search.
+  let improved = true, iterations = 0;
+  while(improved && iterations < 20){
+    improved = false; iterations++;
+    for(let i=0; i<bestSlots.length; i++){
+      if(bestSlots[i].strength==null || bestSlots[i].run!=null) continue;
+      for(let j=0; j<bestSlots.length; j++){
+        if(i===j || bestSlots[j].run==null) continue;
+        const candidate = bestSlots.map(s=>({...s}));
+        candidate[i].run = candidate[j].run;
+        candidate[j].run = null;
+        const candidateScore = scoreOf(candidate);
+        if(candidateScore < bestScore - 0.001){
+          bestSlots = candidate; bestScore = candidateScore; improved = true; break;
+        }
+      }
+      if(improved) break;
+    }
+  }
+
+  const strengthDates = [], runDates = [];
+  bestSlots.forEach((sl, idx)=>{
+    if(sl.strength!=null) strengthDates[sl.strength] = availableDates[idx];
+    if(sl.run!=null) runDates[sl.run] = availableDates[idx];
+  });
+  const sameDayCount = bestSlots.filter(sl=>sl.strength!=null && sl.run!=null).length;
+  return { strengthDates, runDates, sameDayCount, finalScore: bestScore };
+}
+
+
 // range — critical when there's slack (e.g. 4 sessions across 7 available days), since a
 // naive proportional-fill approach front-loads everything into the earliest days and
 // abandons the rest of the week unused. (2) assign strength/run labels among the chosen
@@ -5639,7 +5994,7 @@ function getVolumeWaveNote(weekNum, isDeload){
   const notes = {
     1: 'Week 1 of this block — baseline planned volume.',
     2: 'Week 2 of this block — if last week felt manageable, add ~1 set to your main lift.',
-    3: 'Week 3 of this block — highest planned volume before deload. Back off if Insights flags poor recovery.'
+    3: 'Week 3 of this block — highest planned volume before deload. Back off if Today flags poor recovery.'
   };
   return notes[positionInBlock] || null;
 }
@@ -5808,7 +6163,8 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   // with two 'lower' days doesn't silently repeat the exact same squat twice.
   const SECONDARY_MAIN_LIFT = {
     squat: { name:'Front Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
-    push:  { name:'Overhead Press', area:'chest', secondaryArea:'triceps', movement:'push' },
+    hinge: { name:'Romanian Deadlift', area:'hamstrings', secondaryArea:'lower_back', movement:'hinge' },
+    push:  { name:'Overhead Press', area:'shoulders', secondaryArea:'triceps', movement:'push' },
     pull:  { name:'Barbell Row', area:'thoracic', secondaryArea:'biceps', movement:'pull' }
   };
   function getAlternateLiftForMovement(movement, currentLift){
@@ -5821,25 +6177,59 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     if(secondary && secondary.name.toLowerCase() !== key) return { ...secondary };
     return null;
   }
+  // Session-count-aware full-body rotation. Fewer sessions means less room to give
+  // every pattern its own dedicated day, so the plan changes shape rather than just
+  // shrinking: <=2 sessions alternates broad upper/lower (each day covers a pair of
+  // patterns, since there's no day to spare); 3 sessions gives squat and hinge their
+  // own focused day each (the two most distinct lower-body patterns), with pull tucked
+  // into the push day since there's no room for a 4th dedicated day; 4+ sessions gives
+  // every pattern a genuinely dedicated day, cycling through as sessions repeat.
+  function fullBodyDayPlan(sessionsPerWeek, idx){
+    if(sessionsPerWeek <= 2){
+      const primary = idx % 2 === 0 ? 'squat' : 'push';
+      return primary==='squat' ? { primary:'squat', secondaries:['hinge'] } : { primary:'push', secondaries:['pull'] };
+    }
+    if(sessionsPerWeek === 3){
+      const cycle = ['squat','hinge','push'];
+      const primary = cycle[idx % 3];
+      return primary==='push' ? { primary:'push', secondaries:['pull'] } : { primary, secondaries:[] };
+    }
+    const cycle4 = ['squat','hinge','push','pull'];
+    return { primary: cycle4[idx % 4], secondaries:[] };
+  }
+
   const usedMovementsThisWeek = {};
 
   const placedDates = emptyDates.slice(0, dayTags.length);
   let mobilityCompanionPlaced = 0;
+  const weekAreaCoverage = new Set();
 
   for(let i=0; i<placedDates.length; i++){
     const date = placedDates[i];
     const tag = dayTags[i];
     const exercises = [];
-    const movement = TAG_TO_MOVEMENT[tag];
+    // Full-body days were always resolving to 'squat' via TAG_TO_MOVEMENT, meaning every
+    // "Full Body" session across the whole week had the identical primary movement and
+    // hamstrings/lower back never got hit by any main lift, any week, regardless of split.
+    const dayPlan = tag==='full_body' ? fullBodyDayPlan(sessionsPerWeek, i) : null;
+    const movement = tag==='full_body' ? dayPlan.primary : TAG_TO_MOVEMENT[tag];
 
-    let mainLift = await getMainLiftForTag(tag);
+    let mainLift = tag==='full_body'
+      ? (await getPreferredLift(movement)) || MAIN_LIFT_DEFAULTS[movement==='squat'?'lower':movement] || SECONDARY_MAIN_LIFT[movement]
+      : await getMainLiftForTag(tag);
     if(mainLift && usedMovementsThisWeek[movement] && usedMovementsThisWeek[movement].includes(mainLift.name)){
       const altLift = getAlternateLiftForMovement(movement, mainLift);
       if(altLift) mainLift = altLift;
     }
     if(mainLift){
-      exercises.push({ ...mainLift });
+      exercises.push({ ...mainLift, movement });
       (usedMovementsThisWeek[movement] = usedMovementsThisWeek[movement] || []).push(mainLift.name);
+    }
+    if(tag==='full_body'){
+      dayPlan.secondaries.forEach(otherMovement=>{
+        const secondary = SECONDARY_MAIN_LIFT[otherMovement];
+        if(secondary) exercises.push({ ...secondary });
+      });
     }
 
     exerciseGoals.forEach(sg=>{
@@ -5850,7 +6240,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     });
 
     let compArea = complementaryArea(tag);
-    if(compArea === null) compArea = i % 2 === 0 ? 'upper' : 'lower'; // full_body — alternate by day
+    if(compArea === null) compArea = (movement==='squat' || movement==='hinge') ? 'upper' : 'lower'; // full_body — opposite of today's actual primary movement, hinge counts as lower-body same as squat
 
     if(includeBulletproofing){
       // F.4 of the exercise intelligence report: prefer running-support exercises over
@@ -5870,20 +6260,26 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
           .filter(c => c.score >= 2)
           .sort((a,b) => b.score - a.score);
         if(runningCandidates.length){
-          accessoryPicks = runningCandidates.slice(0, bulletproofingCap).map(c => ({ name: c.ex.name, area:'', secondaryArea:'', movement:'' }));
+          accessoryPicks = runningCandidates.slice(0, bulletproofingCap).map(c => {
+            const tags = guessTagsFromLibrary(c.ex.name);
+            return { name: c.ex.name, area: tags?tags.primary:'', secondaryArea: tags?tags.secondary:'', movement: tags?tags.movement:'', exerciseId: tags?tags.exerciseId:null };
+          });
         }
       }
       if(accessoryPicks){
         exercises.push(...accessoryPicks);
       } else {
         BULLETPROOFING_LIBRARY[compArea].slice(0, bulletproofingCap).forEach(ex=>{
-          exercises.push({ name: ex.name, area:'', secondaryArea:'', movement:'' });
+          const tags = guessTagsFromLibrary(ex.name);
+          exercises.push({ name: ex.name, area: tags?tags.primary:'', secondaryArea: tags?tags.secondary:'', movement: tags?tags.movement:'', exerciseId: tags?tags.exerciseId:null });
         });
       }
     }
 
     const plannedFocus = focusSequence && focusSequence[i] ? focusSequence[i] : null;
     const focusNote = plannedFocus ? ` — planned focus: ${SESSION_FOCUS_INFO[plannedFocus].label.split(' — ')[0]} (${SESSION_FOCUS_INFO[plannedFocus].repLow}-${SESSION_FOCUS_INFO[plannedFocus].repHigh} reps)` : '';
+
+    exercises.forEach(e=>{ if(e.area) weekAreaCoverage.add(e.area); if(e.secondaryArea) weekAreaCoverage.add(e.secondaryArea); });
 
     await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
       type:'strength',
@@ -5907,6 +6303,30 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         }));
         mobilityCompanionPlaced++;
       }
+    }
+  }
+
+  // Weekly coverage guarantee: hamstrings and calves were confirmed to get zero
+  // representation across all three split types (full body, upper/lower, PPL) —
+  // squat/push/pull main-lift rotation and the existing bulletproofing library never
+  // reliably included a genuine hinge or calf exercise. Rather than restructure the
+  // whole day-tag system, top up any week that's missing them by appending to the
+  // last generated day, which is simpler and safer than inserting a new day.
+  if(placedDates.length){
+    const lastDate = placedDates[placedDates.length-1];
+    const gapFillers = [];
+    if(!weekAreaCoverage.has('hamstrings')) gapFillers.push({ name:'Romanian Deadlift', area:'hamstrings', secondaryArea:'lower_back', movement:'hinge', exerciseId:'rdl' });
+    if(!weekAreaCoverage.has('calves')) gapFillers.push({ name:'Calf Raise', area:'calves', secondaryArea:'', movement:'isolation', exerciseId:'calf_raise' });
+    if(!weekAreaCoverage.has('shoulders')) gapFillers.push({ name:'Overhead Press', area:'shoulders', secondaryArea:'triceps', movement:'push', exerciseId:null });
+    if(gapFillers.length){
+      try{
+        const r = await window.storage.get(`weekplan:${lastDate}:am`);
+        const block = JSON.parse(r.value);
+        block.details.exercises.push(...gapFillers);
+        block.details.notes = (block.details.notes||'') + ' — added to guarantee weekly hamstring/calf coverage';
+        await window.storage.set(`weekplan:${lastDate}:am`, JSON.stringify(block));
+        await window.storage.set(`planned_session:${lastDate}`, JSON.stringify({ date:lastDate, exercises:block.details.exercises, workoutTag:block.details.workoutTag }));
+      } catch(e){}
     }
   }
 
@@ -6037,6 +6457,68 @@ async function checkDeloadDue(){
   }
   return null;
 }
+
+let todaySessionType = 'strength';
+async function getTodaysBlockForType(type){
+  if(type==='strength'){
+    const exercises = await getPlannedExercisesToday();
+    return exercises.length ? { type:'strength', details:{ exercises } } : null;
+  }
+  for(const slot of ['am','pm']){
+    try{
+      const r = await window.storage.get(`weekplan:${todayStr}:${slot}`);
+      const block = JSON.parse(r.value);
+      if(block.type===type) return block;
+    } catch(e){}
+  }
+  return null;
+}
+function blockSummaryHtml(block){
+  if(block.type==='strength'){
+    const names = (block.details.exercises||[]).map(e=>e.name).filter(Boolean);
+    if(!names.length) return '';
+    return names.map(n=>`<div class="log-entry"><span>${n}</span></div>`).join('');
+  }
+  if(block.type==='run'){
+    const d = block.details||{};
+    return `<div class="log-entry"><span>${d.runType||'Run'}</span><span>${d.distanceKm?d.distanceKm+'km':''}</span></div>`;
+  }
+  if(block.type==='mobility'){
+    const stretches = (block.details.stretches||[]).map(s=>s.name).filter(Boolean);
+    if(!stretches.length) return '';
+    return stretches.map(n=>`<div class="log-entry"><span>${n}</span></div>`).join('');
+  }
+  return '';
+}
+async function renderTodayWorkoutSummary(){
+  const container = document.getElementById('todayWorkoutSummary');
+  const block = await getTodaysBlockForType(todaySessionType);
+  if(!block){
+    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Training tab</span></div>`;
+    return;
+  }
+  const rows = blockSummaryHtml(block);
+  container.innerHTML = `
+    <div class="group" style="margin-top:0;">
+      <div class="group-head"><div class="group-title">Today's plan</div></div>
+      <div class="fields">
+        ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
+        <button class="primary" id="goLogWorkoutBtn">Log this workout →</button>
+      </div>
+    </div>`;
+  const goBtn = document.getElementById('goLogWorkoutBtn');
+  if(goBtn) goBtn.addEventListener('click', ()=>{
+    activateTab('training');
+    activateTrainingSubView('daily');
+  });
+}
+document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    todaySessionType = btn.dataset.type;
+    renderTodayWorkoutSummary();
+  });
+});
 
 async function generateRecommendations(){
   const container = document.getElementById('recommendationCards');
@@ -6677,6 +7159,39 @@ async function areaLoadRatio(area){
   return recent/prior;
 }
 
+// Exercise-selection framework (2026-08-16): the question isn't "what's the best
+// exercise" — it's "what's best for THIS user, THIS muscle, THIS goal, AT THIS POINT
+// in the program." Concretely: when an area's recent load is already elevated, prefer
+// a lower-systemic-fatigue option that still serves the goal well, rather than always
+// defaulting to the biggest compound. Reuses areaLoadRatio (already built, already
+// used for warm-up flagging) as the fatigue signal rather than a parallel system.
+async function suggestExerciseForArea(area, goalType, opts){
+  opts = opts || {};
+  const tierField = goalType==='hypertrophy' ? 'hypertrophyTier' : 'strengthTier';
+  const tierRank = { S:4, A:3, B:2, C:1 };
+  const candidates = Object.entries(EXERCISE_LIBRARY)
+    .filter(([id, ex]) => (ex.area===area || ex.secondaryArea===area) && ex[tierField])
+    .map(([id, ex]) => ({ id, ...ex }));
+  if(!candidates.length) return null;
+
+  let highFatigue = opts.highFatigue;
+  if(highFatigue === undefined){
+    let ratio = null;
+    try{ ratio = await areaLoadRatio(area); } catch(e){}
+    highFatigue = ratio != null && ratio > 1.3;
+  }
+
+  if(highFatigue){
+    const lowFatigueCandidates = candidates.filter(ex => ex.category==='isolation' || (ex.equipment||[]).includes('machine'));
+    const pool = lowFatigueCandidates.length ? lowFatigueCandidates : candidates;
+    pool.sort((a,b) => (tierRank[b[tierField]]||0) - (tierRank[a[tierField]]||0));
+    return { ...pool[0], fatigueAdjusted:true, reason:`${BODY_AREAS[area]||area} load is elevated over the last week — chose a lower-fatigue-cost option that still scores well for ${goalType}, rather than adding more systemic stress on top of an already-loaded area.` };
+  }
+
+  candidates.sort((a,b) => (tierRank[b[tierField]]||0) - (tierRank[a[tierField]]||0));
+  return { ...candidates[0], fatigueAdjusted:false };
+}
+
 async function getPlannedExercisesToday(){
   try{
     const r = await window.storage.get(`planned_session:${todayStr}`);
@@ -6843,10 +7358,13 @@ async function generateWarmup(){
 
   const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, squatAnkleFlag } = await computeWarmupAreas();
 
+  const sectionIds = ['warmupSection', 'stretchSection', 'cooldownSection'];
   if(ordered.length === 0){
     container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session (Training tab) or select a session type above, then Generate</span></div>';
+    sectionIds.forEach(id => document.getElementById(id).style.display = 'none');
     return;
   }
+  sectionIds.forEach(id => document.getElementById(id).style.display = 'block');
 
   const { selected, estMinutes } = selectWithinBudget(ordered, injuryByArea, WARMUP_TIME_CAP, WARMUP_TIME_PER_AREA);
 
@@ -7071,11 +7589,38 @@ document.getElementById('seedTestScenarioBtn').addEventListener('click', async (
   result.textContent = 'Seeding...'; result.style.color = 'var(--dim)';
   try{
     const count = await seedTestScenario(scenario);
-    result.textContent = `Seeded ${count} record(s). Reload Insights/Warm-up/Trends to see the effect.`;
+    result.textContent = `Seeded ${count} record(s). Reload Today/Warm-up/Trends to see the effect.`;
     result.style.color = 'var(--good)';
     showToast('Test scenario seeded');
   } catch(e){
     result.textContent = 'Seeding failed — try again.';
+    result.style.color = 'var(--bad)';
+  }
+});
+
+document.getElementById('clearAllDataBtn').addEventListener('click', async ()=>{
+  const result = document.getElementById('clearAllDataResult');
+  const typed = prompt('This permanently deletes everything — every entry, plan, goal, injury, and setting. Type DELETE to confirm.');
+  if(typed !== 'DELETE'){
+    result.textContent = typed === null ? '' : 'Not confirmed — nothing was deleted.';
+    result.style.color = 'var(--dim)';
+    return;
+  }
+  result.textContent = 'Deleting...';
+  result.style.color = 'var(--dim)';
+  try{
+    const listRes = await window.storage.list('');
+    const keys = (listRes && listRes.keys) ? listRes.keys : [];
+    let count = 0;
+    for(const key of keys){
+      try{ await window.storage.delete(key); count++; } catch(e){}
+    }
+    result.textContent = `Deleted ${count} record(s). Reloading...`;
+    result.style.color = 'var(--good)';
+    showToast('All data cleared');
+    setTimeout(()=> location.reload(), 1200);
+  } catch(e){
+    result.textContent = 'Clear failed — try again.';
     result.style.color = 'var(--bad)';
   }
 });
