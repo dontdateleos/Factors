@@ -2778,23 +2778,25 @@ async function logOuraDebug(message){
 // silently wrong: Oura's awake_time is in SECONDS, but wakeTimeOura expects
 // MINUTES (confirmed from its penalty-scoring formula elsewhere in the app);
 // total_sleep_duration is also in seconds, converted to hours for durationHrs.
+async function fetchOuraEndpoint(endpoint, token, date){
+  const res = await fetch(OURA_TOKEN_WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'fetch_data', access_token: token, endpoint, start_date: date, end_date: date }),
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(`${endpoint}: ${data.error || 'request failed'} (HTTP ${res.status})`);
+  return data;
+}
+
 async function syncOuraDataForDate(date){
   const token = await getValidOuraAccessToken();
   if(!token) throw new Error('Not connected to Oura');
 
-  const headers = { 'Authorization': `Bearer ${token}` };
-  const qs = `start_date=${date}&end_date=${date}`;
-
-  const [sleepRes, dailySleepRes, readinessRes] = await Promise.all([
-    fetch(`https://api.ouraring.com/v2/usercollection/sleep?${qs}`, { headers }),
-    fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?${qs}`, { headers }),
-    fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?${qs}`, { headers }),
-  ]);
-  if(!sleepRes.ok || !dailySleepRes.ok || !readinessRes.ok){
-    throw new Error(`Oura API error — sleep:${sleepRes.status} daily_sleep:${dailySleepRes.status} readiness:${readinessRes.status}`);
-  }
   const [sleepData, dailySleepData, readinessData] = await Promise.all([
-    sleepRes.json(), dailySleepRes.json(), readinessRes.json(),
+    fetchOuraEndpoint('sleep', token, date),
+    fetchOuraEndpoint('daily_sleep', token, date),
+    fetchOuraEndpoint('daily_readiness', token, date),
   ]);
 
   // Each endpoint's `data` array can have 0+ entries for the date (0 if no data
@@ -2820,12 +2822,13 @@ async function syncOuraDataForDate(date){
   }
   if(dailySleep) updated.sleepScoreOura = dailySleep.score ?? existing.sleepScoreOura;
   if(readiness) updated.readinessOura = readiness.score ?? existing.readinessOura;
+  const noDataAtAll = !mainSleep && !dailySleep && !readiness;
   // hrvBaseline deliberately untouched — Oura only exposes a derived 0-100
   // "hrv_balance" contributor score, not the underlying ms value this field
   // expects, and the app already computes its own trailing baseline internally.
 
   await window.storage.set(keyFor(date), JSON.stringify(updated));
-  return updated;
+  return { ...updated, _noDataAtAll: noDataAtAll };
 }
 
 async function syncOuraToday(){
@@ -2833,9 +2836,14 @@ async function syncOuraToday(){
   renderOuraConnectionStatus();
   try{
     const entry = await syncOuraDataForDate(todayStr);
-    await logOuraDebug(`Synced — sleep ${entry.durationHrs}hrs, sleep score ${entry.sleepScoreOura}, readiness ${entry.readinessOura}, HRV ${entry.hrvOura}`);
-    if(dateInput.value === todayStr){ fillRecoveryForm(entry); }
-    showToast('Oura data synced');
+    if(entry._noDataAtAll){
+      await logOuraDebug("Connected to Oura, but no data available for today yet — this is normal if the ring hasn't synced to the Oura app since last night, or didn't record a sleep session.");
+      showToast('No Oura data available for today yet');
+    } else {
+      await logOuraDebug(`Synced — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}`);
+      if(dateInput.value === todayStr){ fillRecoveryForm(entry); }
+      showToast('Oura data synced');
+    }
   } catch(e){
     console.error('Oura sync failed:', e);
     await logOuraDebug(`Sync failed: ${e.message}`);
