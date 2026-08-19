@@ -2724,6 +2724,7 @@ async function handleOuraOAuthCallback(){
     }));
     await logOuraDebug('Connected successfully.');
     showToast('Oura connected');
+    syncOuraToday(); // pull today's data immediately rather than making the user do a separate step
   } catch(e){
     console.error('Oura token exchange failed:', e);
     await logOuraDebug(`Exchange failed: ${e.message}`);
@@ -2769,6 +2770,78 @@ async function getValidOuraAccessToken(){
 
 async function logOuraDebug(message){
   await window.storage.set('oura:lastDebug', JSON.stringify({ message, at: new Date().toISOString() }));
+}
+
+// Maps Oura's actual API response shape onto the app's existing recovery-entry
+// fields (recoveryFieldIds) so downstream scoring treats synced data identically
+// to manually-entered data. Two unit conversions matter here and are easy to get
+// silently wrong: Oura's awake_time is in SECONDS, but wakeTimeOura expects
+// MINUTES (confirmed from its penalty-scoring formula elsewhere in the app);
+// total_sleep_duration is also in seconds, converted to hours for durationHrs.
+async function syncOuraDataForDate(date){
+  const token = await getValidOuraAccessToken();
+  if(!token) throw new Error('Not connected to Oura');
+
+  const headers = { 'Authorization': `Bearer ${token}` };
+  const qs = `start_date=${date}&end_date=${date}`;
+
+  const [sleepRes, dailySleepRes, readinessRes] = await Promise.all([
+    fetch(`https://api.ouraring.com/v2/usercollection/sleep?${qs}`, { headers }),
+    fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?${qs}`, { headers }),
+    fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?${qs}`, { headers }),
+  ]);
+  if(!sleepRes.ok || !dailySleepRes.ok || !readinessRes.ok){
+    throw new Error(`Oura API error — sleep:${sleepRes.status} daily_sleep:${dailySleepRes.status} readiness:${readinessRes.status}`);
+  }
+  const [sleepData, dailySleepData, readinessData] = await Promise.all([
+    sleepRes.json(), dailySleepRes.json(), readinessRes.json(),
+  ]);
+
+  // Each endpoint's `data` array can have 0+ entries for the date (0 if no data
+  // synced yet that day, 2+ if there was a long sleep plus a nap) — take the
+  // longest sleep period, since that's what "last night's sleep" means here.
+  const sleepPeriods = sleepData.data || [];
+  const mainSleep = sleepPeriods.reduce((longest, s) =>
+    (!longest || (s.total_sleep_duration||0) > (longest.total_sleep_duration||0)) ? s : longest, null);
+  const dailySleep = (dailySleepData.data || [])[0];
+  const readiness = (readinessData.data || [])[0];
+
+  // Load whatever's already stored for this date so Garmin-side fields (or
+  // anything manually entered) aren't wiped out by an Oura-only sync.
+  let existing = {};
+  try{ const r = await window.storage.get(keyFor(date)); existing = JSON.parse(r.value); } catch(e){}
+
+  const updated = { ...existing, date };
+  if(mainSleep){
+    updated.durationHrs = mainSleep.total_sleep_duration!=null ? Math.round((mainSleep.total_sleep_duration/3600)*100)/100 : existing.durationHrs;
+    updated.hrvOura = mainSleep.average_hrv ?? existing.hrvOura;
+    updated.restingHR = mainSleep.lowest_heart_rate ?? existing.restingHR;
+    updated.wakeTimeOura = mainSleep.awake_time!=null ? Math.round(mainSleep.awake_time/60) : existing.wakeTimeOura; // seconds -> minutes
+  }
+  if(dailySleep) updated.sleepScoreOura = dailySleep.score ?? existing.sleepScoreOura;
+  if(readiness) updated.readinessOura = readiness.score ?? existing.readinessOura;
+  // hrvBaseline deliberately untouched — Oura only exposes a derived 0-100
+  // "hrv_balance" contributor score, not the underlying ms value this field
+  // expects, and the app already computes its own trailing baseline internally.
+
+  await window.storage.set(keyFor(date), JSON.stringify(updated));
+  return updated;
+}
+
+async function syncOuraToday(){
+  await logOuraDebug("Syncing today's data from Oura...");
+  renderOuraConnectionStatus();
+  try{
+    const entry = await syncOuraDataForDate(todayStr);
+    await logOuraDebug(`Synced — sleep ${entry.durationHrs}hrs, sleep score ${entry.sleepScoreOura}, readiness ${entry.readinessOura}, HRV ${entry.hrvOura}`);
+    if(dateInput.value === todayStr){ fillRecoveryForm(entry); }
+    showToast('Oura data synced');
+  } catch(e){
+    console.error('Oura sync failed:', e);
+    await logOuraDebug(`Sync failed: ${e.message}`);
+    showToast('Oura sync failed — see Settings for details', true);
+  }
+  renderOuraConnectionStatus();
 }
 
 async function testOuraWorkerConnection(){
@@ -2821,9 +2894,11 @@ async function renderOuraConnectionStatus(){
   if(tokens){
     el.innerHTML = `
       <div class="score-note">✓ Oura connected</div>
+      <button id="ouraSyncBtn">Sync now</button>
       <button id="ouraDisconnectBtn" class="small outline">Disconnect</button>
       <button id="ouraTestBtn" class="small outline">Test connection</button>
       ${debugHtml}`;
+    document.getElementById('ouraSyncBtn').addEventListener('click', syncOuraToday);
     document.getElementById('ouraDisconnectBtn').addEventListener('click', disconnectOura);
     document.getElementById('ouraTestBtn').addEventListener('click', testOuraWorkerConnection);
   } else {
