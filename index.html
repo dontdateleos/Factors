@@ -2774,20 +2774,35 @@ async function logOuraDebug(message){
 async function testOuraWorkerConnection(){
   await logOuraDebug('Testing worker connection...');
   renderOuraConnectionStatus();
+
+  let getResult;
   try{
+    // A plain GET with no custom headers is a "simple request" — the browser sends it
+    // directly with no CORS preflight. If even this fails, the issue isn't CORS at all;
+    // it's the worker not actually being reachable (wrong URL, not deployed, DNS, etc.).
+    const res = await fetch(OURA_TOKEN_WORKER_URL, { method: 'GET' });
+    const text = await res.text();
+    getResult = `GET: reachable, HTTP ${res.status}, "${text.slice(0,100)}"`;
+  } catch(e){
+    getResult = `GET: NOT reachable at all (${e.message}) — this points to the worker itself, not CORS: check the URL is exactly right and the worker shows as deployed in Cloudflare.`;
+  }
+
+  let postResult;
+  try{
+    // The real request the OAuth flow actually uses — a JSON POST, which DOES trigger a
+    // preflight. If GET succeeds but this fails, it's specifically a CORS/preflight issue.
     const res = await fetch(OURA_TOKEN_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'exchange', code: 'test', redirect_uri: OURA_REDIRECT_URI }),
     });
-    // We EXPECT this to fail with a real HTTP error (since "test" isn't a real code) —
-    // the point isn't success, it's confirming the request actually reached the worker
-    // and got a real response at all, rather than being blocked before it left the browser.
     const text = await res.text();
-    await logOuraDebug(`Worker reachable. HTTP ${res.status}. Response: ${text.slice(0,200)}`);
+    postResult = `POST: reachable, HTTP ${res.status}, "${text.slice(0,100)}"`;
   } catch(e){
-    await logOuraDebug(`Worker NOT reachable — request never got a response: ${e.message}. This is almost always a CORS mismatch (worker's ALLOWED_ORIGIN doesn't match this page's actual origin: ${window.location.origin}) or the worker URL itself being wrong.`);
+    postResult = `POST: NOT reachable (${e.message}) — if GET above worked, this specifically means the CORS preflight is being rejected.`;
   }
+
+  await logOuraDebug(`Origin: ${window.location.origin} | ${getResult} | ${postResult}`);
   renderOuraConnectionStatus();
 }
 
