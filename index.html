@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOGFOOD</title>
+<!-- Home screen / "Add to Home Screen" support — makes the app launch fullscreen
+     (no Safari address bar) with a proper icon and name, rather than opening as a
+     plain bookmarked webpage. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dogfood">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -2583,7 +2591,21 @@ const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wak
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery'];
 
 const dateInput = document.getElementById('entryDate');
-const todayStr = new Date().toISOString().slice(0,10);
+// Uses local-time getters, not toISOString() — toISOString() always returns
+// the date in UTC, which silently produces the WRONG calendar day depending
+// on timezone and time of day (e.g. it can read as "tomorrow" already in the
+// evening for timezones ahead of UTC, or still "yesterday" in the early
+// morning for timezones behind it). This matters a lot here specifically
+// because Oura's API is strict about exact date matching — a UTC/local
+// mismatch looks exactly like "no data available" even when today's data
+// genuinely exists.
+function localDateStr(date = new Date()){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+const todayStr = localDateStr();
 dateInput.value = todayStr;
 document.getElementById('injuryDate').value = todayStr;
 
@@ -2724,7 +2746,7 @@ async function handleOuraOAuthCallback(){
     }));
     await logOuraDebug('Connected successfully.');
     showToast('Oura connected');
-    syncOuraToday(); // pull today's data immediately rather than making the user do a separate step
+    syncOuraSelectedDate(); // pull today's data immediately rather than making the user do a separate step
   } catch(e){
     console.error('Oura token exchange failed:', e);
     await logOuraDebug(`Exchange failed: ${e.message}`);
@@ -2831,18 +2853,20 @@ async function syncOuraDataForDate(date){
   return { ...updated, _noDataAtAll: noDataAtAll };
 }
 
-async function syncOuraToday(){
-  await logOuraDebug("Syncing today's data from Oura...");
+async function syncOuraSelectedDate(){
+  const targetDate = dateInput.value || todayStr;
+  const dateLabel = targetDate === todayStr ? 'today' : targetDate;
+  await logOuraDebug(`Syncing ${dateLabel}'s data from Oura...`);
   renderOuraConnectionStatus();
   try{
-    const entry = await syncOuraDataForDate(todayStr);
+    const entry = await syncOuraDataForDate(targetDate);
     if(entry._noDataAtAll){
-      await logOuraDebug("Connected to Oura, but no data available for today yet — this is normal if the ring hasn't synced to the Oura app since last night, or didn't record a sleep session.");
-      showToast('No Oura data available for today yet');
+      await logOuraDebug(`Connected to Oura, but no data available for ${dateLabel} — this is normal if the ring hadn't synced to the Oura app yet, or didn't record a sleep session that night.`);
+      showToast(`No Oura data available for ${dateLabel}`);
     } else {
-      await logOuraDebug(`Synced — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}`);
-      if(dateInput.value === todayStr){ fillRecoveryForm(entry); }
-      showToast('Oura data synced');
+      await logOuraDebug(`Synced ${dateLabel} — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}`);
+      if(dateInput.value === targetDate){ fillRecoveryForm(entry); }
+      showToast(`Oura data synced for ${dateLabel}`);
     }
   } catch(e){
     console.error('Oura sync failed:', e);
@@ -2906,7 +2930,7 @@ async function renderOuraConnectionStatus(){
       <button id="ouraDisconnectBtn" class="small outline">Disconnect</button>
       <button id="ouraTestBtn" class="small outline">Test connection</button>
       ${debugHtml}`;
-    document.getElementById('ouraSyncBtn').addEventListener('click', syncOuraToday);
+    document.getElementById('ouraSyncBtn').addEventListener('click', syncOuraSelectedDate);
     document.getElementById('ouraDisconnectBtn').addEventListener('click', disconnectOura);
     document.getElementById('ouraTestBtn').addEventListener('click', testOuraWorkerConnection);
   } else {
