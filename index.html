@@ -2686,14 +2686,22 @@ async function handleOuraOAuthCallback(){
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   const state = params.get('state');
-  if(!code) return;
+  const oauthError = params.get('error'); // Oura itself can redirect back with ?error=... if the user denied access, etc.
+  if(!code && !oauthError) return;
 
   const expectedState = sessionStorage.getItem('oura_oauth_state');
   sessionStorage.removeItem('oura_oauth_state');
-  history.replaceState(null, '', window.location.pathname); // strip ?code=&state= regardless of outcome
+  history.replaceState(null, '', window.location.pathname); // strip query params regardless of outcome
+
+  if(oauthError){
+    await logOuraDebug(`Oura itself returned an error: ${oauthError} — ${params.get('error_description')||''}`);
+    showToast('Oura connection failed — see Settings for details', true);
+    return;
+  }
 
   if(!state || state !== expectedState){
-    showToast('Oura connection failed — please try again', true);
+    await logOuraDebug(`State mismatch — expected "${expectedState}", got "${state}". This usually means sessionStorage didn't survive the redirect (private browsing / cross-tab).`);
+    showToast('Oura connection failed — see Settings for details', true);
     return;
   }
 
@@ -2703,18 +2711,23 @@ async function handleOuraOAuthCallback(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'exchange', code, redirect_uri: OURA_REDIRECT_URI }),
     });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || 'exchange failed');
+    let data;
+    try{ data = await res.json(); }
+    catch(parseErr){ throw new Error(`Worker returned a non-JSON response (HTTP ${res.status}) — likely a CORS block or the worker crashed before responding.`); }
+
+    if(!res.ok) throw new Error(`Worker/Oura rejected the exchange (HTTP ${res.status}): ${JSON.stringify(data)}`);
 
     await window.storage.set('oura:tokens', JSON.stringify({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       expires_at: Date.now() + (data.expires_in * 1000),
     }));
+    await logOuraDebug('Connected successfully.');
     showToast('Oura connected');
   } catch(e){
     console.error('Oura token exchange failed:', e);
-    showToast('Oura connection failed — please try again', true);
+    await logOuraDebug(`Exchange failed: ${e.message}`);
+    showToast('Oura connection failed — see Settings for details', true);
   }
   renderOuraConnectionStatus();
 }
@@ -2754,20 +2767,33 @@ async function getValidOuraAccessToken(){
   }
 }
 
+async function logOuraDebug(message){
+  await window.storage.set('oura:lastDebug', JSON.stringify({ message, at: new Date().toISOString() }));
+}
+
 async function renderOuraConnectionStatus(){
   const el = document.getElementById('ouraConnectionStatus');
   let tokens = null;
   try{ const r = await window.storage.get('oura:tokens'); tokens = JSON.parse(r.value); } catch(e){}
 
+  let debugHtml = '';
+  try{
+    const r = await window.storage.get('oura:lastDebug');
+    const d = JSON.parse(r.value);
+    debugHtml = `<div class="score-note" style="margin-top:8px; font-family:var(--mono); font-size:10px; word-break:break-word;">Last attempt (${d.at}): ${d.message}</div>`;
+  } catch(e){}
+
   if(tokens){
     el.innerHTML = `
       <div class="score-note">✓ Oura connected</div>
-      <button id="ouraDisconnectBtn" class="small outline">Disconnect</button>`;
+      <button id="ouraDisconnectBtn" class="small outline">Disconnect</button>
+      ${debugHtml}`;
     document.getElementById('ouraDisconnectBtn').addEventListener('click', disconnectOura);
   } else {
     el.innerHTML = `
       <div class="score-note">Connect your Oura account to sync sleep, HRV, and readiness data automatically instead of entering it by hand.</div>
-      <button id="ouraConnectBtn">Connect Oura</button>`;
+      <button id="ouraConnectBtn">Connect Oura</button>
+      ${debugHtml}`;
     document.getElementById('ouraConnectBtn').addEventListener('click', connectOura);
   }
 }
