@@ -1930,6 +1930,12 @@
 
   <div class="panel" id="panel-settings">
     <div class="group">
+      <div class="group-head"><div class="group-title">Connected Accounts</div><div class="group-sub">sync recovery data automatically</div></div>
+      <div class="fields">
+        <div id="ouraConnectionStatus"></div>
+      </div>
+    </div>
+    <div class="group">
       <div class="group-head"><div class="group-title">Goal Profile</div><div class="group-sub">shapes recovery thresholds app-wide</div></div>
       <div class="fields">
         <select id="goalProfile">
@@ -2640,6 +2646,134 @@ function computeFlags(){
   toggleFlag('hrvFlag', parseFloat(document.getElementById('hrvGarmin').value), parseFloat(document.getElementById('hrvOura').value), THRESH.hrv);
 }
 recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('input', ()=>{ computeFlags(); computeScores(); computeSleepDebt(); }); });
+
+/* ---------- OURA INTEGRATION ----------
+   OAuth flow: the app builds the authorization URL and redirects the user to
+   Oura's consent screen. Oura redirects back to this same app (since it's a
+   static, single-file, GitHub-Pages-hosted app with no server to route a
+   separate callback URL to) with a `code` in the query string. The app can't
+   safely trade that code for real tokens itself — that exchange requires the
+   Client Secret, which can never live in browser-readable code — so it sends
+   the code to a small serverless function (see oura-token-worker.js) that
+   holds the secret privately and does the exchange, returning just the
+   tokens. Those get stored the same way everything else in this app is
+   stored, via window.storage (real Claude-artifact storage, or the
+   localStorage fallback when self-hosted).
+*/
+const OURA_CLIENT_ID = '62367975-4a6e-445d-a195-1936ce98c7af';
+const OURA_TOKEN_WORKER_URL = 'https://dogfoodoura.jordandf1.workers.dev';
+const OURA_REDIRECT_URI = window.location.origin + window.location.pathname; // must exactly match what's registered with Oura
+const OURA_SCOPES = 'personal daily heartrate';
+
+function connectOura(){
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oura_oauth_state', state);
+  const authUrl = `https://cloud.ouraring.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(OURA_CLIENT_ID)}&redirect_uri=${encodeURIComponent(OURA_REDIRECT_URI)}&scope=${encodeURIComponent(OURA_SCOPES)}&state=${encodeURIComponent(state)}`;
+  window.location.href = authUrl;
+}
+
+async function disconnectOura(){
+  await window.storage.set('oura:tokens', JSON.stringify(null));
+  showToast('Oura disconnected');
+  renderOuraConnectionStatus();
+}
+
+// Runs on every page load — if the URL contains an OAuth callback (?code=...),
+// this is that round-trip completing. Verifies the state value to guard
+// against CSRF, exchanges the code via the worker, stores the resulting
+// tokens, then cleans the URL so a refresh doesn't try to re-process it.
+async function handleOuraOAuthCallback(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if(!code) return;
+
+  const expectedState = sessionStorage.getItem('oura_oauth_state');
+  sessionStorage.removeItem('oura_oauth_state');
+  history.replaceState(null, '', window.location.pathname); // strip ?code=&state= regardless of outcome
+
+  if(!state || state !== expectedState){
+    showToast('Oura connection failed — please try again', true);
+    return;
+  }
+
+  try{
+    const res = await fetch(OURA_TOKEN_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'exchange', code, redirect_uri: OURA_REDIRECT_URI }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'exchange failed');
+
+    await window.storage.set('oura:tokens', JSON.stringify({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in * 1000),
+    }));
+    showToast('Oura connected');
+  } catch(e){
+    console.error('Oura token exchange failed:', e);
+    showToast('Oura connection failed — please try again', true);
+  }
+  renderOuraConnectionStatus();
+}
+
+// Returns a currently-valid access token, transparently refreshing first if
+// the stored one has expired (or is close to it). Returns null if there's no
+// connection at all. This is the function anything fetching real Oura data
+// later should call, rather than reading the stored token directly.
+async function getValidOuraAccessToken(){
+  let tokens;
+  try{
+    const r = await window.storage.get('oura:tokens');
+    tokens = JSON.parse(r.value);
+  } catch(e){ return null; }
+  if(!tokens) return null;
+
+  const expiringSoon = Date.now() > (tokens.expires_at - 60000); // refresh a minute early
+  if(!expiringSoon) return tokens.access_token;
+
+  try{
+    const res = await fetch(OURA_TOKEN_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refresh', refresh_token: tokens.refresh_token }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'refresh failed');
+    await window.storage.set('oura:tokens', JSON.stringify({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in * 1000),
+    }));
+    return data.access_token;
+  } catch(e){
+    console.error('Oura token refresh failed:', e);
+    return null; // stale/invalid refresh token — user will need to reconnect
+  }
+}
+
+async function renderOuraConnectionStatus(){
+  const el = document.getElementById('ouraConnectionStatus');
+  let tokens = null;
+  try{ const r = await window.storage.get('oura:tokens'); tokens = JSON.parse(r.value); } catch(e){}
+
+  if(tokens){
+    el.innerHTML = `
+      <div class="score-note">✓ Oura connected</div>
+      <button id="ouraDisconnectBtn" class="small outline">Disconnect</button>`;
+    document.getElementById('ouraDisconnectBtn').addEventListener('click', disconnectOura);
+  } else {
+    el.innerHTML = `
+      <div class="score-note">Connect your Oura account to sync sleep, HRV, and readiness data automatically instead of entering it by hand.</div>
+      <button id="ouraConnectBtn">Connect Oura</button>`;
+    document.getElementById('ouraConnectBtn').addEventListener('click', connectOura);
+  }
+}
+
+renderOuraConnectionStatus(); // immediate paint of current state
+handleOuraOAuthCallback(); // if this load is an OAuth redirect-back, re-renders once the exchange finishes
 
 /* ---------- GOAL PROFILE ---------- */
 const GOAL_PROFILES = {
