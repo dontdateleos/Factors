@@ -38,17 +38,18 @@
   }
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; position:relative; -webkit-text-stroke:0.1px currentColor; }
-  header{ padding:18px 14px 0; position:sticky; top:0; background:#000000; z-index:10; border-bottom:1px solid rgba(251,250,246,0.15); overflow:hidden; }
+  header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
   .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; }
   .eyebrow::before{ content:'[ '; }
   .eyebrow::after{ content:' ]'; }
   h1{ font-size:46px; font-weight:700; margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; }
-  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px; }
+  .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
+  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   .tab svg{ width:18px; height:18px; }
-  .tab.active{ color:var(--text); border-bottom-color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
+  .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
   .tab[data-tab="insights"].active{ background:var(--block-lime); }
   .tab[data-tab="training"].active{ background:var(--block-orange); }
   .tab[data-tab="goals"].active{ background:var(--block-blue); }
@@ -56,6 +57,7 @@
   .tab[data-tab="data"].active{ background:var(--block-yellow); }
   .tab[data-tab="settings"].active{ background:var(--block-red); }
   #scrollBackdrop{ position:absolute; inset:0; z-index:-1; background-repeat:repeat; }
+  .tab-circle-transition{ position:fixed; left:0; right:0; bottom:0; z-index:9999; pointer-events:none; clip-path:circle(0px at 50% 50%); transition:clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
   body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--block-lime); }
   body.tab-training main{ background:transparent; } body.tab-training{ background:var(--block-orange); }
   body.tab-goals main{ background:transparent; } body.tab-goals{ background:var(--block-blue); }
@@ -66,9 +68,10 @@
 
   .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:14px; font-weight:600; margin-bottom:22px; line-height:1.35; }
 
-  .panel.active.panel-enter{ animation: panelSnap 0.16s steps(4, end); }
+  .panel.active.panel-enter{ animation: panelFadeIn 0.12s ease-out; }
   .snap-reveal{ animation: panelSnap 0.16s steps(4, end); }
   @keyframes panelSnap{ 0%{ transform:translateX(-10px); } 100%{ transform:translateX(0); } }
+  @keyframes panelFadeIn{ 0%{ opacity:0.3; } 100%{ opacity:1; } }
   @keyframes flashInvert{ 0%,24%{ filter:invert(1); } 25%,49%{ filter:invert(0); } 50%,74%{ filter:invert(1); } 75%,100%{ filter:invert(0); } }
   .flash-confirm{ animation: flashInvert 0.3s steps(1, end); }
   @media (prefers-reduced-motion: reduce){ .panel.active.panel-enter{ animation:none; } }
@@ -90,7 +93,7 @@
   .header-brand{ display:block; position:relative; }
   .tab-label{ font-family:var(--sans); font-size:14px; font-weight:700; color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   h1 .logo-line{ display:block; }
-  .header-brand .header-dither-row{ position:absolute; left:88px; top:42px; display:flex; gap:6px; align-items:flex-end; pointer-events:none; z-index:0; }
+  .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
     .header-dither-row canvas{ display:block; }
   .header-brand > *{ position:relative; z-index:1; }
   .skeleton-logo{ position:relative; width:28px; height:26px; flex-shrink:0; transform:scale(0.55); transform-origin:left center; overflow:visible; }
@@ -1391,7 +1394,8 @@
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
   .score-card{ flex:1; border:2px solid var(--border-bold); border-radius:0; padding:14px; background:transparent; text-align:center; }
-  .score-num{ font-family:var(--mono); font-size:58px; font-weight:700; color:var(--text); letter-spacing:-0.035em; }
+  .score-num{ font-family:var(--sans); font-size:58px; font-weight:700; color:var(--text); letter-spacing:-0.04em; -webkit-text-stroke:0.7px var(--text); }
+  .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.2; }
   .score-label{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
   .score-note{ font-size:10px; color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
 
@@ -1403,11 +1407,7 @@
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; stroke-width:2.5; }
   .empty-state span{ font-family:var(--sans); font-size:12px; }
-  header.collapsed{ padding:12px 20px 0; }
-  header.collapsed h1{ font-size:0; margin:0; height:0; overflow:hidden; }
-  header.collapsed .eyebrow{ font-size:0; height:0; overflow:hidden; margin:0; }
-  header.collapsed .skeleton-logo{ transform:scale(0.48); transform-origin:left center; }
-  header{ transition:padding 0.2s ease; }
+  
   .trend-arrow{ font-size:11px; margin-left:4px; }
   .trend-arrow.down{ color:var(--text); }
   .trend-arrow.up{ color:var(--text); }
@@ -1421,6 +1421,15 @@
   .log{ margin-top:24px; }
   .log-title{ font-family:var(--sans); font-size:11px;  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
   .log-entry{ font-family:var(--sans); font-size:11px; color:var(--dim); display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .mobility-cat-group{ margin-top:10px; }
+  .mobility-cat-group:first-child{ margin-top:0; }
+  .mobility-cat-label{ font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
+  .mobility-cat-item{ font-family:var(--sans); font-size:13px; color:var(--text); padding:3px 0 3px 10px; }
+  .goal-progress-bar{ position:relative; height:32px; width:100%; background:transparent; overflow:hidden; margin-top:6px; }
+  .goal-progress-bar-fill{ position:absolute; left:0; top:0; bottom:0; background:var(--text); transition:width 0.5s ease; }
+  .goal-progress-bar-dither{ position:absolute; right:0; top:0; bottom:0; background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22120%22%20height%3D%2216%22%20preserveAspectRatio%3D%22none%22%3E%3Cg%20fill%3D%22%230c0d0b%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2228%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2232%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2236%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2240%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2244%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2248%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2252%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2256%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2260%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2264%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2268%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2272%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2276%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2280%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2284%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2288%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2292%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2296%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22100%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22104%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22112%22%20y%3D%220%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2254%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2262%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2266%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2270%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2274%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2282%22%20y%3D%222%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2228%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2232%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2236%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2240%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2244%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2248%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2252%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2256%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2260%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2264%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2268%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2272%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2276%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2280%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2284%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2288%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2292%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2296%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22100%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22108%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2254%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2262%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2266%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2270%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2278%22%20y%3D%226%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2228%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2232%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2236%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2240%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2244%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2248%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2252%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2256%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2260%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2264%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2268%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2272%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2276%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2280%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2284%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2288%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2292%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2296%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22100%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22104%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22112%22%20y%3D%228%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2254%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2262%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2266%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2270%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2274%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2282%22%20y%3D%2210%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%228%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2228%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2232%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2236%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2240%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2244%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2248%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2252%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2256%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2260%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2264%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2268%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2272%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2276%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2280%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2284%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2288%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2292%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2296%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22100%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%22108%22%20y%3D%2212%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%220%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%222%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%226%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2210%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2214%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2220%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2222%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2226%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2234%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2238%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2242%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2246%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2250%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2254%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2258%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2262%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2266%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2270%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3Crect%20x%3D%2278%22%20y%3D%2214%22%20width%3D%222%22%20height%3D%222%22/%3E%3C/g%3E%3C/svg%3E'); background-size:100% 100%; background-repeat:no-repeat; }
+  .goal-progress-bar-label{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:13px; color:#fbfaf6; text-shadow:0 0 4px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.9); letter-spacing:0.02em; }
+  .goal-progress-bar-split{ position:absolute; top:0; bottom:0; left:50%; width:2px; background:var(--border-bold); z-index:1; }
   .log-entry:hover{ color:var(--text); }
   .d-badge{ color:var(--text); }
 
@@ -1485,18 +1494,6 @@
   .session-flow-chevron{ color:var(--dim); font-size:12px; transition:transform 0.15s; }
   .session-flow-header.active .session-flow-chevron{ transform:rotate(180deg); }
   .session-flow-body{ padding:14px 16px; }
-  .entry-mode-toggle{ display:flex; gap:0; margin-bottom:14px; }
-  #mainWorkoutFlowBody.auto-mode #sessionTypePills,
-  #mainWorkoutFlowBody.auto-mode .field-row:has(#workoutTag),
-  #mainWorkoutFlowBody.auto-mode .field-row:has(#sessionFocus),
-  #mainWorkoutFlowBody.auto-mode #sessionFocusNote,
-  #mainWorkoutFlowBody.auto-mode #addExerciseRow,
-  #mainWorkoutFlowBody.auto-mode .volume-total,
-  #mainWorkoutFlowBody.auto-mode .ex-tags-toggle,
-  #mainWorkoutFlowBody.auto-mode .ex-tags-row,
-  #mainWorkoutFlowBody.auto-mode .remove-row,
-  #mainWorkoutFlowBody.auto-mode .add-set-group{ display:none !important; }
-  #mainWorkoutFlowBody.auto-mode .ex-name{ flex:3; min-width:140px; }
 
   .rec-card{ position:relative; border-radius:0; padding:16px; margin-bottom:14px; background:transparent; }
   .rec-card::before{
@@ -1554,15 +1551,15 @@
   <div class="header-brand">
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
-    <div class="header-dither-row"><canvas id="headerSphere1" width="34" height="34"></canvas><canvas id="headerSphere2" width="38" height="38"></canvas><canvas id="headerSphere3" width="34" height="34"></canvas></div>
+    <div class="header-dither-row"><canvas id="headerSphere1" width="19" height="19"></canvas><canvas id="headerSphere2" width="26" height="26"></canvas><canvas id="headerSphere3" width="30" height="30"></canvas></div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights"><span>Today</span></div>
-    <div class="tab" data-tab="training"><span>Training</span></div>
-    <div class="tab" data-tab="goals"><span>Goals</span></div>
-    <div class="tab" data-tab="injuries"><span>Injuries</span></div>
-    <div class="tab" data-tab="data"><span>Data</span></div>
-    <div class="tab" data-tab="settings"><span>Settings</span></div>
+    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
+    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><span>Training</span></div>
+    <div class="tab" data-tab="goals" role="tab" tabindex="0" aria-selected="false"><span>Goals</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Injuries</span></div>
+    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><span>Data</span></div>
+    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><span>Settings</span></div>
   </div>
 </header>
 
@@ -1570,7 +1567,7 @@
   <!-- INSIGHTS PANEL -->
   <div class="panel active" id="panel-insights">
     <div class="gauge-wrap">
-      <div class="score-num" id="overallScoreOut">✳</div>
+      <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
       <div class="score-label" id="overallScoreLabel">Overall</div>
     </div>
     <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:10px; opacity:0.75;"></div>
@@ -1583,38 +1580,9 @@
       <div class="type-btn" data-type="mobility">Mobility</div>
     </div>
 
-    <div id="todayWorkoutArea" style="margin-top:14px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
-        <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
-      </div>
-      <div id="recommendationCards"></div>
-      <div id="todayWorkoutSummary"></div>
-    </div>
-
-    <div class="log" style="margin-top:16px;">
-      <div class="log-title">Recommendation history</div>
-      <div id="recHistory"></div>
-    </div>
-  </div>
-
-
-  <!-- TRAINING PANEL -->
-  <div class="panel" id="panel-training">
-        <div class="session-type" id="trainingViewPills" style="display:none;">
-      <div class="type-btn active" data-view="daily">Daily</div>
-      <div class="type-btn" data-view="weekly">Weekly</div>
-    </div>
-
-    <div id="dailyTrainingView">
-    <div class="date-row">
-      <input type="date" id="trainingDate">
-      <span class="status" id="trainingStatusMsg" style="margin:0;"></span>
-    </div>
-
     <div class="session-flow-section" id="warmupSection" style="display:none;">
       <div class="session-flow-header" id="warmupFlowHeader">
-        <span class="session-flow-title secondary">1. Warm-up</span>
+        <span class="session-flow-title secondary">Warm-up</span>
         <span class="session-flow-chevron">▾</span>
       </div>
       <div class="session-flow-body" id="warmupFlowBody" style="display:none;">
@@ -1643,121 +1611,29 @@
     </div>
       </div>
 
-    <div class="session-flow-section">
-      <div class="session-flow-header active" id="mainWorkoutFlowHeader">
-        <span class="session-flow-title">2. Main workout</span>
-        <span class="session-flow-chevron">▾</span>
+    <div id="todayWorkoutArea" style="margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
+        <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
       </div>
-      <div class="session-flow-body" id="mainWorkoutFlowBody" style="display:block;">
-
-    <div class="entry-mode-toggle" id="entryModeToggle" style="display:none;">
-      <div class="type-btn active" data-mode="auto">Auto</div>
-      <div class="type-btn" data-mode="manual">Manual</div>
-    </div>
-    <div class="score-note" id="entryModeNote" style="display:none; margin-bottom:14px;"></div>
-
-    <div class="session-type" id="sessionTypePills">
-      <div class="type-btn active" data-type="strength">Strength</div>
-      <div class="type-btn" data-type="run">Run</div>
-      <div class="type-btn" data-type="mobility">Mobility</div>
+      <div id="recommendationCards"></div>
+      <div id="todayWorkoutSummary"></div>
     </div>
 
-    <div id="deloadBanner" class="morning-banner" style="display:none;">Deload week — sets and run distance auto-suggested at ~50% of your recent typical. Edit freely, this is just a starting point.</div>
-
-    <div class="field-row" style="margin-bottom:14px;">
-      <span class="field-label">Workout tag</span>
-      <select id="workoutTag">
-        <option value="">—</option>
-        <option value="full_body">Full Body</option>
-        <option value="push">Push</option>
-        <option value="pull">Pull</option>
-        <option value="legs">Legs</option>
-        <option value="upper">Upper</option>
-        <option value="lower">Lower</option>
-      </select>
+    <div class="log" style="margin-top:16px;">
+      <div class="log-title">Recommendation history</div>
+      <div id="recHistory"></div>
     </div>
+  </div>
 
-    <div class="group" id="strengthGroup">
-      <div class="group-head"><div class="group-title">Exercises</div><div class="group-sub">volume = sets × reps × kg</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Session focus</span>
-          <select id="sessionFocus">
-            <option value="strength">Strength (3-6 reps)</option>
-            <option value="hypertrophy">Hypertrophy (8-12 reps)</option>
-            <option value="power">Power (1-5 reps, high intent)</option>
-            <option value="general">General / mixed (8-12 reps)</option>
-          </select>
-        </div>
-        <div class="score-note" id="sessionFocusNote"></div>
-        <div id="exerciseRows"></div>
-        <div class="add-row" id="addExerciseRow">+ add exercise</div>
-        <div class="volume-total">Total volume load: <span id="volumeTotal">0</span> kg</div>
-      </div>
+
+  <!-- TRAINING PANEL -->
+  <div class="panel" id="panel-training">
+        <div class="session-type" id="trainingViewPills" style="display:none;">
+      <div class="type-btn active" data-view="daily">Daily</div>
+      <div class="type-btn" data-view="weekly">Weekly</div>
     </div>
 
-    <div class="group" id="runGroup" style="display:none;">
-      <div class="group-head"><div class="group-title">Run</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Type</span>
-          <select id="runType">
-            <option value="">—</option>
-            <option value="easy">Easy / Recovery</option>
-            <option value="long">Long run</option>
-            <option value="tempo">Tempo / Threshold</option>
-            <option value="interval">Intervals</option>
-            <option value="sprint">Sprints / Strides</option>
-            <option value="race">Race</option>
-          </select>
-        </div>
-        <div class="field-row"><span class="field-label">Distance (km)</span><input type="number" step="0.01" id="runDistance"></div>
-        <div class="field-row"><span class="field-label">Duration (min)</span><input type="number" step="0.1" id="runDuration"></div>
-        <div class="field-row"><span class="field-label">Avg pace</span><input type="text" id="runPace" readonly placeholder="auto"></div>
-      </div>
-    </div>
-
-    <div class="group" id="mobilityGroup" style="display:none;">
-      <div class="group-head"><div class="group-title">Stretches</div><div class="group-sub">sets × hold time</div></div>
-      <div class="fields">
-        <div id="stretchRows"></div>
-        <div class="add-row" id="addStretchRowBtn">+ add stretch</div>
-        <div class="volume-total">Total hold time: <span id="holdTotal">0</span>s</div>
-      </div>
-    </div>
-
-      </div>
-    </div>
-
-    <div class="session-flow-section" id="stretchSection" style="display:none;">
-      <div class="session-flow-header" id="stretchFlowHeader">
-        <span class="session-flow-title secondary">3. Post-exercise stretching</span>
-        <span class="session-flow-chevron">▾</span>
-      </div>
-      <div class="session-flow-body" id="stretchFlowBody" style="display:none;">
-        <div class="score-note">Quick version — foam roll + dynamic only. Full protocol (static, PNF) is on the Warm-up tab.</div>
-        <div id="todaySessionStretchCards" style="margin-top:10px;"></div>
-      </div>
-    </div>
-
-    <div class="session-flow-section" id="cooldownSection" style="display:none;">
-      <div class="session-flow-header" id="cooldownFlowHeader">
-        <span class="session-flow-title secondary">4. Cool-down</span>
-        <span class="session-flow-chevron">▾</span>
-      </div>
-      <div class="session-flow-body" id="cooldownFlowBody" style="display:none;">
-        <div class="score-note">5-10 min easy walk or light spin to bring heart rate down gradually · a few slow breaths, in through the nose · rehydrate. Kept intentionally light — no dedicated cool-down research has been reviewed for this app yet, this is general practice, not a validated protocol.</div>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-head"><div class="group-title">Notes</div></div>
-      <div class="fields"><textarea id="trainingNotes" placeholder="How it felt, anything to flag..."></textarea></div>
-    </div>
-
-    <div class="log">
-      <div class="log-title">Recent sessions</div>
-      <div id="logListTraining"></div>
-    </div>
-    </div>
 
     <div id="weeklyTrainingView" style="display:none;">
       <div class="score-note" style="margin-bottom:14px;">Tap a day/slot to schedule it. Tap a scheduled block to edit what it actually is. Days with nothing scheduled are rest days — no block needed.</div>
@@ -1908,37 +1784,29 @@
     <div class="session-type" id="dataViewPills">
       <div class="type-btn active" data-view="recovery">Recovery</div>
       <div class="type-btn" data-view="trends">Trends</div>
+      <div class="type-btn" data-view="history">Workout History</div>
     </div>
 
     <div id="recoveryDataView">
     <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in — log today's recovery data to unlock Today.</div>
+
     <div class="date-row">
       <input type="date" id="entryDate">
       <span class="status" id="loadStatus" style="margin:0;"></span>
     </div>
 
-    <div class="score-box">
+    <div class="score-box" style="display:none;">
       <div class="score-card">
-        <div class="score-num" id="adaptiveScoreOut">—</div>
+        <div class="score-num" id="adaptiveScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
         <div class="score-label">Adaptive</div>
       </div>
       <div class="score-card">
-        <div class="score-num" id="targetScoreOut">—</div>
+        <div class="score-num" id="targetScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
         <div class="score-label">Target</div>
       </div>
     </div>
-    <div class="score-note">Adaptive compares today against your trailing 7-day average. Target compares against fixed goals (8hr sleep, ≤1 wake event, HRV at rolling baseline). Equal-weighted v1 — placeholder until backtested.</div>
+    <div class="score-note" style="display:none;">Adaptive compares today against your trailing 7-day average. Target compares against fixed goals (8hr sleep, ≤1 wake event, HRV at rolling baseline). Equal-weighted v1 — placeholder until backtested.</div>
     <div class="score-note" id="sleepDebtOut" style="margin-top:6px;">Sleep debt: —</div>
-
-    <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Predicted Capacity</div><div class="group-sub" id="capacityN">n=0</div></div>
-      <div class="fields">
-        <div id="capacityBody" style="text-align:center; padding:6px 0;">
-          <div class="score-num" id="capacityOut" style="font-size:22px;">—</div>
-        </div>
-        <div class="score-note" id="capacityDetail">Predicts today's training capacity from correlation between your recovery inputs and actual training output (volume/pace vs your trailing baseline). Weights are fit from your own logged data — needs 7 paired recovery+training days before it activates.</div>
-      </div>
-    </div>
 
     <div class="group" style="margin-top:16px;">
       <div class="group-head"><div class="group-title">Sleep</div><div class="group-sub">canonical: oura</div></div>
@@ -2000,6 +1868,7 @@
       <div class="group-head"><div class="group-title">Body metrics</div><div class="group-sub">fixed until updated</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Height (cm)</span><input type="number" step="0.1" id="bodyHeight"></div>
+        <div id="hypertrophyGoalBarContainer"></div>
         <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
         <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
         <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
@@ -2050,6 +1919,13 @@
       <div class="fields" id="adaptationBody"></div>
     </div>
     </div>
+
+    <div id="historyDataView" style="display:none;">
+      <div class="group-title" style="margin-bottom:4px;">Workout History</div>
+      <div class="group-sub" style="margin-bottom:12px;">pick a date to see what was logged</div>
+      <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
+      <div id="prevWorkoutsResults"></div>
+    </div>
   </div>
 
   <div class="panel" id="panel-settings">
@@ -2098,6 +1974,182 @@
         <div id="bulkImportResult" class="score-note"></div>
       </div>
     </div>
+    <div class="group" style="margin-top:16px;">
+      <div class="group-head"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div></div>
+      <div class="fields">
+        <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
+        <details>
+          <summary>Terms and Conditions</summary>
+          <div style="font-size:12px; line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
+<p style="margin:6px 0;"><strong>⚠️ THIS IS A DRAFT, NOT A FINAL LEGAL DOCUMENT.</strong> It's written to give you a real, substantive starting point — not filler text — but it has not been reviewed by a lawyer and should not be published or relied upon until it has been. Sections in `[brackets]` need real information filled in before this goes anywhere near production. Given this app collects health-adjacent data (sleep, HRV, injury history) and will integrate with third-party device APIs, the sections marked 🔴 below are the ones where getting real legal review matters most — don't skip those even if you're tempted to launch fast.</p>
+<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">Last updated: [DATE]</div>
+<h4 style="margin:18px 0 6px;">1. Acceptance of These Terms</h4>
+<p style="margin:6px 0;">By creating an account, accessing, or using [APP NAME] (the "App," "Service," "we," "us," or "our"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, do not use the App.</p>
+<p style="margin:6px 0;">These Terms constitute a legally binding agreement between you and [COMPANY NAME], a [ENTITY TYPE, e.g., limited liability company] organized under the laws of [JURISDICTION].</p>
+<h4 style="margin:18px 0 6px;">2. Eligibility</h4>
+<p style="margin:6px 0;">You must be at least [16 or 18 — pick based on your jurisdiction's rules on data consent for minors] years old to use the App. By using the App, you represent that you meet this requirement. If you are using the App on behalf of a minor with appropriate parental/guardian consent, [add specific language here — this needs real legal input given health data is involved].</p>
+<h4 style="margin:18px 0 6px;">3. Description of the Service</h4>
+<p style="margin:6px 0;">[APP NAME] is a personal training and recovery tracking application that:</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Lets you log training sessions, recovery metrics, injuries, and goals</li>
+<li>Generates training recommendations based on the data you provide</li>
+<li>May integrate with third-party fitness and health data providers (see Section 8)</li>
+<li>Is provided on a subscription basis (see Section 6)</li>
+</ul>
+<h4 style="margin:18px 0 6px;">4. 🔴 Not Medical Advice</h4>
+<p style="margin:6px 0;"><strong>This is the single most important section in this document, given what the app does.</strong></p>
+<p style="margin:6px 0;">The App provides general fitness, training, and recovery information for educational and informational purposes only. <strong>It is not medical advice, and it is not a substitute for professional medical judgment, diagnosis, or treatment.</strong></p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>The App's recommendations (including but not limited to training loads, exercise substitutions, deload suggestions, and injury-related exercise modifications) are generated by an automated system based on data you provide. They are not reviewed by a medical professional, physical therapist, or certified trainer before being shown to you.</li>
+<li>**You should consult a physician, physical therapist, or other qualified healthcare provider before beginning any exercise program, and immediately if you experience pain, injury, or any symptom that concerns you** — regardless of what the App recommends or does not recommend.</li>
+<li>The App's injury-tracking features are for your own personal record-keeping and to inform the App's own exercise suggestions. They do not constitute a diagnosis, and the App is not a healthcare provider.</li>
+<li>If you are experiencing a medical emergency, contact emergency services immediately. Do not rely on the App.</li>
+</ul>
+<p style="margin:6px 0;">By using the App, you acknowledge and accept the inherent risks of physical exercise, and you agree that [COMPANY NAME] is not liable for any injury, health complication, or adverse outcome arising from your use of the App or reliance on its recommendations.</p>
+<h4 style="margin:18px 0 6px;">5. Your Account</h4>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account.</li>
+<li>You agree to provide accurate information when creating your account and to keep it up to date.</li>
+<li>You are responsible for the accuracy of the data you log (training history, recovery metrics, injuries, etc.) — the App's recommendations are only as good as the data you provide, and we are not responsible for recommendations based on inaccurate or incomplete data you entered.</li>
+</ul>
+<h4 style="margin:18px 0 6px;">6. Subscription and Payment</h4>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>The App is offered on a subscription basis at [PRICE] per [month/year], billed automatically until cancelled.</li>
+<li>[Free trial terms, if any — length, what happens at conversion, whether a card is required upfront]</li>
+<li>Payments are processed by Stripe. We do not store your full payment card details.</li>
+<li>You may cancel your subscription at any time through [account settings / the App / contacting support]. Cancellation takes effect at the end of the current billing period; **we do not offer partial refunds for unused time within a billing period**, except [as required by law / at our discretion — pick your actual policy].</li>
+<li>We reserve the right to change subscription pricing with [30] days' notice to existing subscribers. Price changes will not apply retroactively to a period you've already paid for.</li>
+<li>🔴 *If you plan to operate in the EU/UK, note that consumer protection law there gives users a statutory right to cancel and receive a refund within 14 days of a digital subscription purchase in many circumstances — this needs specific legal review, since it can override a "no refunds" policy you might otherwise want.*</li>
+</ul>
+<h4 style="margin:18px 0 6px;">7. Acceptable Use</h4>
+<p style="margin:6px 0;">You agree not to:</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Use the App for any unlawful purpose</li>
+<li>Attempt to reverse-engineer, decompile, or extract the App's underlying training-recommendation logic</li>
+<li>Share your account with others or resell access to the App</li>
+<li>Use automated systems (bots, scrapers) to access the App outside of its intended interface</li>
+<li>Upload data that is not your own without authorization</li>
+</ul>
+<p style="margin:6px 0;">We reserve the right to suspend or terminate accounts that violate this section.</p>
+<h4 style="margin:18px 0 6px;">8. 🔴 Third-Party Integrations (Oura, Garmin, and Others)</h4>
+<p style="margin:6px 0;">The App may allow you to connect third-party accounts (such as Oura or Garmin) to automatically import recovery and activity data.</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>**Your relationship with these third-party providers is governed by their own terms of service, and is separate from your relationship with us.** We are not responsible for the accuracy, availability, or continued existence of any third-party integration.</li>
+<li>By connecting a third-party account, you authorize us to access and import the specific data categories you consent to during the connection process, for the purpose of powering the App's features.</li>
+<li>You can disconnect a third-party integration at any time through [account settings]. Disconnecting does not delete data already imported into the App — see our Privacy Policy for data deletion options.</li>
+<li>We may add, modify, or discontinue support for a given third-party integration at any time, including due to changes in that provider's own API access, policies, or availability — this has real precedent (see, e.g., how access to fitness-device APIs has fluctuated across providers).</li>
+<li>*This section will need to reflect the actual terms of whatever partner agreement you sign with Oura/Garmin — some partner agreements place specific obligations on you regarding how their data can and cannot be used, which need to be reflected here, not just in your internal code.*</li>
+</ul>
+<h4 style="margin:18px 0 6px;">9. Intellectual Property</h4>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>The App, including its design, training-recommendation algorithms, and content (excluding data you provide), is owned by [COMPANY NAME] and protected by intellectual property law.</li>
+<li>You retain ownership of the data you input into the App (your training logs, goals, injury history, etc.). By using the App, you grant us a license to use that data to operate and improve the Service, as described in our Privacy Policy.</li>
+<li>You may not copy, modify, distribute, or create derivative works based on the App without our written permission.</li>
+</ul>
+<h4 style="margin:18px 0 6px;">10. Disclaimers of Warranties</h4>
+<p style="margin:6px 0;">THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE APP WILL BE UNINTERRUPTED, ERROR-FREE, OR THAT ITS TRAINING RECOMMENDATIONS WILL BE SUITABLE FOR YOUR SPECIFIC PHYSICAL CONDITION.</p>
+<h4 style="margin:18px 0 6px;">11. Limitation of Liability</h4>
+<p style="margin:6px 0;">TO THE MAXIMUM EXTENT PERMITTED BY LAW, [COMPANY NAME] SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO PERSONAL INJURY, LOSS OF DATA, OR LOSS OF PROFITS, ARISING FROM YOUR USE OF THE APP.</p>
+<p style="margin:6px 0;">OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM ARISING FROM THESE TERMS OR YOUR USE OF THE APP SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE [12] MONTHS PRECEDING THE CLAIM.</p>
+<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">🔴 Some jurisdictions do not allow the exclusion of certain warranties or the limitation of liability for personal injury — this clause needs to be checked against wherever your actual users are located, not just your own jurisdiction of incorporation.</div>
+<h4 style="margin:18px 0 6px;">12. Indemnification</h4>
+<p style="margin:6px 0;">You agree to indemnify and hold harmless [COMPANY NAME] from any claims, damages, or expenses arising from your violation of these Terms or your misuse of the App.</p>
+<h4 style="margin:18px 0 6px;">13. Termination</h4>
+<p style="margin:6px 0;">We may suspend or terminate your access to the App at any time, with or without cause, with or without notice — including for violation of these Terms. You may terminate your account at any time by [cancelling your subscription / contacting support / in-app account deletion].</p>
+<p style="margin:6px 0;">Upon termination, your right to use the App ceases immediately. Sections of these Terms that by their nature should survive termination (including Sections 4, 9, 10, 11, and 12) will survive.</p>
+<h4 style="margin:18px 0 6px;">14. Changes to These Terms</h4>
+<p style="margin:6px 0;">We may update these Terms from time to time. We will notify you of material changes by [email / in-app notice] at least [30] days before they take effect. Continued use of the App after changes take effect constitutes acceptance of the revised Terms.</p>
+<h4 style="margin:18px 0 6px;">15. Governing Law and Disputes</h4>
+<p style="margin:6px 0;">These Terms are governed by the laws of [JURISDICTION], without regard to conflict-of-law principles. [Add arbitration clause / venue selection here if desired — this is a real strategic choice, not boilerplate, and worth discussing with a lawyer given it affects how disputes actually get resolved.]</p>
+<h4 style="margin:18px 0 6px;">16. Contact</h4>
+<p style="margin:6px 0;">Questions about these Terms can be sent to [support@yourdomain.com].</p>
+<div style="font-weight:700; margin:14px 0 4px; font-size:12px;">What I'd flag as genuinely non-negotiable before this goes live:</div>
+<p style="margin:6px 0;">1. <strong>Section 4 (Not Medical Advice)</strong> needs a lawyer's eyes given the app handles injury data and gives exercise recommendations that touch on active injuries — this is the section with the most real liability exposure.</p>
+<p style="margin:6px 0;">2. <strong>Section 8</strong> needs to match whatever you actually sign with Oura/Garmin, not just describe the integration generically.</p>
+<p style="margin:6px 0;">3. <strong>Section 6</strong> needs your actual pricing and a real answer on refunds, especially given the EU/UK cancellation-right note.</p>
+<p style="margin:6px 0;">4. This document doesn't cover a <strong>Privacy Policy</strong> — that's a separate, equally necessary document given the health data involved, and shouldn't be skipped or treated as an afterthought to this one.</p>
+          </div>
+        </details>
+        <details style="margin-top:10px;">
+          <summary>Privacy Policy</summary>
+          <div style="font-size:12px; line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
+<p style="margin:6px 0;"><strong>⚠️ THIS IS A DRAFT, NOT A FINAL LEGAL DOCUMENT.</strong> It has not been reviewed by a lawyer. Given this app collects health-adjacent data (sleep, HRV, injury history) and connects to third-party providers (Oura, Garmin), the sections marked 🔴 need real legal review before this is published or relied upon — not just a read-through.</p>
+<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">Last updated: [DATE]</div>
+<h4 style="margin:18px 0 6px;">1. Who We Are</h4>
+<p style="margin:6px 0;">[APP NAME] is operated by [COMPANY NAME] ("we," "us," "our"). This Privacy Policy explains what data we collect, why, and what rights you have over it. It should be read alongside our [Terms and Conditions].</p>
+<h4 style="margin:18px 0 6px;">2. 🔴 What Data We Collect</h4>
+<p style="margin:6px 0;"><strong>Data you provide directly:</strong></p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Account information (email, [name if collected])</li>
+<li>Training data: logged exercises, sets, reps, weight, running distance/pace</li>
+<li>Recovery data: sleep duration/score, HRV, resting heart rate, subjective soreness/mood ratings</li>
+<li>Injury data: body part, severity, irritability, movement restrictions, notes</li>
+<li>Goals and preferences: training days, session length, target exercises/weights, mobility self-assessments</li>
+</ul>
+<p style="margin:6px 0;"><strong>Data from third-party integrations (if you connect one):</strong></p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Oura: sleep, readiness, HRV, and related biometric data, as authorized by the specific permission scopes you grant during connection</li>
+<li>Garmin: heart rate, sleep, steps, and activity data, as authorized during connection</li>
+<li>*We only receive what these providers' own consent screens disclose to you at the time you connect — we do not have access to anything beyond the scopes you explicitly authorize.*</li>
+</ul>
+<p style="margin:6px 0;"><strong>Data collected automatically:</strong></p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Basic usage/device information (e.g., device type, app version) for debugging and reliability</li>
+<li>[Add analytics tooling here once chosen — this section needs to match whatever you actually implement, not describe generic analytics you haven't built]</li>
+</ul>
+<p style="margin:6px 0;">We do <strong>not</strong> collect: [payment card details — Stripe handles this directly and we never see your full card number], [location data, unless/until a feature requires it — update this if that changes], [anything beyond what's listed above — keep this section honest and current as the app evolves].</p>
+<h4 style="margin:18px 0 6px;">3. Why We Collect It</h4>
+<p style="margin:6px 0;">We use your data to:</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Operate the App's core function: generating training recommendations based on your logged history, recovery state, and injuries</li>
+<li>Sync data from connected third-party devices, when you've authorized that</li>
+<li>Process your subscription payment (via Stripe)</li>
+<li>Communicate with you about your account, billing, or material changes to the Service</li>
+<li>Improve the App's recommendation logic over time — 🔴 *if this involves using aggregated/anonymized user data to refine the algorithm across all users (not just your own account), that needs to be disclosed explicitly and separately here, since that's a materially different use than "personalizing your own recommendations."*</li>
+</ul>
+<p style="margin:6px 0;">We do <strong>not</strong> sell your data. We do <strong>not</strong> use your health data for advertising or share it with advertisers.</p>
+<h4 style="margin:18px 0 6px;">4. 🔴 How We Share Your Data</h4>
+<p style="margin:6px 0;">We share data only in these circumstances:</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>**With service providers who help us operate the App** — e.g., our hosting/database provider, Stripe for payments. These providers only receive what they need to perform their function and are contractually bound to protect it.</li>
+<li>**With Oura/Garmin, in reverse** — if you disconnect an integration or take an action within the App that they need to know about, only to the extent our partner agreement with them requires.</li>
+<li>**If required by law** — e.g., in response to a valid subpoena or legal process.</li>
+<li>**In a business transfer** — if [COMPANY NAME] is acquired or merges with another company, your data may transfer as part of that transaction, subject to this policy or a comparably protective one.</li>
+</ul>
+<p style="margin:6px 0;">We do not otherwise share, sell, or rent your personal or health data to third parties.</p>
+<h4 style="margin:18px 0 6px;">5. Data Retention</h4>
+<p style="margin:6px 0;">We retain your data for as long as your account is active, plus [X days/months] after account deletion to allow for recovery of an accidental deletion, after which it is permanently removed from our systems — except where we're required to retain it longer for legal or accounting purposes.</p>
+<h4 style="margin:18px 0 6px;">6. 🔴 Your Rights</h4>
+<p style="margin:6px 0;">Depending on where you live, you may have the right to:</p>
+<ul style="margin:4px 0; padding-left:18px;">
+<li>Access the personal data we hold about you</li>
+<li>Correct inaccurate data</li>
+<li>Delete your data ("right to erasure")</li>
+<li>Export your data in a portable format</li>
+<li>Withdraw consent for a specific data use (e.g., disconnecting a third-party integration)</li>
+<li>Object to certain processing</li>
+</ul>
+<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">This section needs real legal tailoring depending on your actual user base's location — GDPR (EU/UK users), CCPA/CPRA (California users), and other regional frameworks each impose specific, different obligations (like required response timeframes, specific notice language, and in some cases a formal Data Protection Officer). A generic "you have rights" paragraph is not sufficient on its own once you have real users in these regions.</div>
+<p style="margin:6px 0;">To exercise these rights, contact us at [privacy@yourdomain.com]. [Note: the app already includes an in-app "Export All Data" / "Clear All Data" feature that covers export and deletion functionally — this section should reference that directly once it's live in the shipped version, not just describe the concept abstractly.]</p>
+<h4 style="margin:18px 0 6px;">7. Data Security</h4>
+<p style="margin:6px 0;">We use industry-standard measures to protect your data, including encryption in transit and at rest, and access controls limiting who can view your data internally. No system is perfectly secure, and we cannot guarantee absolute security — if we become aware of a breach affecting your data, we will notify you as required by applicable law.</p>
+<h4 style="margin:18px 0 6px;">8. Children's Privacy</h4>
+<p style="margin:6px 0;">The App is not intended for use by anyone under [16/18 — match whatever age you set in the Terms]. We do not knowingly collect data from children under this age. If we learn we've collected data from a child without appropriate consent, we will delete it.</p>
+<h4 style="margin:18px 0 6px;">9. International Data Transfers</h4>
+<p style="margin:6px 0;">🔴 *If your infrastructure (database, hosting) is located in a different country than some of your users — e.g., US-based servers with EU users — this requires a specific legal mechanism (such as Standard Contractual Clauses) to transfer that data lawfully. This is not optional boilerplate; it needs to reflect your actual hosting setup once chosen.*</p>
+<h4 style="margin:18px 0 6px;">10. Changes to This Policy</h4>
+<p style="margin:6px 0;">We may update this Privacy Policy from time to time. We'll notify you of material changes by [email / in-app notice] before they take effect.</p>
+<h4 style="margin:18px 0 6px;">11. Contact</h4>
+<p style="margin:6px 0;">Questions about this policy or your data can be sent to [privacy@yourdomain.com].</p>
+<div style="font-weight:700; margin:14px 0 4px; font-size:12px;">What I'd flag as genuinely non-negotiable before this goes live:</div>
+<p style="margin:6px 0;">1. <strong>Section 2</strong> needs to stay perfectly accurate to what the app actually collects — this document should be updated every time a new data type is added to the app, not written once and forgotten.</p>
+<p style="margin:6px 0;">2. <strong>Section 6</strong> is the one most likely to have real regulatory teeth depending on where your users are — this is where "close enough" isn't good enough.</p>
+<p style="margin:6px 0;">3. <strong>Section 9</strong> only matters once real hosting infrastructure exists, but needs to be revisited the moment it does, not left as a placeholder indefinitely.</p>
+<p style="margin:6px 0;">4. This document assumes the in-app "Export All Data" / "Clear All Data" settings features (which already exist in the app) are the mechanism fulfilling the access/deletion rights in Section 6 — worth confirming that's still true as the app evolves, since a Privacy Policy promising a right the product doesn't actually deliver is worse than not promising it.</p>
+          </div>
+        </details>
+      </div>
+    </div>
     <div class="group" style="margin-top:16px; border-color:var(--bad);">
       <div class="group-head"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--text);">permanently deletes everything</div></div>
       <div class="fields">
@@ -2144,11 +2196,6 @@
   <button id="clearBtnRecovery">Clear</button>
   <button class="primary" id="saveBtnRecovery">Save entry</button>
 </footer>
-<footer id="footerTraining" style="display:none;">
-  <button id="clearBtnTraining">Clear</button>
-  <button id="savePlanBtn">Save plan</button>
-  <button class="primary" id="saveBtnTraining">Save session</button>
-</footer>
 
 <script>
 
@@ -2168,8 +2215,17 @@
 
   const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let awayFromTop = false;
-  window.addEventListener('scroll', () => { awayFromTop = window.scrollY > 4; });
+  // Tracks active scrolling, not just "scrolled away from top" — spheres spin only
+  // while genuinely mid-scroll, easing back to resting orientation as soon as scrolling
+  // stops (whether that's because the user paused to read, or scrolled back to the
+  // top), rather than spinning continuously the whole time the page is scrolled down.
+  let isScrolling = false;
+  let scrollStopTimer = null;
+  window.addEventListener('scroll', () => {
+    isScrolling = true;
+    clearTimeout(scrollStopTimer);
+    scrollStopTimer = setTimeout(() => { isScrolling = false; }, 150);
+  }, { passive: true });
 
   function makeDitherSphere(canvasId, dots, opts){
     const canvas = document.getElementById(canvasId);
@@ -2224,10 +2280,11 @@
         // "nearest" once it stops, unlike a continuously-forward-spinning approach.
         angle += (0 - angle) * 0.045;
       } else {
-        // Scroll-linked behavior, unchanged.
-        const targetSpeed = awayFromTop ? baseSpeed : 0;
+        // Spin only while actively scrolling; ease back to resting orientation the
+        // moment scrolling stops, regardless of scroll position.
+        const targetSpeed = isScrolling ? baseSpeed : 0;
         currentSpeed += (targetSpeed - currentSpeed) * 0.04;
-        if(!awayFromTop){
+        if(!isScrolling){
           const nearestRest = Math.round(angle / (Math.PI*2)) * Math.PI*2;
           angle += (nearestRest - angle) * 0.05;
         }
@@ -2240,9 +2297,9 @@
     frame();
   }
 
-  makeDitherSphere('headerSphere1', DOTS_A, { scale: 34/55.01*0.94, speed: 0.02, staggerMs: 0 });
-  makeDitherSphere('headerSphere2', DOTS_B, { scale: 38/68.60*0.94, speed: 0.016, staggerMs: 180 });
-  makeDitherSphere('headerSphere3', DOTS_C, { scale: 34/82.28*0.94, speed: 0.024, staggerMs: 360 });
+  makeDitherSphere('headerSphere1', DOTS_A, { scale: 19/55.01*0.94, speed: 0.02, staggerMs: 0 });
+  makeDitherSphere('headerSphere2', DOTS_B, { scale: 26/68.60*0.94, speed: 0.016, staggerMs: 180 });
+  makeDitherSphere('headerSphere3', DOTS_C, { scale: 30/82.28*0.94, speed: 0.024, staggerMs: 360 });
 })();
 /* ---------- STORAGE FALLBACK ----------
    window.storage only exists inside a Claude artifact. If this file is opened
@@ -2288,15 +2345,11 @@ if(!window.storage){
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 const panels = document.querySelectorAll('.panel');
-const footerTrainingEl = document.getElementById('footerTraining');
 const footerRecoveryEl = document.getElementById('footerRecovery');
 
 function updateFooterVisibility(){
-  const trainingActive = document.getElementById('panel-training').classList.contains('active');
   const dataActive = document.getElementById('panel-data').classList.contains('active');
-  const trainingSubView = document.querySelector('#trainingViewPills .type-btn.active')?.dataset.view;
   const dataSubView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view;
-  footerTrainingEl.style.display = (trainingActive && trainingSubView==='daily') ? 'flex' : 'none';
   footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
 }
 
@@ -2313,7 +2366,7 @@ function activateTab(name){
     if(p===targetPanel){ p.classList.add('active'); p.classList.remove('panel-enter'); void p.offsetWidth; p.classList.add('panel-enter'); }
     else p.classList.remove('active');
   });
-  if(name==='insights'){ generateRecommendations(); renderTodayWorkoutSummary(); }
+  if(name==='insights'){ generateRecommendations(); renderTodayWorkoutSummary(); initWarmupTab(); generateWarmup(); }
   if(name==='training'){
     activateTrainingSubView('weekly');
   }
@@ -2322,6 +2375,7 @@ function activateTab(name){
   if(name==='data'){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
     activateDataSubView(activeView);
+    renderHypertrophyGoalBar();
   }
   if(name==='settings'){ loadTrainingSetup(); }
   updateFooterVisibility();
@@ -2334,15 +2388,8 @@ function activateTab(name){
 
 function activateTrainingSubView(view){
   document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
-  document.getElementById('dailyTrainingView').style.display = view==='daily' ? 'block' : 'none';
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
   if(view==='weekly'){ renderWeekGrid(); renderMacroInsights(); }
-  if(view==='daily'){
-    initWarmupTab();
-    if(sessionType==='strength') loadPlanForDate(document.getElementById('trainingDate').value);
-    generateWarmup();
-    renderTodaySessionStretch();
-  }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -2353,15 +2400,174 @@ function activateDataSubView(view){
   document.querySelectorAll('#dataViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('recoveryDataView').style.display = view==='recovery' ? 'block' : 'none';
   document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
+  document.getElementById('historyDataView').style.display = view==='history' ? 'block' : 'none';
   if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
+  if(view==='history' && document.getElementById('prevWorkoutsDate').value){ renderPrevWorkoutsForDate(); }
   updateFooterVisibility();
 }
 document.querySelectorAll('#dataViewPills .type-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateDataSubView(btn.dataset.view));
 });
 
+// Generates an organic "wobbly circle" as a polygon point list — a few overlaid sine
+// waves at different frequencies/phases perturb the radius smoothly around the circle,
+// which reads as hand-drawn rather than jagged (pure per-point random noise would look
+// spiky instead). Same angular positions used for both the tiny starting point and the
+// full-size end shape so clip-path can morph smoothly between them.
+function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, biasAngle, biasStrength){
+  const pts = [];
+  for(let i=0; i<numPoints; i++){
+    const angle = (i/numPoints) * Math.PI * 2;
+    const wobble = (Math.sin(angle*3+seeds[0])*0.5 + Math.sin(angle*5+seeds[1])*0.3 + Math.sin(angle*2+seeds[2])*0.4) / 1.2;
+    const directionalBias = biasAngle!=null ? Math.cos(angle - biasAngle) * biasStrength : 0;
+    const r = radius * (1 + wobbleAmount*wobble + directionalBias);
+    pts.push(`${(cx + r*Math.cos(angle)).toFixed(1)}px ${(cy + r*Math.sin(angle)).toFixed(1)}px`);
+  }
+  return pts.join(', ');
+}
+
+// Circular reveal transition: a color-washed, slightly-wobbly blob in the NEW tab's
+// color expands from roughly the center of the content area (below the header)
+// outward. Randomized per-transition — origin offset, wobble pattern, wobble strength,
+// and duration all vary within a range — so repeated transitions feel hand-drawn
+// rather than mechanically identical every time. The header itself is deliberately
+// left out of the overlay — position:fixed with top set to the header's actual
+// measured height — so it stays fully visible and untouched throughout. The actual
+// content swap (activateTab) happens partway through, once the shape already covers
+// enough of the content area to hide it — by the time it finishes expanding, it's the
+// same color as the new tab's own background, so removing the overlay afterward is
+// seamless/invisible.
+function transitionToTab(name, buttonEl){
+  const color = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
+  const headerEl = document.querySelector('header');
+  const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'tab-circle-transition';
+  overlay.style.background = color;
+  overlay.style.top = headerHeight + 'px';
+  document.body.appendChild(overlay);
+
+  const areaWidth = window.innerWidth;
+  const areaHeight = window.innerHeight - headerHeight;
+  const maxRadius = Math.ceil(Math.sqrt(Math.pow(areaWidth/2, 2) + Math.pow(areaHeight/2, 2)) * 1.15) + 20;
+
+  // Origin offset from dead-center — up to ~8% of the content area's smaller
+  // dimension, so it still reads as "roughly the middle" but isn't pixel-identical
+  // every time.
+  const offsetRange = Math.min(areaWidth, areaHeight) * 0.08;
+  const cx = areaWidth/2 + (Math.random()*2-1) * offsetRange;
+  const cy = areaHeight/2 + (Math.random()*2-1) * offsetRange;
+  const seeds = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
+  const wobbleAmount = 0.14 + Math.random()*0.10; // 0.14–0.24 — more pronounced imperfection than before
+  const duration = 370 + Math.random()*70; // 370–440ms — between the previous 240-280ms and 500-600ms, since 500-600ms felt a bit slow
+  const numPoints = 28;
+
+  // Bias the shape toward whichever button was actually tapped — the edge nearest the
+  // button reaches further/faster (a "leading" edge), the opposite side lags slightly,
+  // so the shape reads as spreading out from the point of the tap rather than expanding
+  // uniformly in every direction. Falls back to no bias if the button position isn't
+  // available for some reason.
+  let biasAngle = null;
+  const biasStrength = 0.22;
+  if(buttonEl){
+    const br = buttonEl.getBoundingClientRect();
+    const bx = br.left + br.width/2;
+    const by = (br.top + br.height/2) - headerHeight;
+    biasAngle = Math.atan2(by - cy, bx - cx);
+  }
+
+  const startShape = wobblyPolygonPoints(cx, cy, 2, 0, seeds, numPoints, biasAngle, biasStrength);
+  const endShape = wobblyPolygonPoints(cx, cy, maxRadius, wobbleAmount, seeds, numPoints, biasAngle, biasStrength);
+
+  overlay.style.transition = 'none';
+  overlay.style.clipPath = `polygon(${startShape})`;
+  void overlay.offsetWidth; // force reflow so the transition below actually animates
+  overlay.style.transition = `clip-path ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  overlay.style.clipPath = `polygon(${endShape})`;
+
+  const swapDelay = Math.round(duration * 0.82);
+  setTimeout(()=>{ activateTab(name); }, swapDelay);
+  setTimeout(()=>{
+    overlay.remove();
+    // Restart the entrance animation now that it'll actually be visible, rather than
+    // relying on the one activateTab already triggered (which played out hidden behind
+    // the blob, since it started at the same moment as the content swap).
+    const targetPanel = document.getElementById('panel-'+name);
+    if(targetPanel){
+      targetPanel.classList.remove('panel-enter');
+      void targetPanel.offsetWidth;
+      targetPanel.classList.add('panel-enter');
+    }
+  }, duration + 20);
+}
+
+function applyA11yFieldLabels(root){
+  root.querySelectorAll('.field-row').forEach(row=>{
+    const labelEl = row.querySelector('.field-label');
+    const field = row.querySelector('input, select, textarea');
+    if(!labelEl || !field || field.hasAttribute('aria-label') || field.hasAttribute('aria-labelledby')) return;
+    field.setAttribute('aria-label', labelEl.textContent.trim());
+  });
+}
+applyA11yFieldLabels(document);
+
+// Accessibility: the app has many click-only div-based "buttons" (type selectors,
+// remove-row ×, tag toggles, rating buttons) across both static markup and content
+// generated dynamically throughout the file. Rather than touching every individual
+// creation site, this applies role="button"/tabindex to any matching element as it
+// appears — covering what's already in the DOM plus anything added later — paired
+// with one delegated keydown listener so Enter/Space activates them like a real
+// <button>, since a div with only a click handler is otherwise invisible to keyboard
+// and screen-reader users.
+const A11Y_INTERACTIVE_SELECTOR = '.type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, .goal-priority-btn, .flow-header';
+function applyA11yToInteractiveDivs(root){
+  root.querySelectorAll(A11Y_INTERACTIVE_SELECTOR).forEach(el=>{
+    if(el.tagName==='BUTTON' || el.hasAttribute('role')) return;
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    if(el.classList.contains('rating-btn') && !el.hasAttribute('aria-label')){
+      el.setAttribute('aria-label', `Rate ${el.dataset.level} out of 5`);
+    }
+    if(el.classList.contains('remove-row') && !el.hasAttribute('aria-label')){
+      el.setAttribute('aria-label', 'Remove');
+    }
+  });
+}
+applyA11yToInteractiveDivs(document);
+new MutationObserver((mutations)=>{
+  for(const m of mutations){
+    for(const node of m.addedNodes){
+      if(node.nodeType!==1) continue;
+      if(node.matches && node.matches(A11Y_INTERACTIVE_SELECTOR)) applyA11yToInteractiveDivs(node.parentElement||document.body);
+      else if(node.querySelectorAll) applyA11yToInteractiveDivs(node);
+      if(node.matches && node.matches('.field-row')) applyA11yFieldLabels(node.parentElement||document.body);
+      else if(node.querySelectorAll) applyA11yFieldLabels(node);
+    }
+  }
+}).observe(document.body, { childList:true, subtree:true });
+document.addEventListener('keydown', (e)=>{
+  if((e.key==='Enter' || e.key===' ') && e.target.getAttribute && e.target.getAttribute('role')==='button'){
+    e.preventDefault();
+    e.target.click();
+  }
+});
+
+function activateTabViaUi(t){
+  tabs.forEach(tb=>{
+    const isActive = tb===t;
+    tb.classList.toggle('active', isActive);
+    tb.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if(isActive) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current');
+  });
+  document.getElementById('currentTabLabel').textContent = t.textContent;
+  transitionToTab(t.dataset.tab, t);
+}
 tabs.forEach(t=>{
-  t.addEventListener('click', ()=>activateTab(t.dataset.tab));
+  t.addEventListener('click', ()=>activateTabViaUi(t));
+  t.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); activateTabViaUi(t); }
+  });
 });
 
 
@@ -2373,7 +2579,6 @@ const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wak
 const dateInput = document.getElementById('entryDate');
 const todayStr = new Date().toISOString().slice(0,10);
 dateInput.value = todayStr;
-document.getElementById('trainingDate').value = todayStr;
 document.getElementById('injuryDate').value = todayStr;
 
 /* ---------- BODY METRICS (carry-forward, not per-day) ---------- */
@@ -2434,7 +2639,7 @@ function computeFlags(){
   toggleFlag('wakeTimeFlag', parseFloat(document.getElementById('wakeTimeOura').value), parseFloat(document.getElementById('wakeTimeGarmin').value), THRESH.wakeTime);
   toggleFlag('hrvFlag', parseFloat(document.getElementById('hrvGarmin').value), parseFloat(document.getElementById('hrvOura').value), THRESH.hrv);
 }
-recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('input', ()=>{ computeFlags(); computeScores(); computePredictedCapacity(); computeSleepDebt(); }); });
+recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('input', ()=>{ computeFlags(); computeScores(); computeSleepDebt(); }); });
 
 /* ---------- GOAL PROFILE ---------- */
 const GOAL_PROFILES = {
@@ -2483,11 +2688,51 @@ async function currentGoalThresholds(){
 
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
+function lerp(a, b, t){ return a + (b-a)*t; }
+
+let headerCollapseEls = null;
+let dogTextWidth = null;
+
+function updateHeaderCollapse(){
+  if(!headerCollapseEls){
+    const header = document.querySelector('header');
+    const dogLine = header.querySelector('.logo-line');
+    const spans = dogLine.querySelectorAll('span');
+    headerCollapseEls = {
+      h1: header.querySelector('h1'),
+      ditherRow: document.querySelector('.header-dither-row'),
+      lastLetter: spans[spans.length-1]
+    };
+    // Measure where "Dog" actually ends (the last letter's right edge, relative to h1's
+    // own left edge) once, before any inline style override is applied — .logo-line
+    // itself is display:block and stretches to fill its container regardless of text
+    // content, so the letter span's own rendered position is what actually reflects
+    // real text metrics (which can differ slightly between browser engines/font
+    // rendering) rather than a hardcoded pixel assumption.
+    const h1Rect = headerCollapseEls.h1.getBoundingClientRect();
+    const letterRect = headerCollapseEls.lastLetter.getBoundingClientRect();
+    dogTextWidth = letterRect.right - h1Rect.left;
+  }
+  const { h1, ditherRow } = headerCollapseEls;
+
+  const progress = Math.max(0, Math.min(1, window.scrollY / 100));
+  const fontSize = lerp(46, 0, progress);
+
+  h1.style.fontSize = fontSize + 'px';
+  h1.style.marginBottom = lerp(14, 0, progress) + 'px';
+  ditherRow.style.top = lerp(58, 30, progress) + 'px';
+  ditherRow.style.left = (14 + dogTextWidth * 0.86 * (fontSize/46)) + 'px';
+  ditherRow.style.transform = `scale(${1-progress})`;
+}
+
+let headerScrollTicking = false;
 window.addEventListener('scroll', ()=>{
-  const header = document.querySelector('header');
-  if(window.scrollY > 40) header.classList.add('collapsed');
-  else header.classList.remove('collapsed');
+  if(!headerScrollTicking){
+    requestAnimationFrame(()=>{ updateHeaderCollapse(); headerScrollTicking = false; });
+    headerScrollTicking = true;
+  }
 }, { passive: true });
+updateHeaderCollapse();
 
 function animateNumber(el, from, to, duration, suffix){
   suffix = suffix || '';
@@ -2620,23 +2865,16 @@ async function getPairedData(){
   return pairs;
 }
 
-async function computePredictedCapacity(){
-  const nEl = document.getElementById('capacityN');
-  const out = document.getElementById('capacityOut');
-  const detail = document.getElementById('capacityDetail');
-  const pairs = await getPairedData();
-  nEl.textContent = `n=${pairs.length}`;
-
-  if(pairs.length < 7){
-    out.textContent = '—';
-    detail.textContent = `Collecting baseline — ${pairs.length} of 7 paired recovery+training days logged. Predicted Capacity activates once weights can be fit from real correlations.`;
-    return;
-  }
-
+// Pure capacity computation — takes recovery values directly rather than reading DOM
+// inputs, so the same logic can drive both the Data tab's detailed breakdown and the
+// Today tab's main score. Adds a 0-100 numeric mapping (baseline 75 at z=0, +/-18 per
+// z-unit, clamped) since capacity previously only had a label ('above typical' etc.),
+// not a number — needed one to actually serve as "the main number" on the same visual
+// scale Adaptive/Target already use, not a sudden jump from digits to a word.
+function computeCapacityFromValues(pairs, todayVals){
+  if(pairs.length < 7) return { available:false, n: pairs.length };
   const predictorKeys = ['duration','hrvRatio','wakeTime','rhr'];
   const predictorLabels = { duration:'Sleep duration', hrvRatio:'HRV vs baseline', wakeTime:'Wake time', rhr:'Resting HR' };
-  const capacities = pairs.map(p=>p.capacity);
-
   const weights = {};
   predictorKeys.forEach(key=>{
     const valid = pairs.filter(p=>p[key]!=null && !isNaN(p[key]));
@@ -2646,19 +2884,6 @@ async function computePredictedCapacity(){
       weights[key] = { r: pearson(xs, ys), mean: mean(xs), sd: stdev(xs) || 1 };
     }
   });
-
-  // Predict today using today's recovery entry (already on screen)
-  const todayVals = {
-    duration: parseFloat(document.getElementById('durationHrs').value),
-    hrvRatio: (function(){
-      const h = parseFloat(document.getElementById('hrvGarmin').value);
-      const b = parseFloat(document.getElementById('hrvBaseline').value);
-      return (!isNaN(h) && !isNaN(b) && b>0) ? h/b : null;
-    })(),
-    wakeTime: parseFloat(document.getElementById('wakeTimeOura').value),
-    rhr: parseFloat(document.getElementById('restingHR').value)
-  };
-
   let weightedSum = 0, weightTotal = 0;
   const contributions = [];
   predictorKeys.forEach(key=>{
@@ -2671,23 +2896,16 @@ async function computePredictedCapacity(){
       contributions.push({ key, r: w.r });
     }
   });
-
-  if(weightTotal === 0){
-    out.textContent = '—';
-    detail.textContent = 'Enter today\'s recovery values to generate a prediction.';
-    return;
-  }
-
+  if(weightTotal === 0) return { available:false, n: pairs.length, noInput:true };
   const predictedZ = weightedSum / weightTotal;
+  const score = Math.max(0, Math.min(100, Math.round(75 + predictedZ*18)));
   let label = 'typical';
   if(predictedZ > 0.5) label = 'above typical';
   else if(predictedZ < -0.5) label = 'below typical';
-
-  out.textContent = label;
   contributions.sort((a,b)=> Math.abs(b.r) - Math.abs(a.r));
   const top = contributions[0];
   const topLabel = top ? `${predictorLabels[top.key]} (r=${top.r.toFixed(2)})` : 'n/a';
-  detail.textContent = `Based on ${pairs.length} logged days. Strongest predictor for you so far: ${topLabel}. Weights are correlations fit from your own data, not fixed assumptions.`;
+  return { available:true, score, z:predictedZ, label, n: pairs.length, topLabel };
 }
 
 async function computeSleepDebt(){
@@ -2744,7 +2962,7 @@ async function computeScores(){
   if(!isNaN(wakeTime)) parts.push(clamp(100 - wakeTime*WAKE_TIME_PENALTY,0,100));
   if(!isNaN(hrv) && !isNaN(hrvBaseline) && hrvBaseline>0) parts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const targetScore = parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
-  document.getElementById('targetScoreOut').textContent = targetScore ?? '—';
+  document.getElementById('targetScoreOut').innerHTML = targetScore != null ? targetScore : SCORE_PLACEHOLDER_SVG;
 
   const trailing = await getTrailingAverages(dateInput.value);
   const MIN_TRAILING_N = 3; // matches scoresForEntry's own gate — see that function for reasoning
@@ -2756,7 +2974,7 @@ async function computeScores(){
   if(!isNaN(hrv) && trailing && trailing.avgHRV && trailing.hrvN>=MIN_TRAILING_N) aParts.push(clamp(hrv/trailing.avgHRV*100,0,100));
   else if(!isNaN(hrv) && !isNaN(hrvBaseline) && hrvBaseline>0) aParts.push(clamp((hrv/hrvBaseline)*100,0,100));
   const adaptiveScore = aParts.length ? Math.round(aParts.reduce((a,b)=>a+b,0)/aParts.length) : null;
-  document.getElementById('adaptiveScoreOut').textContent = adaptiveScore ?? '—';
+  document.getElementById('adaptiveScoreOut').innerHTML = adaptiveScore != null ? adaptiveScore : SCORE_PLACEHOLDER_SVG;
 
   return { targetScore, adaptiveScore };
 }
@@ -2788,9 +3006,9 @@ function fillRecoveryForm(entry){
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
-  computeFlags(); computeScores(); computePredictedCapacity(); computeSleepDebt();
+  computeFlags(); computeScores(); computeSleepDebt();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computePredictedCapacity(); computeSleepDebt(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -2844,18 +3062,6 @@ document.getElementById('clearBtnRecovery').addEventListener('click', clearRecov
 dateInput.addEventListener('change', ()=>loadRecoveryEntry(dateInput.value));
 
 /* ---------- TRAINING ---------- */
-let sessionType = 'strength';
-document.querySelectorAll('#sessionTypePills .type-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#sessionTypePills .type-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    sessionType = btn.dataset.type;
-    document.getElementById('strengthGroup').style.display = sessionType==='strength' ? 'block':'none';
-    document.getElementById('runGroup').style.display = sessionType==='run' ? 'block':'none';
-    document.getElementById('mobilityGroup').style.display = sessionType==='mobility' ? 'block':'none';
-    applyDeloadSuggestions();
-  });
-});
 
 const BODY_AREAS = {
   hips: 'Hips', hamstrings: 'Hamstrings', quads_knees: 'Quads/Knees',
@@ -3035,341 +3241,6 @@ function guessTags(name){
   return null;
 }
 
-function addExerciseRow(name='', sets='', reps='', weight='', primaryArea='', secondaryArea='', movement=''){
-  const row = document.createElement('div');
-  row.className = 'exercise-row';
-  row.style.flexWrap = 'wrap';
-  row.innerHTML = `
-    <input type="text" class="ex-name" placeholder="exercise" value="${name}">
-    <input type="number" class="ex-sets" placeholder="sets" value="${sets}">
-    <input type="number" class="ex-reps" placeholder="reps" value="${reps}">
-    <input type="number" class="ex-weight" placeholder="kg" value="${weight}">
-    <span class="remove-row">×</span>
-    <div class="ex-tags-toggle" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
-    <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
-      <select class="ex-area">${areaOptionsHtml(primaryArea)}</select>
-      <select class="ex-area-secondary">${areaOptionsHtml(secondaryArea)}</select>
-      <select class="ex-movement">${movementOptionsHtml(movement)}</select>
-    </div>
-    <div class="set-groups-container" style="flex-basis:100%;"></div>
-    <div class="add-set-group" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--text); cursor:pointer; margin-top:2px; text-decoration:underline;">+ different weight for back-off sets</div>`;
-  const tagsToggle = row.querySelector('.ex-tags-toggle');
-  const tagsRow = row.querySelector('.ex-tags-row');
-  tagsToggle.addEventListener('click', ()=>{
-    const isHidden = tagsRow.style.display === 'none';
-    tagsRow.style.display = isHidden ? 'flex' : 'none';
-    tagsToggle.textContent = isHidden ? 'hide tags' : 'edit tags';
-  });
-  row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateVolumeTotal(); });
-  row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateVolumeTotal));
-  const groupsContainer = row.querySelector('.set-groups-container');
-  function addSetGroupRow(){
-    const grp = document.createElement('div');
-    grp.className = 'set-group-row';
-    grp.style.cssText = 'display:flex; gap:6px; margin-top:4px;';
-    grp.innerHTML = `
-      <input type="number" class="grp-sets" placeholder="sets" style="flex:1;">
-      <input type="number" class="grp-reps" placeholder="reps" style="flex:1;">
-      <input type="number" class="grp-weight" placeholder="kg" style="flex:1;">
-      <span class="remove-row" style="flex:none;">×</span>`;
-    grp.querySelector('.remove-row').addEventListener('click', ()=>{ grp.remove(); updateVolumeTotal(); });
-    grp.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateVolumeTotal));
-    groupsContainer.appendChild(grp);
-  }
-  row.querySelector('.add-set-group').addEventListener('click', addSetGroupRow);
-  const nameInput = row.querySelector('.ex-name');
-  const areaSelect = row.querySelector('.ex-area');
-  const areaSecondarySelect = row.querySelector('.ex-area-secondary');
-  const movementSelect = row.querySelector('.ex-movement');
-  nameInput.addEventListener('blur', async ()=>{
-    if(!areaSelect.value && nameInput.value){
-      const guess = guessTags(nameInput.value);
-      if(guess){
-        areaSelect.value = guess.primary;
-        if(guess.secondary) areaSecondarySelect.value = guess.secondary;
-        if(guess.movement) movementSelect.value = guess.movement;
-      }
-    }
-    const setsInput = row.querySelector('.ex-sets');
-    const repsInput = row.querySelector('.ex-reps');
-    const weightInput = row.querySelector('.ex-weight');
-    if(nameInput.value && !setsInput.value && !repsInput.value && !weightInput.value){
-      const isDeload = await isDeloadWeek(document.getElementById('trainingDate').value);
-      if(!isDeload){
-        const focus = document.getElementById('sessionFocus').value;
-        const suggestion = await suggestProgression(nameInput.value, areaSelect.value, focus);
-        if(suggestion){
-          setsInput.value = suggestion.sets;
-          repsInput.value = suggestion.reps;
-          weightInput.value = suggestion.weight;
-          updateVolumeTotal();
-          let noteEl = row.querySelector('.progression-note');
-          if(!noteEl){
-            noteEl = document.createElement('div');
-            noteEl.className = 'progression-note score-note';
-            noteEl.style.cssText = 'flex-basis:100%; margin-top:-4px; margin-bottom:4px;';
-            row.appendChild(noteEl);
-          }
-          noteEl.textContent = suggestion.note;
-        }
-      }
-    }
-  });
-  document.getElementById('exerciseRows').appendChild(row);
-}
-document.getElementById('addExerciseRow').addEventListener('click', ()=>addExerciseRow());
-addExerciseRow();
-
-const STRETCH_AREA_MAP = [
-  [['pike','hamstring stretch','toe touch'], 'hamstrings'],
-  [['bridge','cobra','wheel'], 'lower_back'],
-  [['butterfly','groin','adductor'], 'hips'],
-  [['splits','lunge stretch','hip flexor'], 'hips'],
-  [['calf stretch','ankle dorsiflexion','ankle'], 'ankles'],
-  [['quad stretch','couch stretch'], 'quads_knees'],
-  [['pec','chest stretch','doorway'], 'chest'],
-  [['thread the needle','cat-cow','thoracic'], 'thoracic'],
-  [['shoulder stretch','cross-body','dislocate'], 'shoulders']
-];
-function guessStretchArea(name){
-  const n = name.toLowerCase();
-  for(const [keys, area] of STRETCH_AREA_MAP){ if(keys.some(k=>n.includes(k))) return area; }
-  return '';
-}
-
-function addStretchRow(name='', sets='', holdSeconds='', area=''){
-  const row = document.createElement('div');
-  row.className = 'exercise-row';
-  row.style.flexWrap = 'wrap';
-  row.innerHTML = `
-    <input type="text" class="st-name" placeholder="stretch" value="${name}">
-    <input type="number" class="st-sets" placeholder="sets" value="${sets}">
-    <input type="number" class="st-hold" placeholder="hold (s)" value="${holdSeconds}">
-    <select class="st-area">${areaOptionsHtml(area)}</select>
-    <span class="remove-row">×</span>`;
-  row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateHoldTotal(); });
-  row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateHoldTotal));
-  const nameInput = row.querySelector('.st-name');
-  const areaSelect = row.querySelector('.st-area');
-  nameInput.addEventListener('blur', ()=>{
-    if(!areaSelect.value && nameInput.value){
-      const guess = guessStretchArea(nameInput.value);
-      if(guess) areaSelect.value = guess;
-    }
-  });
-  document.getElementById('stretchRows').appendChild(row);
-}
-document.getElementById('addStretchRowBtn').addEventListener('click', ()=>addStretchRow());
-addStretchRow();
-
-function updateHoldTotal(){
-  let total = 0;
-  document.querySelectorAll('#stretchRows .exercise-row').forEach(row=>{
-    const s = parseFloat(row.querySelector('.st-sets').value)||0;
-    const h = parseFloat(row.querySelector('.st-hold').value)||0;
-    total += s*h;
-  });
-  document.getElementById('holdTotal').textContent = total.toLocaleString();
-}
-
-function updateVolumeTotal(){
-  let total = 0;
-  document.querySelectorAll('#exerciseRows .exercise-row').forEach(row=>{
-    const s = parseFloat(row.querySelector('.ex-sets').value)||0;
-    const r = parseFloat(row.querySelector('.ex-reps').value)||0;
-    const w = parseFloat(row.querySelector('.ex-weight').value)||0;
-    total += s*r*w;
-    row.querySelectorAll('.set-group-row').forEach(grp=>{
-      const gs = parseFloat(grp.querySelector('.grp-sets').value)||0;
-      const gr = parseFloat(grp.querySelector('.grp-reps').value)||0;
-      const gw = parseFloat(grp.querySelector('.grp-weight').value)||0;
-      total += gs*gr*gw;
-    });
-  });
-  document.getElementById('volumeTotal').textContent = total.toLocaleString();
-}
-
-['runDistance','runDuration'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', ()=>{
-    const dist = parseFloat(document.getElementById('runDistance').value);
-    const dur = parseFloat(document.getElementById('runDuration').value);
-    if(dist>0 && dur>0){
-      const paceMinPerKm = dur/dist;
-      const mins = Math.floor(paceMinPerKm);
-      const secs = Math.round((paceMinPerKm-mins)*60);
-      document.getElementById('runPace').value = `${mins}:${secs.toString().padStart(2,'0')}/km`;
-    } else { document.getElementById('runPace').value=''; }
-  });
-});
-
-function collectTrainingSession(){
-  const session = { date: document.getElementById('trainingDate').value, type: sessionType, notes: document.getElementById('trainingNotes').value, timestamp: Date.now(), workoutTag: document.getElementById('workoutTag').value };
-  if(sessionType==='strength'){
-    session.focus = document.getElementById('sessionFocus').value;
-    session.exercises = [];
-    let total=0;
-    document.querySelectorAll('#exerciseRows .exercise-row').forEach(row=>{
-      const name = row.querySelector('.ex-name').value;
-      const primaryArea = row.querySelector('.ex-area').value;
-      const secondaryArea = row.querySelector('.ex-area-secondary').value;
-      const movement = row.querySelector('.ex-movement').value;
-
-      // Base row is always group 1; any .set-group-row elements are additional groups
-      // (e.g. top set + back-off). If no extra groups were added, this behaves exactly
-      // as a single sets/reps/weight entry always has.
-      const groups = [{
-        sets: parseFloat(row.querySelector('.ex-sets').value)||0,
-        reps: parseFloat(row.querySelector('.ex-reps').value)||0,
-        weight: parseFloat(row.querySelector('.ex-weight').value)||0
-      }];
-      row.querySelectorAll('.set-group-row').forEach(grp=>{
-        const gs = parseFloat(grp.querySelector('.grp-sets').value)||0;
-        const gr = parseFloat(grp.querySelector('.grp-reps').value)||0;
-        const gw = parseFloat(grp.querySelector('.grp-weight').value)||0;
-        if(gs>0) groups.push({ sets:gs, reps:gr, weight:gw });
-      });
-
-      const volume = groups.reduce((a,g)=>a+g.sets*g.reps*g.weight, 0);
-      // Backward-compatible aggregate: sets/volume are always exact (summed); reps/weight
-      // are a representative single number (last group — typically the working/back-off
-      // sets) so every existing function that reads e.sets/e.reps/e.weight/e.volume keeps
-      // working unmodified whether or not multiple groups were used.
-      const sets = groups.reduce((a,g)=>a+g.sets, 0);
-      const lastGroup = groups[groups.length-1];
-      const reps = lastGroup.reps;
-      const weight = lastGroup.weight;
-      const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
-      const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
-
-      if(name){
-        const libMatch = guessTagsFromLibrary(name);
-        const exerciseId = libMatch ? libMatch.exerciseId : null;
-        const exercise = { name, sets, reps, weight, area:primaryArea, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId };
-        if(groups.length > 1) exercise.setGroups = groups; // only stored when actually used
-        session.exercises.push(exercise);
-        total += volume;
-      }
-    });
-    session.totalVolume = total;
-  } else if(sessionType==='mobility'){
-    session.stretches = [];
-    let total=0;
-    document.querySelectorAll('#stretchRows .exercise-row').forEach(row=>{
-      const name = row.querySelector('.st-name').value;
-      const sets = parseFloat(row.querySelector('.st-sets').value)||0;
-      const holdSeconds = parseFloat(row.querySelector('.st-hold').value)||0;
-      const area = row.querySelector('.st-area').value;
-      if(name){ session.stretches.push({name,sets,holdSeconds,area}); total += sets*holdSeconds; }
-    });
-    session.totalHoldSeconds = total;
-  } else {
-    session.runType = document.getElementById('runType').value;
-    session.distanceKm = parseFloat(document.getElementById('runDistance').value)||null;
-    session.durationMin = parseFloat(document.getElementById('runDuration').value)||null;
-    session.pace = document.getElementById('runPace').value;
-  }
-  return session;
-}
-
-function clearTrainingForm(){
-  document.getElementById('exerciseRows').innerHTML=''; addExerciseRow(); updateVolumeTotal();
-  document.getElementById('stretchRows').innerHTML=''; addStretchRow(); updateHoldTotal();
-  document.getElementById('runType').value='';
-  document.getElementById('runDistance').value=''; document.getElementById('runDuration').value='';
-  document.getElementById('runPace').value='';
-  document.getElementById('trainingNotes').value='';
-}
-
-async function saveTrainingSession(){
-  const session = collectTrainingSession();
-  const status = document.getElementById('trainingStatusMsg');
-  try{
-    const key = `training:${session.date}:${session.timestamp}`;
-    const result = await window.storage.set(key, JSON.stringify(session));
-    if(!result) throw new Error('save failed');
-    status.textContent='saved ✓';
-    showToast('Training session saved');
-    clearTrainingForm();
-    await refreshTrainingLog();
-  } catch(e){ status.textContent='save error'; showToast('Save failed — try again', true); console.error(e); }
-  setTimeout(()=>{status.textContent='';},1800);
-}
-
-async function refreshTrainingLog(){
-  const list = document.getElementById('logListTraining');
-  try{
-    const res = await window.storage.list('training:');
-    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span>No sessions yet</span></div>'; return; }
-    const keys = res.keys.sort().reverse().slice(0,14);
-    list.innerHTML='';
-    for(const k of keys){
-      const r = await window.storage.get(k);
-      const s = JSON.parse(r.value);
-      const div = document.createElement('div'); div.className='log-entry';
-      let summary;
-      if(s.type==='strength') summary = `${s.totalVolume||0} kg vol`;
-      else if(s.type==='mobility') summary = `${Math.round((s.totalHoldSeconds||0)/60*10)/10} min hold`;
-      else summary = `${s.distanceKm||0} km${s.runType?' · '+s.runType:''}`;
-      div.innerHTML = `<span>${s.date} · ${s.type}${s.workoutTag?' · '+s.workoutTag:''}</span><span>${summary}</span>`;
-      list.appendChild(div);
-    }
-  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg><span>No sessions yet</span></div>'; }
-}
-
-document.getElementById('saveBtnTraining').addEventListener('click', saveTrainingSession);
-document.getElementById('clearBtnTraining').addEventListener('click', clearTrainingForm);
-document.getElementById('savePlanBtn').addEventListener('click', savePlan);
-
-async function savePlan(){
-  const date = document.getElementById('trainingDate').value;
-  const exercises = [];
-  const unmatched = [];
-  document.querySelectorAll('#exerciseRows .exercise-row').forEach(row=>{
-    const name = row.querySelector('.ex-name').value.trim();
-    let area = row.querySelector('.ex-area').value;
-    let secondaryArea = row.querySelector('.ex-area-secondary').value;
-    let movement = row.querySelector('.ex-movement').value;
-    let exerciseId = null;
-    const guess = name ? guessTags(name) : null;
-    if(guess && guess.exerciseId) exerciseId = guess.exerciseId;
-    // Fallback: area is normally set on the name field's blur event, but that can miss
-    // on mobile (touch timing) or if the exercise name didn't match a known keyword.
-    // Re-attempt right before saving so an exercise never silently drops out of
-    // warm-up/stretching generation with no error shown.
-    if(name && !area){
-      if(guess){
-        area = guess.primary;
-        secondaryArea = secondaryArea || guess.secondary || '';
-        movement = movement || guess.movement || '';
-        row.querySelector('.ex-area').value = area;
-        if(guess.secondary) row.querySelector('.ex-area-secondary').value = guess.secondary;
-        if(guess.movement) row.querySelector('.ex-movement').value = guess.movement;
-      } else {
-        unmatched.push(name);
-      }
-    }
-    if(name) exercises.push({ name, area, secondaryArea, movement, exerciseId });
-  });
-  const workoutTag = document.getElementById('workoutTag').value;
-  const status = document.getElementById('trainingStatusMsg');
-  if(exercises.length===0){ status.textContent='add exercise names first'; setTimeout(()=>status.textContent='',1800); return; }
-  try{
-    await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag }));
-    if(unmatched.length){
-      status.textContent = `saved — but pick an area for: ${unmatched.join(', ')} (won't show in warm-up otherwise)`;
-      showToast('Plan saved — some exercises need an area picked manually', true);
-      setTimeout(()=>{status.textContent='';}, 5000);
-      return;
-    }
-    status.textContent = 'plan saved ✓';
-    showToast('Plan saved');
-    // Auto-refresh warm-up so it reflects what was just saved, without a separate manual step
-    document.getElementById('warmupFlowBody').style.display = 'block';
-    document.getElementById('warmupFlowHeader').classList.add('active');
-    generateWarmup();
-  } catch(e){ status.textContent = 'save error'; showToast('Save failed — try again', true); }
-  setTimeout(()=>{status.textContent='';},1800);
-}
 
 /* ---------- STRENGTH TEMPLATES + AUTO-PROGRESSION ---------- */
 const SESSION_FOCUS_INFO = {
@@ -3378,143 +3249,6 @@ const SESSION_FOCUS_INFO = {
   power:       { repLow:1, repHigh:5,  increment:{ lower:2.5, upper:1.25 }, label:'Power — low reps, high intent, full rest between sets. Weight increases are small and infrequent — technical quality matters more than the number.' },
   general:     { repLow:8, repHigh:12, increment:{ lower:2.5, upper:1.25 }, label:'General / mixed — standard 8-12 rep range.' }
 };
-
-function applySessionFocusDefault(){
-  const select = document.getElementById('sessionFocus');
-  const date = document.getElementById('trainingDate').value;
-  (async ()=>{
-    // Prefer the specific planned focus for THIS date, if the generator planned one
-    // (real periodization only means something if the day you log actually reflects it —
-    // this was previously write-only, embedded in notes but never read back).
-    let focus = null;
-    try{
-      const r = await window.storage.get(`weekplan:${date}:am`);
-      const block = JSON.parse(r.value);
-      if(block.type==='strength' && block.details.plannedFocus) focus = block.details.plannedFocus;
-    } catch(e){}
-    if(!focus){
-      const goals = await getCurrentGoals(date);
-      const topGoal = goals && goals.list && goals.list[0];
-      if(topGoal && SESSION_FOCUS_INFO[topGoal.type]) focus = topGoal.type;
-    }
-    if(focus && SESSION_FOCUS_INFO[focus]) select.value = focus;
-    document.getElementById('sessionFocusNote').textContent = SESSION_FOCUS_INFO[select.value].label;
-  })();
-}
-document.getElementById('sessionFocus').addEventListener('change', ()=>{
-  document.getElementById('sessionFocusNote').textContent = SESSION_FOCUS_INFO[document.getElementById('sessionFocus').value].label;
-});
-
-function suggestedIncrement(area){
-  const lowerBody = ['quads_knees','hamstrings','hips'].includes(area);
-  return lowerBody ? 2.5 : 1.25;
-}
-
-// Recovery-gated: if today's scores look poor, progression suggestions hold rather than
-// advance — same spirit as the REDUCE logic, applied at the individual-exercise level.
-async function getTodayRecoveryGate(){
-  try{
-    const r = await window.storage.get(keyFor(todayStr));
-    const entry = JSON.parse(r.value);
-    const trailing = await getTrailingAverages(todayStr);
-    const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
-    const goalT = await currentGoalThresholds();
-    if((targetScore!=null && targetScore < goalT.scoreLow) || (adaptiveScore!=null && adaptiveScore < goalT.scoreLow)){
-      return 'poor';
-    }
-    return 'normal';
-  } catch(e){ return 'unknown'; }
-}
-
-// Double progression: advance weight once you hit the top of the goal-appropriate rep
-// range, otherwise add a rep at the same weight. Holds (or nudges down) if reps have
-// stalled below range for 2 sessions running, or if today's recovery looks poor.
-// Validated by Cowork's generative-programming research: Plotkin et al. 2022 (PeerJ,
-// PMID 36199287) found rep-progression performs comparably to pure load-progression —
-// this isn't a workaround for lacking RPE, it's the correctly-evidenced default given
-// an objective-only data model. The gold-standard objective method (APRE, Mann et al.
-// 2010) uses a dedicated test-set each session — a bigger feature, not built here.
-async function suggestProgression(exerciseName, area, focus){
-  const sessions = await getAllTrainingSessions();
-  const history = [];
-  sessions.forEach(s=>{
-    if(s.type==='strength' && s.exercises){
-      s.exercises.forEach(e=>{
-        if(e.name && exerciseName && e.name.trim().toLowerCase()===exerciseName.trim().toLowerCase() && e.weight){
-          history.push({ date: s.date, sets: e.sets, reps: e.reps, weight: e.weight });
-        }
-      });
-    }
-  });
-  if(history.length === 0) return null;
-  history.sort((a,b)=> new Date(a.date)-new Date(b.date));
-  const last = history[history.length-1];
-  const prior = history.length>=2 ? history[history.length-2] : null;
-
-  const info = SESSION_FOCUS_INFO[focus] || SESSION_FOCUS_INFO.general;
-  const inc = suggestedIncrement(area);
-  const gate = await getTodayRecoveryGate();
-
-  if(gate === 'poor'){
-    return { sets: last.sets, reps: last.reps, weight: last.weight, note: 'Repeat last session — today\'s recovery suggests holding rather than progressing' };
-  }
-  if(last.reps >= info.repHigh){
-    return { sets: last.sets, reps: info.repLow, weight: Math.round((last.weight+inc)*2)/2, note: `+${inc}kg — hit top of rep range (${last.reps}) last session` };
-  }
-  if(last.reps < info.repLow && prior && prior.weight === last.weight && prior.reps < info.repLow){
-    return { sets: last.sets, reps: info.repLow, weight: Math.max(0, last.weight - inc), note: `-${inc}kg — reps below target range for 2 sessions running` };
-  }
-  if(last.reps < info.repHigh){
-    return { sets: last.sets, reps: Math.min(info.repHigh, last.reps+1), weight: last.weight, note: `Same weight — building toward ${info.repHigh} reps (last: ${last.reps})` };
-  }
-  return { sets: last.sets, reps: last.reps, weight: last.weight, note: 'Repeat last session' };
-}
-
-async function loadPlanForDate(date){
-  const status = document.getElementById('trainingStatusMsg');
-  const toggle = document.getElementById('entryModeToggle');
-  try{
-    const r = await window.storage.get(`planned_session:${date}`);
-    const plan = JSON.parse(r.value);
-    document.getElementById('exerciseRows').innerHTML='';
-    plan.exercises.forEach(ex=> addExerciseRow(ex.name,'','','',ex.area,ex.secondaryArea||'',ex.movement||''));
-    if(plan.workoutTag) document.getElementById('workoutTag').value = plan.workoutTag;
-    updateVolumeTotal();
-    status.textContent = 'plan loaded';
-    toggle.style.display = 'flex';
-    setEntryMode('auto');
-  } catch(e){
-    document.getElementById('exerciseRows').innerHTML=''; addExerciseRow(); updateVolumeTotal();
-    toggle.style.display = 'none';
-    setEntryMode('manual');
-  }
-  await applyDeloadSuggestions();
-  setTimeout(()=>{status.textContent='';},1500);
-}
-function setEntryMode(mode){
-  const body = document.getElementById('mainWorkoutFlowBody');
-  const note = document.getElementById('entryModeNote');
-  document.querySelectorAll('#entryModeToggle .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
-  if(mode==='auto'){
-    body.classList.add('auto-mode');
-    note.style.display = 'block';
-    note.textContent = "Showing today's generated plan — log sets/reps/weight as you go. Switch to Manual to change exercises or add detail.";
-  } else {
-    body.classList.remove('auto-mode');
-    note.style.display = 'none';
-  }
-}
-document.querySelectorAll('#entryModeToggle .type-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>setEntryMode(btn.dataset.mode));
-});
-
-document.getElementById('trainingDate').addEventListener('change', async ()=>{
-  if(sessionType==='strength') await loadPlanForDate(document.getElementById('trainingDate').value);
-  else await applyDeloadSuggestions();
-  applySessionFocusDefault();
-  generateWarmup();
-  renderTodaySessionStretch();
-});
 
 /* ---------- WEEKLY PLANNER ---------- */
 /* ---------- UNIFIED SESSION FLOW (Daily view: warm-up → main workout → stretching → cool-down) ---------- */
@@ -3528,31 +3262,6 @@ function toggleFlowSection(headerId, bodyId){
   });
 }
 toggleFlowSection('warmupFlowHeader', 'warmupFlowBody');
-toggleFlowSection('mainWorkoutFlowHeader', 'mainWorkoutFlowBody');
-toggleFlowSection('stretchFlowHeader', 'stretchFlowBody');
-toggleFlowSection('cooldownFlowHeader', 'cooldownFlowBody');
-
-async function renderTodaySessionStretch(){
-  const container = document.getElementById('todaySessionStretchCards');
-  container.innerHTML = '<div class="skeleton tall"></div>';
-  const { ordered, injuryByArea, loadFlagged, runFlagged, alreadyStretched } = await computePostExerciseAreas();
-  const remaining = ordered.filter(a=>!alreadyStretched[a]);
-  if(remaining.length === 0){
-    container.innerHTML = ordered.length
-      ? '<div class="log-entry">Everything flagged already stretched today.</div>'
-      : '<div class="log-entry">Log or plan training to generate stretching focus.</div>';
-    return;
-  }
-  const { selected } = selectWithinBudget(remaining, injuryByArea, MOBILITY_TIME_CAP, MOBILITY_TIME_PER_AREA);
-  let html = '';
-  selected.forEach(area=>{
-    const proto = MOBILITY_LIBRARY[area];
-    if(!proto) return;
-    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
-    html += `<div class="warm-card ${r.cls}" style="margin-bottom:8px;"><div class="warm-area">${BODY_AREAS[area]}</div><div class="warm-reason ${r.reasonCls}">${r.text}</div><div class="warm-drills"><strong style="color:var(--text);">Foam roll</strong> — ${proto.foamRoll}<br><br><strong style="color:var(--text);">Dynamic</strong> — ${proto.dynamic}</div></div>`;
-  });
-  container.innerHTML = html || '<div class="log-entry">Nothing to show.</div>';
-}
 
 function updateGoalPriorityBadges(){
   document.querySelectorAll('#goalListRows .goal-row .goal-priority-badge').forEach((badge,i)=>{
@@ -3596,7 +3305,6 @@ function addGoalRow(goal){
         <option value="strength">Strength</option>
         <option value="hypertrophy">Hypertrophy / muscle gain</option>
         <option value="running">Running performance</option>
-        <option value="hyrox">Hyrox</option>
       </select>
     </div>
     <div class="field-row"><input type="text" class="goal-detail" placeholder="e.g. Get stronger, sub-25 5K by June"></div>
@@ -3925,36 +3633,6 @@ async function getTypicalValue(type, exerciseName){
   return recent.reduce((a,b)=>a+b,0)/recent.length;
 }
 
-async function applyDeloadSuggestions(){
-  const banner = document.getElementById('deloadBanner');
-  const date = document.getElementById('trainingDate').value;
-  const isDeload = await isDeloadWeek(date);
-  if(banner) banner.style.display = isDeload ? 'block' : 'none';
-  if(!isDeload) return;
-
-  if(sessionType === 'strength'){
-    for(const row of document.querySelectorAll('.exercise-row')){
-      const nameInput = row.querySelector('.ex-name');
-      const setsInput = row.querySelector('.ex-sets');
-      if(nameInput.value && !setsInput.value){
-        const typical = await getTypicalValue('strength', nameInput.value);
-        if(typical!=null){
-          setsInput.value = Math.max(1, Math.round(typical*(1-DELOAD_CUT)));
-          updateVolumeTotal();
-        }
-      }
-    }
-  } else if(sessionType === 'run'){
-    const distInput = document.getElementById('runDistance');
-    if(!distInput.value){
-      const typical = await getTypicalValue('run', null);
-      if(typical!=null){
-        distInput.value = Math.round(typical*(1-DELOAD_CUT)*100)/100;
-      }
-    }
-  }
-}
-
 function blockSummary(block, personalPace, personalSets){
   const est = estimateSessionDuration(block, personalPace, personalSets);
   const estPart = est ? `~${est}min` : null;
@@ -3979,10 +3657,17 @@ function blockSummary(block, personalPace, personalSets){
   return '';
 }
 
+// Replaces the old "✳" text-character placeholder, which depended on system font
+// fallback rendering (Helvetica Neue isn't a loaded web font, unlike IBM Plex Mono) —
+// unreliable across devices. Pure SVG has no font dependency at all, and stroke-width
+// lets it match the same thick, intentional weight the score numbers now use.
+const SCORE_PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg>';
+
 const WEEK_SLOT_ICONS = {
-  strength: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9" width="3" height="6" rx="1"/><rect x="19.5" y="9" width="3" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/><rect x="5.5" y="7" width="2" height="10" rx="0.6"/><rect x="16.5" y="7" width="2" height="10" rx="0.6"/></svg>',
+  strength: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1.6"/><path d="M12 6.5 L11.5 11 M11.5 7.5 L9.5 12.5 M11.5 11 L8.5 14.5 L9.5 19 M11.5 11 L15 13.5 L14 19"/></svg>',
   run: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4.5" r="1.6"/><path d="M12 8.5 L8.5 11 M12 8.5 L14.5 12 L12 15 L14 19.5 M14.5 12 L18 13.5 L17 17.5"/></svg>',
-  mobility: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4" r="1.6"/><path d="M13.5 6.5 L8 8.5 M13.5 6.5 Q12 10 14 13 Q15.5 15.5 13 17.5 M8 8.5 L9 13"/></svg>'
+  mobility: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4" r="1.6"/><path d="M13.5 6.5 L8 8.5 M13.5 6.5 Q12 10 14 13 Q15.5 15.5 13 17.5 M8 8.5 L9 13"/></svg>',
+  rest: '<svg class="week-slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="1.6"/><path d="M12 7 L12 13.5 M12 9 L10 11.5 M12 9 L14 11.5 M12 13.5 L9 17.5 M12 13.5 L15 17.5"/></svg>'
 };
 function renderSlotContent(slotEl, block, personalPace, personalSets){
   if(block){
@@ -3991,7 +3676,7 @@ function renderSlotContent(slotEl, block, personalPace, personalSets){
     slotEl.innerHTML = `${icon}<div class="week-slot-type">${block.type}</div><div class="week-slot-summary">${blockSummary(block, personalPace, personalSets)}</div>`;
   } else {
     slotEl.className = 'week-slot';
-    slotEl.innerHTML = `<div class="week-slot-empty-symbol">✳</div><div class="week-slot-empty-label">rest</div>`;
+    slotEl.innerHTML = `${WEEK_SLOT_ICONS.rest}<div class="week-slot-empty-label">rest</div>`;
   }
 }
 
@@ -4153,9 +3838,17 @@ function openBlockEditor(date, slot, block){
 
   if(block.type==='strength'){
     const rowsContainer = document.getElementById('weekExerciseRows');
-    function addWeekExRow(name='', area='', secondaryArea='', movement=''){
+    function addWeekExRow(name='', area='', secondaryArea='', movement='', skippedForInjury=false){
       const row = document.createElement('div');
       row.className = 'edit-row';
+      if(skippedForInjury){
+        row.innerHTML = `
+          <div style="flex:1; font-size:12px; color:var(--dim); font-style:italic; padding:6px 0;">${name}</div>
+          <span class="remove-row">×</span>`;
+        row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+        rowsContainer.appendChild(row);
+        return row;
+      }
       row.innerHTML = `
         <input type="text" class="week-ex-name" placeholder="exercise" value="${name}">
         <span class="week-ex-evidence"></span>
@@ -4192,7 +3885,7 @@ function openBlockEditor(date, slot, block){
       refreshEvidenceBadge();
       rowsContainer.appendChild(row);
     }
-    (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex.name, ex.area, ex.secondaryArea, ex.movement));
+    (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex.name, ex.area, ex.secondaryArea, ex.movement, ex.skippedForInjury));
     if((block.details.exercises||[]).length===0) addWeekExRow();
     document.getElementById('addWeekExerciseRow').addEventListener('click', ()=>addWeekExRow());
   }
@@ -4203,6 +3896,7 @@ function openBlockEditor(date, slot, block){
       st = st || {};
       const row = document.createElement('div');
       row.className = 'mobility-row';
+      row.dataset.category = st.category || 'goal';
       if(st.skill){
         row.dataset.skill = st.skill;
         row.dataset.skillLabel = st.skillLabel || '';
@@ -4248,8 +3942,22 @@ function openBlockEditor(date, slot, block){
       row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
       rowsContainer.appendChild(row);
     }
-    (block.details.stretches||[]).forEach(st=>addWeekStretchRow(st));
-    if((block.details.stretches||[]).length===0) addWeekStretchRow();
+    const stretchList = block.details.stretches||[];
+    const categoryOrder = ['access','control','load','integrate','goal'];
+    const categoryLabels = { access:'ACCESS', control:'CONTROL', load:'LOAD', integrate:'INTEGRATE', goal:'GOAL' };
+    const groupedByCat = {};
+    stretchList.forEach(st=>{ const c = st.category||'goal'; (groupedByCat[c]=groupedByCat[c]||[]).push(st); });
+    categoryOrder.forEach(cat=>{
+      const items = groupedByCat[cat];
+      if(!items || !items.length) return;
+      const header = document.createElement('div');
+      header.className = 'mobility-cat-label';
+      header.style.marginTop = '10px';
+      header.textContent = categoryLabels[cat];
+      rowsContainer.appendChild(header);
+      items.forEach(st=>addWeekStretchRow(st));
+    });
+    if(stretchList.length===0) addWeekStretchRow();
     document.getElementById('addWeekStretchRow').addEventListener('click', ()=>addWeekStretchRow());
   }
 
@@ -4267,7 +3975,9 @@ function openBlockEditor(date, slot, block){
     if(block.type==='strength'){
       const exercises = [];
       document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
-        const name = row.querySelector('.week-ex-name').value.trim();
+        const nameEl = row.querySelector('.week-ex-name');
+        if(!nameEl) return; // injury-skip placeholder row — not a real exercise, nothing to collect
+        const name = nameEl.value.trim();
         let area = row.querySelector('.week-ex-area').value;
         let secondaryArea = row.querySelector('.week-ex-area2').value;
         let movement = row.querySelector('.week-ex-movement').value;
@@ -4290,6 +4000,7 @@ function openBlockEditor(date, slot, block){
     } else if(block.type==='mobility'){
       const stretches = [];
       document.querySelectorAll('#weekStretchRows .mobility-row').forEach(row=>{
+        const category = row.dataset.category || 'goal';
         if(row.dataset.skill){
           stretches.push({
             name: row.dataset.name, area:'', skill: row.dataset.skill, skillLabel: row.dataset.skillLabel,
@@ -4297,14 +4008,15 @@ function openBlockEditor(date, slot, block){
             sets: parseInt(row.dataset.sets, 10), holdSeconds: parseInt(row.dataset.holdSeconds, 10),
             isReadinessTest: !!row.dataset.isReadinessTest,
             evidence: row.dataset.evidence || undefined,
-            nextLevelLabel: row.dataset.nextLevelLabel || undefined
+            nextLevelLabel: row.dataset.nextLevelLabel || undefined,
+            category
           });
         } else {
           const name = row.querySelector('.week-st-name').value.trim();
           const area = row.querySelector('.week-st-area').value;
           const sets = parseInt(row.querySelector('.week-st-sets').value, 10) || 2;
           const holdSeconds = parseInt(row.querySelector('.week-st-hold').value, 10) || 30;
-          if(name) stretches.push({name, area, sets, holdSeconds});
+          if(name) stretches.push({name, area, sets, holdSeconds, category});
         }
       });
       details = { stretches };
@@ -4335,7 +4047,9 @@ function openBlockEditor(date, slot, block){
       const exercises = [];
       let totalVolume = 0;
       document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
-        const name = row.querySelector('.week-ex-name').value.trim();
+        const nameEl = row.querySelector('.week-ex-name');
+        if(!nameEl) return; // injury-skip placeholder row — not a real exercise, nothing to collect
+        const name = nameEl.value.trim();
         if(!name) return;
         let area = row.querySelector('.week-ex-area').value;
         let secondaryArea = row.querySelector('.week-ex-area2').value;
@@ -4689,7 +4403,6 @@ async function addInjury(){
     flashConfirm(document.getElementById('addInjuryBtn'));
     refreshInjuries();
     generateWarmup();
-    renderTodaySessionStretch();
   } catch(e){
     showToast('Save failed — try again', true);
     console.error(e);
@@ -4812,6 +4525,13 @@ function scoresForEntry(entry, trailing){
   return { targetScore, adaptiveScore };
 }
 
+async function getCapacityForEntry(entry){
+  const pairs = await getPairedData();
+  const hrvRatio = (entry.hrvGarmin!=null && entry.hrvBaseline) ? entry.hrvGarmin/entry.hrvBaseline : null;
+  const todayVals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura, rhr: entry.restingHR };
+  return computeCapacityFromValues(pairs, todayVals);
+}
+
 async function capacityLabelForEntry(entry){
   const pairs = await getPairedData();
   if(pairs.length < 7) return { label:null, r:null };
@@ -4854,6 +4574,74 @@ let cardQueue = [];
 let cardQueueIndex = 0;
 let lastDecisionKey = null;
 let lastDecisionIndex = null;
+let lastDecisionType = null;
+let lastDecisionOutcome = null;
+
+// Signal count -> tier -> which single lever gets adjusted, never more than one at
+// once. Grounded in the recommendation engine's own existing pattern: 2 signals is
+// already the minimum threshold to trigger a reduce/add card at all (see reduceSignals/
+// addSignals below), and 3+ signals is what the engine itself already calls "high
+// confidence." Extended one step further here: 2 signals (the weakest case that still
+// clears the bar) gets the smallest lever, reps. 4+ signals — nearly every possible
+// corroborating signal agreeing — is strong enough to justify touching weight, the
+// most impactful lever, rather than just volume.
+function getAdjustmentTier(signalCount){
+  if(signalCount >= 4) return 'strong';
+  if(signalCount >= 3) return 'medium';
+  return 'weak';
+}
+// Running only has distance displayed/stored on Today's plan — no target pace field
+// exists to adjust "speed" against, so distance is the lever for every tier there, with
+// the tier instead controlling how large the distance change is. For strength, the
+// lever itself escalates: reps first (smallest, most reversible), then sets, then
+// finally weight, reserved for a strong signal only — matching "reps before sets before
+// weight... it wouldn't adjust all."
+function getAdjustmentLever(tier, sessionType){
+  if(sessionType==='run') return tier==='strong' ? 'pace' : 'distance';
+  if(tier==='weak') return 'reps';
+  if(tier==='medium') return 'sets';
+  return 'weight';
+}
+// Delta magnitude per lever+direction. Weight, pace, and distance use asymmetric
+// add/reduce sizing deliberately — reducing intensity aggressively is safe (protects
+// recovery), but adding it aggressively in a single day risks overreaching, so "add"
+// deltas are smaller than "reduce" deltas for those levers. Reps/sets stay symmetric
+// since they're small, easily-reversible integer adjustments either direction.
+// Distance is the lever for running's weak/medium tiers, scaled by tier severity
+// (matching how it worked before pace existed as a separate lever); strong escalates
+// to pace instead — a genuinely different lever, not just a bigger distance cut,
+// mirroring how strength escalates to weight rather than just cutting more sets.
+function getAdjustmentDelta(lever, direction, tier){
+  if(lever==='distance'){
+    const base = direction==='reduce' ? -10 : 8;
+    const tierMultiplier = tier==='medium' ? 2 : 1;
+    return base * tierMultiplier;
+  }
+  const table = {
+    reps: { reduce: -2, add: 2 },
+    sets: { reduce: -1, add: 1 },
+    weight: { reduce: -10, add: 5 },  // percent
+    pace: { reduce: 8, add: -5 }      // percent — reduce means slower/easier (higher min/km), add means faster (lower min/km)
+  };
+  return table[lever][direction];
+}
+
+// Today's plan adjustment from an accepted reduce/add recommendation — one lever at a
+// time (reps, sets, weight, or distance), not cumulative across multiple levers.
+// Overwrites rather than stacks, since only one reduce/add decision is realistically
+// made per day (the engine produces a single reduce/add/hold verdict, not several).
+async function applyTodayAdjustment(lever, delta){
+  await window.storage.set(`todayAdjustment:${todayStr}`, JSON.stringify({ date: todayStr, lever, delta }));
+}
+async function getTodayAdjustment(){
+  try{
+    const r = await window.storage.get(`todayAdjustment:${todayStr}`);
+    return JSON.parse(r.value);
+  } catch(e){ return { lever:null, delta:0 }; }
+}
+async function clearTodayAdjustment(){
+  try{ await window.storage.delete(`todayAdjustment:${todayStr}`); } catch(e){}
+}
 
 function buildRecCard(type, title, signals, confidence, meta){
   const card = document.createElement('div');
@@ -4901,9 +4689,23 @@ async function logRecDecision(type, meta, decision, card){
       const checkbox = document.getElementById('deloadWeekCheckbox');
       if(checkbox) checkbox.checked = true;
     }
+    // Only reduce/add map to a real plan change. Tier — and therefore which single
+    // lever gets touched — comes from how many signals corroborated the recommendation,
+    // using the same meta.signals array already built and shown on the card itself, not
+    // a separately-invented count.
+    if(decision==='accepted' && (type==='reduce' || type==='add')){
+      const signalCount = (meta && meta.signals) ? meta.signals.length : 2;
+      const tier = getAdjustmentTier(signalCount);
+      const lever = getAdjustmentLever(tier, todaySessionType);
+      const delta = getAdjustmentDelta(lever, type, tier);
+      await applyTodayAdjustment(lever, delta);
+      renderTodayWorkoutSummary();
+    }
     showToast(decision==='accepted' ? 'Accepted' : 'Dismissed');
     lastDecisionKey = key;
     lastDecisionIndex = cardQueueIndex;
+    lastDecisionType = type;
+    lastDecisionOutcome = decision;
     document.getElementById('undoDecisionBtn').style.display = 'block';
   } catch(e){ showToast('Save failed — try again', true); console.error(e); }
   cardQueueIndex++;
@@ -4915,9 +4717,17 @@ document.getElementById('undoDecisionBtn').addEventListener('click', async ()=>{
   if(lastDecisionKey == null) return;
   try{
     await window.storage.delete(lastDecisionKey);
+    // Adjustment storage overwrites rather than accumulates, so undo just clears it
+    // outright rather than computing a reverse delta.
+    if(lastDecisionOutcome==='accepted' && (lastDecisionType==='reduce' || lastDecisionType==='add')){
+      await clearTodayAdjustment();
+      renderTodayWorkoutSummary();
+    }
     cardQueueIndex = lastDecisionIndex;
     lastDecisionKey = null;
     lastDecisionIndex = null;
+    lastDecisionType = null;
+    lastDecisionOutcome = null;
     document.getElementById('undoDecisionBtn').style.display = 'none';
     showNextCard();
     refreshRecHistory();
@@ -4998,12 +4808,26 @@ async function checkReturnToRunRule(){
   return null;
 }
 
-function updateOverallScore(targetScore, adaptiveScore, goalT){
+function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
+
+  // Capacity becomes the main number once it has enough data (7+ paired days) — a
+  // personalized, correlation-weighted read on today's numbers, not just today's
+  // numbers against a fixed formula. Falls back to the Adaptive/Target average before
+  // that, since capacity genuinely has nothing to show yet.
+  if(capacityResult && capacityResult.available){
+    const prevNum = parseInt(out.textContent);
+    const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
+    animateNumber(out, prev, capacityResult.score, 500);
+    const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
+    label.textContent = labelText;
+    return;
+  }
+
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
   if(parts.length === 0){
-    out.textContent='✳'; label.textContent='Overall';
+    out.innerHTML=SCORE_PLACEHOLDER_SVG; label.textContent='Overall';
     return;
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
@@ -6070,6 +5894,91 @@ function renderProgressRing(percent, size){
   </svg>`;
 }
 
+// Builds the dither density-gradient as a data URI sized proportionally to the actual
+// unfilled width, rather than stretching one fixed-size tile to wildly different
+// widths depending on progress percent — that stretching caused two problems:
+// inconsistent dot size across different percentages, and visible seam/outline
+// artifacts from sub-pixel scaling gaps between adjacent rects. Slightly oversized
+// rects (cell+0.5 instead of cell) give adjacent dots a small overlap, which absorbs
+// any remaining sub-pixel gap so the page background can't show through as an
+// unwanted border around each dot.
+function buildBarDitherSvg(unfilledPercent){
+  const BAYER_4x4 = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  const cell = 3;
+  const assumedBarWidthPx = 340; // close approximation of the real rendered width, keeps scaling near 1:1
+  const w = Math.max(cell*4, Math.round(unfilledPercent/100 * assumedBarWidthPx));
+  const h = 32;
+  const cols = Math.ceil(w/cell), rows = Math.ceil(h/cell);
+  let rects = '';
+  for(let cy=0; cy<rows; cy++){
+    for(let cx=0; cx<cols; cx++){
+      const strength = Math.max(0, 1 - (cx/cols));
+      const threshold = BAYER_4x4[cy%4][cx%4]/16;
+      if(threshold < strength){
+        rects += `<rect x="${cx*cell}" y="${cy*cell}" width="${cell+0.5}" height="${cell+0.5}"/>`;
+      }
+    }
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g fill="#0c0d0b">${rects}</g></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+// Same percent computeGoalRingPercent already produces elsewhere — this just renders it
+// as a bar instead of a ring. Hyrox gets a visual Run/Strength split (a divider at the
+// midpoint with labels underneath) since there's no separate running-only or
+// strength-only sub-metric computed anywhere to show two genuinely different numbers —
+// this is the same overall percent, split visually to reflect that Hyrox performance
+// depends on both, not two independently-tracked progress values.
+function renderGoalProgressBarHtml(goal, percent){
+  if(!goal) return '';
+  const isHyrox = goal.type==='hyrox';
+  const splitDivider = isHyrox ? '<div class="goal-progress-bar-split"></div>' : '';
+  const splitLabels = isHyrox ? '<div style="display:flex; justify-content:space-between; font-size:10px; color:var(--dim); letter-spacing:0.04em; margin-top:2px;"><span>RUN</span><span>STRENGTH</span></div>' : '';
+  if(percent==null){
+    // Honest empty state — fully dithered, no number claimed — rather than hiding the
+    // bar entirely, matching how renderProgressRing already shows an empty ring instead
+    // of silently disappearing when there's no computable current value yet.
+    return `
+      <div style="margin-top:10px;">
+        <div class="score-note" style="margin-bottom:0;">Top goal progress</div>
+        <div class="goal-progress-bar">
+          <div class="goal-progress-bar-dither" style="width:100%; background-image:url('${buildBarDitherSvg(100)}');"></div>
+          ${splitDivider}
+        </div>
+        <div class="score-note" style="margin-top:2px;">Not enough logged data yet to estimate progress</div>
+        ${splitLabels}
+      </div>`;
+  }
+  return `
+    <div style="margin-top:10px;">
+      <div class="score-note" style="margin-bottom:0;">Top goal progress</div>
+      <div class="goal-progress-bar">
+        <div class="goal-progress-bar-fill" style="width:${percent}%;"></div>
+        <div class="goal-progress-bar-dither" style="width:${100-percent}%; background-image:url('${buildBarDitherSvg(100-percent)}');"></div>
+        ${splitDivider}
+        <div class="goal-progress-bar-label">${percent}%</div>
+      </div>
+      ${splitLabels}
+    </div>`;
+}
+
+// Second placement for the same bar, specific to hypertrophy goals, positioned above
+// the Weight/Body fat % inputs on the Data tab per the original request — only renders
+// when the top goal is actually hypertrophy, clears otherwise so switching goal types
+// doesn't leave stale content behind.
+async function renderHypertrophyGoalBar(){
+  const container = document.getElementById('hypertrophyGoalBarContainer');
+  if(!container) return;
+  const goals = await getCurrentGoals(todayStr);
+  const topGoal = goals && goals.list && goals.list[0];
+  if(!topGoal || topGoal.type!=='hypertrophy'){
+    container.innerHTML = '';
+    return;
+  }
+  const percent = await computeGoalRingPercent(topGoal);
+  container.innerHTML = renderGoalProgressBarHtml(topGoal, percent);
+}
+
 // Deliberately simple linear interpolation between current baseline and target —
 // "structured and easy to follow" checkpoints, not a fabricated periodization curve.
 function buildGoalTimeline(startValue, startDate, endValue, endDate){
@@ -6416,7 +6325,7 @@ async function renderGoalProgress(){
     html += renderProgressRing(ringPercent);
     html += `<div style="flex:1;">`;
     html += `<div class="log-title" style="margin:0;"><span style="font-weight:700;">P${i+1}</span> ${i===0?'(top) ':''}— ${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
-    html += `<div class="score-note" style="margin:2px 0 0;">${g.detail}</div>`;
+    html += g.detail ? `<div class="score-note" style="margin:2px 0 0;">${g.detail}</div>` : '';
     html += `</div></div>`;
     html += await renderSingleGoalProgress(g);
   }
@@ -7149,6 +7058,53 @@ const MOBILITY_SKILL_DOSING = {
   overheadsquat: { sets: 3, holdSeconds: 20 }
 };
 
+// When someone has no active mobility skill goal, auto-generates one from their
+// weakest assessed domain rather than leaving the Goal section empty. Persists it as a
+// real skill goal (not just a per-session pick) so it's actually trackable progress,
+// same as a manually-added goal — a goal that resets every session isn't a goal.
+async function getOrCreateAutoMobilityGoal(){
+  const goals = await getCurrentGoals(todayStr);
+  const existing = ((goals && goals.skillGoals) || []).filter(sg=>sg.category==='mobility' && !sg.isMaintenance);
+  if(existing.length > 0) return existing;
+
+  const assessment = await getMobilityAssessment();
+  const scores = (assessment && assessment.scores) || {};
+  const assessedDomains = MOBILITY_DOMAINS.filter(d=>scores[d]!=null);
+  let chosenSkill = null;
+  if(assessedDomains.length > 0){
+    const sorted = assessedDomains.slice().sort((a,b)=>scores[a]-scores[b]);
+    for(const domain of sorted){
+      if(MOBILITY_DOMAIN_TO_SKILL[domain]){ chosenSkill = MOBILITY_DOMAIN_TO_SKILL[domain]; break; }
+    }
+  }
+  if(!chosenSkill) chosenSkill = 'deepsquat'; // no assessment data, or only wrists assessed — broadly useful default
+
+  // If this skill already exists as a maintenance goal, promote it rather than
+  // creating a duplicate entry for the same skill.
+  const allMobilitySkillGoals = ((goals && goals.skillGoals) || []).filter(sg=>sg.category==='mobility');
+  const alreadyTracked = allMobilitySkillGoals.find(sg=>sg.skill===chosenSkill);
+  if(alreadyTracked){
+    alreadyTracked.isMaintenance = false;
+  } else {
+    allMobilitySkillGoals.push({ category:'mobility', skill:chosenSkill, levelIndex:0, isMaintenance:false, autoGenerated:true });
+  }
+  // Write back to whichever dated record getCurrentGoals actually resolved to — not
+  // always today's date — same discipline as advanceSkillLevel, to avoid creating a
+  // duplicate/conflicting goals record instead of updating the real one.
+  const nonMobilitySkillGoals = ((goals && goals.skillGoals) || []).filter(sg=>sg.category!=='mobility');
+  const newRecord = { list: (goals && goals.list) || [], skillGoals: [...nonMobilitySkillGoals, ...allMobilitySkillGoals] };
+  let targetKey = `goals:${todayStr}`;
+  try{
+    const res = await window.storage.list('goals:');
+    if(res && res.keys && res.keys.length){
+      const dates = res.keys.map(k=>k.replace('goals:','')).filter(d=>d<=todayStr).sort().reverse();
+      if(dates.length) targetKey = `goals:${dates[0]}`;
+    }
+  } catch(e){}
+  await window.storage.set(targetKey, JSON.stringify(newRecord));
+  return allMobilitySkillGoals.filter(sg=>sg.skill===chosenSkill);
+}
+
 // Builds an actual structured entry for a skill goal — level context, real dosing, and
 // (every other session) a light readiness-test of the NEXT level, rather than repeating
 // "do pike" identically every single generated day with no progression logic at all.
@@ -7201,6 +7157,60 @@ const MOBILITY_DOMAINS = ['ankles','knees','hips','hamstrings','adductors','spin
 const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'hips', spine:'thoracic', shoulders:'shoulders', scapula:'shoulders', wrists:null };
 const MOBILITY_DOMAIN_LEVEL_LABELS = ['1 — Foundation: basic positions with major compensation','2 — Controlled ROM: can enter positions, limited active control','3 — Loaded mobility: meaningful force through large ROM','4 — Advanced flexibility: pursuing major goals in this area','5 — Performance mobility: full active control + strength at end range'];
 
+// Built from DOGFOOD_Mobility_Research_Findings.txt section 13 (the five-level
+// progression) — Level 1 examples become ACCESS, Level 2 become CONTROL, Level 3
+// become LOAD. Keyed by the same 9 domains the assessment already uses, not the
+// separate 12-area exercise-tagging taxonomy, since deficit-prioritization reads
+// directly from assessment scores. Knees/scapula/wrists have thinner coverage in the
+// source document's named examples, so those specific entries are own extensions
+// following the same pattern (access=basic position, control=active entry,
+// load=resisted), not directly sourced.
+const MOBILITY_PROGRESSION_LIBRARY = {
+  access: {
+    ankles: ['Ankle circles', 'Knee-to-wall'],
+    knees: ['Terminal knee extension hold'],
+    hips: ['Supported deep squat', '90/90 switches', 'Half-kneeling hip-flexor stretch'],
+    hamstrings: ['Supine hamstring stretch'],
+    adductors: ['Adductor rockbacks'],
+    spine: ['Cat-cow', 'Thoracic rotations'],
+    shoulders: ['Shoulder CARs', 'Wall slides'],
+    scapula: ['Scapular CARs'],
+    wrists: ['Wrist circles']
+  },
+  control: {
+    ankles: ['Active/loaded knee-to-wall'],
+    knees: ['Active knee flexion-extension through range'],
+    hips: ['90/90 transitions', '90/90 lift-offs', 'Active hip flexion'],
+    hamstrings: ['Active straight-leg raise', 'Seated pike compression'],
+    adductors: ['Cossack progression'],
+    spine: ['Controlled spinal extension'],
+    shoulders: ['Shoulder lift-offs'],
+    scapula: ['Scapular wall slides with control'],
+    wrists: ['Active wrist flexion-extension hold']
+  },
+  load: {
+    ankles: ['Loaded calf raise'],
+    knees: ['Deep split squat'],
+    hips: ['Deep split squat', 'Bridge preparation'],
+    hamstrings: ['Full-ROM RDL', 'Loaded pike'],
+    adductors: ['Loaded Cossack'],
+    spine: ['Jefferson curl progression', 'Bridge preparation'],
+    shoulders: ['Loaded shoulder flexion', 'Overhead carries'],
+    scapula: ['Weighted scapular pull'],
+    wrists: ['Loaded wrist extension']
+  }
+};
+// Integration is inherently cross-domain (per section 11: "can they use the ROM in a
+// complex movement?"), so it isn't keyed by single domain the way the other three are.
+const MOBILITY_INTEGRATE_LIBRARY = ['Deep squat to overhead reach', 'Cossack squat to standing reach', 'Bear crawl to downward dog flow', 'Crab walk to bridge'];
+
+// Reasoned mapping from weakest assessment domain to the skill goal that most directly
+// targets it, for auto-generating a goal when the person hasn't set one. Several skills
+// legitimately touch hips (frontsplits/middlesplit/pancake all do) — picked the single
+// best-fit skill per domain rather than every overlapping option. Wrists has no direct
+// skill in the current progression trees, so it falls back at generation time.
+const MOBILITY_DOMAIN_TO_SKILL = { ankles:'deepsquat', knees:'deepsquat', hips:'frontsplits', hamstrings:'pike', adductors:'middlesplit', spine:'bridge', shoulders:'overheadsquat', scapula:'overheadsquat', wrists:null };
+
 async function getMobilityAssessment(){
   try{ const r = await window.storage.get('settings:mobilityAssessment'); return JSON.parse(r.value); }
   catch(e){ return null; }
@@ -7230,51 +7240,197 @@ async function getDeficitPrioritizedAreas(allAreas){
   });
 }
 
+// Checks this week's actual planned strength sessions for bulletproofing/accessory
+// work (isolation-category exercises, which the generator always adds after the main
+// lift) and maps their target areas back to mobility domains. Used to deprioritize —
+// not exclude — domains already getting real ROM/loading exposure elsewhere in the
+// week, per the research document's point about avoiding duplicated stretching when
+// someone's already doing deep squats, RDLs, split squats, etc. Warm-up coverage isn't
+// included: warm-ups are computed fresh each time Today is viewed, never persisted, so
+// there's no actual weekly record of what they covered to check against.
+async function getWeekBulletproofingCoverage(){
+  const covered = new Set();
+  const dates = getWeekDates();
+  const areaToDomain = {};
+  Object.keys(MOBILITY_DOMAIN_TO_AREA).forEach(domain=>{
+    const area = MOBILITY_DOMAIN_TO_AREA[domain];
+    if(area) areaToDomain[area] = domain;
+  });
+  for(const date of dates){
+    for(const slot of ['am','pm']){
+      try{
+        const r = await window.storage.get(`weekplan:${date}:${slot}`);
+        const block = JSON.parse(r.value);
+        if(block.type!=='strength') continue;
+        (block.details.exercises||[]).forEach(ex=>{
+          const libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
+          const isAccessory = libEntry && (libEntry.category==='isolation' || libEntry.category==='calisthenics');
+          if(!isAccessory) return;
+          [ex.area, ex.secondaryArea].forEach(a=>{
+            if(a && areaToDomain[a]) covered.add(areaToDomain[a]);
+          });
+        });
+      } catch(e){}
+    }
+  }
+  return covered;
+}
+
+// Reads the warmupLog records now written each time generateWarmup runs. Same
+// area-to-domain mapping as bulletproofing coverage, since warm-up areas use the same
+// naming as exercise-tagging areas, not the assessment's domain keys directly.
+async function getWeekWarmupCoverage(){
+  const covered = new Set();
+  const dates = getWeekDates();
+  const areaToDomain = {};
+  Object.keys(MOBILITY_DOMAIN_TO_AREA).forEach(domain=>{
+    const area = MOBILITY_DOMAIN_TO_AREA[domain];
+    if(area) areaToDomain[area] = domain;
+  });
+  for(const date of dates){
+    try{
+      const r = await window.storage.get(`warmupLog:${date}`);
+      const log = JSON.parse(r.value);
+      (log.areas||[]).forEach(a=>{ if(areaToDomain[a]) covered.add(areaToDomain[a]); });
+    } catch(e){}
+  }
+  return covered;
+}
+
+// Third and final coverage source — a person's own LOGGED dedicated mobility sessions
+// (not just bulletproofing/warm-up). Reuses getMobilityCoverage's existing
+// doneTrailing7 output rather than re-deriving it — that function already computes
+// exactly this (trailing-7-day area coverage from real logged stretches), it was just
+// built for the warm-up system and its output discarded there. Skill/goal stretches
+// (area:'') are already excluded by getMobilityCoverage itself, so a goal-tracking
+// stretch doesn't get miscounted as general area coverage.
+async function getWeekMobilityLogCoverage(){
+  const covered = new Set();
+  const areaToDomain = {};
+  Object.keys(MOBILITY_DOMAIN_TO_AREA).forEach(domain=>{
+    const area = MOBILITY_DOMAIN_TO_AREA[domain];
+    if(area) areaToDomain[area] = domain;
+  });
+  const { doneTrailing7 } = await getMobilityCoverage();
+  doneTrailing7.forEach(a=>{ if(areaToDomain[a]) covered.add(areaToDomain[a]); });
+  return covered;
+}
+
+async function getPrioritizedMobilityDomains(activeGoalSkills){
+  const bulletproofCovered = await getWeekBulletproofingCoverage();
+  const warmupCovered = await getWeekWarmupCoverage();
+  const mobilityLogCovered = await getWeekMobilityLogCoverage();
+  const weekCovered = new Set([...bulletproofCovered, ...warmupCovered, ...mobilityLogCovered]);
+  const assessment = await getMobilityAssessment();
+  const scores = (assessment && assessment.scores) || {};
+  const goalDomains = new Set();
+  (activeGoalSkills||[]).forEach(skill=>{
+    Object.keys(MOBILITY_DOMAIN_TO_SKILL).forEach(domain=>{
+      if(MOBILITY_DOMAIN_TO_SKILL[domain]===skill) goalDomains.add(domain);
+    });
+  });
+  // Priority order: goal-related domains first, then by ascending assessment score
+  // (deficit = higher priority, unassessed treated as neutral mid-priority), then
+  // domains already covered by this week's bulletproofing, warm-up, OR a person's own
+  // logged mobility sessions pushed toward the back — deprioritized, not excluded,
+  // since some dedicated coverage is still worthwhile.
+  return MOBILITY_DOMAINS.slice().sort((a,b)=>{
+    const aGoal = goalDomains.has(a) ? 0 : 1;
+    const bGoal = goalDomains.has(b) ? 0 : 1;
+    if(aGoal !== bGoal) return aGoal - bGoal;
+    const aCovered = weekCovered.has(a) ? 1 : 0;
+    const bCovered = weekCovered.has(b) ? 1 : 0;
+    if(aCovered !== bCovered) return aCovered - bCovered;
+    const aScore = scores[a] != null ? scores[a] : 2.5;
+    const bScore = scores[b] != null ? scores[b] : 2.5;
+    return aScore - bScore;
+  });
+}
+
 async function generateMobilityProgram(numSessions, forcedDates, sessionType){
   const dates = forcedDates || await getAvailableEmptyDates();
   const placedDates = dates.slice(0, numSessions);
   if(placedDates.length === 0) return { placed: 0 };
 
   const loadedROMCoverage = await getRecentLoadedROMCoverage();
-  const goals = await getCurrentGoals(todayStr);
-  let mobilityGoals = ((goals && goals.skillGoals) || []).filter(sg=>sg.category==='mobility');
-  const hasBroadMobilityGoal = goals && goals.list && goals.list.some(g=>g.type==='mobility');
-  // A broad "be mobile" goal with no specific skill attached can't actually be
-  // progressed — there's no level to advance. Auto-seed real progression skills
-  // (starting at level 1) rather than falling back to generic area-library rotation
-  // with no structure at all.
-  if(mobilityGoals.length === 0 && hasBroadMobilityGoal){
-    mobilityGoals = [{ category:'mobility', skill:'pike', levelIndex:0 }, { category:'mobility', skill:'bridge', levelIndex:0 }];
-  }
+  const mobilityGoals = await getOrCreateAutoMobilityGoal();
+  const activeGoalSkills = mobilityGoals.map(sg=>sg.skill);
+  const prioritizedDomains = await getPrioritizedMobilityDomains(activeGoalSkills);
+  const integrateLibrary = MOBILITY_INTEGRATE_LIBRARY;
 
-  const allAreas = await getDeficitPrioritizedAreas(Object.keys(MOBILITY_LIBRARY));
-  let areaCursor = 0;
+  let sessionLength = 45;
+  try{
+    const r = await window.storage.get('settings:trainingSetup');
+    const setup = JSON.parse(r.value);
+    sessionLength = parseInt(setup.sessionLength, 10) || 45;
+  } catch(e){}
+
   let placed = 0;
+  let accessCursor = 0, controlCursor = 0, loadCursor = 0, integrateCursor = 0;
 
   for(let dayIdx=0; dayIdx<placedDates.length; dayIdx++){
     const date = placedDates[dayIdx];
-    const stretches = [];
+
+    // GOAL — existing skill-progression logic, unchanged, just tagged by category now.
+    const goalStretches = [];
     mobilityGoals.forEach(sg=>{
-      stretches.push(...buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType));
+      buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType).forEach(st=>{
+        st.category = 'goal';
+        goalStretches.push(st);
+      });
     });
-    for(let k=0; k<2 && areaCursor<allAreas.length; k++){
-      const area = allAreas[areaCursor % allAreas.length];
-      stretches.push({ name: `${area.replace('_',' ')} mobility`, area, sets:2, holdSeconds:30 });
-      areaCursor++;
+
+    // ACCESS / CONTROL — one exercise each, rotating through the priority-ordered
+    // domain list so every domain gets covered over time, goal-related domains first.
+    function pickFromCategory(categoryLib, cursorRef){
+      for(let i=0; i<prioritizedDomains.length; i++){
+        const domain = prioritizedDomains[(cursorRef.value + i) % prioritizedDomains.length];
+        const options = categoryLib[domain];
+        if(options && options.length){
+          cursorRef.value = (cursorRef.value + i + 1) % prioritizedDomains.length;
+          return { name: options[dayIdx % options.length], area: MOBILITY_DOMAIN_TO_AREA[domain] || '', domain };
+        }
+      }
+      return null;
+    }
+    const accessRef = { value: accessCursor };
+    const access = pickFromCategory(MOBILITY_PROGRESSION_LIBRARY.access, accessRef);
+    accessCursor = accessRef.value;
+    const controlRef = { value: controlCursor };
+    const control = pickFromCategory(MOBILITY_PROGRESSION_LIBRARY.control, controlRef);
+    controlCursor = controlRef.value;
+    const loadRef = { value: loadCursor };
+    const load = pickFromCategory(MOBILITY_PROGRESSION_LIBRARY.load, loadRef);
+    loadCursor = loadRef.value;
+
+    const otherStretches = [];
+    if(access) otherStretches.push({ name: access.name, area: access.area, category:'access', sets:2, holdSeconds:30 });
+    if(control) otherStretches.push({ name: control.name, area: control.area, category:'control', sets:2, holdSeconds:30 });
+    if(load){
+      // Maintenance keeps the loaded pattern present but reduced, rather than dropping
+      // it — the same movement at lighter intensity, not a different exercise.
+      const loadSets = sessionType==='maintenance' ? 1 : 3;
+      otherStretches.push({ name: load.name, area: load.area, category:'load', sets:loadSets, holdSeconds:20 });
+    }
+    // INTEGRATE — cross-domain, not keyed by single domain.
+    if(integrateLibrary.length){
+      const integrateName = integrateLibrary[integrateCursor % integrateLibrary.length];
+      integrateCursor++;
+      otherStretches.push({ name: integrateName, area:'', category:'integrate', sets:1, holdSeconds:45 });
     }
 
-    // Solve for available time, same pattern as strength: general area-rotation
-    // stretches were added last (lowest priority — just filling variety), so trimming
-    // from the end protects goal-tied skill progression stretches first.
-    let sessionLength = 45;
-    try{
-      const r = await window.storage.get('settings:trainingSetup');
-      const setup = JSON.parse(r.value);
-      sessionLength = parseInt(setup.sessionLength, 10) || 45;
-    } catch(e){}
+    // Order matters for trimming below: goal first (never trimmed), then load, control,
+    // access, integrate last (trimmed first when over time budget) — own reasoning,
+    // the source document doesn't specify a time-pressure trim order.
+    const stretches = [...goalStretches, ...otherStretches.filter(s=>s.category==='load'),
+      ...otherStretches.filter(s=>s.category==='control'), ...otherStretches.filter(s=>s.category==='access'),
+      ...otherStretches.filter(s=>s.category==='integrate')];
+
+    // Solve for available time — trim from the end, protecting goal stretches (always
+    // at the front) same as before.
     const trimmedNames = [];
     let mobilityEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-    while(mobilityEstimate != null && mobilityEstimate > sessionLength && stretches.length > 1){
+    while(mobilityEstimate != null && mobilityEstimate > sessionLength && stretches.length > goalStretches.length){
       const removed = stretches.pop();
       trimmedNames.push(removed.name);
       mobilityEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
@@ -7286,7 +7442,7 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
     } catch(e){
       await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
         type:'mobility',
-        details: { stretches, notes: (mobilityGoals.length ? 'Auto-generated — real progression tracking, tap in to adjust level once you\'ve tested it' : 'Auto-generated from your mobility goal — rotates through areas across the week') + trimNote }
+        details: { stretches, notes: 'Auto-generated — Access/Control/Load/Integrate rotate through your domains, Goal tracks real progression' + trimNote }
       }));
       placed++;
     }
@@ -7981,7 +8137,7 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
     }
     await window.storage.set(`weekplan:${item.date}:${slot}`, JSON.stringify({
       type: 'run',
-      details: { runType: item.runType, distanceKm, notes: note }
+      details: { runType: item.runType, distanceKm, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note }
     }));
   }
   return { placed: toPlace.length, tier: tierKey, goalNote };
@@ -8015,6 +8171,17 @@ async function checkDeloadDue(){
 }
 
 let todaySessionType = 'strength';
+async function getTodaysBlockAndSlotForType(type){
+  for(const slot of ['am','pm']){
+    try{
+      const r = await window.storage.get(`weekplan:${todayStr}:${slot}`);
+      const block = JSON.parse(r.value);
+      if(block.type===type) return { block, slot };
+    } catch(e){}
+  }
+  return null;
+}
+
 async function getTodaysBlockForType(type){
   if(type==='strength'){
     const exercises = await getPlannedExercisesToday();
@@ -8029,46 +8196,188 @@ async function getTodaysBlockForType(type){
   }
   return null;
 }
-function blockSummaryHtml(block){
+async function getLastLoggedSetForExercise(exerciseId, name){
+  const sessions = await getAllTrainingSessions();
+  const strengthSessions = sessions.filter(s=>s.type==='strength').sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  for(const s of strengthSessions){
+    const match = (s.exercises||[]).find(e => (exerciseId && e.exerciseId===exerciseId) || (!exerciseId && e.name===name));
+    if(match) return match;
+  }
+  return null;
+}
+
+// Converts decimal min/km (e.g. 5.5) into readable M:SS/km format (e.g. "5:30/km")
+function formatPace(minPerKm){
+  if(minPerKm==null) return null;
+  const mins = Math.floor(minPerKm);
+  const secs = Math.round((minPerKm - mins) * 60);
+  return `${mins}:${String(secs).padStart(2,'0')}/km`;
+}
+
+async function blockSummaryHtml(block){
+  const isDeload = await isDeloadWeek(todayStr);
   if(block.type==='strength'){
-    const names = (block.details.exercises||[]).map(e=>e.name).filter(Boolean);
-    if(!names.length) return '';
-    return names.map(n=>`<div class="log-entry"><span>${n}</span></div>`).join('');
+    const exercises = block.details.exercises||[];
+    if(!exercises.length) return '';
+    const focus = block.details.plannedFocus;
+    const focusInfo = focus && SESSION_FOCUS_INFO[focus];
+    const personalSets = await getPersonalSetsByCategory();
+    const adjustment = await getTodayAdjustment();
+    const rows = [];
+    for(const ex of exercises){
+      const libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
+      const category = libEntry ? libEntry.category : 'default';
+      const setsRaw = personalSets[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory.default;
+      const deloadAdjustedRaw = isDeload ? setsRaw * (1 - DELOAD_CUT) : setsRaw;
+      const sets = Math.max(1, Math.round(deloadAdjustedRaw) + (adjustment.lever==='sets' ? adjustment.delta : 0));
+      let repLow = focusInfo ? focusInfo.repLow : 8;
+      let repHigh = focusInfo ? focusInfo.repHigh : 12;
+      if(adjustment.lever==='reps'){
+        repLow = Math.max(1, repLow + adjustment.delta);
+        repHigh = Math.max(repLow, repHigh + adjustment.delta);
+      }
+      const repsLabel = `${repLow}-${repHigh}`;
+      const lastLogged = await getLastLoggedSetForExercise(ex.exerciseId, ex.name);
+      let weightLabel = 'add weight';
+      if(lastLogged && lastLogged.weight){
+        const adjustedWeight = adjustment.lever==='weight'
+          ? Math.round(lastLogged.weight * (1 + adjustment.delta/100) * 2) / 2
+          : lastLogged.weight;
+        weightLabel = `${adjustedWeight}kg`;
+      }
+      rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${sets}×${repsLabel} @ ${weightLabel}</span></div>`);
+    }
+    return rows.join('');
   }
   if(block.type==='run'){
     const d = block.details||{};
-    return `<div class="log-entry"><span>${d.runType||'Run'}</span><span>${d.distanceKm?d.distanceKm+'km':''}</span></div>`;
+    const adjustment = await getTodayAdjustment();
+    let distanceKm = d.distanceKm;
+    if(distanceKm && isDeload) distanceKm = Math.round(distanceKm * (1 - DELOAD_CUT) * 10) / 10;
+    if(distanceKm && adjustment.lever==='distance'){
+      distanceKm = Math.round(distanceKm * (1 + adjustment.delta/100) * 10) / 10;
+    }
+    let targetPace = d.targetPace;
+    if(targetPace && adjustment.lever==='pace'){
+      targetPace = Math.max(2, targetPace * (1 + adjustment.delta/100));
+    }
+    const paceLabel = targetPace ? ` @ ${formatPace(targetPace)}` : '';
+    return `<div class="log-entry"><span>${d.runType||'Run'}</span><span>${distanceKm?distanceKm+'km':''}${paceLabel}</span></div>`;
   }
   if(block.type==='mobility'){
     const stretches = block.details.stretches||[];
     if(!stretches.length) return '';
-    return stretches.map(s=>{
-      const label = s.skill ? `${s.skillLabel}${s.isReadinessTest ? ' (readiness test)' : ' — L'+(s.levelIndex+1)}: ${s.name}` : s.name;
-      return `<div class="log-entry"><span>${label}</span></div>`;
-    }).join('');
+    const categoryOrder = ['access','control','load','integrate','goal'];
+    const categoryLabels = { access:'ACCESS', control:'CONTROL', load:'LOAD', integrate:'INTEGRATE', goal:'GOAL' };
+    const grouped = {};
+    stretches.forEach(s=>{
+      const cat = s.category || 'goal'; // legacy stretches saved before categorization existed
+      (grouped[cat] = grouped[cat]||[]).push(s);
+    });
+    let html = '';
+    categoryOrder.forEach(cat=>{
+      const items = grouped[cat];
+      if(!items || !items.length) return;
+      let itemLines;
+      if(cat==='goal'){
+        // Combine a skill's current-level dose and its readiness test (if both present
+        // today) into one "L2 → L3" line, matching how this reads as a single
+        // progression rather than two separate stretch entries.
+        const bySkill = {};
+        items.forEach(s=>{ (bySkill[s.skill] = bySkill[s.skill]||[]).push(s); });
+        itemLines = Object.values(bySkill).map(group=>{
+          const main = group.find(s=>!s.isReadinessTest) || group[0];
+          const test = group.find(s=>s.isReadinessTest);
+          return test ? `${main.skillLabel} L${main.levelIndex+1} → L${main.levelIndex+2}` : `${main.skillLabel} L${main.levelIndex+1}`;
+        });
+      } else {
+        itemLines = items.map(s=>s.name);
+      }
+      html += `<div class="mobility-cat-group">
+        <div class="mobility-cat-label">${categoryLabels[cat]}</div>
+        ${itemLines.map(t=>`<div class="mobility-cat-item">→ ${t}</div>`).join('')}
+      </div>`;
+    });
+    return html;
   }
   return '';
 }
-async function renderTodayWorkoutSummary(){
-  const container = document.getElementById('todayWorkoutSummary');
-  const block = await getTodaysBlockForType(todaySessionType);
-  if(!block){
-    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Training tab</span></div>`;
+document.getElementById('prevWorkoutsDate').addEventListener('change', renderPrevWorkoutsForDate);
+async function renderPrevWorkoutsForDate(){
+  const date = document.getElementById('prevWorkoutsDate').value;
+  const container = document.getElementById('prevWorkoutsResults');
+  if(!date){ container.innerHTML = ''; return; }
+  const sessions = await getAllTrainingSessions();
+  const dayMatches = sessions.filter(s=>s.date===date).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+  if(dayMatches.length===0){
+    container.innerHTML = '<div class="score-note" style="margin-top:8px;">Nothing logged this day.</div>';
     return;
   }
-  const rows = blockSummaryHtml(block);
+  container.innerHTML = dayMatches.map(s=>{
+    if(s.type==='strength'){
+      const exList = (s.exercises||[]).map(e=>
+        `<div class="log-entry"><span>${e.name}</span><span>${e.sets}×${e.reps} @ ${e.weight}kg</span></div>`).join('');
+      const tag = s.workoutTag ? ' — ' + s.workoutTag.replace('_',' ') : '';
+      return `<div class="log" style="margin-top:10px;"><div class="log-title">Strength${tag}</div>${exList}<div class="score-note">Total volume: ${Math.round(s.totalVolume||0)}kg</div></div>`;
+    } else if(s.type==='run'){
+      return `<div class="log" style="margin-top:10px;"><div class="log-title">Run — ${s.runType||'—'}</div><div class="log-entry"><span>${s.distanceKm ?? '—'}km</span><span>${s.durationMin ?? '—'}min${s.pace?' · '+s.pace:''}</span></div></div>`;
+    } else if(s.type==='mobility'){
+      const stList = (s.stretches||[]).map(st=>
+        `<div class="log-entry"><span>${st.name}</span><span>${st.sets}×${st.holdSeconds}s</span></div>`).join('');
+      return `<div class="log" style="margin-top:10px;"><div class="log-title">Mobility</div>${stList}</div>`;
+    }
+    return '';
+  }).join('');
+}
+
+async function renderTodayWorkoutSummary(){
+  const container = document.getElementById('todayWorkoutSummary');
+  const goals = await getCurrentGoals(todayStr);
+  const topGoal = goals && goals.list && goals.list[0];
+  const topGoalPercent = topGoal ? await computeGoalRingPercent(topGoal) : null;
+  const progressBarHtml = topGoal ? renderGoalProgressBarHtml(topGoal, topGoalPercent) : '';
+
+  const block = await getTodaysBlockForType(todaySessionType);
+  if(!block){
+    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Training tab</span></div>${progressBarHtml}`;
+    return;
+  }
+  const rows = await blockSummaryHtml(block);
+  const isDeload = (block.type==='strength' || block.type==='run') ? await isDeloadWeek(todayStr) : false;
+  const deloadNote = isDeload ? `<div class="score-note" style="margin-top:-4px;">~${Math.round(DELOAD_CUT*100)}% volume — deload week</div>` : '';
+  const adjustment = (block.type==='strength' || block.type==='run') ? await getTodayAdjustment() : { lever:null, delta:0 };
+  let adjustmentNote = '';
+  if(adjustment.lever){
+    const d = adjustment.delta;
+    const leverText = {
+      reps: `${d>0?'+':''}${d} rep${Math.abs(d)===1?'':'s'}`,
+      sets: `${d>0?'+':''}${d} set${Math.abs(d)===1?'':'s'}`,
+      weight: `${d>0?'+':''}${d}% weight`,
+      distance: `${d>0?'+':''}${d}% distance`,
+      pace: `${d>0?`~${d}% slower pace`:`~${Math.abs(d)}% faster pace`}`
+    }[adjustment.lever];
+    if(leverText){
+      adjustmentNote = `<div class="score-note" style="margin-top:-4px;">${leverText} — from an accepted recommendation today</div>`;
+    }
+  }
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">Today's plan</div></div>
       <div class="fields">
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
+        ${deloadNote}
+        ${adjustmentNote}
+        ${progressBarHtml}
         <button class="primary" id="goLogWorkoutBtn">Log this workout →</button>
       </div>
     </div>`;
   const goBtn = document.getElementById('goLogWorkoutBtn');
-  if(goBtn) goBtn.addEventListener('click', ()=>{
+  if(goBtn) goBtn.addEventListener('click', async ()=>{
+    const found = await getTodaysBlockAndSlotForType(todaySessionType);
     activateTab('training');
-    activateTrainingSubView('daily');
+    if(found){
+      setTimeout(()=> openBlockEditor(todayStr, found.slot, found.block), 150);
+    }
   });
 }
 document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
@@ -8100,6 +8409,7 @@ async function generateRecommendations(){
   const trailing = await getTrailingAverages(todayStr);
   const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
   const { label: capacityLabel } = await capacityLabelForEntry(entry);
+  const capacityResult = await getCapacityForEntry(entry);
   const injuries = await getActiveInjuries();
   const severeInjury = injuries.some(i=>i.currentSeverity >= REC_THRESH.injurySevereBlock);
   const plannedEx = await getPlannedExercisesToday();
@@ -8107,7 +8417,7 @@ async function generateRecommendations(){
   plannedEx.forEach(ex=>{ if(ex.area){ (plannedExAreas[ex.area]=plannedExAreas[ex.area]||[]).push(ex.name); } });
 
   const goalT = await currentGoalThresholds();
-  updateOverallScore(targetScore, adaptiveScore, goalT);
+  updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT);
 
   const reduceSignals = [];
   if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
@@ -8934,7 +9244,7 @@ async function generateWarmup(){
 
   const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, squatAnkleFlag } = await computeWarmupAreas();
 
-  const sectionIds = ['warmupSection', 'stretchSection', 'cooldownSection'];
+  const sectionIds = ['warmupSection'];
   if(ordered.length === 0){
     container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session (Training tab) or select a session type above, then Generate</span></div>';
     sectionIds.forEach(id => document.getElementById(id).style.display = 'none');
@@ -8943,6 +9253,12 @@ async function generateWarmup(){
   sectionIds.forEach(id => document.getElementById(id).style.display = 'block');
 
   const { selected, estMinutes } = selectWithinBudget(ordered, injuryByArea, WARMUP_TIME_CAP, WARMUP_TIME_PER_AREA);
+
+  // Persist which areas actually got warmed up today — previously this was computed
+  // fresh on every view and thrown away, meaning "did warm-ups already cover this area
+  // this week" had no real record to check. Overwrites each regeneration (same day),
+  // since it should reflect the current plan, not accumulate stale duplicates.
+  try{ await window.storage.set(`warmupLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: selected })); } catch(e){}
 
   container.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes+5} min (RAMP structure) · ${selected.length} focus area${selected.length===1?'':'s'}</div>`;
 
@@ -9377,6 +9693,45 @@ const ENGINE_SCENARIOS = [
     },
     run: async ()=> checkDeloadSignal(),
     expect: (r)=> (r && r.strength==='strong') ? {pass:true} : {pass:false, note:`expected a strong deload signal — got ${JSON.stringify(r)}`} },
+  { id:'deload_actually_cuts_displayed_volume', backlogRef:'DELOAD_CUT wiring', description:'Checking the deload week box should actually reduce displayed sets on Today\'s plan, not just save a flag nothing reads',
+    setup: async ()=>{
+      // 3 logged sessions at a known, consistent set count so getPersonalSetsByCategory
+      // produces a predictable baseline (needs >=3 entries per category to return a value)
+      for(const d of [20, 15, 10]){
+        await window.storage.set(`training:${scenarioDaysAgo(d)}:d${d}`, JSON.stringify({
+          date: scenarioDaysAgo(d), type:'strength', timestamp: Date.now(),
+          exercises: [{ name:'Lat Pulldown', sets:4, reps:10, weight:60, exerciseId:'lat_pulldown' }], totalVolume: 2400
+        }));
+      }
+      const weekStart = getWeekStartFor(todayStr);
+      await window.storage.set(`weekmeta:${weekStart}`, JSON.stringify({ deload: true }));
+    },
+    run: async ()=>{
+      const block = { type:'strength', details: { exercises:[{ name:'Lat Pulldown', exerciseId:'lat_pulldown' }] } };
+      const html = await blockSummaryHtml(block);
+      const match = html.match(/(\d+)×/);
+      return match ? parseInt(match[1], 10) : null;
+    },
+    expect: (sets)=> (sets === 2) ? {pass:true} : {pass:false, note:`expected 2 sets (50% cut from a baseline of 4) — got ${sets}`} },
+  { id:'tiered_recommendation_strong_signal_uses_weight_lever', backlogRef:'Tiered recommendation levers', description:'A strong signal (4+ corroborating) reduce recommendation should adjust weight, not sets or reps',
+    setup: async ()=>{ todaySessionType = 'strength'; },
+    run: async ()=>{
+      await logRecDecision('reduce', {signals:['a','b','c','d']}, 'accepted', null);
+      return await getTodayAdjustment();
+    },
+    expect: (adj)=> (adj && adj.lever==='weight') ? {pass:true} : {pass:false, note:`expected the weight lever for a 4-signal reduce — got ${JSON.stringify(adj)}`} },
+  { id:'mobility_log_coverage_deprioritizes_domain', backlogRef:'Mobility weekly-awareness loop', description:'A recently logged mobility session covering a domain should deprioritize it in future generation, even when it is the weakest assessed domain',
+    setup: async ()=>{
+      await window.storage.set('settings:mobilityAssessment', JSON.stringify({
+        scores: { hamstrings: 1, shoulders: 1 }, lastUpdated: todayStr
+      }));
+      await window.storage.set(`training:${scenarioDaysAgo(3)}:m1`, JSON.stringify({
+        date: scenarioDaysAgo(3), type:'mobility', timestamp: Date.now(),
+        stretches: [{ name:'Supine hamstring stretch', area:'hamstrings', sets:2, holdSeconds:30 }]
+      }));
+    },
+    run: async ()=> await getPrioritizedMobilityDomains([]),
+    expect: (domains)=> (domains && domains[0]==='shoulders') ? {pass:true} : {pass:false, note:`expected shoulders to rank first, since hamstrings was recently logged and should be deprioritized — got ${JSON.stringify(domains)}`} },
 ];
 
 async function runEngineScenarioSuite(onProgress){
@@ -9528,18 +9883,15 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
   // refresh everything that could be affected by imported data
   loadRecoveryEntry(dateInput.value);
   refreshRecoveryLog();
-  refreshTrainingLog();
   refreshInjuries();
   computeSleepDebt();
-  computePredictedCapacity();
+  
 });
 
 loadRecoveryEntry(todayStr);
 refreshRecoveryLog();
-refreshTrainingLog();
-computePredictedCapacity();
+
 computeSleepDebt();
-applySessionFocusDefault();
 loadGoalProfile().then(async ()=>{
   try{
     await window.storage.get(keyFor(todayStr));
