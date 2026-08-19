@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Dogfood</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --ink:#141312;
+    --bg:#fbfaf6;
+    --accent:#c9da4a;
+    --dim:#6b6a64;
+    --rule:#e4e2d8;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  header { background:var(--ink); color:var(--bg); padding:28px 20px 22px; position:relative; overflow:hidden; }
+  .wordmark { font-family:'Inter',sans-serif; font-weight:800; font-size:28px; letter-spacing:-0.03em; text-transform:uppercase; line-height:0.95; }
+  .doc-label { font-size:12px; letter-spacing:0.14em; text-transform:uppercase; opacity:0.65; margin-top:6px; }
+  .dither { position:absolute; right:20px; top:26px; width:60px; height:60px; opacity:0.9; }
+  main { max-width:640px; margin:0 auto; padding:0 20px 80px; }
+  .draft-banner { background:#fff3c4; border:1px solid #d9b400; color:#4a3b00; padding:14px 16px; font-size:14px; line-height:1.5; margin:24px 0 8px; border-radius:2px; }
+  .draft-banner strong { display:block; margin-bottom:4px; }
+  h1.doctitle { font-family:'Fraunces',serif; font-size:34px; font-weight:600; letter-spacing:-0.01em; margin:28px 0 4px; }
+  p.meta { color:var(--dim); font-size:13px; margin:0 0 24px; }
+  h2 { font-family:'Fraunces',serif; font-size:20px; font-weight:600; margin:34px 0 8px; padding-top:16px; border-top:1px solid var(--rule); }
+  h3 { font-size:14px; font-weight:700; margin:18px 0 6px; }
+  p { line-height:1.65; font-size:15px; margin:10px 0; }
+  ul { line-height:1.65; font-size:15px; padding-left:20px; }
+  li { margin:4px 0; }
+  strong { font-weight:700; }
+  footer { max-width:640px; margin:0 auto; padding:30px 20px 60px; color:var(--dim); font-size:13px; border-top:1px solid var(--rule); margin-top:40px; }
+  a { color:var(--ink); }
+  @media (prefers-reduced-motion: no-preference) {
+    .dither circle { animation: pulse 3s ease-in-out infinite; }
+    .dither circle:nth-child(2) { animation-delay:0.4s; }
+    .dither circle:nth-child(3) { animation-delay:0.8s; }
+    @keyframes pulse { 0%,100% { opacity:0.35; } 50% { opacity:1; } }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wordmark">Dog<br>Food</div>
+  <div class="doc-label">Privacy Policy</div>
+  <svg class="dither" viewBox="0 0 60 60" fill="none">
+    <circle cx="12" cy="30" r="5" fill="#fbfaf6"/>
+    <circle cx="30" cy="30" r="8" fill="#fbfaf6"/>
+    <circle cx="52" cy="30" r="10" fill="#fbfaf6"/>
+  </svg>
+</header>
+<main>
+  <div class="draft-banner"><strong>⚠️ Draft — pending legal review.</strong>This document is a working draft and has not been finalized or reviewed by a lawyer. It should not be relied upon as final terms.</div>
+  <h1 class="doctitle">Privacy Policy</h1>
+  <p><strong>⚠️ THIS IS A DRAFT, NOT A FINAL LEGAL DOCUMENT.</strong> It has not been reviewed by a lawyer. Given this app collects health-adjacent data (sleep, HRV, injury history) and connects to third-party providers (Oura, Garmin), the sections marked 🔴 need real legal review before this is published or relied upon — not just a read-through.</p>
+<p class="meta">Last updated: [DATE]</p>
+<h2>1. Who We Are</h2>
+<p>[APP NAME] is operated by [COMPANY NAME] ("we," "us," "our"). This Privacy Policy explains what data we collect, why, and what rights you have over it. It should be read alongside our [Terms and Conditions].</p>
+<h2>2. 🔴 What Data We Collect</h2>
+<p><strong>Data you provide directly:</strong></p>
+<ul>
+<li>Account information (email, [name if collected])</li>
+<li>Training data: logged exercises, sets, reps, weight, running distance/pace</li>
+<li>Recovery data: sleep duration/score, HRV, resting heart rate, subjective soreness/mood ratings</li>
+<li>Injury data: body part, severity, irritability, movement restrictions, notes</li>
+<li>Goals and preferences: training days, session length, target exercises/weights, mobility self-assessments</li>
+</ul>
+<p><strong>Data from third-party integrations (if you connect one):</strong></p>
+<ul>
+<li>Oura: sleep, readiness, HRV, and related biometric data, as authorized by the specific permission scopes you grant during connection</li>
+<li>Garmin: heart rate, sleep, steps, and activity data, as authorized during connection</li>
+<li>*We only receive what these providers' own consent screens disclose to you at the time you connect — we do not have access to anything beyond the scopes you explicitly authorize.*</li>
+</ul>
+<p><strong>Data collected automatically:</strong></p>
+<ul>
+<li>Basic usage/device information (e.g., device type, app version) for debugging and reliability</li>
+<li>[Add analytics tooling here once chosen — this section needs to match whatever you actually implement, not describe generic analytics you haven't built]</li>
+</ul>
+<p>We do <strong>not</strong> collect: [payment card details — Stripe handles this directly and we never see your full card number], [location data, unless/until a feature requires it — update this if that changes], [anything beyond what's listed above — keep this section honest and current as the app evolves].</p>
+<h2>3. Why We Collect It</h2>
+<p>We use your data to:</p>
+<ul>
+<li>Operate the App's core function: generating training recommendations based on your logged history, recovery state, and injuries</li>
+<li>Sync data from connected third-party devices, when you've authorized that</li>
+<li>Process your subscription payment (via Stripe)</li>
+<li>Communicate with you about your account, billing, or material changes to the Service</li>
+<li>Improve the App's recommendation logic over time — 🔴 *if this involves using aggregated/anonymized user data to refine the algorithm across all users (not just your own account), that needs to be disclosed explicitly and separately here, since that's a materially different use than "personalizing your own recommendations."*</li>
+</ul>
+<p>We do <strong>not</strong> sell your data. We do <strong>not</strong> use your health data for advertising or share it with advertisers.</p>
+<h2>4. 🔴 How We Share Your Data</h2>
+<p>We share data only in these circumstances:</p>
+<ul>
+<li>**With service providers who help us operate the App** — e.g., our hosting/database provider, Stripe for payments. These providers only receive what they need to perform their function and are contractually bound to protect it.</li>
+<li>**With Oura/Garmin, in reverse** — if you disconnect an integration or take an action within the App that they need to know about, only to the extent our partner agreement with them requires.</li>
+<li>**If required by law** — e.g., in response to a valid subpoena or legal process.</li>
+<li>**In a business transfer** — if [COMPANY NAME] is acquired or merges with another company, your data may transfer as part of that transaction, subject to this policy or a comparably protective one.</li>
+</ul>
+<p>We do not otherwise share, sell, or rent your personal or health data to third parties.</p>
+<h2>5. Data Retention</h2>
+<p>We retain your data for as long as your account is active, plus [X days/months] after account deletion to allow for recovery of an accidental deletion, after which it is permanently removed from our systems — except where we're required to retain it longer for legal or accounting purposes.</p>
+<h2>6. 🔴 Your Rights</h2>
+<p>Depending on where you live, you may have the right to:</p>
+<ul>
+<li>Access the personal data we hold about you</li>
+<li>Correct inaccurate data</li>
+<li>Delete your data ("right to erasure")</li>
+<li>Export your data in a portable format</li>
+<li>Withdraw consent for a specific data use (e.g., disconnecting a third-party integration)</li>
+<li>Object to certain processing</li>
+</ul>
+<p class="meta">This section needs real legal tailoring depending on your actual user base's location — GDPR (EU/UK users), CCPA/CPRA (California users), and other regional frameworks each impose specific, different obligations (like required response timeframes, specific notice language, and in some cases a formal Data Protection Officer). A generic "you have rights" paragraph is not sufficient on its own once you have real users in these regions.</p>
+<p>To exercise these rights, contact us at [privacy@yourdomain.com]. [Note: the app already includes an in-app "Export All Data" / "Clear All Data" feature that covers export and deletion functionally — this section should reference that directly once it's live in the shipped version, not just describe the concept abstractly.]</p>
+<h2>7. Data Security</h2>
+<p>We use industry-standard measures to protect your data, including encryption in transit and at rest, and access controls limiting who can view your data internally. No system is perfectly secure, and we cannot guarantee absolute security — if we become aware of a breach affecting your data, we will notify you as required by applicable law.</p>
+<h2>8. Children's Privacy</h2>
+<p>The App is not intended for use by anyone under [16/18 — match whatever age you set in the Terms]. We do not knowingly collect data from children under this age. If we learn we've collected data from a child without appropriate consent, we will delete it.</p>
+<h2>9. International Data Transfers</h2>
+<p>🔴 *If your infrastructure (database, hosting) is located in a different country than some of your users — e.g., US-based servers with EU users — this requires a specific legal mechanism (such as Standard Contractual Clauses) to transfer that data lawfully. This is not optional boilerplate; it needs to reflect your actual hosting setup once chosen.*</p>
+<h2>10. Changes to This Policy</h2>
+<p>We may update this Privacy Policy from time to time. We'll notify you of material changes by [email / in-app notice] before they take effect.</p>
+<h2>11. Contact</h2>
+<p>Questions about this policy or your data can be sent to [privacy@yourdomain.com].</p>
+<h3>What I'd flag as genuinely non-negotiable before this goes live:</h3>
+<p>1. <strong>Section 2</strong> needs to stay perfectly accurate to what the app actually collects — this document should be updated every time a new data type is added to the app, not written once and forgotten.</p>
+<p>2. <strong>Section 6</strong> is the one most likely to have real regulatory teeth depending on where your users are — this is where "close enough" isn't good enough.</p>
+<p>3. <strong>Section 9</strong> only matters once real hosting infrastructure exists, but needs to be revisited the moment it does, not left as a placeholder indefinitely.</p>
+<p>4. This document assumes the in-app "Export All Data" / "Clear All Data" settings features (which already exist in the app) are the mechanism fulfilling the access/deletion rights in Section 6 — worth confirming that's still true as the app evolves, since a Privacy Policy promising a right the product doesn't actually deliver is worse than not promising it.</p>
+</main>
+<footer>
+  Dogfood — personal training &amp; recovery tracking.
+</footer>
+</body>
+</html>
