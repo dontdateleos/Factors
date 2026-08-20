@@ -1467,7 +1467,7 @@
 
   .week-grid{ display:flex; flex-direction:row; gap:8px; overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
-  .week-wheel-col{ width:48%; position:relative; padding-left:6px; }
+  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
   .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:800; text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); }
   .week-wheel-detail{ width:52%; padding:16px 4px 16px 14px; display:flex; flex-direction:column; justify-content:center; gap:12px; overflow-y:auto; }
   .wheel-detail-day{ font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
@@ -2711,13 +2711,15 @@ async function disconnectOura(){
 // Best-guess mapping from Health Auto Export's metric names to this app's
 // schema — not fully confirmed against a real payload yet, so anything that
 // doesn't match a known name is preserved rather than dropped (see below).
-const APPLE_HEALTH_METRIC_MAP = {
-  heart_rate_variability: { field: 'hrvOura', pick: d => d.avg ?? d.qty },
-  resting_heart_rate: { field: 'restingHR', pick: d => d.avg ?? d.qty },
-  step_count: { field: 'steps', pick: d => d.qty ?? d.sum },
-  active_energy: { field: 'activeCalories', pick: d => d.qty ?? d.sum },
-  respiratory_rate: { field: 'respiratoryRate', pick: d => d.avg ?? d.qty },
-};
+// Expected payload shape from the Shortcuts automation — one flat object per
+// push (or an array of them), using the app's own field names directly rather
+// than a nested metrics structure requiring translation:
+//   { "date": "2026-08-20", "hrvOura": 45, "restingHR": 58, "steps": 8200,
+//     "activeCalories": 420, "respiratoryRate": 14.2 }
+// Deliberately flat and using the app's own field names (not a generic schema
+// needing a translation map) since this needs to be easy to hand-build inside
+// Shortcuts' basic dictionary editor — no nested arrays to construct there.
+const APPLE_HEALTH_KNOWN_FIELDS = ['hrvOura', 'restingHR', 'steps', 'activeCalories', 'respiratoryRate', 'sleepScoreOura', 'wakeTimeOura', 'readinessOura'];
 
 async function syncPendingAppleHealthData(){
   try{
@@ -2735,22 +2737,28 @@ async function syncPendingAppleHealthData(){
     const byDate = {};
     const ensureDate = (date) => (byDate[date] = byDate[date] || { unmatched: [] });
 
+    // Each pushed payload may itself be a single flat object or an array of
+    // them (a Shortcut might reasonably send one run = one date, or batch
+    // several dates in one push) — normalize to a flat list either way.
+    const entries = [];
     for(const payload of payloads){
-      const metrics = payload?.data?.metrics || [];
-      for(const metric of metrics){
-        const mapping = APPLE_HEALTH_METRIC_MAP[metric.name];
-        for(const point of (metric.data || [])){
-          const date = (point.date || '').slice(0, 10); // handles both date-only and full timestamps
-          if(!date) continue;
-          const bucket = ensureDate(date);
-          if(mapping){
-            const value = mapping.pick(point);
-            if(value != null) bucket[mapping.field] = value;
-          } else {
-            // Unknown metric name — keep the raw point rather than lose it,
-            // so nothing's silently discarded if a name guess above is wrong.
-            bucket.unmatched.push({ metric: metric.name, units: metric.units, ...point });
-          }
+      if(Array.isArray(payload)) entries.push(...payload);
+      else entries.push(payload);
+    }
+
+    for(const entry of entries){
+      const date = (entry?.date || '').slice(0, 10);
+      if(!date) continue;
+      const bucket = ensureDate(date);
+      for(const [key, value] of Object.entries(entry)){
+        if(key === 'date') continue;
+        if(value == null) continue;
+        if(APPLE_HEALTH_KNOWN_FIELDS.includes(key)){
+          bucket[key] = value;
+        } else {
+          // Unknown field name — keep it rather than silently discard it, so
+          // nothing's lost if the Shortcut sends something not yet mapped.
+          bucket.unmatched.push({ field: key, value });
         }
       }
     }
@@ -3343,13 +3351,14 @@ async function getPairedData(){
     try{
       const r = await window.storage.get(keyFor(d));
       const e = JSON.parse(r.value);
-      const hrvRatio = (e.hrvGarmin!=null && e.hrvBaseline) ? e.hrvGarmin/e.hrvBaseline : null;
+      const hrvEffective = e.hrvGarmin ?? e.hrvOura;
+      const hrvRatio = (hrvEffective!=null && e.hrvBaseline) ? hrvEffective/e.hrvBaseline : null;
       pairs.push({
         date: d,
         capacity: capacityByDate[d],
         duration: e.durationHrs,
         hrvRatio,
-        wakeTime: e.wakeTimeOura,
+        wakeTime: e.wakeTimeOura ?? e.wakeTimeGarmin,
         rhr: e.restingHR
       });
     } catch(e){}
@@ -3427,8 +3436,10 @@ async function getTrailingAverages(beforeDate){
       const r = await window.storage.get(keyFor(d));
       const e = JSON.parse(r.value);
       if(e.durationHrs!=null){ durSum+=e.durationHrs; durN++; }
-      if(e.hrvGarmin!=null){ hrvSum+=e.hrvGarmin; hrvN++; }
-      if(e.wakeTimeOura!=null){ wakeTimeSum+=e.wakeTimeOura; wakeTimeN++; }
+      const hrvEff = e.hrvGarmin ?? e.hrvOura;
+      if(hrvEff!=null){ hrvSum+=hrvEff; hrvN++; }
+      const wakeTimeEff = e.wakeTimeOura ?? e.wakeTimeGarmin;
+      if(wakeTimeEff!=null){ wakeTimeSum+=wakeTimeEff; wakeTimeN++; }
     }
     return {
       avgDuration: durN? durSum/durN : null, durationN: durN,
@@ -3445,8 +3456,12 @@ const WAKE_TIME_PENALTY = 1.5;
 
 async function computeScores(){
   const duration = parseFloat(document.getElementById('durationHrs').value);
-  const wakeTime = parseFloat(document.getElementById('wakeTimeOura').value);
-  const hrv = parseFloat(document.getElementById('hrvGarmin').value);
+  const wakeTimeOuraVal = parseFloat(document.getElementById('wakeTimeOura').value);
+  const wakeTimeGarminVal = parseFloat(document.getElementById('wakeTimeGarmin').value);
+  const wakeTime = !isNaN(wakeTimeOuraVal) ? wakeTimeOuraVal : wakeTimeGarminVal;
+  const hrvGarminVal = parseFloat(document.getElementById('hrvGarmin').value);
+  const hrvOuraVal = parseFloat(document.getElementById('hrvOura').value);
+  const hrv = !isNaN(hrvGarminVal) ? hrvGarminVal : hrvOuraVal;
   const hrvBaseline = parseFloat(document.getElementById('hrvBaseline').value);
 
   const parts = [];
@@ -4160,6 +4175,81 @@ function extractBlockNames(block){
   return [];
 }
 
+const WHEEL_ANGLE_STEP = 180/6; // degrees per day-step — same total span as the original fixed arc
+const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger movement
+
+function renderWheelPositions(dragOffsetDeg){
+  const wheelCol = document.getElementById('weekWheelCol');
+  if(!wheelCol) return;
+  const dates = getWeekDates();
+  wheelCol.innerHTML = '';
+  const colRect = wheelCol.getBoundingClientRect();
+  const colHeight = colRect.height || 460, colWidth = colRect.width || 150;
+  const centerX = 14, centerY = colHeight * 0.38;
+  const radius = Math.max(60, colWidth - 115);
+  dates.forEach((date, i) => {
+    // Relative to the active day (not absolute index) — this is what makes the
+    // whole arc actually shift when the active day changes or while dragging,
+    // rather than just restyling labels that never move.
+    const distSigned = (i - activeWheelDayIndex) + (dragOffsetDeg / WHEEL_ANGLE_STEP);
+    const theta = distSigned * WHEEL_ANGLE_STEP; // no clamp — let it travel the full circle so items genuinely exit and re-enter rather than bunching at a boundary
+    const rad = theta * Math.PI/180;
+    const x = centerX + radius * Math.cos(rad);
+    const y = centerY + radius * Math.sin(rad);
+    const el = document.createElement('div');
+    el.className = 'wheel-day-item';
+    el.textContent = WEEK_DAY_LABELS[i] + (date===todayStr ? ' •' : '');
+    const dist = Math.abs(distSigned);
+    el.style.top = (y - 14) + 'px';
+    el.style.left = x + 'px';
+    el.style.transform = `rotate(${theta}deg)`;
+    el.style.opacity = Math.max(0.28, 1 - dist*0.16); // continuous — no discrete active/inactive jump, so it interpolates smoothly mid-drag
+    el.style.fontSize = Math.max(16, 28 - dist*7) + 'px';
+    wheelCol.appendChild(el);
+  });
+}
+
+(function setupWheelDragGesture(){
+  const wheelCol = document.getElementById('weekWheelCol');
+  if(!wheelCol) return;
+  let dragging = false, startY = 0, liveOffsetDeg = 0;
+
+  wheelCol.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    startY = e.clientY;
+    liveOffsetDeg = 0;
+    wheelCol.setPointerCapture(e.pointerId);
+  });
+
+  wheelCol.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const dates = getWeekDates();
+    const deltaY = e.clientY - startY;
+    let offset = deltaY * WHEEL_DRAG_SENSITIVITY;
+    // Clamp so the wheel can't visually spin past Monday (dragging down) or
+    // Sunday (dragging up) — without this, the live drag would keep rotating
+    // past the actual boundary and only snap back once released, which looks
+    // like an overshoot-and-correct rather than a hard stop.
+    const maxOffset = activeWheelDayIndex * WHEEL_ANGLE_STEP; // most you can drag down before hitting Monday
+    const minOffset = (activeWheelDayIndex - (dates.length-1)) * WHEEL_ANGLE_STEP; // most you can drag up before hitting Sunday
+    offset = Math.max(minOffset, Math.min(maxOffset, offset));
+    liveOffsetDeg = offset;
+    renderWheelPositions(liveOffsetDeg);
+  });
+
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    const dates = getWeekDates();
+    const stepsMoved = Math.round(liveOffsetDeg / WHEEL_ANGLE_STEP);
+    activeWheelDayIndex = Math.max(0, Math.min(dates.length-1, activeWheelDayIndex - stepsMoved));
+    liveOffsetDeg = 0;
+    renderWeekGrid(); // full re-render commits the change and refreshes the detail pane
+  }
+  wheelCol.addEventListener('pointerup', endDrag);
+  wheelCol.addEventListener('pointercancel', endDrag);
+})();
+
 async function renderWeekGrid(){
   const wheelCol = document.getElementById('weekWheelCol');
   const detailCol = document.getElementById('weekWheelDetail');
@@ -4206,33 +4296,10 @@ async function renderWeekGrid(){
     dayBlocks.push({ date, blocks });
   }
 
-  // Wheel: structured semicircle — all 7 days at fixed positions evenly spaced across a
-  // true 180° arc (polar coordinates from a center point on the column's left edge),
-  // rather than a linear cascade. Every day stays visible at all times; tapping one only
-  // changes which is styled as active (bold/full-size), not any position.
-  wheelCol.innerHTML = '';
-  const colRect = wheelCol.getBoundingClientRect();
-  const colHeight = colRect.height || 460, colWidth = colRect.width || 150;
-  const centerX = 14, centerY = colHeight * 0.38; // shifted up from center (0.5) so the arc sits higher
-  const radius = Math.max(60, colWidth - 115);
-  dates.forEach((date, i) => {
-    const theta = -90 + (i/6) * 180; // degrees: -90 (top) to +90 (bottom), evenly spaced
-    const rad = theta * Math.PI/180;
-    const x = centerX + radius * Math.cos(rad);
-    const y = centerY + radius * Math.sin(rad);
-    const el = document.createElement('div');
-    el.className = 'wheel-day-item';
-    el.textContent = WEEK_DAY_LABELS[i] + (date===todayStr ? ' •' : '');
-    const isActive = i === activeWheelDayIndex;
-    const dist = Math.abs(i - activeWheelDayIndex);
-    el.style.top = (y - 14) + 'px';
-    el.style.left = x + 'px';
-    el.style.transform = `rotate(${theta}deg)`;
-    el.style.opacity = isActive ? 1 : Math.max(0.28, 1 - dist*0.16); // gradual falloff by distance, not a flat value
-    el.style.fontSize = (isActive ? 28 : Math.max(16, 22 - dist*1.0)) + 'px';
-    el.addEventListener('click', ()=>{ activeWheelDayIndex = i; renderWeekGrid(); });
-    wheelCol.appendChild(el);
-  });
+  // Wheel positioning is now handled by renderWheelPositions() below, called once
+  // here for the initial/settled state (drag offset 0), and repeatedly with a live
+  // offset during an active drag gesture — see setupWheelDragGesture().
+  renderWheelPositions(0);
 
   // Detail pane: up to two workout cards for the active day, or an add-workout
   // affordance if the day is empty — tapping either reuses the existing editor
@@ -5005,7 +5072,7 @@ async function refreshInjuries(){
 const REC_THRESH = { injurySeverityFlag: 3, injurySevereBlock: 5 }; // score/load thresholds now come from currentGoalThresholds()
 
 function scoresForEntry(entry, trailing){
-  const duration = entry.durationHrs, wakeTime = entry.wakeTimeOura, hrv = entry.hrvGarmin, hrvBaseline = entry.hrvBaseline;
+  const duration = entry.durationHrs, wakeTime = entry.wakeTimeOura ?? entry.wakeTimeGarmin, hrv = entry.hrvGarmin ?? entry.hrvOura, hrvBaseline = entry.hrvBaseline;
   const tParts = [];
   if(duration!=null) tParts.push(clamp(duration/8*100,0,100));
   if(wakeTime!=null) tParts.push(clamp(100-wakeTime*WAKE_TIME_PENALTY,0,100));
@@ -5032,8 +5099,9 @@ function scoresForEntry(entry, trailing){
 
 async function getCapacityForEntry(entry){
   const pairs = await getPairedData();
-  const hrvRatio = (entry.hrvGarmin!=null && entry.hrvBaseline) ? entry.hrvGarmin/entry.hrvBaseline : null;
-  const todayVals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura, rhr: entry.restingHR };
+  const hrvEffective = entry.hrvGarmin ?? entry.hrvOura;
+  const hrvRatio = (hrvEffective!=null && entry.hrvBaseline) ? hrvEffective/entry.hrvBaseline : null;
+  const todayVals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura ?? entry.wakeTimeGarmin, rhr: entry.restingHR };
   return computeCapacityFromValues(pairs, todayVals);
 }
 
@@ -5048,8 +5116,9 @@ async function capacityLabelForEntry(entry){
       weights[key] = { r: pearson(valid.map(p=>p[key]), valid.map(p=>p.capacity)), mean: mean(valid.map(p=>p[key])), sd: stdev(valid.map(p=>p[key]))||1 };
     }
   });
-  const hrvRatio = (entry.hrvGarmin!=null && entry.hrvBaseline) ? entry.hrvGarmin/entry.hrvBaseline : null;
-  const vals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura, rhr: entry.restingHR };
+  const hrvEffectiveLabel = entry.hrvGarmin ?? entry.hrvOura;
+  const hrvRatio = (hrvEffectiveLabel!=null && entry.hrvBaseline) ? hrvEffectiveLabel/entry.hrvBaseline : null;
+  const vals = { duration: entry.durationHrs, hrvRatio, wakeTime: entry.wakeTimeOura ?? entry.wakeTimeGarmin, rhr: entry.restingHR };
   let sum=0, tot=0;
   predictorKeys.forEach(key=>{
     const w = weights[key], v = vals[key];
@@ -5434,8 +5503,9 @@ async function checkHRVDecline3Day(){
     try{
       const r = await window.storage.get(keyFor(dateStr));
       const e = JSON.parse(r.value);
-      if(e.hrvGarmin!=null && e.hrvBaseline){
-        ratios.push(e.hrvGarmin/e.hrvBaseline);
+      const hrvEffective = e.hrvGarmin ?? e.hrvOura;
+      if(hrvEffective!=null && e.hrvBaseline){
+        ratios.push(hrvEffective/e.hrvBaseline);
       } else {
         return { declining: false }; // missing data breaks the consecutive-day check
       }
@@ -9362,9 +9432,9 @@ async function renderTrendChart(){
 
   let dataPoints = [];
   if(selectedTrendMetric === 'hrv'){
-    dataPoints = entries.filter(e=>e.hrvGarmin!=null).map(e=>({x:e.date, y:e.hrvGarmin}));
+    dataPoints = entries.filter(e=>(e.hrvGarmin ?? e.hrvOura)!=null).map(e=>({x:e.date, y:e.hrvGarmin ?? e.hrvOura}));
   } else if(selectedTrendMetric === 'sleepScore'){
-    dataPoints = entries.filter(e=>e.sleepScoreOura!=null).map(e=>({x:e.date, y:e.sleepScoreOura}));
+    dataPoints = entries.filter(e=>(e.sleepScoreOura ?? e.sleepScoreGarmin)!=null).map(e=>({x:e.date, y:e.sleepScoreOura ?? e.sleepScoreGarmin}));
   } else if(selectedTrendMetric === 'loadRatio'){
     dataPoints = entries.filter(e=>e.loadRatio!=null).map(e=>({x:e.date, y:e.loadRatio}));
   } else if(selectedTrendMetric === 'sleepDebt'){
