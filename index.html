@@ -48,13 +48,19 @@
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; position:relative; -webkit-text-stroke:0.1px currentColor; }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
-  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; }
-  .eyebrow::before{ content:'[ '; }
-  .eyebrow::after{ content:' ]'; }
   h1{ font-size:46px; font-weight:700; margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
-  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; }
+  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar{ display:none; }
+  /* The bar is 428px of tabs in a 390px viewport, so "Settings" is cut by the screen
+     edge. It has always been scrollable — the problem was that a hard clip reads as a
+     rendering fault rather than an invitation. The fade is applied by class, toggled on
+     actual scroll position, so it disappears once you reach the end instead of implying
+     there is more when there isn't. */
+  .tabs.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); }
+  .tabs.tabs-more-left{ -webkit-mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); }
+  .tabs.tabs-more-left.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   .tab svg{ width:18px; height:18px; }
   .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
@@ -104,9 +110,6 @@
   .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
     .header-dither-row canvas{ display:block; }
   .header-brand > *{ position:relative; z-index:1; }
-  .profile-row{ display:flex; align-items:center; gap:8px; padding:10px 0 12px; }
-  .profile-row label{ font-family:var(--sans); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
-  .profile-row select{ flex:1; font-size:16px; padding:6px 8px; }
   main{ padding:16px 14px 14px; max-width:520px; margin:0 auto; }
   .panel{ display:none; }
   .panel.active{ display:block; }
@@ -138,7 +141,12 @@
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--text); }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:8px 10px; border-radius:0; min-width:0; }
-  select{ flex:1 0 auto; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:0 10px; border-radius:0; min-width:0; height:31px; }
+  /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
+     a select sized itself to its longest OPTION and pushed the whole page sideways.
+     Basis stays `auto` so a select starts at its natural width (a basis of 0 collapsed
+     the Weekly split/duration pickers to "Aut…" and "1 w…"); shrink:1 is what lets a
+     long option like "Low — rarely flares with load" compress instead of overflowing. */
+  select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:0 10px; border-radius:0; height:31px; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
   .disagree-note{ font-family:var(--sans); font-size:10px; color:var(--text); margin-top:2px; display:none; }
@@ -183,37 +191,33 @@
   .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
   .type-btn.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
 
-  .exercise-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-  .exercise-row input[type=text]{ flex:2; min-width:110px; }
-  .exercise-row input[type=number]{ flex:1; min-width:62px; }
-  .exercise-row select{ flex:1; min-width:70px; font-size:16px; padding:8px 4px; }
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:16px; cursor:pointer; padding:0 4px; flex:none; }
   .add-row{ font-family:var(--sans); font-size:11px; color:var(--text); font-weight:700; cursor:pointer; text-align:center; padding:8px; border:2px solid var(--border-bold); border-radius:0; }
-  .volume-total{ font-family:var(--sans); font-size:12px; color:var(--dim); text-align:right; margin-top:8px; }
-  .volume-total span{ color:var(--text); font-weight:700; }
 
   .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:14px; margin-bottom:10px; background:transparent; }
   .injury-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .injury-part{ font-weight:600; font-size:14px; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .injury-sev{ font-family:var(--mono); font-size:20px; }
-  .injury-sev.low{ color:var(--text); }
-  .injury-sev.mid{ color:var(--text); }
-  .injury-sev.high{ color:var(--text); }
   .injury-meta{ font-family:var(--sans); font-size:10px; color:var(--dim); letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
-  .week-grid{ display:flex; flex-direction:row; gap:8px; overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
-  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
+  .week-wheel-col{ width:54%; position:relative; padding-left:6px; overflow:hidden; }
   .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:800; text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
+  /* Drag only starts on a day label, deliberately — capturing the whole column stole
+     page-scroll gestures from the empty space around the arc. But the labels themselves
+     are small targets, the far ones only 16px tall. This pseudo-element grows the hit
+     area well past the glyphs without affecting layout, the rotation anchor, or the
+     surrounding empty space. Overlap between neighbouring targets is harmless: every
+     item starts the same drag. */
+  .wheel-day-item::before{ content:''; position:absolute; inset:-16px -22px; }
   .week-wheel-detail{ width:52%; padding:16px 4px 16px 14px; display:flex; flex-direction:column; justify-content:center; gap:12px; overflow-y:auto; }
   .wheel-detail-day{ font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
   .wheel-workout-card:active{ background:rgba(255,255,255,0.35); }
   select:active{ background:#f2f2f2; }
-  .log-entry:active, .wheel-add-card:active, .add-row:active, .session-flow-header:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
+  .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
   .wheel-workout-type{ font-family:var(--sans); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--text); }
   .wheel-workout-chevron{ opacity:0.5; font-size:15px; }
   .wheel-ex-names{ font-family:var(--sans); font-size:12px; line-height:1.5; color:var(--text); opacity:0.85; }
@@ -237,14 +241,6 @@
   #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:8px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:16px; padding:8px 4px; }
 
-  .session-flow-section{ border:none; border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; margin-bottom:0; overflow:visible; background:transparent; }
-  .session-flow-header{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; }
-  .session-flow-header.active{ border-bottom:1px solid var(--line); }
-  .session-flow-title{ font-size:13px; font-weight:600; letter-spacing:-0.02em; -webkit-text-stroke:0.25px currentColor; }
-  .session-flow-title.secondary{ font-weight:500; color:var(--dim); }
-  .session-flow-chevron{ color:var(--dim); font-size:12px; transition:transform 0.15s; }
-  .session-flow-header.active .session-flow-chevron{ transform:rotate(180deg); }
-  .session-flow-body{ padding:14px 16px; }
 
   .rec-card{ position:relative; border-radius:0; padding:16px; margin-bottom:14px; background:transparent; }
   .rec-card::before{
@@ -375,7 +371,7 @@
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
         <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <div class="score-note" style="margin-top:12px;">Log actual stretch sessions (sets × hold time) on the Training tab under the Mobility session type — this generator reads from that history.</div>
+        <div class="score-note" style="margin-top:12px;">Log actual stretch sessions (sets × hold time) on the Weekly tab under the Mobility session type — this generator reads from that history.</div>
       </div>
     </div>
   </div>
@@ -1109,6 +1105,21 @@ if(!window.storage){
 
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
+
+// Keeps the tab-bar fade honest: it only shows on the side that actually has more to
+// reach, and clears once you're at that end.
+(function initTabScrollAffordance(){
+  const bar = document.querySelector('.tabs');
+  if(!bar) return;
+  function update(){
+    const more = bar.scrollWidth - bar.clientWidth;
+    bar.classList.toggle('tabs-more-right', more > 2 && bar.scrollLeft < more - 2);
+    bar.classList.toggle('tabs-more-left', more > 2 && bar.scrollLeft > 2);
+  }
+  bar.addEventListener('scroll', update, { passive:true });
+  window.addEventListener('resize', update);
+  update();
+})();
 const panels = document.querySelectorAll('.panel');
 const footerRecoveryEl = document.getElementById('footerRecovery');
 
@@ -2317,11 +2328,17 @@ dateInput.addEventListener('change', ()=>loadRecoveryEntry(dateInput.value));
 
 /* ---------- TRAINING ---------- */
 
+// Extended for genuine full-body coverage. Forearms/grip, core, glutes and adductors
+// previously had no area at all, so they could never be tagged, volume-tracked, or
+// reached by the gap selector — grip in particular is the common limiter on rows, pulls,
+// carries and deadlifts. Glutes were folded into `hips` and adductors existed only in the
+// mobility taxonomy, so neither could be trained as a target in its own right.
 const BODY_AREAS = {
-  hips: 'Hips', hamstrings: 'Hamstrings', quads_knees: 'Quads/Knees',
-  calves: 'Calves', ankles: 'Ankles', shoulders: 'Shoulders', chest: 'Chest',
-  thoracic: 'Thoracic/Upper back', lower_back: 'Lower back',
-  biceps: 'Biceps', triceps: 'Triceps', full_body: 'Full body'
+  hips: 'Hips', glutes: 'Glutes', hamstrings: 'Hamstrings', quads_knees: 'Quads/Knees',
+  adductors: 'Adductors', calves: 'Calves', ankles: 'Ankles', shoulders: 'Shoulders',
+  chest: 'Chest', thoracic: 'Thoracic/Upper back', lower_back: 'Lower back',
+  core: 'Core', biceps: 'Biceps', triceps: 'Triceps', forearms: 'Forearms/Grip',
+  neck: 'Neck', full_body: 'Full body'
 };
 const MOVEMENT_TYPES = { squat:'Squat', hinge:'Hinge', push:'Push', pull:'Pull', lunge:'Lunge', carry:'Carry', core:'Core', isolation:'Isolation' };
 // v2 — replaces the earlier 70/30 guess. Per Cowork's research (Schoenfeld et al. 2019 declines
@@ -2371,35 +2388,35 @@ const EXERCISE_LIBRARY = {
   front_squat: { name:"Front Squat", aliases:["front squat"], category:"main_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"S", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:1,power:1,mobility:0,calisthenics:0} },
   goblet_squat: { name:"Goblet Squat", aliases:["goblet squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["dumbbell", "kettlebell"], evidenceConfidence:"meta_analysis", goalSuitability:{strength:1,hypertrophy:2,endurance:1,running:1,power:0,mobility:1,calisthenics:0} },
   box_squat: { name:"Box Squat", aliases:["box squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell", "box"], evidenceConfidence:"coaching_consensus" },
-  cossack_squat: { name:"Cossack Squat", aliases:["cossack squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
+  cossack_squat: { name:"Cossack Squat", longLengthBias:true, longLengthNote:"deep lateral squat position loads the working hip at end range", aliases:["cossack squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
   safety_bar_squat: { name:"Safety Bar Squat", aliases:["safety bar squat", "ssb squat"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"coaching_consensus" },
-  bulgarian_split_squat: { name:"Bulgarian Split Squat", aliases:["bulgarian split squat", "rear foot elevated split squat", "rfess"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"intermediate", equipment:["dumbbell", "barbell", "bodyweight"], evidenceConfidence:"systematic_review", strengthTier:"A", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:2,plyometricReactive:0} },
+  bulgarian_split_squat: { name:"Bulgarian Split Squat", longLengthBias:true, longLengthNote:"rear leg hip flexors and front quad at length", aliases:["bulgarian split squat", "rear foot elevated split squat", "rfess"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"intermediate", equipment:["dumbbell", "barbell", "bodyweight"], evidenceConfidence:"systematic_review", strengthTier:"A", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:2,plyometricReactive:0} },
   walking_lunge: { name:"Walking Lunge", aliases:["walking lunge", "lunge"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"lunge", difficulty:"beginner", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus" },
   leg_press: { name:"Leg Press", aliases:["leg press"], category:"secondary_strength", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
   leg_extension: { name:"Leg Extension", aliases:["leg extension", "quad extension"], category:"isolation", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"high", regionalEmphasis:{"rectus_femoris": "high"}, tierNote:"Per Kassiano et al. 2026 (PMID 41379528): leg extension produces significantly greater rectus femoris growth than back squat; back squat produces significantly greater distal vastus lateralis growth. Not interchangeable for regional quad development." },
   pistol_squat: { name:"Pistol Squat", aliases:["pistol squat", "one leg squat", "single leg squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   deadlift: { name:"Deadlift", aliases:["deadlift", "conventional deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
   trap_bar_deadlift: { name:"Trap Bar Deadlift", aliases:["trap bar deadlift", "hex bar deadlift"], category:"main_strength", area:"hamstrings", secondaryArea:"quads_knees", movement:"hinge", difficulty:"beginner", equipment:["trap_bar"], evidenceConfidence:"coaching_consensus", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:1,power:2,mobility:0,calisthenics:0} },
-  rdl: { name:"Romanian Deadlift", aliases:["rdl", "romanian deadlift", "stiff leg deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", stretchingSuitable:false, stretchingRationale:"Lengthened-position hamstring loading at the bottom of the hinge — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains.", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:2,power:0,mobility:1,calisthenics:0} },
+  rdl: { name:"Romanian Deadlift", longLengthBias:true, longLengthNote:"deep hip flexion loads hamstrings at length", aliases:["rdl", "romanian deadlift", "stiff leg deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", stretchingSuitable:false, stretchingRationale:"Lengthened-position hamstring loading at the bottom of the hinge — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains.", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:2,power:0,mobility:1,calisthenics:0} },
   good_morning: { name:"Good Morning", aliases:["good morning"], category:"secondary_strength", area:"hamstrings", secondaryArea:"lower_back", movement:"hinge", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   hip_thrust: { name:"Hip Thrust", aliases:["hip thrust", "barbell hip thrust"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["barbell", "bodyweight"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"high", tierNote:"Per Plotkin et al. 2023 (PMID 37461495): hip thrust and back squat produce statistically similar glute hypertrophy despite hip thrust showing much higher EMG amplitude \u2014 EMG did not predict the hypertrophy outcome. Squats additionally grew the quads/adductors; hip thrust did not.", runningRelevance:{economy:0,durability:1,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
   glute_bridge: { name:"Glute Bridge", aliases:["glute bridge"], category:"secondary_strength", area:"hips", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", warmupSuitable:true, runningRelevance:{economy:0,durability:1,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
   back_extension: { name:"Back Extension", aliases:["back extension", "hyperextension"], category:"secondary_strength", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["machine", "bodyweight"], evidenceConfidence:"coaching_consensus" },
-  superman: { name:"Superman", aliases:["superman"], category:"core", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  superman: { name:"Superman", aliases:["superman"], category:"bulletproofing", area:"lower_back", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   leg_curl: { name:"Leg Curl", aliases:["leg curl", "hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis" },
-  nordic_curl: { name:"Nordic Hamstring Curl", aliases:["nordic curl", "nordic hamstring curl"], category:"bulletproofing", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight", "partner"], evidenceConfidence:"rct", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Regional hamstring hypertrophy from Nordic curls (knee-flexion emphasis) differs from hip-extension-dominant exercises like RDL \u2014 not fully interchangeable for complete hamstring development.", stretchingSuitable:false, stretchingRationale:"Deep lengthened-position hamstring loading — Alizadeh et al. 2022 found full-ROM strength work produces ROM gains equal to dedicated stretching, with no added benefit from stacking extra static stretching on top.", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:1,singleLegStrength:0,plyometricReactive:0} },
+  nordic_curl: { name:"Nordic Hamstring Curl", longLengthBias:true, longLengthNote:"eccentric through the lengthened range", aliases:["nordic curl", "nordic hamstring curl"], category:"bulletproofing", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight", "partner"], evidenceConfidence:"rct", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Regional hamstring hypertrophy from Nordic curls (knee-flexion emphasis) differs from hip-extension-dominant exercises like RDL \u2014 not fully interchangeable for complete hamstring development.", stretchingSuitable:false, stretchingRationale:"Deep lengthened-position hamstring loading — Alizadeh et al. 2022 found full-ROM strength work produces ROM gains equal to dedicated stretching, with no added benefit from stacking extra static stretching on top.", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:1,singleLegStrength:0,plyometricReactive:0} },
   bench_press: { name:"Bench Press", aliases:["bench press", "flat bench", "barbell bench"], category:"main_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"high", goalSuitability:{strength:3,hypertrophy:2,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
   incline_press: { name:"Incline Bench Press", aliases:["incline press", "incline bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", tierNote:"Incline pressing shifts emphasis toward the clavicular (upper) pec region relative to flat pressing \u2014 not simply a flat-press substitute." },
   dumbbell_bench_press: { name:"Dumbbell Bench Press", aliases:["dumbbell bench press", "db bench"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:1,calisthenics:0} },
   machine_chest_press: { name:"Machine Chest Press", aliases:["machine press", "chest press"], category:"secondary_strength", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:1,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
-  cable_fly: { name:"Cable Fly", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  cable_fly: { name:"Cable Fly", longLengthBias:true, longLengthNote:"loaded stretch at the bottom position", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   overhead_press: { name:"Overhead Press", aliases:["overhead press", "strict press", "shoulder press", "military press"], category:"main_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:1,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
   dumbbell_shoulder_press: { name:"Dumbbell Shoulder Press", aliases:["dumbbell shoulder press", "db shoulder press"], category:"secondary_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"B", tierEvidence:"low" },
   lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy despite different resistance-curve theory \u2014 equipment choice should follow comfort/progression/preference, not assumed superiority." },
   tricep_pushdown: { name:"Tricep Pushdown", aliases:["tricep pushdown", "tricep extension", "pushdown"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   skull_crusher: { name:"Skull Crusher", aliases:["skull crusher", "overhead extension", "french press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate" },
   push_up: { name:"Push-up", aliases:["push up", "pushup"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  dip: { name:"Dip", aliases:["dip", "bar dip", "ring dip"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  dip: { name:"Dip", longLengthBias:true, longLengthNote:"deep bottom position stretches the pec", aliases:["dip", "bar dip", "ring dip"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   handstand_pushup: { name:"Handstand Push-up", aliases:["handstand push up", "hspu"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   planche: { name:"Planche", aliases:["planche"], category:"calisthenics_progression", area:"shoulders", secondaryArea:"chest", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   pull_up: { name:"Pull-up", aliases:["pull up", "pullup", "chin up"], category:"calisthenics", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:2,endurance:0,running:0,power:0,mobility:0,calisthenics:3} },
@@ -2411,21 +2428,21 @@ const EXERCISE_LIBRARY = {
   face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"shoulders", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   bicep_curl: { name:"Bicep Curl", aliases:["bicep curl", "curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "barbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   hammer_curl: { name:"Hammer Curl", aliases:["hammer curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
-  preacher_curl: { name:"Preacher Curl", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"biceps_distal": "moderate"}, tierNote:"Preacher and incline curls train the biceps at different joint angles/lengths and produce different proximal/distal hypertrophy patterns \u2014 not interchangeable for complete biceps development." },
+  preacher_curl: { name:"Preacher Curl", longLengthBias:true, longLengthNote:"elbow extended against support at the bottom", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"biceps_distal": "moderate"}, tierNote:"Preacher and incline curls train the biceps at different joint angles/lengths and produce different proximal/distal hypertrophy patterns \u2014 not interchangeable for complete biceps development." },
   front_lever: { name:"Front Lever", aliases:["front lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   back_lever: { name:"Back Lever", aliases:["back lever"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   muscle_up: { name:"Muscle-up", aliases:["muscle up", "muscleup"], category:"calisthenics_progression", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   calf_raise: { name:"Calf Raise", aliases:["calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"high", regionalEmphasis:{"gastrocnemius": "high"}, tierNote:"Straight-knee (standing) calf raises produce significantly greater gastrocnemius growth than bent-knee (seated) \u2014 well-supported (Kinoshita et al. 2023). The common belief that seated calf raises are specifically superior for soleus growth is weaker than often claimed: in the same study the standing-vs-seated soleus difference was not statistically significant, and ankle dorsiflexion range was not matched between conditions, limiting how much weight that specific comparison can bear.", runningRelevance:{economy:0,durability:2,sprint:0,acceleration:0,tendonCapacity:2,singleLegStrength:0,plyometricReactive:0} },
   tibialis_raise: { name:"Tibialis Raise", aliases:["tibialis raise", "tib raise"], category:"bulletproofing", area:"ankles", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight", "band"], evidenceConfidence:"coaching_consensus", runningRelevance:{economy:0,durability:0,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },  // Honest 0s per E.3 point 4 — no direct evidence TA strengthening prevents shin splints, despite common recommendation
-  atg_split_squat: { name:"ATG Split Squat", aliases:["atg split squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"ankles", movement:"lunge", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Full-depth lengthened quad/hip loading by design — per Alizadeh et al. 2022, this already provides the ROM stimulus dedicated static stretching would target." },
-  sissy_squat: { name:"Sissy Squat", aliases:["sissy squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Lengthened-position quad loading — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains, so extra static stretching adds little here." },
+  atg_split_squat: { name:"ATG Split Squat", longLengthBias:true, longLengthNote:"deep knee and hip flexion under load", aliases:["atg split squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"ankles", movement:"lunge", difficulty:"intermediate", equipment:["bodyweight", "dumbbell"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Full-depth lengthened quad/hip loading by design — per Alizadeh et al. 2022, this already provides the ROM stimulus dedicated static stretching would target." },
+  sissy_squat: { name:"Sissy Squat", longLengthBias:true, longLengthNote:"rectus femoris loaded in a lengthened position", aliases:["sissy squat"], category:"bulletproofing", area:"quads_knees", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", stretchingSuitable:false, stretchingRationale:"Lengthened-position quad loading — per Alizadeh et al. 2022, full-ROM strength work matches dedicated stretching for ROM gains, so extra static stretching adds little here." },
   band_external_rotation: { name:"Band External Rotation", aliases:["band external rotation", "cuff rotation"], category:"bulletproofing", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["band"], evidenceConfidence:"coaching_consensus", warmupSuitable:true },
-  wrist_curl: { name:"Wrist Curl", aliases:["wrist curl"], category:"bulletproofing", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus" },
-  dead_hang: { name:"Dead Hang", aliases:["dead hang"], category:"bulletproofing", area:"thoracic", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  copenhagen_plank: { name:"Copenhagen Plank", aliases:["copenhagen plank"], category:"bulletproofing", area:"hips", secondaryArea:"", movement:"core", difficulty:"intermediate", equipment:["bodyweight", "bench"], evidenceConfidence:"rct", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
+  wrist_curl: { name:"Wrist Curl", aliases:["wrist curl"], category:"bulletproofing", area:"forearms", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus" },
+  dead_hang: { name:"Dead Hang", aliases:["dead hang"], category:"bulletproofing", area:"forearms", secondaryArea:"thoracic", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  copenhagen_plank: { name:"Copenhagen Plank", aliases:["copenhagen plank"], category:"bulletproofing", area:"adductors", secondaryArea:"core", movement:"core", difficulty:"intermediate", equipment:["bodyweight", "bench"], evidenceConfidence:"rct", runningRelevance:{economy:0,durability:3,sprint:0,acceleration:0,tendonCapacity:0,singleLegStrength:0,plyometricReactive:0} },
   l_sit: { name:"L-sit", aliases:["l sit", "lsit"], category:"calisthenics_progression", area:"hips", secondaryArea:"triceps", movement:"core", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  plank: { name:"Plank", aliases:["plank"], category:"core", area:"hips", secondaryArea:"", movement:"core", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
-  hanging_leg_raise: { name:"Hanging Leg Raise", aliases:["hanging leg raise", "leg raise"], category:"core", area:"hips", secondaryArea:"", movement:"core", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  plank: { name:"Plank", aliases:["plank"], category:"bulletproofing", area:"core", secondaryArea:"", movement:"core", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
+  hanging_leg_raise: { name:"Hanging Leg Raise", longLengthBias:true, longLengthNote:"abdominals loaded from a hanging, lengthened trunk position", aliases:["hanging leg raise", "leg raise"], category:"calisthenics", area:"core", secondaryArea:"hips", movement:"core", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus" },
   pogos: { name:"Pogos", aliases:["pogos", "pogo jumps", "ankle bounces"], category:"power", area:"calves", secondaryArea:"ankles", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"meta_analysis", warmupSuitable:true, runningRelevance:{economy:2,durability:0,sprint:1,acceleration:1,tendonCapacity:1,singleLegStrength:0,plyometricReactive:3} },
   box_jump: { name:"Box Jump", aliases:["box jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"intermediate", equipment:["box"], evidenceConfidence:"meta_analysis", runningRelevance:{economy:2,durability:0,sprint:1,acceleration:1,tendonCapacity:0,singleLegStrength:0,plyometricReactive:3} },
   depth_jump: { name:"Depth Jump", aliases:["depth jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["box"], evidenceConfidence:"meta_analysis" },
@@ -2455,6 +2472,57 @@ const EXERCISE_LIBRARY = {
   trap_bar_jump: { name:"Trap Bar Jump", aliases:["trap bar jump"], category:"power", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["trap_bar"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"A", tierEvidence:"low" },
   lateral_step_up: { name:"Lateral Step-Up", aliases:["lateral step up", "lateral step-up"], category:"secondary_strength", area:"hips", secondaryArea:"quads_knees", movement:"lunge", difficulty:"intermediate", equipment:["box", "bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"A", tierEvidence:"low" },
   single_leg_squat: { name:"Single-Leg Squat", aliases:["single leg squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"hips", movement:"squat", difficulty:"advanced", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"B", powerTier:"A", tierEvidence:"low" },
+
+  // ---- Library expansion: coverage-first additions -------------------------------
+  // Added to close genuine gaps rather than pad an already-covered area. Before this,
+  // ankles had 1 entry, lower_back 2, calves 4 and hamstrings 6, which meant the
+  // volume-gap selector had nothing to reach for once the first pick was used. Tiers
+  // follow the same conservative convention already in use: "low" tierEvidence where
+  // the ranking is coaching consensus rather than a specific finding.
+  seated_calf_raise_machine: { name:"Seated Calf Raise (machine)", aliases:["seated calf raise machine"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"soleus":"high"}, tierNote:"Bent-knee position biases soleus by shortening gastrocnemius. Pairs with a straight-knee variant rather than replacing it." },
+  single_leg_calf_raise: { name:"Single-Leg Calf Raise", longLengthBias:true, longLengthNote:"deficit position allows full dorsiflexion stretch", aliases:["single leg calf raise","one leg calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight","dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  tibialis_raise_weighted: { name:"Weighted Tibialis Raise", aliases:["weighted tib raise"], category:"isolation", area:"ankles", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["band","plate"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  heel_elevated_ankle_rocker: { name:"Loaded Ankle Rocker", aliases:["ankle rocker","weighted ankle rock"], category:"bulletproofing", area:"ankles", secondaryArea:"calves", movement:"isolation", difficulty:"beginner", equipment:["bodyweight","dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"C", tierEvidence:"low" },
+  reverse_hyper: { name:"Reverse Hyperextension", aliases:["reverse hyper"], category:"isolation", area:"lower_back", secondaryArea:"hips", movement:"hinge", difficulty:"intermediate", equipment:["machine","bench"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  bird_dog: { name:"Bird Dog", aliases:["bird dog"], category:"bulletproofing", area:"lower_back", secondaryArea:"hips", movement:"core", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"C", tierEvidence:"low" },
+  seated_leg_curl: { name:"Seated Leg Curl", longLengthBias:true, longLengthNote:"hip flexed — hamstrings held long throughout", aliases:["seated leg curl","seated hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Hip-flexed position trains the hamstrings at longer muscle lengths, which favours growth over the lying variant." },
+  lying_leg_curl: { name:"Lying Leg Curl", longLengthBias:true, longLengthNote:"partially — hip extended, shorter than seated", aliases:["lying leg curl","hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate" },
+  single_leg_rdl: { name:"Single-Leg RDL", aliases:["single leg rdl","single leg romanian deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"hips", movement:"hinge", difficulty:"intermediate", equipment:["dumbbell","kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  cable_pullover: { name:"Cable Pullover", longLengthBias:true, longLengthNote:"lats loaded in full overhead reach", aliases:["cable pullover","straight arm pulldown"], category:"isolation", area:"thoracic", secondaryArea:"", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  face_pull_rope: { name:"Cable Face Pull", aliases:["cable face pull"], category:"isolation", area:"thoracic", secondaryArea:"shoulders", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  incline_dumbbell_press: { name:"Incline Dumbbell Press", longLengthBias:true, longLengthNote:"increased shoulder extension at the bottom", aliases:["incline dumbbell press","incline db press"], category:"secondary_strength", area:"chest", secondaryArea:"shoulders", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", tierNote:"Incline pressing biases the clavicular (upper) pec relative to flat pressing." },
+  rear_delt_fly: { name:"Rear Delt Fly", aliases:["rear delt fly","reverse pec deck"], category:"isolation", area:"shoulders", secondaryArea:"thoracic", movement:"isolation", difficulty:"beginner", equipment:["dumbbell","machine"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  concentration_curl: { name:"Concentration Curl", aliases:["concentration curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  reverse_curl: { name:"Reverse Curl", aliases:["reverse curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell","dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  chin_up: { name:"Chin-Up", aliases:["chin up","chinup"], category:"calisthenics", area:"biceps", secondaryArea:"thoracic", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"B", tierEvidence:"low" },
+  overhead_dumbbell_extension: { name:"Overhead Dumbbell Extension", longLengthBias:true, longLengthNote:"shoulder flexed — triceps long head under stretch", aliases:["overhead dumbbell extension","overhead tricep extension"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Overhead positions load the long head at long muscle lengths, which outperforms pushdown-only work for total triceps growth." },
+  dumbbell_kickback: { name:"Tricep Kickback", aliases:["tricep kickback","kickback"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell","cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"C", tierEvidence:"low" },
+  hip_abduction: { name:"Hip Abduction", aliases:["hip abduction","cable hip abduction"], category:"isolation", area:"hips", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine","band","cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  sissy_squat_assisted: { name:"Assisted Sissy Squat", aliases:["assisted sissy squat"], category:"calisthenics", area:"quads_knees", secondaryArea:"", movement:"squat", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+
+  // ---- Tier 3: exercises for the newly-trainable areas ---------------------------
+  // These areas had no exercises because they had no area tag. Grip, core, neck,
+  // glutes and adductors are now selectable targets rather than incidental secondaries.
+  farmers_carry: { name:"Farmer's Carry", aliases:["farmers carry","farmer carry","loaded carry"], category:"secondary_strength", area:"forearms", secondaryArea:"core", movement:"carry", difficulty:"beginner", equipment:["dumbbell","kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low", tierNote:"Trains grip endurance under load alongside trunk bracing — the two limiters that most often cap rowing and deadlift volume." },
+  plate_pinch: { name:"Plate Pinch Hold", aliases:["plate pinch","pinch grip"], category:"isolation", area:"forearms", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["plate"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  wrist_roller: { name:"Wrist Roller", aliases:["wrist roller"], category:"isolation", area:"forearms", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable","other"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  ab_wheel_rollout: { name:"Ab Wheel Rollout", longLengthBias:true, longLengthNote:"abdominals loaded at full extension", aliases:["ab wheel","rollout"], category:"calisthenics", area:"core", secondaryArea:"lower_back", movement:"core", difficulty:"intermediate", equipment:["other"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  cable_crunch: { name:"Cable Crunch", aliases:["cable crunch","kneeling cable crunch"], category:"isolation", area:"core", secondaryArea:"", movement:"core", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  pallof_press: { name:"Pallof Press", aliases:["pallof press","anti-rotation press"], category:"bulletproofing", area:"core", secondaryArea:"", movement:"core", difficulty:"beginner", equipment:["cable","band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"C", powerTier:"C", tierEvidence:"low" },
+  side_plank: { name:"Side Plank", aliases:["side plank"], category:"bulletproofing", area:"core", secondaryArea:"hips", movement:"core", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"C", powerTier:"C", tierEvidence:"low" },
+  hip_thrust_glute: { name:"Barbell Hip Thrust", aliases:["barbell hip thrust","glute bridge barbell"], category:"secondary_strength", area:"glutes", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["barbell","bench"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"S", powerTier:"B", tierEvidence:"moderate", tierNote:"Peak glute activation occurs at end-range hip extension, complementing squats and hinges which load the glutes at longer lengths instead." },
+  cable_kickback: { name:"Cable Glute Kickback", aliases:["cable kickback","glute kickback"], category:"isolation", area:"glutes", secondaryArea:"", movement:"hinge", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  step_up: { name:"Step-Up", aliases:["step up","box step up"], category:"secondary_strength", area:"glutes", secondaryArea:"quads_knees", movement:"lunge", difficulty:"beginner", equipment:["dumbbell","bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"B", tierEvidence:"low" },
+  hip_adduction_machine: { name:"Hip Adduction", aliases:["hip adduction","adductor machine"], category:"isolation", area:"adductors", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine","cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  neck_harness_extension: { name:"Neck Extension", aliases:["neck extension","neck harness"], category:"isolation", area:"neck", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["other","band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low", tierNote:"Neck training is rarely reached by compound work. Progress load slowly and conservatively — this is a region where aggressive loading is not advisable." },
+  neck_flexion: { name:"Neck Flexion", aliases:["neck flexion","neck curl"], category:"isolation", area:"neck", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight","plate"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  // Adductor depth. Two eligible exercises couldn't reach an MEV of 4 once name-dedup
+  // ruled out repeats, so the area stalled at 3 sets. Chose to widen the library rather
+  // than retag Cossack Squat off `hips` — retagging would silently subtract from hip
+  // volume everywhere else it's counted.
+  lateral_lunge: { name:"Lateral Lunge", longLengthBias:true, longLengthNote:"adductor lengthening under load", aliases:["lateral lunge","side lunge"], category:"secondary_strength", area:"adductors", secondaryArea:"quads_knees", movement:"lunge", difficulty:"beginner", equipment:["dumbbell","bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  sumo_goblet_squat: { name:"Sumo Goblet Squat", longLengthBias:true, longLengthNote:"wide stance loads adductors through a longer range", aliases:["sumo goblet squat","sumo squat"], category:"secondary_strength", area:"adductors", secondaryArea:"quads_knees", movement:"squat", difficulty:"beginner", equipment:["dumbbell","kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low", tierNote:"Wide stance loads the adductors through a longer range than a conventional squat stance." },
+  band_adduction: { name:"Standing Band Adduction", aliases:["band adduction","standing adduction"], category:"isolation", area:"adductors", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["band","cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
 };
 
 function guessTagsFromLibrary(name){
@@ -2854,25 +2922,6 @@ async function isDeloadWeek(date){
   } catch(e){ return false; }
 }
 
-async function getTypicalValue(type, exerciseName){
-  const sessions = await getAllTrainingSessions();
-  const matches = [];
-  sessions.forEach(s=>{
-    if(type==='strength' && s.type==='strength' && s.exercises){
-      s.exercises.forEach(e=>{
-        if(e.name && exerciseName && e.name.trim().toLowerCase()===exerciseName.trim().toLowerCase() && e.sets){
-          matches.push(e.sets);
-        }
-      });
-    }
-    if(type==='run' && s.type==='run' && s.distanceKm){
-      matches.push(s.distanceKm);
-    }
-  });
-  if(matches.length===0) return null;
-  const recent = matches.slice(-3);
-  return recent.reduce((a,b)=>a+b,0)/recent.length;
-}
 
 // Replaces the old "✳" text-character placeholder, which depended on system font
 // fallback rendering (Helvetica Neue isn't a loaded web font, unlike IBM Plex Mono) —
@@ -2905,7 +2954,10 @@ function extractBlockNames(block){
   if(block.type==='run'){
     const d = block.details;
     const typeLabel = d.runType ? d.runType.charAt(0).toUpperCase()+d.runType.slice(1) : 'Run';
-    return [`${typeLabel} · ${d.distanceKm ?? '—'}km`];
+    // Long and race runs deliberately carry no auto-solved distance — they're governed
+    // by weekly volume, not session length. Rendering that absence as "—km" looked like
+    // a failed lookup rather than an intentional blank, so omit the distance entirely.
+    return [d.distanceKm ? `${typeLabel} · ${d.distanceKm}km` : typeLabel];
   }
   if(block.type==='mobility') return (block.details.stretches||[]).filter(s=>!s.skippedForInjury).map(s=>s.name).filter(Boolean);
   return [];
@@ -2921,8 +2973,18 @@ function renderWheelPositions(dragOffsetDeg){
   wheelCol.innerHTML = '';
   const colRect = wheelCol.getBoundingClientRect();
   const colHeight = colRect.height || 460, colWidth = colRect.width || 150;
-  const centerX = 14, centerY = colHeight * 0.38;
-  const radius = Math.max(60, colWidth - 115);
+  // The arc travels the full circle (see theta below), so a day can sit at any angle
+  // including -180deg. With the old centerX of 14 and a radius of 60 that put the far
+  // day at x = -46, outside this overflow:hidden column — measured on a Friday, Monday
+  // was simply invisible. Size the circle to fit the column instead: leave room for the
+  // widest label at 0deg on the right, and keep the leftmost point inside the box, so
+  // all seven days stay on screen whichever day is active.
+  // Two allowances, because a rotated label's box is wider than its anchor point:
+  // room on the right for the widest active label at 0deg, and room on the left for the
+  // box overhang of a label rotated near 180deg (measured at ~38px).
+  const LABEL_ALLOWANCE = 77, ROTATION_OVERHANG = 40;
+  const radius = Math.max(38, Math.min(56, (colWidth - LABEL_ALLOWANCE - ROTATION_OVERHANG) / 2));
+  const centerX = radius + ROTATION_OVERHANG, centerY = colHeight * 0.38;
   dates.forEach((date, i) => {
     // Relative to the active day (not absolute index) — this is what makes the
     // whole arc actually shift when the active day changes or while dragging,
@@ -3169,7 +3231,7 @@ function openBlockEditor(date, slot, block){
         <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
           <input type="number" class="week-ex-sets" placeholder="sets" style="max-width:56px;" title="sets actually done">
           <span style="font-size:11px; color:var(--dim);">×</span>
-          <input type="number" class="week-ex-reps" placeholder="reps" style="max-width:56px;" title="reps actually done">
+          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="reps" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
           <span style="font-size:11px; color:var(--dim);">@</span>
           <input type="number" class="week-ex-weight" placeholder="kg" style="max-width:64px;" title="weight actually used">
         </div>
@@ -3374,13 +3436,19 @@ function openBlockEditor(date, slot, block){
           secondaryArea = secondaryArea || guess.secondary || '';
           movement = movement || guess.movement || '';
         }
-        const sets = parseFloat(row.querySelector('.week-ex-sets').value) || 0;
-        const reps = parseFloat(row.querySelector('.week-ex-reps').value) || 0;
+        const { reps, repsPerSet } = parseRepsInput(row.querySelector('.week-ex-reps').value);
+        const setsEntered = parseFloat(row.querySelector('.week-ex-sets').value) || 0;
+        // Per-set entry implies the set count, so it doesn't need typing twice — but an
+        // explicitly entered sets value still wins if the two disagree.
+        const sets = setsEntered || (repsPerSet ? repsPerSet.length : 0);
         const weight = parseFloat(row.querySelector('.week-ex-weight').value) || 0;
-        const volume = sets*reps*weight;
+        // With per-set reps the true rep total is known, so volume uses it rather than
+        // sets × average, which rounds away the drop-off.
+        const volume = repsPerSet ? repsPerSet.reduce((a,b)=>a+b,0)*weight : sets*reps*weight;
+        const effort = estimateEffortFromDropoff(repsPerSet);
         const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
         const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
-        exercises.push({ name, sets, reps, weight, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId });
+        exercises.push({ name, sets, reps, repsPerSet, effort, weight, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId });
         totalVolume += volume;
       });
       if(exercises.length === 0){
@@ -3479,7 +3547,26 @@ const VOLUME_LANDMARKS = {
   hips:        { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
   biceps:      { mev: 5, mavLow: 10, mavHigh: 16, mrv: 22 },
   triceps:     { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 17 },
-  calves:      { mev: 7, mavLow: 10, mavHigh: 15, mrv: 18 }
+  calves:      { mev: 7, mavLow: 10, mavHigh: 15, mrv: 18 },
+  // Added so these areas are visible to the volume-gap selector at all. Without a
+  // landmark an area is invisible to it — which is exactly why lower_back was coming out
+  // at 1 session/week. Glutes mirror hips and adductors mirror hamstrings since they were
+  // previously trained as part of those; core/forearms/neck are set conservatively as
+  // this app's own estimates rather than being drawn from the same dose-response tables
+  // the nine above come from, and are labelled as such deliberately.
+  glutes:      { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
+  // Adductor MEV set to 3 rather than 4 so a single 3-set exercise satisfies maintenance.
+  // At 4 it was unreachable in practice: accessories are prescribed in 3-set units, so
+  // clearing it demanded a second exercise for one extra set, and a 1-set gap never
+  // outranks anything else competing for the same slot. This was one of the estimates
+  // flagged as the app's own rather than drawn from the dose-response tables — the
+  // granularity of the prescription is the better guide here.
+  adductors:   { mev: 3, mavLow: 6,  mavHigh: 12, mrv: 16 },
+  lower_back:  { mev: 4, mavLow: 6,  mavHigh: 10, mrv: 14 },
+  ankles:      { mev: 3, mavLow: 5,  mavHigh: 9,  mrv: 12 },
+  core:        { mev: 4, mavLow: 8,  mavHigh: 14, mrv: 20 },
+  forearms:    { mev: 3, mavLow: 6,  mavHigh: 12, mrv: 16 },
+  neck:        { mev: 3, mavLow: 5,  mavHigh: 9,  mrv: 12 }
 };
 
 async function getWeeklySetsPerArea(dates){
@@ -5909,7 +5996,199 @@ function complementaryArea(tag){
   return null; // full_body — ambiguous, caller decides
 }
 
+// Which trainable areas belong to a given day tag. Arms are deliberately listed on push
+// (triceps) and pull (biceps) as well as upper/full_body — they were previously reachable
+// ONLY as a secondary area on a compound, which is why direct arm work never appeared.
+// Core, forearms and neck sit on every tag: they aren't upper/lower in any useful sense,
+// and grip and trunk are trained alongside whatever else the day contains.
+const TAG_TO_AREAS = {
+  upper:     ['chest','thoracic','shoulders','biceps','triceps','forearms','core','neck'],
+  push:      ['chest','shoulders','triceps','core','neck'],
+  pull:      ['thoracic','biceps','forearms','core'],
+  lower:     ['quads_knees','hamstrings','hips','glutes','adductors','calves','core','lower_back'],
+  legs:      ['quads_knees','hamstrings','hips','glutes','adductors','calves','core','lower_back'],
+  full_body: ['chest','thoracic','shoulders','biceps','triceps','forearms','core','neck',
+              'quads_knees','hamstrings','hips','glutes','adductors','calves','lower_back']
+};
+// Accessory eligibility is defined by what to EXCLUDE rather than what to include. The
+// previous allow-list of three categories silently starved whole areas: adductors had
+// exactly one reachable exercise and core had two, because Copenhagen Plank, Pallof
+// Press, Side Plank and the rest are tagged `bulletproofing`. Those areas weren't losing
+// on priority — they had almost nothing to draw from.
+// main_strength is excluded because it belongs to the main-lift slot, and power because
+// explosive work isn't accessory volume.
+// Emphasis rotation. Spreading the same session time across sixteen areas leaves every
+// one of them near the bottom of its productive range and none of them getting a real
+// growth stimulus. The alternative is to concentrate: drive a few areas toward mavHigh
+// each block while holding the rest at mev — maintenance, which is genuinely cheaper
+// than growth volume — then rotate so everything gets its turn across a training year.
+//
+// This is how the volume dose-response (Pelland et al. 2026: more weekly volume, more
+// growth) gets applied honestly. You can't spend that on everything at once, so you
+// take turns.
+const EMPHASIS_AREAS_PER_BLOCK = 3;
+const EMPHASIS_BLOCK_WEEKS = 4;   // matches the existing 4-week block/deload cadence
+
+// Which areas a goal draws its emphasis from. Ordering within a pool is the tiebreak
+// when several areas are equally overdue.
+const GOAL_EMPHASIS_POOLS = {
+  // Visually-driven: the areas that most change how the body reads.
+  hypertrophy: ['shoulders','chest','biceps','triceps','thoracic','glutes','quads_knees','calves','core'],
+  // The prime movers and the areas that support them under heavy load.
+  strength:    ['quads_knees','hips','glutes','hamstrings','thoracic','chest','shoulders','lower_back','core','forearms'],
+  // Durability and propulsion for running.
+  running:     ['hamstrings','calves','glutes','adductors','hips','core','ankles'],
+  // Mixed-demand — grip and trunk matter as much as the legs here.
+  hyrox:       ['quads_knees','hamstrings','glutes','core','forearms','shoulders','calves','thoracic']
+};
+
+// Emphasis must spread across regions. Picking three lower-body areas in one block tilts
+// the entire week: measured on a strength goal, quads/hips/glutes emphasis pushed chest,
+// biceps and triceps BELOW mev — worse than maintenance, which defeats the point. Two
+// per region keeps a block focused without starving the opposite half.
+const EMPHASIS_REGION = {
+  quads_knees:'lower', hamstrings:'lower', hips:'lower', glutes:'lower',
+  adductors:'lower', calves:'lower', ankles:'lower',
+  chest:'upper', thoracic:'upper', shoulders:'upper', biceps:'upper',
+  triceps:'upper', forearms:'upper', neck:'upper',
+  core:'trunk', lower_back:'trunk'
+};
+const EMPHASIS_MAX_PER_REGION = 2;
+
+function currentEmphasisBlockIndex(date){
+  // Deterministic block counter from a fixed epoch, so the rotation advances with the
+  // calendar rather than depending on when a program was last generated.
+  const weekStart = new Date(getWeekStartFor(date || todayStr));
+  const epoch = new Date('2024-01-01');
+  const weeks = Math.floor((weekStart - epoch) / (1000*60*60*24*7));
+  return Math.floor(weeks / EMPHASIS_BLOCK_WEEKS);
+}
+
+// Picks this block's emphasis areas automatically: whichever eligible areas have gone
+// longest without a turn. Persists what was chosen so the rotation has memory rather
+// than re-randomising every generation.
+async function getBlockEmphasisAreas(goalType, date){
+  const blockIndex = currentEmphasisBlockIndex(date);
+  let history = {};
+  try{ history = JSON.parse((await window.storage.get('emphasis:history')).value) || {}; } catch(e){}
+  if(history.blockIndex === blockIndex && Array.isArray(history.areas)){
+    return { areas: history.areas, blockIndex, goalType, reused: true };
+  }
+  const pool = (GOAL_EMPHASIS_POOLS[goalType] || Object.keys(VOLUME_LANDMARKS))
+    .filter(a => VOLUME_LANDMARKS[a]);
+  const lastSeen = history.lastSeen || {};
+  const ranked = pool.slice().sort((a,b)=>{
+    // Never emphasised sorts first; otherwise longest-since wins. Pool order breaks ties,
+    // which is where the goal's own priorities come through.
+    const la = lastSeen[a] != null ? lastSeen[a] : -Infinity;
+    const lb = lastSeen[b] != null ? lastSeen[b] : -Infinity;
+    if(la !== lb) return la - lb;
+    return pool.indexOf(a) - pool.indexOf(b);
+  });
+  const areas = [];
+  const regionCount = {};
+  for(const a of ranked){
+    if(areas.length >= EMPHASIS_AREAS_PER_BLOCK) break;
+    const region = EMPHASIS_REGION[a] || 'other';
+    if((regionCount[region]||0) >= EMPHASIS_MAX_PER_REGION) continue;
+    regionCount[region] = (regionCount[region]||0) + 1;
+    areas.push(a);
+  }
+  const nextLastSeen = { ...lastSeen };
+  areas.forEach(a=>{ nextLastSeen[a] = blockIndex; });
+  try{
+    await window.storage.set('emphasis:history', JSON.stringify({ blockIndex, areas, goalType, lastSeen: nextLastSeen }));
+  } catch(e){}
+  return { areas, blockIndex, goalType, reused: false };
+}
+
+const ACCESSORY_EXCLUDED_CATEGORIES = ['main_strength','power','running_drill'];
+
+const HYPERTROPHY_TIER_RANK = { S:4, A:3, B:2, C:1 };
+
+// Accessory selection driven by the weekly volume landmarks that already exist in
+// VOLUME_LANDMARKS but were previously only ever DISPLAYED, never used to generate.
+// Without this a session was main lift + bulletproofing and nothing else, so a 90min
+// hypertrophy day produced two exercises and every area sat far below MEV.
+//
+// Same principle as everywhere else: need selects (which areas are short of their
+// landmark), time caps (the existing trim loop). Areas already at target contribute
+// nothing, so this cannot pad — a fully-covered week adds no accessories at all.
+function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalType, usedNames, injuryMovementFlags, maxPicks, emphasisAreas, blockPhase }){
+  const candidateAreas = TAG_TO_AREAS[tag] || TAG_TO_AREAS.full_body;
+  const emphasis = new Set(emphasisAreas || []);
+  // Volume progresses across the block rather than sitting at one level all cycle.
+  // Accumulation builds at the bottom of the productive range, intensification pushes
+  // emphasis areas to the top, and a deload drops everything to maintenance. Previously
+  // getBlockPhase drove only rep-range focus; per-area set targets ignored it entirely,
+  // so "accumulation" and "intensification" weeks prescribed identical volume.
+  const phase = blockPhase || 'accumulation';
+  const targetFor = area => {
+    const lm = VOLUME_LANDMARKS[area];
+    if(!lm) return null;
+    if(phase === 'deload') return lm.mev;
+    if(emphasis.has(area)) return phase === 'intensification' ? lm.mavHigh : lm.mavLow;
+    // Non-emphasis areas hold at maintenance while a block is being spent elsewhere,
+    // except under a hypertrophy goal where everything is still meant to be growing.
+    if(goalType === 'hypertrophy') return phase === 'intensification' ? lm.mavLow : lm.mev;
+    return lm.mev;
+  };
+
+  const gaps = candidateAreas.map(area=>{
+    const target = targetFor(area);
+    if(target == null) return null;
+    const current = weekSetsByArea[area] || 0;
+    const gap = target - current;
+    if(gap <= 0) return null;
+    // Spread the remaining gap over the days left rather than dumping it all into today.
+    const perDay = gap / Math.max(1, daysRemaining);
+    // Ranking by raw gap alone let a large emphasised area outrank one sitting at zero,
+    // because its gap number was simply bigger — leaving glutes, forearms and neck with
+    // no sets at all on a strength week. Falling below MEV is its own signal: that's not
+    // "less growth", it's losing what's already there. So the floor outranks gap size,
+    // and emphasis outranks the floor.
+    // Priority order is maintenance first, growth second. Emphasis gaps run to mavHigh
+    // and so never close, which meant they consumed every pick and left calves, glutes,
+    // forearms and neck at zero sets. Falling under MEV is losing tissue you already
+    // have; missing mavHigh is only slower growth. So the floor outranks emphasis, and
+    // emphasis spends whatever time is left after everything is maintained.
+    const belowMaintenance = VOLUME_LANDMARKS[area] && current < VOLUME_LANDMARKS[area].mev;
+    return { area, gap, perDay,
+      rank: gap + (belowMaintenance ? 1000 : 0) + (emphasis.has(area) ? 500 : 0) };
+  }).filter(Boolean).sort((a,b)=> b.rank - a.rank);
+
+  const picks = [];
+  for(const g of gaps){
+    if(picks.length >= maxPicks) break;
+    const options = Object.entries(EXERCISE_LIBRARY)
+      .filter(([id,ex])=> ex.area === g.area)
+      .filter(([id,ex])=> !ACCESSORY_EXCLUDED_CATEGORIES.includes(ex.category))
+      .filter(([id,ex])=> !usedNames.has(ex.name))
+      // Long muscle length is the actionable lever from the ROM literature. Strey et al.
+      // (2026 meta-analysis) found training at long muscle lengths produced significantly
+      // greater hypertrophy than short-length work, while lengthened partials came out
+      // roughly equivalent to full ROM in trained lifters (Wolf et al. 2025). So the
+      // useful move isn't partial reps — it's picking exercises that load the target
+      // muscle in a stretched position, then training them through full range. The tag
+      // is a curated flag rather than inferred, so it only fires where it's defensible.
+      .map(([id,ex])=> ({ id, ex,
+        rank: (HYPERTROPHY_TIER_RANK[ex.hypertrophyTier] || 0) + (ex.longLengthBias ? 1.5 : 0) }))
+      .sort((a,b)=> b.rank - a.rank);
+    if(!options.length) continue;
+    const chosen = options[0];
+    const safe = applyInjurySafety({
+      name: chosen.ex.name, area: chosen.ex.area, secondaryArea: chosen.ex.secondaryArea || '',
+      movement: chosen.ex.movement || '', exerciseId: chosen.id
+    }, injuryMovementFlags);
+    if(!safe) continue;
+    usedNames.add(chosen.ex.name);
+    picks.push({ ...safe, _gapArea: g.area, _gapSize: Math.round(g.gap*10)/10 });
+  }
+  return picks;
+}
+
 const SPLIT_TEMPLATES = {
+
   full_body:   { label:'Full Body',        tagsFor:(n)=> Array(n).fill('full_body') },
   upper_lower: { label:'Upper / Lower',    tagsFor:(n)=> Array.from({length:n},(_,i)=> i%2===0 ? 'upper' : 'lower') },
   ppl:         { label:'Push / Pull / Legs', tagsFor:(n)=> { const cycle=['push','pull','legs']; return Array.from({length:n},(_,i)=>cycle[i%3]); } }
@@ -6525,51 +6804,43 @@ const MOBILITY_DOMAIN_LEVEL_LABELS = ['1 — Foundation: basic positions with ma
 // load=resisted), not directly sourced.
 const MOBILITY_PROGRESSION_LIBRARY = {
   access: {
-    ankles: ['Ankle circles', 'Knee-to-wall'],
-    knees: ['Terminal knee extension hold'],
-    hips: ['Supported deep squat', '90/90 switches', 'Half-kneeling hip-flexor stretch'],
-    hamstrings: ['Supine hamstring stretch'],
-    adductors: ['Adductor rockbacks'],
-    spine: ['Cat-cow', 'Thoracic rotations'],
-    shoulders: ['Shoulder CARs', 'Wall slides'],
-    scapula: ['Scapular CARs'],
-    wrists: ['Wrist circles']
+    ankles: ['Ankle circles', 'Knee-to-wall', 'Heel-elevated squat rock', 'Banded ankle distraction'],
+    knees: ['Terminal knee extension hold', 'Supported knee flexion rock', 'Seated knee extension hold'],
+    hips: ['Supported deep squat', '90/90 switches', 'Half-kneeling hip-flexor stretch', 'Frog rock', 'Figure-4 stretch'],
+    hamstrings: ['Supine hamstring stretch', 'Seated forward fold', 'Standing hamstring sweep', 'Supine band hamstring hold'],
+    adductors: ['Adductor rockbacks', 'Butterfly stretch', 'Wide-stance lateral rock'],
+    spine: ['Cat-cow', 'Thoracic rotations', 'Open book', 'Thread the needle', 'Child\u2019s pose reach'],
+    shoulders: ['Shoulder CARs', 'Wall slides', 'Doorway pec stretch', 'Band dislocates'],
+    scapula: ['Scapular CARs', 'Scapular push-up', 'Prone scapular retraction'],
+    wrists: ['Wrist circles', 'Kneeling wrist rock', 'Prayer stretch']
   },
   control: {
-    ankles: ['Active/loaded knee-to-wall'],
-    knees: ['Active knee flexion-extension through range'],
-    hips: ['90/90 transitions', '90/90 lift-offs', 'Active hip flexion'],
-    hamstrings: ['Active straight-leg raise', 'Seated pike compression'],
-    adductors: ['Cossack progression'],
-    spine: ['Controlled spinal extension'],
-    shoulders: ['Shoulder lift-offs'],
-    scapula: ['Scapular wall slides with control'],
-    wrists: ['Active wrist flexion-extension hold']
+    ankles: ['Active/loaded knee-to-wall', 'Tibialis raise hold', 'Single-leg balance reach'],
+    knees: ['Active knee flexion-extension through range', 'Slow tempo split-squat descent', 'Wall-sit isometric'],
+    hips: ['90/90 transitions', '90/90 lift-offs', 'Active hip flexion', 'Standing hip CARs', 'Seated pancake lift-off'],
+    hamstrings: ['Active straight-leg raise', 'Seated pike compression', 'Hollow-body leg lower'],
+    adductors: ['Cossack progression', 'Adductor lift-off', 'Side-lying adduction hold'],
+    spine: ['Controlled spinal extension', 'Segmental cat-cow', 'Prone press-up hold'],
+    shoulders: ['Shoulder lift-offs', 'Prone Y-T-W raises', 'Active overhead reach hold'],
+    scapula: ['Scapular wall slides with control', 'Scapular pull-up', 'Serratus wall press'],
+    wrists: ['Active wrist flexion-extension hold', 'Wrist lift-offs', 'Tabletop wrist rock']
   },
   load: {
-    ankles: ['Loaded calf raise'],
-    knees: ['Deep split squat'],
-    hips: ['Deep split squat', 'Bridge preparation'],
-    hamstrings: ['Full-ROM RDL', 'Loaded pike'],
-    adductors: ['Loaded Cossack'],
-    spine: ['Jefferson curl progression', 'Bridge preparation'],
-    shoulders: ['Loaded shoulder flexion', 'Overhead carries'],
-    scapula: ['Weighted scapular pull'],
-    wrists: ['Loaded wrist extension']
+    ankles: ['Loaded calf raise', 'Weighted ankle rocker', 'Deficit single-leg calf raise'],
+    knees: ['Deep split squat', 'Slow-tempo sissy squat', 'Weighted step-down'],
+    hips: ['Deep split squat', 'Bridge preparation', 'Weighted Cossack squat', 'Loaded 90/90 lift-off'],
+    hamstrings: ['Full-ROM RDL', 'Loaded pike', 'Nordic curl eccentric', 'Weighted good morning'],
+    adductors: ['Loaded Cossack', 'Copenhagen plank', 'Weighted side lunge'],
+    spine: ['Jefferson curl progression', 'Bridge preparation', 'Weighted extension hold'],
+    shoulders: ['Loaded shoulder flexion', 'Overhead carries', 'Bottoms-up kettlebell hold'],
+    scapula: ['Weighted scapular pull', 'Loaded scapular shrug', 'Weighted serratus press'],
+    wrists: ['Loaded wrist extension', 'Weighted wrist curl', 'Loaded knuckle push-up hold']
   }
 };
 // Integration is inherently cross-domain (per section 11: "can they use the ROM in a
 // complex movement?"), so it isn't keyed by single domain the way the other three are.
 const MOBILITY_INTEGRATE_LIBRARY = ['Deep squat to overhead reach', 'Cossack squat to standing reach', 'Bear crawl to downward dog flow', 'Crab walk to bridge'];
 
-// Areas with no matching domain in MOBILITY_PROGRESSION_LIBRARY at all (chest isn't one
-// of the 9 assessment domains) — a small, explicit fallback rather than expanding the
-// full domain/assessment system just for this. Doorway pec stretch: coaching-consensus
-// standard across fitness and physiotherapy sources, with real research behind the
-// underlying mechanism (a systematic review of 6 RCTs found PNF stretching significantly
-// improved pectoralis minor length; static stretching alone did not reach significance —
-// stretchingworkout.com, 2026), not just a name pulled from nowhere.
-const MOBILITY_AREA_FALLBACK_NAMES = { chest: 'Doorway pec stretch' };
 
 // Reasoned mapping from weakest assessment domain to the skill goal that most directly
 // targets it, for auto-generating a goal when the person hasn't set one. Several skills
@@ -6584,27 +6855,6 @@ async function getMobilityAssessment(){
 }
 async function saveMobilityAssessment(scores){
   return await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr }));
-}
-// Areas ordered by assessment deficit (lowest score = biggest gap = highest priority)
-// instead of fixed object-key order. Falls back to the original unordered list when no
-// assessment has been taken, so this is purely additive — nothing breaks or changes for
-// someone who never fills out an assessment.
-async function getDeficitPrioritizedAreas(allAreas){
-  const assessment = await getMobilityAssessment();
-  if(!assessment || !assessment.scores) return allAreas;
-  const areaScores = {};
-  MOBILITY_DOMAINS.forEach(domain=>{
-    const area = MOBILITY_DOMAIN_TO_AREA[domain];
-    if(!area) return;
-    const score = assessment.scores[domain];
-    if(score==null) return;
-    if(areaScores[area]==null || score < areaScores[area]) areaScores[area] = score;
-  });
-  return [...allAreas].sort((a,b)=>{
-    const sa = areaScores[a] != null ? areaScores[a] : 2.5;
-    const sb = areaScores[b] != null ? areaScores[b] : 2.5;
-    return sa - sb;
-  });
 }
 
 // Checks this week's actual planned strength sessions for bulletproofing/accessory
@@ -6730,6 +6980,44 @@ async function getPrioritizedMobilityDomains(activeGoalSkills){
 // at Controlled ROM, then loaded sets that behave like strength work. This is what makes
 // a session shrink as you actually improve, rather than staying padded at the ceiling.
 const MOBILITY_LEVEL_TO_CATEGORY = { 1:'access', 2:'control', 3:'load' };
+
+// Domains already trained through loaded full range this week don't need a second dose
+// of dedicated stretching on top. Resistance training through full ROM increases joint
+// range of motion about as much as stretching does (Alizadeh et al., ES = 0.73; Favro
+// et al. 2025), while also producing strength that stretching doesn't — and the authors
+// of that work explicitly conclude stretching before or after resistance training may
+// not be necessary to improve flexibility.
+//
+// This deliberately does NOT apply to goal domains. Skill targets like front splits or
+// pike are flexibility goals in the narrow sense (Sports Medicine 2026 draws the
+// distinction between ROM and flexibility), and those need dedicated end-range work that
+// a loaded compound won't provide.
+const AREA_TO_MOBILITY_DOMAIN = {};
+Object.keys(MOBILITY_DOMAIN_TO_AREA).forEach(domain=>{
+  const area = MOBILITY_DOMAIN_TO_AREA[domain];
+  if(area && !AREA_TO_MOBILITY_DOMAIN[area]) AREA_TO_MOBILITY_DOMAIN[area] = domain;
+});
+async function getLoadedROMDomains(daysBack){
+  const sessions = await getAllTrainingSessions();
+  const now = new Date(todayStr);
+  const domains = {};
+  sessions.forEach(s=>{
+    if(s.type!=='strength' || !s.exercises) return;
+    const daysAgo = (now - new Date(s.date)) / (1000*60*60*24);
+    if(daysAgo < 0 || daysAgo > (daysBack||7)) return;
+    s.exercises.forEach(e=>{
+      const lib = e.exerciseId ? EXERCISE_LIBRARY[e.exerciseId] : null;
+      // Only long-length loaded work counts. A short-range machine movement doesn't
+      // train range of motion just because it was loaded.
+      if(!lib || !lib.longLengthBias) return;
+      [e.area, e.secondaryArea].filter(Boolean).forEach(area=>{
+        const domain = AREA_TO_MOBILITY_DOMAIN[area];
+        if(domain) domains[domain] = { exerciseName: e.name, date: s.date };
+      });
+    });
+  });
+  return domains;
+}
 const MOBILITY_LEVEL_DOSE = {
   1: { sets:2, holdSeconds:60 },  // foundation — long holds for tissue tolerance
   2: { sets:2, holdSeconds:40 },  // controlled ROM — active, shorter
@@ -6754,11 +7042,18 @@ async function getMobilityDomainsNeedingWork(activeGoalSkills){
   });
 
   const needed = [];
+  const loadedROMDomains = await getLoadedROMDomains(7);
   ordered.forEach(domain=>{
     const score = scores[domain];
     const isGoal = goalDomains.has(domain);
     let category = MOBILITY_LEVEL_TO_CATEGORY[score];
     let reason;
+    // Loaded full-ROM work this week already trained this domain's range. Goal domains
+    // are exempt — a skill target needs its own end-range progression regardless.
+    const loadedCover = loadedROMDomains[domain];
+    if(loadedCover && !isGoal){
+      return;
+    }
     if(score == null){
       if(!calibrating && !isGoal) return;   // assessed elsewhere, skipped here — no signal of need
       category = category || 'access';
@@ -6967,7 +7262,7 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
 
   if(plan.strengthSessions > 0){
     const focusSequence = await distributeSessionFocuses(goals.list, plan.strengthSessions, blockPhase);
-    const genResult = await generateStrengthProgram(plan.strengthSessions, splitType, includeMobility, strengthDates, volumeWaveNote, focusSequence, comboDates, strengthDateTags);
+    const genResult = await generateStrengthProgram(plan.strengthSessions, splitType, includeMobility, strengthDates, volumeWaveNote, focusSequence, comboDates, strengthDateTags, blockPhase);
     result.liftPlaced = genResult.placed || 0;
     result.splitLabel = genResult.splitLabel;
     result.focusSequence = focusSequence;
@@ -7252,7 +7547,44 @@ function applyInjurySafety(exercise, movementFlags){
   return exercise;
 }
 
-async function generateStrengthProgram(sessionsPerWeek, splitType, includeBulletproofing, forcedDates, volumeWaveNote, focusSequence, comboDates, explicitDayTags){
+// Base sets/reps written onto each generated exercise, so a prescription is an actual
+// stored quantity rather than something re-derived at render time. Deload cuts and
+// today's accepted adjustment stay dynamic and are still applied by blockSummaryHtml on
+// top of these — they change after generation, so baking them in would freeze them.
+//
+// Rep range follows the session focus for compound work, but isolation deliberately
+// ignores it: a strength-focus day is 3-6 reps on the main lift, and running a lateral
+// raise or a curl at 3-6 reps is not a sensible prescription at any goal. Isolation sits
+// in the 8-12 range regardless, which is also where its volume landmarks were derived.
+const ISOLATION_REP_RANGE = { repLow: 8, repHigh: 12 };
+function assignPrescription(ex, plannedFocus, personalSets){
+  if(ex.skippedForInjury) return ex;
+  // Main lifts come from MAIN_LIFT_DEFAULTS/SECONDARY_MAIN_LIFT without an exerciseId,
+  // so resolve by name too — otherwise a Back Squat falls through to the 'default'
+  // 3-set count instead of main_strength's 4, and the volume tally undercounts the
+  // single biggest contributor in the session.
+  let libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
+  if(!libEntry && ex.name){
+    const tags = guessTagsFromLibrary(ex.name);
+    if(tags && tags.exerciseId) libEntry = EXERCISE_LIBRARY[tags.exerciseId];
+  }
+  const category = libEntry ? libEntry.category : 'default';
+  const sets = Math.max(1, Math.round(
+    personalSets[category]
+    || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory[category]
+    || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory.default));
+  const focusInfo = plannedFocus && SESSION_FOCUS_INFO[plannedFocus];
+  const isIsolation = category === 'isolation' || category === 'bulletproofing';
+  const range = isIsolation
+    ? ISOLATION_REP_RANGE
+    : { repLow: focusInfo ? focusInfo.repLow : 8, repHigh: focusInfo ? focusInfo.repHigh : 12 };
+  ex.sets = sets;
+  ex.repLow = range.repLow;
+  ex.repHigh = range.repHigh;
+  return ex;
+}
+
+async function generateStrengthProgram(sessionsPerWeek, splitType, includeBulletproofing, forcedDates, volumeWaveNote, focusSequence, comboDates, explicitDayTags, blockPhase){
   comboDates = comboDates || new Set();
   const template = SPLIT_TEMPLATES[splitType];
   const dayTags = explicitDayTags || template.tagsFor(sessionsPerWeek);
@@ -7286,6 +7618,27 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   const companionNeededDomains = (includeBulletproofing && multiSessionOk)
     ? await getMobilityDomainsNeedingWork(mobilityGoalsForCompanion.map(sg=>sg.skill)) : [];
   const companionLoadedROM = (includeBulletproofing && multiSessionOk) ? await getRecentLoadedROMCoverage() : {};
+
+  // Running tally of planned sets per area across the week being generated, so each day
+  // can see what the earlier days already covered and target what's still short.
+  const weekSetsByArea = {};
+  const weekUsedExerciseNames = new Set();
+  const topGoalType = (goals && goals.list && goals.list[0] && goals.list[0].type) || null;
+  const emphasis = await getBlockEmphasisAreas(topGoalType, todayStr);
+  const emphasisAreas = emphasis.areas;
+  // getBlockPhase returns null on a deload week rather than a phase name, so resolve it
+  // here — a deload should hold every area at maintenance, not silently fall through to
+  // the accumulation default.
+  const isDeloadThisWeek = await isDeloadWeek(todayStr);
+  const effectiveBlockPhase = isDeloadThisWeek ? 'deload' : (blockPhase || 'accumulation');
+  function creditSets(ex, sets){
+    if(ex.skippedForInjury) return;
+    // assignPrescription always runs before this, so sets is a real prescribed value
+    // rather than the assumption this previously fell back to.
+    const n = sets != null ? sets : WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory.default;
+    if(ex.area) weekSetsByArea[ex.area] = (weekSetsByArea[ex.area]||0) + n*(ex.secondaryArea ? VOLUME_SPLIT.primary : 1.0);
+    if(ex.secondaryArea) weekSetsByArea[ex.secondaryArea] = (weekSetsByArea[ex.secondaryArea]||0) + n*VOLUME_SPLIT.secondary;
+  }
   const personalSets = await getPersonalSetsByCategory();
 
   // A secondary main lift per movement, genuinely distinct (not just a lighter variation)
@@ -7426,6 +7779,26 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     const plannedFocus = focusSequence && focusSequence[i] ? focusSequence[i] : null;
     const focusNote = plannedFocus ? ` — planned focus: ${SESSION_FOCUS_INFO[plannedFocus].label.split(' — ')[0]} (${SESSION_FOCUS_INFO[plannedFocus].repLow}-${SESSION_FOCUS_INFO[plannedFocus].repHigh} reps)` : '';
 
+    // Credit everything chosen so far, then top up the areas still short of their weekly
+    // landmark. The trim loop below is what enforces session length — this only proposes
+    // work that a real volume gap justifies, so a week already at target adds nothing.
+    // Write the actual prescription onto each exercise BEFORE crediting volume — the
+    // gap selector was previously counting a hardcoded `sets || 3` assumption, so its
+    // MEV/MAV arithmetic was steering by a number the generator had invented.
+    exercises.forEach(e=> assignPrescription(e, plannedFocus, personalSets));
+    exercises.forEach(e=>{ creditSets(e, e.sets); if(e.name) weekUsedExerciseNames.add(e.name); });
+    const daysRemaining = placedDates.length - i;
+    const volumePicks = selectVolumeGapAccessories({
+      tag, weekSetsByArea, daysRemaining, goalType: topGoalType, emphasisAreas, blockPhase: effectiveBlockPhase,
+      usedNames: weekUsedExerciseNames, injuryMovementFlags,
+      // Headroom, not a target — the trim loop is the real limit. Raised when the area
+      // taxonomy grew from 9 to 16: the same cap spread across nearly twice as many
+      // competing areas left every one of them short, and measured sessions were
+      // finishing well inside their time budget.
+      maxPicks: sessionLength >= 75 ? 8 : sessionLength >= 60 ? 5 : sessionLength >= 45 ? 3 : 2
+    });
+    volumePicks.forEach(p=>{ assignPrescription(p, plannedFocus, personalSets); exercises.push(p); creditSets(p, p.sets); });
+
     // Solve for the available time rather than just reporting a mismatch afterward.
     // Exercises were built up main-lift-first, bulletproofing-accessories-last, so
     // trimming from the end naturally removes low-priority accessory work first —
@@ -7507,7 +7880,16 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       try{
         const r = await window.storage.get(`weekplan:${lastDate}:am`);
         const block = JSON.parse(r.value);
+        gapFillers.forEach(g=> assignPrescription(g, block.details.plannedFocus, personalSets));
         block.details.exercises.push(...gapFillers);
+        // These are appended after the per-day trim loop has already run, so without
+        // re-fitting they push the last day over its time budget — measured at 95min
+        // against a 90min setting. Trim from the end again, same rule as the main loop.
+        let fillEstimate = estimateSessionDuration({ type:'strength', details:{ exercises: block.details.exercises, plannedFocus: block.details.plannedFocus } }, null, personalSets);
+        while(fillEstimate != null && fillEstimate > sessionLength && block.details.exercises.length > 1){
+          block.details.exercises.pop();
+          fillEstimate = estimateSessionDuration({ type:'strength', details:{ exercises: block.details.exercises, plannedFocus: block.details.plannedFocus } }, null, personalSets);
+        }
         block.details.notes = (block.details.notes||'') + ' — added to guarantee weekly hamstring/calf coverage';
         await window.storage.set(`weekplan:${lastDate}:am`, JSON.stringify(block));
         await window.storage.set(`planned_session:${lastDate}`, JSON.stringify({ date:lastDate, exercises:block.details.exercises, workoutTag:block.details.workoutTag }));
@@ -7697,15 +8079,74 @@ async function getTodaysBlockForType(type){
   }
   return null;
 }
-async function getLastLoggedSetForExercise(exerciseId, name){
+// Recent logged entries for one exercise, newest first.
+async function getLoggedHistoryForExercise(exerciseId, name, limit){
   const sessions = await getAllTrainingSessions();
-  const strengthSessions = sessions.filter(s=>s.type==='strength').sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-  for(const s of strengthSessions){
+  const out = [];
+  sessions.filter(s=>s.type==='strength').sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).forEach(s=>{
+    if(out.length >= (limit||3)) return;
     const match = (s.exercises||[]).find(e => (exerciseId && e.exerciseId===exerciseId) || (!exerciseId && e.name===name));
-    if(match) return match;
-  }
-  return null;
+    if(match) out.push({ ...match, date: s.date, timestamp: s.timestamp });
+  });
+  return out;
 }
+
+// Double progression, made effort-aware by the rep drop-off proxy.
+//
+// Until now `increment` sat unused in SESSION_FOCUS_INFO and the app simply echoed the
+// last weight back forever — the "progress reps within range before adding weight"
+// instruction existed only as label text, with nothing implementing it.
+//
+// Plain double progression asks one question: did every set reach the top of the range?
+// Drop-off adds a second: how hard was that? The two together separate cases the rep
+// count alone conflates — notably "missed the target because it was genuinely heavy"
+// (hold and repeat) from "missed the target with reps still in reserve" (push harder at
+// the same load before adding any).
+const PROGRESSION_STALL_LIMIT = 2;
+function progressionIncrementFor(area, focusInfo){
+  const inc = focusInfo && focusInfo.increment ? focusInfo.increment : { lower:2.5, upper:1.25 };
+  return LOWER_BODY_AREAS.includes(area) ? inc.lower : inc.upper;
+}
+async function suggestProgression(ex, focusInfo){
+  const history = await getLoggedHistoryForExercise(ex.exerciseId, ex.name, 3);
+  const last = history[0];
+  if(!last || !last.weight){
+    return { action:'baseline', weight:null, note:'First time logging this — work up to a weight you can control for the full range.' };
+  }
+  const repHigh = ex.repHigh != null ? ex.repHigh : (focusInfo ? focusInfo.repHigh : 12);
+  const perSet = Array.isArray(last.repsPerSet) && last.repsPerSet.length ? last.repsPerSet : null;
+  const minReps = perSet ? Math.min(...perSet) : last.reps;
+  const hitTopOnEverySet = minReps >= repHigh;
+  const increment = progressionIncrementFor(ex.area, focusInfo);
+  const effort = last.effort || null;
+
+  // Stall: same weight for consecutive sessions without reaching the top of the range.
+  const sameWeightRun = history.filter(h=>h.weight === last.weight).length;
+  const stalled = !hitTopOnEverySet && sameWeightRun >= PROGRESSION_STALL_LIMIT + 1;
+
+  if(hitTopOnEverySet){
+    const next = Math.round((last.weight + increment) * 2) / 2;
+    return { action:'add_weight', weight: next,
+      note: `Every set hit ${repHigh} last time — up ${increment}kg.` };
+  }
+  if(effort && effort.level === 'submaximal'){
+    // Reps flat across sets at this load means the sets weren't near failure, so the
+    // limiter is effort rather than load. Adding weight here would mask that.
+    return { action:'push_reps', weight: last.weight,
+      note: `Reps held steady last time (${effort.dropPct}% drop-off) — there's likely more in reserve. Same weight, push closer to ${repHigh}.` };
+  }
+  if(stalled){
+    return { action:'stalled', weight: last.weight,
+      note: `Same weight for ${sameWeightRun} sessions without reaching ${repHigh} — hold here, or swap the variation.` };
+  }
+  if(effort && effort.level === 'near_failure'){
+    return { action:'hold', weight: last.weight,
+      note: `Worked close to failure last time (${effort.dropPct}% drop-off) — repeat this weight and let the reps come.` };
+  }
+  return { action:'add_reps', weight: last.weight,
+    note: `Same weight — add reps toward ${repHigh} on every set before going up.` };
+}
+
 
 // Converts decimal min/km (e.g. 5.5) into readable M:SS/km format (e.g. "5:30/km")
 function formatPace(minPerKm){
@@ -7728,25 +8169,30 @@ async function blockSummaryHtml(block){
     for(const ex of exercises){
       const libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
       const category = libEntry ? libEntry.category : 'default';
-      const setsRaw = personalSets[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory.default;
+      // Prefer the prescription stored at generation. Blocks saved before exercises
+      // carried sets/reps fall back to deriving it here, so old data still renders
+      // rather than needing a storage migration.
+      const setsRaw = ex.sets != null ? ex.sets
+        : (personalSets[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory[category] || WORKOUT_TIME_ESTIMATE.strength.defaultSetsByCategory.default);
       const deloadAdjustedRaw = isDeload ? setsRaw * (1 - DELOAD_CUT) : setsRaw;
       const sets = Math.max(1, Math.round(deloadAdjustedRaw) + (adjustment.lever==='sets' ? adjustment.delta : 0));
-      let repLow = focusInfo ? focusInfo.repLow : 8;
-      let repHigh = focusInfo ? focusInfo.repHigh : 12;
+      let repLow = ex.repLow != null ? ex.repLow : (focusInfo ? focusInfo.repLow : 8);
+      let repHigh = ex.repHigh != null ? ex.repHigh : (focusInfo ? focusInfo.repHigh : 12);
       if(adjustment.lever==='reps'){
         repLow = Math.max(1, repLow + adjustment.delta);
         repHigh = Math.max(repLow, repHigh + adjustment.delta);
       }
       const repsLabel = `${repLow}-${repHigh}`;
-      const lastLogged = await getLastLoggedSetForExercise(ex.exerciseId, ex.name);
-      let weightLabel = 'add weight';
-      if(lastLogged && lastLogged.weight){
-        const adjustedWeight = adjustment.lever==='weight'
-          ? Math.round(lastLogged.weight * (1 + adjustment.delta/100) * 2) / 2
-          : lastLogged.weight;
-        weightLabel = `${adjustedWeight}kg`;
+      const progression = await suggestProgression(ex, focusInfo);
+      let weightLabel = progression.weight != null ? `${progression.weight}kg` : 'add weight';
+      if(progression.weight != null && adjustment.lever==='weight'){
+        weightLabel = `${Math.round(progression.weight * (1 + adjustment.delta/100) * 2) / 2}kg`;
       }
-      rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${sets}×${repsLabel} @ ${weightLabel}</span></div>`);
+      const arrow = progression.action==='add_weight' ? ' ↑' : '';
+      const progNote = progression.note
+        ? `<div class="score-note" style="margin:-4px 0 8px; padding-left:2px;">${progression.note}</div>`
+        : '';
+      rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${sets}×${repsLabel} @ ${weightLabel}${arrow}</span></div>${progNote}`);
     }
     return rows.join('');
   }
@@ -7820,8 +8266,13 @@ async function renderPrevWorkoutsForDate(){
   }
   container.innerHTML = dayMatches.map(s=>{
     if(s.type==='strength'){
-      const exList = (s.exercises||[]).map(e=>
-        `<div class="log-entry"><span>${e.name}</span><span>${e.sets}×${e.reps} @ ${e.weight}kg</span></div>`).join('');
+      const exList = (s.exercises||[]).map(e=>{
+        const repsLabel = e.repsPerSet ? e.repsPerSet.join('/') : e.reps;
+        const effortLabel = e.effort
+          ? `<div class="score-note" style="margin:-4px 0 6px; padding-left:2px;">${e.effort.label} — ${e.effort.dropPct}% rep drop-off</div>`
+          : '';
+        return `<div class="log-entry"><span>${e.name}</span><span>${e.sets}×${repsLabel} @ ${e.weight}kg</span></div>${effortLabel}`;
+      }).join('');
       const tag = s.workoutTag ? ' — ' + s.workoutTag.replace('_',' ') : '';
       return `<div class="log" style="margin-top:10px;"><div class="log-title">Strength${tag}</div>${exList}<div class="score-note">Total volume: ${Math.round(s.totalVolume||0)}kg</div></div>`;
     } else if(s.type==='run'){
@@ -7840,7 +8291,7 @@ async function renderTodayWorkoutSummary(){
 
   const block = await getTodaysBlockForType(todaySessionType);
   if(!block){
-    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Training tab</span></div>`;
+    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Weekly tab</span></div>`;
     return;
   }
   const rows = await blockSummaryHtml(block);
@@ -8398,18 +8849,18 @@ async function renderTrendChart(){
 
 /* ---------- WARM-UP / MOBILITY ENGINE ---------- */
 const WARMUP_LIBRARY = {
-  hips: ['90/90 switches', 'banded hip distraction', 'deep squat rocking', 'band monster walks'],
-  hamstrings: ['leg swings (front-to-back)', 'light RDL pattern, bodyweight', 'standing hamstring sweep', 'foam roll hamstrings, 30-45s'],
-  quads_knees: ['cossack squats', 'bodyweight squat holds', 'foam roll quads, 30-45s'],
-  calves: ['calf raises, bodyweight x15', 'ankle mobility circles', 'foam roll calves, 30-45s'],
-  ankles: ['ankle mobility circles', 'weighted ankle rocks', 'band ankle dorsiflexion drives'],
-  shoulders: ['band pull-aparts', 'arm circles', 'scap push-ups', 'band dislocates'],
-  chest: ['band chest opener', 'push-up variations, light', 'foam roll upper back/chest opener'],
-  biceps: ['light band curls, high reps', 'arm circles', 'wrist/forearm rotations'],
-  triceps: ['band pushdowns, light', 'arm circles', 'light bodyweight dips, partial range'],
-  thoracic: ['cat-cow', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'foam roll thoracic extensions'],
-  lower_back: ['cat-cow', 'bird dog', 'glute bridges', 'band pull-throughs, light'],
-  full_body: ['light general activation — easy cardio + dynamic stretch circuit']
+  hips: ['90/90 switches', 'banded hip distraction', 'deep squat rocking', 'band monster walks', 'frog rocks', 'banded lateral walks', 'hip CARs, 3 each side'],
+  hamstrings: ['leg swings (front-to-back)', 'light RDL pattern, bodyweight', 'standing hamstring sweep', 'foam roll hamstrings, 30-45s', 'active straight-leg raise, 8 each side', 'toy-soldier walks'],
+  quads_knees: ['cossack squats', 'bodyweight squat holds', 'foam roll quads, 30-45s', 'reverse Nordic, partial range', 'wall-sit, 20s', 'knee CARs, 5 each side'],
+  calves: ['calf raises, bodyweight x15', 'ankle mobility circles', 'foam roll calves, 30-45s', 'pogo hops, 15', 'single-leg calf raise, 10 each side'],
+  ankles: ['ankle mobility circles', 'weighted ankle rocks', 'band ankle dorsiflexion drives', 'heel-elevated squat rocks', 'single-leg balance, 20s each side'],
+  shoulders: ['band pull-aparts', 'arm circles', 'scap push-ups', 'band dislocates', 'prone Y-T-W raises, 6 each', 'wall slides, 10', 'shoulder CARs, 3 each side'],
+  chest: ['band chest opener', 'push-up variations, light', 'foam roll upper back/chest opener', 'doorway pec stretch, 30s each side', 'floor angels, 10'],
+  biceps: ['light band curls, high reps', 'arm circles', 'wrist/forearm rotations', 'band external rotations, light', 'supinated wall stretch, 20s each side'],
+  triceps: ['band pushdowns, light', 'arm circles', 'light bodyweight dips, partial range', 'overhead band reach, 20s each side', 'scap push-ups, 10'],
+  thoracic: ['cat-cow', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'foam roll thoracic extensions', 'prone press-ups, 8', 'seated rotations, 8 each side'],
+  lower_back: ['cat-cow', 'bird dog', 'glute bridges', 'band pull-throughs, light', 'dead bugs, 8 each side', 'prone press-up, 8', 'hip hinge pattern drill, bodyweight'],
+  full_body: ['light general activation — easy cardio + dynamic stretch circuit', 'world\'s greatest stretch, 5 each side', 'inchworm walkouts, 6', 'easy row or bike, 3-5min']
 };
 
 // Deeper post-training/standalone mobility protocol — static holds, PNF, and thorough
@@ -8527,11 +8978,11 @@ async function refreshPlanSourceDisplay(){
   const plannedExercises = await getPlannedExercisesToday();
   if(plannedExercises.length > 0){
     container.style.display = 'none';
-    label.innerHTML = `Using today's planned session: <strong style="color:var(--text);">${plannedExercises.map(e=>e.name).join(', ')}</strong> — saved on the Training tab. Select below only to add extra focus areas.`;
+    label.innerHTML = `Using today's planned session: <strong style="color:var(--text);">${plannedExercises.map(e=>e.name).join(', ')}</strong> — saved on the Weekly tab. Select below only to add extra focus areas.`;
     label.style.display = 'block';
   } else {
     container.style.display = 'flex';
-    label.textContent = 'No plan saved for today yet — select session type(s) below, or save exercises on the Training tab first.';
+    label.textContent = 'No plan saved for today yet — select session type(s) below, or save exercises on the Weekly tab first.';
     label.style.display = 'block';
   }
 }
@@ -8751,7 +9202,7 @@ async function generateWarmup(){
 
   const sectionIds = ['warmupSection'];
   if(ordered.length === 0){
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session (Training tab) or select a session type above, then Generate</span></div>';
+    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session on the Weekly tab, or pick a session type above</span></div>';
     sectionIds.forEach(id => document.getElementById(id).style.display = 'none');
     return;
   }
@@ -8886,7 +9337,52 @@ async function generateMobility(){
    Warm-up, and Trends respond exactly as they would to real logged history. Every key
    written is tracked in testdata:seeded so Clear can remove precisely those keys and
    nothing else — real logged data is never touched by seed or clear. */
+// Parses the reps field, which accepts either one number ("12" — same for every set) or
+// per-set values ("12,10,7"). Per-set is entirely optional: entering a single number
+// behaves exactly as before, so this adds granularity without adding a required field.
+function parseRepsInput(raw){
+  const text = String(raw==null ? '' : raw).trim();
+  if(!text) return { reps: 0, repsPerSet: null };
+  const parts = text.split(/[,\s/]+/).map(s=>parseFloat(s)).filter(n=>!isNaN(n) && n > 0);
+  if(parts.length === 0) return { reps: 0, repsPerSet: null };
+  if(parts.length === 1) return { reps: parts[0], repsPerSet: null };
+  return { reps: Math.round((parts.reduce((a,b)=>a+b,0)/parts.length)*10)/10, repsPerSet: parts };
+}
+
+// Objective proximity-to-failure proxy from rep drop-off across sets at a fixed weight,
+// used instead of self-reported RIR. Self-estimated RIR is least accurate exactly where
+// it matters most — unfamiliar exercises and lower-body compounds — and improves only
+// with practice, so asking for it would add a required judgement call of uncertain
+// quality on every set. Rep drop-off needs no judgement: it falls out of what was done.
+//
+// The thresholds below are this app's own, not lifted from a specific finding. They're
+// modelled on the logic of velocity-loss thresholds (where ~20-25% loss marks the
+// moderate band) applied to reps rather than bar speed, which is an analogous fatigue
+// index but NOT the same measurement. Treat as provisional and revisit against real
+// logged data.
+const EFFORT_DROPOFF = { nearFailure: 0.25, moderate: 0.10 };
+function estimateEffortFromDropoff(repsPerSet){
+  if(!Array.isArray(repsPerSet) || repsPerSet.length < 2) return null;
+  const first = repsPerSet[0];
+  const last = repsPerSet[repsPerSet.length-1];
+  if(!first || first <= 0) return null;
+  const dropPct = (first - last) / first;
+  let level, label;
+  if(dropPct >= EFFORT_DROPOFF.nearFailure){ level = 'near_failure'; label = 'close to failure'; }
+  else if(dropPct >= EFFORT_DROPOFF.moderate){ level = 'moderate'; label = 'moderate effort'; }
+  else { level = 'submaximal'; label = 'well short of failure'; }
+  return {
+    level, label,
+    dropPct: Math.round(dropPct*100),
+    sets: repsPerSet.length,
+    // Weight is stored per-exercise, not per-set, so this assumes load was held constant
+    // across sets. If it wasn't, the drop-off means something different.
+    assumesConstantLoad: true
+  };
+}
+
 function mkExercise(name, sets, reps, weight, area, secondaryArea){
+
   const volume = sets*reps*weight;
   const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
   const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
