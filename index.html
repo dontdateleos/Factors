@@ -6777,6 +6777,72 @@ async function getMobilityDomainsNeedingWork(activeGoalSkills){
   return needed;
 }
 
+// Builds one structured mobility session. Extracted so the companion mobility block
+// attached to a strength day produces the same Access/Control/Load/Integrate/Goal
+// structure as a standalone session — previously it hand-rolled a bare list of names
+// with no category tag at all, which rendered as a single untagged GOAL line.
+// `domainFilter` lets the companion restrict to the complementary body area while
+// keeping identical structure and dosing.
+function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage, sessionType, dayIdx, budget, integrateIndex, domainFilter }){
+  const goalStretches = [];
+  (mobilityGoals||[]).forEach(sg=>{
+    buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType).forEach(st=>{
+      st.category = 'goal';
+      goalStretches.push(st);
+    });
+  });
+
+  // One exercise per domain that actually warrants work, at the stage matching its
+  // assessed level. The session ends when need is exhausted, not when the clock runs
+  // out — a person with two deficit domains gets a short session, and that's correct.
+  const usedNames = new Set(goalStretches.map(s=>s.name));
+  const otherStretches = [];
+  const goalDomainSet = new Set(goalStretches.map(s=>s.skill).filter(Boolean));
+
+  (neededDomains||[]).forEach(({domain, category, reason, level})=>{
+    if(domainFilter && !domainFilter.includes(domain)) return;
+    // Skip domains a mobility GOAL already prescribes for — otherwise the same domain
+    // gets double-dosed by the goal ladder and the deficit pass in one session.
+    if(goalDomainSet.has(MOBILITY_DOMAIN_TO_SKILL[domain])) return;
+    const options = MOBILITY_PROGRESSION_LIBRARY[category] && MOBILITY_PROGRESSION_LIBRARY[category][domain];
+    if(!options || !options.length) return;
+    const name = options[dayIdx % options.length];
+    if(usedNames.has(name)) return;
+    usedNames.add(name);
+    // Maintenance keeps the pattern present but reduced, rather than dropping it —
+    // the same movement at lighter dose, not a different exercise.
+    const spec = sessionType==='maintenance'
+      ? MOBILITY_MAINTENANCE_DOSE
+      : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]);
+    otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category, domain, reason, ...spec });
+  });
+
+  // INTEGRATE — a single cross-domain finisher, and only when there's something to
+  // integrate. No point tacking one onto an otherwise empty session.
+  if(MOBILITY_INTEGRATE_LIBRARY.length && (otherStretches.length || goalStretches.length)){
+    const integrateName = MOBILITY_INTEGRATE_LIBRARY[(integrateIndex||0) % MOBILITY_INTEGRATE_LIBRARY.length];
+    otherStretches.push({ name: integrateName, area:'', category:'integrate', sets:1, holdSeconds:45 });
+  }
+
+  // Stored order puts goal first purely so the trim below can protect it — the block
+  // summary regroups by category for display and ends on GOAL regardless of this order.
+  const stretches = [...goalStretches, ...otherStretches.filter(s=>s.category==='load'),
+    ...otherStretches.filter(s=>s.category==='control'), ...otherStretches.filter(s=>s.category==='access'),
+    ...otherStretches.filter(s=>s.category==='integrate')];
+
+  // The cap is a ceiling, not a target — it only bites when genuine need exceeds the
+  // time available. Trim from the end, protecting goal stretches (always at the front).
+  const trimmedNames = [];
+  let estimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
+  while(estimate != null && estimate > budget && stretches.length > goalStretches.length){
+    const removed = stretches.pop();
+    trimmedNames.push(removed.name);
+    estimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
+  }
+  const trimNote = trimmedNames.length ? ` — trimmed ${trimmedNames.join(', ')} to fit your ${budget}min session length` : '';
+  return { stretches, trimNote, estimate };
+}
+
 async function generateMobilityProgram(numSessions, forcedDates, sessionType){
 
   const dates = forcedDates || await getAvailableEmptyDates();
@@ -6801,66 +6867,12 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
 
   for(let dayIdx=0; dayIdx<placedDates.length; dayIdx++){
     const date = placedDates[dayIdx];
-
-    // GOAL — existing skill-progression logic, unchanged, just tagged by category now.
-    const goalStretches = [];
-    mobilityGoals.forEach(sg=>{
-      buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType).forEach(st=>{
-        st.category = 'goal';
-        goalStretches.push(st);
-      });
-    });
-
-    // One exercise per domain that actually warrants work, at the stage matching its
-    // assessed level. The session ends when need is exhausted, not when the clock runs
-    // out — a person with two deficit domains gets a short session, and that's correct.
-    const usedNames = new Set(goalStretches.map(s=>s.name));
-    const otherStretches = [];
-    const goalDomainSet = new Set(goalStretches.map(s=>s.skill).filter(Boolean));
-
-    neededDomains.forEach(({domain, category, reason, level})=>{
-      // Skip domains a mobility GOAL already prescribes for — otherwise the same domain
-      // gets double-dosed by the goal ladder and the deficit pass in one session.
-      if(goalDomainSet.has(MOBILITY_DOMAIN_TO_SKILL[domain])) return;
-      const options = MOBILITY_PROGRESSION_LIBRARY[category] && MOBILITY_PROGRESSION_LIBRARY[category][domain];
-      if(!options || !options.length) return;
-      const name = options[dayIdx % options.length];
-      if(usedNames.has(name)) return;
-      usedNames.add(name);
-      // Maintenance keeps the pattern present but reduced, rather than dropping it —
-      // the same movement at lighter dose, not a different exercise.
-      const spec = sessionType==='maintenance'
-        ? MOBILITY_MAINTENANCE_DOSE
-        : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]);
-      otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category, domain, reason, ...spec });
-    });
-
-    // INTEGRATE — a single cross-domain finisher, and only when there's something to
-    // integrate. No point tacking one onto an otherwise empty session.
-    if(integrateLibrary.length && (otherStretches.length || goalStretches.length)){
-      const integrateName = integrateLibrary[integrateCursor % integrateLibrary.length];
-      integrateCursor++;
-      otherStretches.push({ name: integrateName, area:'', category:'integrate', sets:1, holdSeconds:45 });
-    }
-
-    // Order matters for trimming below: goal first (never trimmed), then load, control,
-    // access, integrate last (trimmed first when over time budget) — own reasoning,
-    // the source document doesn't specify a time-pressure trim order.
-    const stretches = [...goalStretches, ...otherStretches.filter(s=>s.category==='load'),
-      ...otherStretches.filter(s=>s.category==='control'), ...otherStretches.filter(s=>s.category==='access'),
-      ...otherStretches.filter(s=>s.category==='integrate')];
-
-    // The cap is a ceiling, not a target — it only bites when genuine need exceeds the
-    // time available. Trim from the end, protecting goal stretches (always at the front).
     const budget = Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP);
-    const trimmedNames = [];
-    let mobilityEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-    while(mobilityEstimate != null && mobilityEstimate > budget && stretches.length > goalStretches.length){
-      const removed = stretches.pop();
-      trimmedNames.push(removed.name);
-      mobilityEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-    }
-    const trimNote = trimmedNames.length ? ` — trimmed ${trimmedNames.join(', ')} to fit your ${budget}min session length` : '';
+    const { stretches, trimNote } = buildMobilitySession({
+      neededDomains, mobilityGoals, loadedROMCoverage, sessionType,
+      dayIdx, budget, integrateIndex: integrateCursor
+    });
+    integrateCursor++;
 
     try{
       await window.storage.get(`weekplan:${date}:am`); // already occupied — skip silently
@@ -7267,6 +7279,13 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   // selection is by need (see rankBulletproofingByNeed). 99 means "no ceiling", i.e. take
   // everything that genuinely flagged, not "do the whole library".
   const bulletproofingCap = sessionLength <= 30 ? 1 : sessionLength <= 45 ? 2 : 99;
+
+  // Companion-mobility inputs, resolved once rather than per day — these are the same
+  // need signals the standalone mobility generator uses, so the two paths can't drift.
+  const mobilityGoalsForCompanion = (includeBulletproofing && multiSessionOk) ? await getOrCreateAutoMobilityGoal() : [];
+  const companionNeededDomains = (includeBulletproofing && multiSessionOk)
+    ? await getMobilityDomainsNeedingWork(mobilityGoalsForCompanion.map(sg=>sg.skill)) : [];
+  const companionLoadedROM = (includeBulletproofing && multiSessionOk) ? await getRecentLoadedROMCoverage() : {};
   const personalSets = await getPersonalSetsByCategory();
 
   // A secondary main lift per movement, genuinely distinct (not just a lighter variation)
@@ -7435,42 +7454,39 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag: tag }));
 
     if(includeBulletproofing && multiSessionOk && !comboDates.has(date)){
-      const mobAreasRaw = compArea === 'upper' ? ['shoulders','thoracic','chest'] : ['hips','quads_knees'];
-      const mobAreas = await getDeficitPrioritizedAreas(mobAreasRaw);
-      // Companion mobility previously built a generic "{area} mobility" placeholder name
-      // instead of an actual exercise — same underlying library the standalone mobility
-      // generator already uses, just needs area->domain translation since they're
-      // different taxonomies (this library is domain-keyed, mobAreas are area-strings).
-      const areaToDomain = {};
-      Object.entries(MOBILITY_DOMAIN_TO_AREA).forEach(([domain, area]) => { if(area && !areaToDomain[area]) areaToDomain[area] = domain; });
-      let stretches = mobAreas.map(area => {
-        const domain = areaToDomain[area];
-        const options = domain && MOBILITY_PROGRESSION_LIBRARY.access[domain];
-        const name = (options && options.length) ? options[0] : (MOBILITY_AREA_FALLBACK_NAMES[area] || `${area.replace('_',' ')} mobility`);
-        return { name, area, sets:2, holdSeconds:30 };
+      // Companion mobility now runs the SAME structured builder as a standalone session
+      // (Access/Control/Load/Integrate/Goal, level-scaled dosing, need-gated domains),
+      // restricted to the complementary body area. It previously hand-rolled a list of
+      // bare names with no category tag, which rendered as one untagged GOAL line and
+      // ignored assessment levels, mobility goals, and dosing entirely.
+      const compDomains = compArea === 'upper'
+        ? ['shoulders','scapula','spine','wrists']
+        : ['ankles','knees','hips','hamstrings','adductors'];
+      const companionGoals = mobilityGoalsForCompanion.filter(sg=>{
+        const domain = Object.keys(MOBILITY_DOMAIN_TO_SKILL).find(d=>MOBILITY_DOMAIN_TO_SKILL[d]===sg.skill);
+        return domain ? compDomains.includes(domain) : false;
+      });
+      const { stretches, trimNote } = buildMobilitySession({
+        neededDomains: companionNeededDomains,
+        mobilityGoals: companionGoals,
+        loadedROMCoverage: companionLoadedROM,
+        sessionType: 'normal',
+        dayIdx: i,
+        budget: Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP),
+        integrateIndex: i,
+        domainFilter: compDomains
       });
 
-      // Same solve-for-time trimming as generateMobilityProgram — this is a genuinely
-      // separate code path (companion mobility attached to a strength day, not the
-      // standalone mobility generator), so it needed its own copy of this logic rather
-      // than inheriting it automatically.
-      const companionTrimmed = [];
-      let companionEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-      while(companionEstimate != null && companionEstimate > sessionLength && stretches.length > 1){
-        const removed = stretches.pop();
-        companionTrimmed.push(removed.name);
-        companionEstimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-      }
-      const companionTrimNote = companionTrimmed.length ? ` — trimmed ${companionTrimmed.join(', ')} to fit your ${sessionLength}min session length` : '';
-
-      try{
-        await window.storage.get(`weekplan:${date}:pm`); // already occupied — skip silently
-      } catch(e){
-        await window.storage.set(`weekplan:${date}:pm`, JSON.stringify({
-          type:'mobility',
-          details: { stretches, notes:`Complementary mobility — today's strength focus is ${tag.replace('_',' ')}, so mobility targets ${compArea} body` + companionTrimNote }
-        }));
-        mobilityCompanionPlaced++;
+      if(stretches.length){
+        try{
+          await window.storage.get(`weekplan:${date}:pm`); // already occupied — skip silently
+        } catch(e){
+          await window.storage.set(`weekplan:${date}:pm`, JSON.stringify({
+            type:'mobility',
+            details: { stretches, notes:`Complementary mobility — today's strength focus is ${tag.replace('_',' ')}, so mobility targets ${compArea} body` + trimNote }
+          }));
+          mobilityCompanionPlaced++;
+        }
       }
     }
   }
@@ -7869,6 +7885,7 @@ document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
     document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(b=>b.classList.toggle('active', b===btn));
     todaySessionType = btn.dataset.type;
     renderTodayWorkoutSummary();
+    generateWarmup().then(()=>generateMobility());
   });
 });
 
@@ -8718,6 +8735,13 @@ function selectWithinBudget(ordered, injuryByArea, cap, perAreaCost){
 }
 
 async function generateWarmup(){
+  // A dedicated mobility session opens with its own Access work and finishes with
+  // Integrate — bracketing it with a separate warm-up would prescribe the same tissue
+  // twice in one sitting. This section exists to precede a strength or run session.
+  if(todaySessionType === 'mobility'){
+    document.getElementById('warmupSection').style.display = 'none';
+    return;
+  }
   const container = document.getElementById('warmupCards');
   container.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
 
@@ -8790,6 +8814,13 @@ async function generateWarmup(){
 // longer behind a button. Kept as a named function rather than an inline handler so
 // activateTab('insights') can call it directly.
 async function generateMobility(){
+  // Same reasoning as generateWarmup — post-exercise stretching is what follows a
+  // strength or run session, not something bolted onto a mobility session that already
+  // covers these domains at a properly progressed dose.
+  if(todaySessionType === 'mobility'){
+    document.getElementById('mobilitySection').style.display = 'none';
+    return;
+  }
   const mobilityContainer = document.getElementById('mobilityCards');
   document.getElementById('mobilitySection').style.display = 'block';
   mobilityContainer.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
