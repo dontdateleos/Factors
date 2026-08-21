@@ -207,6 +207,11 @@
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:11px; font-weight:500; color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
   .log-entry:hover{ color:var(--text); }
+  /* Superset slot marker (A1/A2) and drop-set flag. Small and monospaced so a paired
+     block is scannable at a glance without competing with the exercise name. */
+  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.06em; color:var(--bg); background:var(--text); padding:1px 4px; margin-right:6px; vertical-align:middle; }
+  .drop-tag{ font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.04em; color:var(--dim); margin-left:6px; }
+  .log-entry.ss-row{ padding-top:6px; padding-bottom:6px; }
   .d-badge{ color:var(--text); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:14px; }
@@ -733,6 +738,9 @@
         <div class="field-row"><input type="checkbox" id="multiSessionOkCheckbox" style="width:auto; flex:none;"><label for="multiSessionOkCheckbox" style="font-size:13px;">I'm okay with multiple sessions on the same day</label></div>
         <div class="field-row"><input type="checkbox" id="bodyweightAllCheckbox" style="width:auto; flex:none;"><label for="bodyweightAllCheckbox" style="font-size:13px;">Bodyweight only — all training</label></div>
         <div class="field-row"><input type="checkbox" id="bodyweightMobilityCheckbox" style="width:auto; flex:none;"><label for="bodyweightMobilityCheckbox" style="font-size:13px;">Bodyweight only — mobility</label></div>
+        <div class="field-row"><input type="checkbox" id="useSupersetsCheckbox" style="width:auto; flex:none;"><label for="useSupersetsCheckbox" style="font-size:13px;">Allow supersets when short on time</label></div>
+        <div class="field-row"><input type="checkbox" id="useDropSetsCheckbox" style="width:auto; flex:none;"><label for="useDropSetsCheckbox" style="font-size:13px;">Allow drop sets when short on time</label></div>
+        <div class="score-note">Same results as straight sets in less time, not better results — so these only apply when a session won't otherwise fit. Supersets raise perceived effort, so expect sessions to feel harder.</div>
         <div class="score-note">Bands count as bodyweight; barbells, dumbbells, cables and machines don't.</div>
         <div class="score-note" style="margin-top:12px;">What should generated programs include? Allocates available days between strength and running by priority + evidence-based ratios (not an even split). Spreads days to reduce heavy-lift/key-run adjacency. Only touches empty days.</div>
         <div class="field-row"><input type="checkbox" id="includeStrengthCheckbox" checked style="width:auto; flex:none;"><label for="includeStrengthCheckbox" style="font-size:13px;">Strength</label></div>
@@ -2785,6 +2793,8 @@ async function loadTrainingSetup(){
     document.getElementById('multiSessionOkCheckbox').checked = !!setup.multiSessionOk;
     document.getElementById('bodyweightAllCheckbox').checked = !!setup.bodyweightAll;
     document.getElementById('bodyweightMobilityCheckbox').checked = !!setup.bodyweightMobility;
+    document.getElementById('useSupersetsCheckbox').checked = !!setup.useSupersets;
+    document.getElementById('useDropSetsCheckbox').checked = !!setup.useDropSets;
   } catch(e){}
 }
 document.getElementById('saveTrainingSetupBtn').addEventListener('click', async ()=>{
@@ -2794,7 +2804,9 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
     sessionLength: document.getElementById('sessionLengthSelect').value,
     multiSessionOk: document.getElementById('multiSessionOkCheckbox').checked,
     bodyweightAll: document.getElementById('bodyweightAllCheckbox').checked,
-    bodyweightMobility: document.getElementById('bodyweightMobilityCheckbox').checked
+    bodyweightMobility: document.getElementById('bodyweightMobilityCheckbox').checked,
+    useSupersets: document.getElementById('useSupersetsCheckbox').checked,
+    useDropSets: document.getElementById('useDropSetsCheckbox').checked
   };
   try{
     await window.storage.set('settings:trainingSetup', JSON.stringify(setup));
@@ -4486,6 +4498,24 @@ async function checkHRVDecline3Day(){
   return { declining, ratios };
 }
 
+// Was the plan for a given date a condensed one? Reads the recorded density rather than
+// the setting, so it reflects what was actually prescribed that day.
+async function getCondensedSessionOnDate(date){
+  for(const slot of ['am','pm']){
+    try{
+      const block = JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value);
+      if(block.type !== 'strength') continue;
+      const d = block.details || {};
+      if((d.densityMultiplier || 1) <= 1) continue;
+      const bits = [];
+      if(d.supersetPairs) bits.push(`${d.supersetPairs} superset${d.supersetPairs===1?'':'s'}`);
+      if(d.dropSetCount) bits.push(`${d.dropSetCount} drop set${d.dropSetCount===1?'':'s'}`);
+      return { label: bits.join(' · ') || 'condensed', density: d.densityMultiplier };
+    } catch(e){}
+  }
+  return null;
+}
+
 async function checkHardSessionReadiness(entry){
   let todayRunType = null;
   for(const slot of ['am','pm']){
@@ -4518,6 +4548,14 @@ async function checkHardSessionReadiness(entry){
   const hadHeavyLowerBodyYesterday = sessions.some(s=> s.date===yesterdayStr && isLowerBodyHeavySession(s));
   if(hadHeavyLowerBodyYesterday){
     reasons.push(`Heavy lower-body strength session yesterday — resistance training itself suppresses HRV/recovery markers, plausibly contributing to today's readiness independent of running load`);
+  }
+  // A condensed session is a harder session. Supersets raise blood lactate, energy cost
+  // and RPE relative to the same work performed as straight sets, and the meta-analysis
+  // authors flagged that recovery between sessions may need to be longer. That belongs in
+  // the readiness picture alongside the heavy-lower-body signal above.
+  const condensedYesterday = await getCondensedSessionOnDate(yesterdayStr);
+  if(condensedYesterday){
+    reasons.push(`Condensed session yesterday (${condensedYesterday.label}) — supersets and drop sets raise internal load and perceived effort for the same volume, so recovery may lag a straight-set day`);
   }
   if(reasons.length >= 2) return { runType: todayRunType, reasons };
   return null;
@@ -4655,7 +4693,14 @@ function estimateSessionDuration(block, personalPace, personalSets){
       if(focus==='power' || focus==='strength') restSec = R.strength.restSecondsHeavy;
       else restSec = (category==='isolation') ? R.strength.restSecondsIsolation : R.strength.restSecondsHypertrophyCompound;
 
-      totalSeconds += sets * (workSecPerSet + restSec);
+      // A superset reclaims most of one rest period: while you rest the first movement,
+      // you're working the second. Without modelling this the engine can't see the time
+      // it just bought and the whole point is lost.
+      const effectiveRest = ex.supersetGroup ? restSec * SUPERSET_SHARED_REST_FACTOR : restSec;
+      totalSeconds += sets * (workSecPerSet + effectiveRest);
+      // Intensity techniques add work to the final set rather than adding a set.
+      if(ex.dropSet) totalSeconds += DROPSET_EXTRA_SECONDS;
+      if(ex.restPause) totalSeconds += RESTPAUSE_EXTRA_SECONDS;
       if(isCompound) totalSeconds += R.strength.perCompoundExerciseRampUpMin * 60;
 
       const equip = libEntry && libEntry.equipment ? libEntry.equipment : [];
@@ -6285,6 +6330,13 @@ function isBodyweightMobility(name){
   return !MOBILITY_NEEDS_EQUIPMENT.test(name || '');
 }
 
+async function getTimeEfficiencyPrefs(){
+  try{
+    const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
+    return { supersets: !!setup.useSupersets, dropSets: !!setup.useDropSets };
+  } catch(e){ return { supersets:false, dropSets:false }; }
+}
+
 async function getEquipmentPrefs(){
   try{
     const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
@@ -6398,6 +6450,84 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
     picks.push({ ...safe, _gapArea: g.area, _gapSize: Math.round(g.gap*10)/10 });
   }
   return picks;
+}
+
+
+/* ---------- TIME-EFFICIENT SET STRUCTURES ----------
+   Supersets, drop sets and rest-pause. The evidence is consistent and worth stating
+   plainly: none of these BEAT traditional straight sets for hypertrophy or strength when
+   volume is equated. What they do is deliver the same adaptations in less time.
+
+   - Supersets: similar total reps and volume load, similar chronic adaptations, with a
+     large efficiency effect (Zhang et al., Sports Medicine 2025, SMD 1.74). Burke et al.
+     2025 measured 36% shorter sessions with equivalent muscle thickness and strength.
+     Cost: higher blood lactate, higher energy cost and notably higher RPE, with the
+     authors flagging that extended between-session recovery may be needed.
+   - Drop sets: a volume-equated protocol runs in a half to a third of the time with no
+     hypertrophy penalty — and no bonus either.
+   - Rest-pause / myo-reps: similar size and strength gains with ~30% less volume load
+     and substantially less time (Bradshaw et al.).
+
+   So these are applied as a response to a TIME constraint, not as a default upgrade. If
+   a session already fits its budget, it stays as straight sets. */
+
+const SUPERSET_SHARED_REST_FACTOR = 0.55; // paired work reclaims most of one rest period
+// Condensing a session doesn't make it free. The same meta-analysis that found supersets
+// time-efficient also found higher blood lactate, higher energy cost and notably higher
+// RPE, and its authors explicitly flagged that extended between-session recovery may be
+// needed. Time saved comes back as internal load, so a superset day is spaced and
+// weighted as a harder day rather than an equivalent one. Own figure, deliberately
+// modest — the research establishes the direction, not a coefficient.
+const SUPERSET_STRESS_MULTIPLIER = 1.2;
+const DROPSET_STRESS_MULTIPLIER = 1.1;
+const DROPSET_EXTRA_SECONDS = 35;         // one drop, no rest before it
+const RESTPAUSE_EXTRA_SECONDS = 45;       // 2-3 mini-sets off the back of an activation set
+
+// Only pair exercises that don't compete for the same muscle. Agonist pairings degrade
+// performance in the second movement; antagonist and unrelated pairings don't.
+const SUPERSET_ANTAGONIST = {
+  chest:['thoracic','biceps'], thoracic:['chest','triceps'], shoulders:['thoracic','biceps'],
+  biceps:['triceps','chest'], triceps:['biceps','thoracic'],
+  quads_knees:['hamstrings','glutes'], hamstrings:['quads_knees'], glutes:['quads_knees'],
+  hips:['quads_knees'], adductors:['glutes'], calves:['ankles'], ankles:['calves'],
+  core:['calves','forearms','neck'], forearms:['core','calves'], neck:['core','calves'],
+  lower_back:['core']
+};
+function canSuperset(a, b){
+  if(!a || !b || a.skippedForInjury || b.skippedForInjury) return false;
+  // The main lift is never paired — a heavy compound on long rest is the one place full
+  // recovery genuinely matters, and it's also the exercise most degraded by pre-fatigue.
+  if(a.isMainLift || b.isMainLift || a.isSkillWork || b.isSkillWork) return false;
+  // Injury-flagged work isn't rushed; hurrying remedial work defeats its purpose.
+  if(a.injuryFlagged || b.injuryFlagged) return false;
+  if(!a.area || !b.area || a.area === b.area) return false;
+  if(a.secondaryArea && a.secondaryArea === b.area) return false;
+  if(b.secondaryArea && b.secondaryArea === a.area) return false;
+  const ok = SUPERSET_ANTAGONIST[a.area] || [];
+  return ok.includes(b.area);
+}
+
+// Pairs accessories into supersets, marking each with a shared group id. Returns how many
+// pairs were formed so the caller can report it.
+function applySupersets(exercises){
+  let pairs = 0;
+  const taken = new Set();
+  for(let i=0; i<exercises.length; i++){
+    if(taken.has(i)) continue;
+    for(let j=i+1; j<exercises.length; j++){
+      if(taken.has(j)) continue;
+      if(!canSuperset(exercises[i], exercises[j])) continue;
+      const gid = 'ss' + (pairs + 1);
+      // Letter per pair, number per slot — two pairs both labelled A1/A2 is unreadable.
+      const letter = String.fromCharCode(65 + (pairs % 26));
+      pairs++;
+      exercises[i].supersetGroup = gid; exercises[i].supersetSlot = letter + '1';
+      exercises[j].supersetGroup = gid; exercises[j].supersetSlot = letter + '2';
+      taken.add(i); taken.add(j);
+      break;
+    }
+  }
+  return pairs;
 }
 
 const SPLIT_TEMPLATES = {
@@ -6684,11 +6814,16 @@ function estimateSessionStressWeight(tag, sessionsPerWeek, dayIdx, sessionLength
   return Math.round(base * lengthMultiplier * 10) / 10;
 }
 
-function buildStrengthSlots(strengthCount, splitType, sessionLength){
+function buildStrengthSlots(strengthCount, splitType, sessionLength, densityMultiplier){
+  const density = densityMultiplier || 1;
   return SPLIT_TEMPLATES[splitType].tagsFor(strengthCount).map((tag, idx) => ({
     kind:'strength', tag,
     stressType: isHeavyStrengthTag(tag) ? 'heavy_lower' : 'upper',
-    stressWeight: estimateSessionStressWeight(tag, strengthCount, idx, sessionLength)
+    // Spacing is decided here, before exercises exist, so it can't know whether a given
+    // day will end up supersetted. Having the methods ENABLED is the signal available at
+    // this point, and it's the right one — if you've opted into condensing sessions, the
+    // week should be laid out expecting denser days.
+    stressWeight: Math.round(estimateSessionStressWeight(tag, strengthCount, idx, sessionLength) * density * 10) / 10
   }));
 }
 // Extracted from generateRunPlan's own type-assignment order (long first, then quality
@@ -7803,7 +7938,10 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
   let runSlotByDate = null, runSlotOverride = null, comboDates = new Set(), strengthDateTags = null;
   let runTierForSlots = (await suggestRunTier()) || 'base';
   if(plan.strengthSessions > 0 && plan.runningSessions > 0){
-    const strengthSlots = buildStrengthSlots(plan.strengthSessions, splitType, sessionLength);
+    const tePrefs = await getTimeEfficiencyPrefs();
+    const plannedDensity = (tePrefs.supersets ? SUPERSET_STRESS_MULTIPLIER : 1)
+                         * (tePrefs.dropSets ? DROPSET_STRESS_MULTIPLIER : 1);
+    const strengthSlots = buildStrengthSlots(plan.strengthSessions, splitType, sessionLength, plannedDensity);
     const { slots: runSlots, goalNote: runGoalNote } = await buildRunSlots(runTierForSlots, plan.runningSessions);
     const placement = assignSlotsWithAdjacency(emptyDates, strengthSlots, runSlots);
     strengthDates = placement.strengthDates;
@@ -8177,6 +8315,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     ? await getMobilityDomainsNeedingWork(mobilityGoalsForCompanion.map(sg=>sg.skill)) : [];
   const companionLoadedROM = (includeBulletproofing && multiSessionOk) ? await getRecentLoadedROMCoverage() : {};
   const equipmentPrefs = await getEquipmentPrefs();
+  const timeEfficiencyPrefs = await getTimeEfficiencyPrefs();
 
   // Running tally of planned sets per area across the week being generated, so each day
   // can see what the earlier days already covered and target what's still short.
@@ -8265,6 +8404,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     if(mainLift){
       const safeMainLift = applyInjurySafety({ ...mainLift, movement }, injuryMovementFlags);
       if(safeMainLift){
+        safeMainLift.isMainLift = true;   // protects it from superset pairing
         exercises.push(safeMainLift);
         (usedMovementsThisWeek[movement] = usedMovementsThisWeek[movement] || []).push(mainLift.name);
       } else {
@@ -8386,6 +8526,26 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // matching the document's own priority order (accessories, then excess isolation,
     // before ever touching a main/secondary lift or its rest). Never trims below 1
     // exercise, so the main lift itself is always protected.
+    // Time-efficiency methods run BEFORE trimming, because that's the whole point: they
+    // buy back time so genuinely useful work survives instead of being cut. Applied only
+    // when the session actually overruns — the evidence says they match straight sets
+    // rather than beating them, so there's no reason to reach for them otherwise.
+    let supersetPairs = 0, dropSetCount = 0;
+    let preEstimate = estimateSessionDuration({ type:'strength', details:{ exercises, plannedFocus } }, null, personalSets);
+    if(timeEfficiencyPrefs.supersets && preEstimate != null && preEstimate > sessionLength){
+      supersetPairs = applySupersets(exercises);
+      preEstimate = estimateSessionDuration({ type:'strength', details:{ exercises, plannedFocus } }, null, personalSets);
+    }
+    if(timeEfficiencyPrefs.dropSets && preEstimate != null && preEstimate > sessionLength){
+      // Drop sets go on isolation work only. On a compound they add fatigue and technique
+      // risk for the same return, and the research base sits on single-joint movements.
+      exercises.forEach(ex=>{
+        if(ex.skippedForInjury || ex.isMainLift || ex.isSkillWork || ex.injuryFlagged) return;
+        const lib = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
+        if(lib && lib.category === 'isolation'){ ex.dropSet = true; dropSetCount++; }
+      });
+    }
+
     const trimmedNames = [];
     let sessionEstimate = estimateSessionDuration({ type:'strength', details:{ exercises, plannedFocus } }, null, personalSets);
     while(sessionEstimate != null && sessionEstimate > sessionLength && exercises.length > 1){
@@ -8395,11 +8555,58 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     }
     const trimNote = trimmedNames.length ? ` — trimmed ${trimmedNames.join(', ')} to fit your ${sessionLength}min session length` : '';
 
+    // The trim runs after pairing, so it can remove one half of a superset and leave the
+    // other showing a meaningless "A1" with nothing to pair with. Drop the marks from any
+    // group that no longer has both members.
+    const groupCounts = {};
+    exercises.forEach(e=>{ if(e.supersetGroup) groupCounts[e.supersetGroup] = (groupCounts[e.supersetGroup]||0) + 1; });
+    exercises.forEach(e=>{
+      if(e.supersetGroup && groupCounts[e.supersetGroup] < 2){
+        delete e.supersetGroup; delete e.supersetSlot;
+      }
+    });
+    // Put each surviving pair next to each other — a superset you have to hunt for across
+    // the list isn't usable as one.
+    const paired = [], singles = [];
+    exercises.forEach(e=> (e.supersetGroup ? paired : singles).push(e));
+    if(paired.length){
+      paired.sort((a,b)=> a.supersetGroup === b.supersetGroup
+        ? (a.supersetSlot === 'A1' ? -1 : 1)
+        : a.supersetGroup.localeCompare(b.supersetGroup));
+      const mainFirst = singles.filter(e=>e.isMainLift);
+      const rest = singles.filter(e=>!e.isMainLift);
+      exercises.length = 0;
+      exercises.push(...mainFirst, ...paired, ...rest);
+    }
+    supersetPairs = Object.values(groupCounts).filter(c=>c>=2).length;
+
+    // Clearing an orphaned pair restores that exercise to full rest, which makes the
+    // session longer than the trim above believed it to be — measured at 62min against a
+    // 60min budget. Re-fit once the pairing is final.
+    let refit = estimateSessionDuration({ type:'strength', details:{ exercises, plannedFocus } }, null, personalSets);
+    while(refit != null && refit > sessionLength && exercises.length > 1){
+      const removed = exercises.pop();
+      if(!removed.skippedForInjury) trimmedNames.push(removed.name);
+      if(removed.supersetGroup){
+        // Never leave the partner stranded on the way out.
+        exercises.forEach(e=>{ if(e.supersetGroup === removed.supersetGroup){ delete e.supersetGroup; delete e.supersetSlot; } });
+      }
+      refit = estimateSessionDuration({ type:'strength', details:{ exercises, plannedFocus } }, null, personalSets);
+    }
+
     exercises.forEach(e=>{ if(e.area) weekAreaCoverage.add(e.area); if(e.secondaryArea) weekAreaCoverage.add(e.secondaryArea); });
+
+    // Record what was ACTUALLY applied, not what the setting allows. The slot planner
+    // could only see the toggle; this is the real density of the session as generated, so
+    // day-of logic reads a fact rather than an assumption.
+    const appliedDensity = Math.round(
+      (supersetPairs > 0 ? SUPERSET_STRESS_MULTIPLIER : 1) *
+      (dropSetCount  > 0 ? DROPSET_STRESS_MULTIPLIER : 1) * 100) / 100;
 
     await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
       type:'strength',
       details: { exercises, workoutTag: tag, plannedFocus,
+        supersetPairs, dropSetCount, densityMultiplier: appliedDensity,
         notes: 'Auto-generated — adjust weights/reps freely, this is a starting structure' + (volumeWaveNote ? ' — ' + volumeWaveNote : '') + focusNote + trimNote }
     }));
     // Mirror to planned_session — Daily view reads from here, not from weekplan directly.
@@ -8778,7 +8985,11 @@ async function blockSummaryHtml(block){
       const progNote = progression.note
         ? `<div class="score-note" style="margin:-4px 0 8px; padding-left:2px;">${progression.note}</div>`
         : '';
-      rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${sets}×${repsLabel} @ ${weightLabel}${arrow}</span></div>${progNote}`);
+      // A superset only makes sense if you can see which two exercises are paired, so the
+      // slot marker leads the name rather than hiding in a note.
+      const ssTag = ex.supersetSlot ? `<span class="ss-tag">${ex.supersetSlot}</span>` : '';
+      const dropTag = ex.dropSet ? `<span class="drop-tag">+ drop</span>` : '';
+      rows.push(`<div class="log-entry${ex.supersetGroup?' ss-row':''}"><span>${ssTag}${ex.name}${dropTag}</span><span>${sets}×${repsLabel} @ ${weightLabel}${arrow}</span></div>${progNote}`);
     }
     return rows.join('');
   }
@@ -9450,17 +9661,17 @@ async function renderTrendChart(){
 /* ---------- WARM-UP / MOBILITY ENGINE ---------- */
 const WARMUP_LIBRARY = {
   hips: ['90/90 switches', 'banded hip distraction', 'deep squat rocking', 'band monster walks', 'frog rocks', 'banded lateral walks', 'hip CARs, 3 each side'],
-  hamstrings: ['leg swings (front-to-back)', 'light RDL pattern, bodyweight', 'standing hamstring sweep', 'foam roll hamstrings, 30-45s', 'active straight-leg raise, 8 each side', 'toy-soldier walks'],
-  quads_knees: ['cossack squats', 'bodyweight squat holds', 'foam roll quads, 30-45s', 'reverse Nordic, partial range', 'wall-sit, 20s', 'knee CARs, 5 each side'],
-  calves: ['calf raises, bodyweight x15', 'ankle mobility circles', 'foam roll calves, 30-45s', 'pogo hops, 15', 'single-leg calf raise, 10 each side'],
-  ankles: ['ankle mobility circles', 'weighted ankle rocks', 'band ankle dorsiflexion drives', 'heel-elevated squat rocks', 'single-leg balance, 20s each side'],
-  shoulders: ['band pull-aparts', 'arm circles', 'scap push-ups', 'band dislocates', 'prone Y-T-W raises, 6 each', 'wall slides, 10', 'shoulder CARs, 3 each side'],
-  chest: ['band chest opener', 'push-up variations, light', 'foam roll upper back/chest opener', 'doorway pec stretch, 30s each side', 'floor angels, 10'],
-  biceps: ['light band curls, high reps', 'arm circles', 'wrist/forearm rotations', 'band external rotations, light', 'supinated wall stretch, 20s each side'],
-  triceps: ['band pushdowns, light', 'arm circles', 'light bodyweight dips, partial range', 'overhead band reach, 20s each side', 'scap push-ups, 10'],
-  thoracic: ['cat-cow', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'foam roll thoracic extensions', 'prone press-ups, 8', 'seated rotations, 8 each side'],
-  lower_back: ['cat-cow', 'bird dog', 'glute bridges', 'band pull-throughs, light', 'dead bugs, 8 each side', 'prone press-up, 8', 'hip hinge pattern drill, bodyweight'],
-  full_body: ['light general activation — easy cardio + dynamic stretch circuit', 'world\'s greatest stretch, 5 each side', 'inchworm walkouts, 6', 'easy row or bike, 3-5min']
+  hamstrings: ['leg swings (front-to-back)', 'banded hamstring floss, 10 each side', 'light RDL pattern, bodyweight', 'standing hamstring sweep', 'foam roll hamstrings, 30-45s', 'banded good mornings, light x12', 'active straight-leg raise, 8 each side', 'toy-soldier walks'],
+  quads_knees: ['cossack squats', 'banded terminal knee extensions x15', 'bodyweight squat holds', 'foam roll quads, 30-45s', 'reverse Nordic, partial range', 'banded squat to stand, 8 reps', 'wall-sit, 20s', 'knee CARs, 5 each side'],
+  calves: ['calf raises, bodyweight x15', 'banded ankle plantarflexion x15', 'ankle mobility circles', 'foam roll calves, 30-45s', 'pogo hops, 15', 'banded calf raise, light x15', 'single-leg calf raise, 10 each side'],
+  ankles: ['ankle mobility circles', 'band ankle dorsiflexion drives', 'weighted ankle rocks', 'heel-elevated squat rocks', 'banded ankle eversion/inversion x12 each', 'single-leg balance, 20s each side'],
+  shoulders: ['arm circles', 'band pull-aparts', 'scap push-ups', 'prone Y-T-W raises, 6 each', 'wall slides, 10', 'band dislocates', 'shoulder CARs, 3 each side'],
+  chest: ['push-up variations, light', 'band chest opener', 'foam roll upper back/chest opener', 'doorway pec stretch, 30s each side', 'banded push-up plus x10', 'floor angels, 10'],
+  biceps: ['arm circles', 'light band curls, high reps', 'wrist/forearm rotations', 'band external rotations, light', 'supinated wall stretch, 20s each side'],
+  triceps: ['arm circles', 'band pushdowns, light', 'light bodyweight dips, partial range', 'overhead band reach, 20s each side', 'scap push-ups, 10'],
+  thoracic: ['cat-cow', 'band pull-aparts, overhead variation x12', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'banded thoracic rotations, 8 each side', 'foam roll thoracic extensions', 'prone press-ups, 8', 'seated rotations, 8 each side'],
+  lower_back: ['cat-cow', 'band pull-throughs, light', 'bird dog', 'glute bridges', 'dead bugs, 8 each side', 'banded dead bugs, 8 each side', 'prone press-up, 8', 'hip hinge pattern drill, bodyweight'],
+  full_body: ['light general activation — easy cardio + dynamic stretch circuit', 'band circuit — pull-aparts, monster walks, good mornings', 'world\'s greatest stretch, 5 each side', 'inchworm walkouts, 6', 'easy row or bike, 3-5min']
 };
 
 // Deeper post-training/standalone mobility protocol — static holds, PNF, and thorough
