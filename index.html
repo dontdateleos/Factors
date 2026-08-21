@@ -196,8 +196,16 @@
   .mobility-cat-item .mob-dose{ font-size:10px; font-weight:500; color:var(--dim); letter-spacing:0.015em; }
   /* Modality tag inside a stretching card — small, uppercase, sits inline ahead of the
      drill so three modalities read as one wrapped line rather than three stacked ones. */
-  .mob-mod{ display:inline-block; font-family:var(--sans); font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); margin-right:4px; }
-  .mob-mod:not(:first-child){ margin-left:8px; }
+  /* Fixed width so ROLL / DYNAMIC / STATIC line up as a column and the drills beside
+     them start at the same x — the sequence is meant to be worked in order, so it should
+     read as an ordered list rather than three ragged sentences. */
+  .mob-mod{ display:inline-block; min-width:54px; font-family:var(--sans); font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
+  /* One modality per line — collapsing all three onto a single wrapped line saved space
+     but made them unreadable as a sequence you work through in order. */
+  .mob-line{ padding:2px 0; }
+  /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
+     easy to skip past when you do. */
+  .mob-cue{ font-family:var(--sans); font-size:11px; font-weight:500; color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
   .log-entry:hover{ color:var(--text); }
   .d-badge{ color:var(--text); }
 
@@ -383,7 +391,7 @@
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
         <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <div class="score-note" style="margin-top:12px;">Log actual stretch sessions (sets × hold time) on the Weekly tab under the Mobility session type — this generator reads from that history.</div>
+        <div class="score-note" style="margin-top:12px;">Log stretch sessions on the Weekly tab to feed this.</div>
       </div>
     </div>
   </div>
@@ -723,6 +731,9 @@
           </select>
         </div>
         <div class="field-row"><input type="checkbox" id="multiSessionOkCheckbox" style="width:auto; flex:none;"><label for="multiSessionOkCheckbox" style="font-size:13px;">I'm okay with multiple sessions on the same day</label></div>
+        <div class="field-row"><input type="checkbox" id="bodyweightAllCheckbox" style="width:auto; flex:none;"><label for="bodyweightAllCheckbox" style="font-size:13px;">Bodyweight only — all training</label></div>
+        <div class="field-row"><input type="checkbox" id="bodyweightMobilityCheckbox" style="width:auto; flex:none;"><label for="bodyweightMobilityCheckbox" style="font-size:13px;">Bodyweight only — mobility</label></div>
+        <div class="score-note">Bands count as bodyweight; barbells, dumbbells, cables and machines don't.</div>
         <div class="score-note" style="margin-top:12px;">What should generated programs include? Allocates available days between strength and running by priority + evidence-based ratios (not an even split). Spreads days to reduce heavy-lift/key-run adjacency. Only touches empty days.</div>
         <div class="field-row"><input type="checkbox" id="includeStrengthCheckbox" checked style="width:auto; flex:none;"><label for="includeStrengthCheckbox" style="font-size:13px;">Strength</label></div>
         <div class="field-row"><input type="checkbox" id="includeMobilityCheckbox" checked style="width:auto; flex:none;"><label for="includeMobilityCheckbox" style="font-size:13px;">Mobility (standalone sessions + bulletproofing added to strength days)</label></div>
@@ -2609,6 +2620,19 @@ const EXERCISE_LIBRARY = {
   lateral_lunge: { name:"Lateral Lunge", longLengthBias:true, longLengthNote:"adductor lengthening under load", aliases:["lateral lunge","side lunge"], category:"secondary_strength", area:"adductors", secondaryArea:"quads_knees", movement:"lunge", difficulty:"beginner", equipment:["dumbbell","bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
   sumo_goblet_squat: { name:"Sumo Goblet Squat", longLengthBias:true, longLengthNote:"wide stance loads adductors through a longer range", aliases:["sumo goblet squat","sumo squat"], category:"secondary_strength", area:"adductors", secondaryArea:"quads_knees", movement:"squat", difficulty:"beginner", equipment:["dumbbell","kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low", tierNote:"Wide stance loads the adductors through a longer range than a conventional squat stance." },
   band_adduction: { name:"Standing Band Adduction", aliases:["band adduction","standing adduction"], category:"isolation", area:"adductors", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["band","cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  // Bodyweight coverage. Triceps had no bodyweight-tagged option at all, and biceps,
+  // hamstrings, glutes and forearms had exactly one — a bodyweight-only filter would
+  // have silently starved those areas rather than substituting for them.
+  diamond_pushup: { name:"Diamond Push-up", aliases:["diamond push up","close grip push up"], category:"calisthenics", area:"triceps", secondaryArea:"chest", movement:"push", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  bench_dip: { name:"Bench Dip", aliases:["bench dip","tricep dip"], category:"calisthenics", area:"triceps", secondaryArea:"shoulders", movement:"push", difficulty:"beginner", equipment:["bodyweight","bench"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  bodyweight_skullcrusher: { name:"Bodyweight Skullcrusher", aliases:["bodyweight skullcrusher","bar skullcrusher"], category:"calisthenics", area:"triceps", secondaryArea:"", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low", longLengthBias:true, longLengthNote:"elbows overhead — triceps long head loaded at length" },
+  inverted_row: { name:"Inverted Row", aliases:["inverted row","australian pull up"], category:"calisthenics", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  towel_curl: { name:"Isometric Towel Curl", aliases:["towel curl","isometric curl"], category:"isolation", area:"biceps", secondaryArea:"forearms", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  sliding_leg_curl: { name:"Sliding Leg Curl", aliases:["sliding leg curl","towel leg curl"], category:"calisthenics", area:"hamstrings", secondaryArea:"glutes", movement:"hinge", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low", longLengthBias:true, longLengthNote:"hamstrings loaded as the legs extend away" },
+  single_leg_glute_bridge_bw: { name:"Single-Leg Glute Bridge", aliases:["single leg glute bridge"], category:"calisthenics", area:"glutes", secondaryArea:"hamstrings", movement:"hinge", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  fingertip_hang: { name:"Fingertip Hang", aliases:["fingertip hang","towel hang"], category:"calisthenics", area:"forearms", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  pike_pushup: { name:"Pike Push-up", aliases:["pike push up"], category:"calisthenics", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  wall_calf_raise_bw: { name:"Wall-Supported Calf Raise", aliases:["wall calf raise"], category:"calisthenics", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
 };
 
 function guessTagsFromLibrary(name){
@@ -2759,6 +2783,8 @@ async function loadTrainingSetup(){
     document.querySelectorAll('.avail-day').forEach(cb=>{ cb.checked = (setup.availableDays||[]).includes(cb.value); });
     document.getElementById('sessionLengthSelect').value = setup.sessionLength || '45';
     document.getElementById('multiSessionOkCheckbox').checked = !!setup.multiSessionOk;
+    document.getElementById('bodyweightAllCheckbox').checked = !!setup.bodyweightAll;
+    document.getElementById('bodyweightMobilityCheckbox').checked = !!setup.bodyweightMobility;
   } catch(e){}
 }
 document.getElementById('saveTrainingSetupBtn').addEventListener('click', async ()=>{
@@ -2766,7 +2792,9 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
   const setup = {
     availableDays,
     sessionLength: document.getElementById('sessionLengthSelect').value,
-    multiSessionOk: document.getElementById('multiSessionOkCheckbox').checked
+    multiSessionOk: document.getElementById('multiSessionOkCheckbox').checked,
+    bodyweightAll: document.getElementById('bodyweightAllCheckbox').checked,
+    bodyweightMobility: document.getElementById('bodyweightMobilityCheckbox').checked
   };
   try{
     await window.storage.set('settings:trainingSetup', JSON.stringify(setup));
@@ -3404,7 +3432,7 @@ function openBlockEditor(date, slot, block){
             <input type="text" class="week-st-name" placeholder="stretch" value="${st.name||''}">
             <select class="week-st-area">${areaOptionsHtml(st.area||'')}</select>
             <input type="number" class="week-st-sets" value="${st.sets!=null?st.sets:2}" style="max-width:44px;" title="sets">
-            <input type="number" class="week-st-hold" value="${st.holdSeconds!=null?st.holdSeconds:30}" style="max-width:50px;" title="hold seconds">
+            <input type="number" class="week-st-hold" value="${st.reps!=null?st.reps:(st.holdSeconds!=null?st.holdSeconds:30)}" style="max-width:50px;" title="${st.reps!=null?'reps':'hold seconds'}" data-unit="${st.reps!=null?'reps':'secs'}">
             <span class="remove-row">×</span>
           </div>`;
       }
@@ -3484,8 +3512,14 @@ function openBlockEditor(date, slot, block){
           const name = row.querySelector('.week-st-name').value.trim();
           const area = row.querySelector('.week-st-area').value;
           const sets = parseInt(row.querySelector('.week-st-sets').value, 10) || 2;
-          const holdSeconds = parseInt(row.querySelector('.week-st-hold').value, 10) || 30;
-          if(name) stretches.push({name, area, sets, holdSeconds, category});
+          // The field carries reps or seconds depending on the movement — data-unit says
+          // which, so saving a rep-based stretch doesn't silently rewrite it as a 30s hold.
+          const unitEl = row.querySelector('.week-st-hold');
+          const unitVal = parseInt(unitEl.value, 10) || 0;
+          const isReps = unitEl.dataset.unit === 'reps';
+          const holdSeconds = isReps ? null : (unitVal || 30);
+          const reps = isReps ? (unitVal || 8) : null;
+          if(name) stretches.push({name, area, sets, holdSeconds, reps, category});
         }
       });
       details = { stretches };
@@ -4649,8 +4683,12 @@ function estimateSessionDuration(block, personalPace, personalSets){
     let totalSeconds = R.mobility.generalWarmupMin * 60;
     stretches.forEach(st=>{
       const sets = st.sets!=null ? st.sets : 2;
-      const hold = st.holdSeconds!=null ? st.holdSeconds : 30;
-      totalSeconds += sets * (hold + R.mobility.restSecondsBetweenSets) + R.mobility.transitionSeconds;
+      // Rep-based work costs time too — price it at a controlled tempo rather than
+      // treating a missing holdSeconds as the 30s default and overstating the session.
+      const work = st.reps != null
+        ? st.reps * MOBILITY_SECONDS_PER_REP
+        : (st.holdSeconds!=null ? st.holdSeconds : 30);
+      totalSeconds += sets * (work + R.mobility.restSecondsBetweenSets) + R.mobility.transitionSeconds;
     });
     return Math.round(totalSeconds/60);
   }
@@ -5946,6 +5984,16 @@ const BULLETPROOFING_LIBRARY = {
 
 // Cold-start fallback only — used when there's no logged history yet for a movement
 // pattern. Once real data exists, getPreferredLift() below overrides this.
+// Bodyweight substitutes for the barbell main lifts, by movement pattern. Without these
+// a bodyweight-only week would still open every session with a Back Squat or Bench Press
+// — the accessory filter alone doesn't reach the main-lift slot.
+const BODYWEIGHT_MAIN_LIFTS = {
+  squat: { name:'Bulgarian Split Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat', exerciseId:'bulgarian_split_squat' },
+  push:  { name:'Push-up', area:'chest', secondaryArea:'triceps', movement:'push', exerciseId:'pushup' },
+  hinge: { name:'Nordic Hamstring Curl', area:'hamstrings', secondaryArea:'glutes', movement:'hinge', exerciseId:'nordic_curl' },
+  pull:  { name:'Pull-up', area:'thoracic', secondaryArea:'biceps', movement:'pull', exerciseId:'pullup' }
+};
+
 const MAIN_LIFT_DEFAULTS = {
   lower: { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
   legs:  { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
@@ -6211,9 +6259,59 @@ async function getBlockEmphasisAreas(goalType, date){
   return { areas, blockIndex, goalType, reused: false };
 }
 
+
+// Bodyweight filtering. Bands count as bodyweight-equivalent — they're portable, cheap
+// and most home setups have one — while barbells, dumbbells, kettlebells, cables,
+// machines and plates don't. Bench and box are allowed because a chair or step
+// substitutes for either.
+const BODYWEIGHT_OK_EQUIPMENT = ['bodyweight','band','bench','box','partner','other'];
+function isBodyweightExercise(ex){
+  const eq = ex && ex.equipment;
+  if(!eq || !eq.length) return true;   // untagged — don't exclude on missing data
+  // The equipment array means two different things depending on the entry: sometimes
+  // alternatives ("bodyweight" OR "machine"), sometimes requirements ("barbell" AND
+  // "bench"). Listing bodyweight or a band is taken as proof it can be done without kit;
+  // otherwise every listed item has to be something you'd have at home. A plain .some()
+  // check let Barbell Hip Thrust through on the strength of "bench".
+  if(eq.includes('bodyweight') || eq.includes('band')) return true;
+  return eq.every(e => BODYWEIGHT_OK_EQUIPMENT.includes(e));
+}
+
+// Mobility movements are plain strings with no equipment metadata, so classify by name.
+// The load library is bodyweight-first by design, but the weighted variants sitting
+// deeper in each rotation would still surface on later days of a week.
+const MOBILITY_NEEDS_EQUIPMENT = /^(weighted|loaded)\b|barbell|kettlebell|dumbbell|cable|machine|plate|bar on the back/i;
+function isBodyweightMobility(name){
+  return !MOBILITY_NEEDS_EQUIPMENT.test(name || '');
+}
+
+async function getEquipmentPrefs(){
+  try{
+    const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
+    const all = !!setup.bodyweightAll;
+    // "All training" implies mobility too — it would be odd to hold a dumbbell for a
+    // stretch while doing bodyweight-only lifting.
+    return { bodyweightAll: all, bodyweightMobility: all || !!setup.bodyweightMobility };
+  } catch(e){ return { bodyweightAll:false, bodyweightMobility:false }; }
+}
 const ACCESSORY_EXCLUDED_CATEGORIES = ['main_strength','power','running_drill'];
 
 const HYPERTROPHY_TIER_RANK = { S:4, A:3, B:2, C:1 };
+
+// Which tier field a goal should actually rank by. Accessories were ranked on
+// hypertrophyTier unconditionally — strengthTier and powerTier had zero read sites in
+// the whole file — so a strength block picked its accessory work on hypertrophy merit.
+// Cable Glute Kickback is the clearest example: hypertrophy B, strength C.
+const GOAL_TIER_FIELD = {
+  hypertrophy: 'hypertrophyTier',
+  strength: 'strengthTier',
+  running: 'strengthTier',   // running support is about force production and durability
+  hyrox: 'strengthTier'
+};
+// Tie-break when two exercises rank equally. A loaded multi-joint movement gives more
+// back per slot than a single-joint isolation, so it wins an otherwise equal contest —
+// previously the tie fell to whichever key happened to come first in the library object.
+const CATEGORY_VALUE = { secondary_strength: 0.4, calisthenics: 0.3, isolation: 0, bulletproofing: 0.1 };
 
 // Accessory selection driven by the weekly volume landmarks that already exist in
 // VOLUME_LANDMARKS but were previously only ever DISPLAYED, never used to generate.
@@ -6223,7 +6321,7 @@ const HYPERTROPHY_TIER_RANK = { S:4, A:3, B:2, C:1 };
 // Same principle as everywhere else: need selects (which areas are short of their
 // landmark), time caps (the existing trim loop). Areas already at target contribute
 // nothing, so this cannot pad — a fully-covered week adds no accessories at all.
-function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalType, usedNames, injuryMovementFlags, maxPicks, emphasisAreas, blockPhase }){
+function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalType, usedNames, injuryMovementFlags, maxPicks, emphasisAreas, blockPhase, bodyweightOnly }){
   const candidateAreas = TAG_TO_AREAS[tag] || TAG_TO_AREAS.full_body;
   const emphasis = new Set(emphasisAreas || []);
   // Volume progresses across the block rather than sitting at one level all cycle.
@@ -6272,6 +6370,7 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
     const options = Object.entries(EXERCISE_LIBRARY)
       .filter(([id,ex])=> ex.area === g.area)
       .filter(([id,ex])=> !ACCESSORY_EXCLUDED_CATEGORIES.includes(ex.category))
+      .filter(([id,ex])=> !bodyweightOnly || isBodyweightExercise(ex))
       .filter(([id,ex])=> !usedNames.has(ex.name))
       // Long muscle length is the actionable lever from the ROM literature. Strey et al.
       // (2026 meta-analysis) found training at long muscle lengths produced significantly
@@ -6280,8 +6379,13 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
       // useful move isn't partial reps — it's picking exercises that load the target
       // muscle in a stretched position, then training them through full range. The tag
       // is a curated flag rather than inferred, so it only fires where it's defensible.
-      .map(([id,ex])=> ({ id, ex,
-        rank: (HYPERTROPHY_TIER_RANK[ex.hypertrophyTier] || 0) + (ex.longLengthBias ? 1.5 : 0) }))
+      .map(([id,ex])=> {
+        const tierField = GOAL_TIER_FIELD[goalType] || 'hypertrophyTier';
+        return { id, ex,
+          rank: (HYPERTROPHY_TIER_RANK[ex[tierField]] || 0)
+              + (ex.longLengthBias ? 1.5 : 0)
+              + (CATEGORY_VALUE[ex.category] || 0) };
+      })
       .sort((a,b)=> b.rank - a.rank);
     if(!options.length) continue;
     const chosen = options[0];
@@ -6953,6 +7057,198 @@ const MOBILITY_PROGRESSION_LIBRARY = {
 };
 // Integration is inherently cross-domain (per section 11: "can they use the ROM in a
 // complex movement?"), so it isn't keyed by single domain the way the other three are.
+
+// One-line cue for every mobility movement. Names like "90/90 lift-offs" or "Bodyweight
+// Jefferson curl" are meaningless unless you already know them, and a prescription you
+// can't execute is not a prescription. Kept to a single short phrase describing what to
+// DO — not why it works, which is what made the earlier explanatory text unreadable.
+const MOBILITY_CUES = {
+  "90/90 lift-offs": "seated 90/90, lift the front shin off the floor",
+  "90/90 switches": "seated, rotate knees side to side",
+  "90/90 transitions": "seated 90/90, rotate to the other side under control",
+  "Active hip flexion": "stand, lift knee as high as you can without leaning",
+  "Active knee flexion-extension through range": "seated, bend and straighten the knee slowly, no swing",
+  "Active overhead reach hold": "reach both arms overhead, ribs down, hold",
+  "Active straight-leg raise": "lie flat, lift one straight leg as high as it goes",
+  "Active wrist flexion-extension hold": "hold the end of your wrist range without support",
+  "Active/loaded knee-to-wall": "knee-to-wall, drive the knee forward and hold",
+  "Adductor lift-off": "wide stance on the floor, lift one leg off",
+  "Adductor rockbacks": "on all fours, one leg out to the side, rock back",
+  "Ankle circles": "slow circles at the ankle, both directions",
+  "Band dislocates": "wide grip on a band, pass it overhead and behind",
+  "Banded ankle distraction": "band around the ankle pulling back, rock the knee forward",
+  "Bear crawl to downward dog flow": "bear crawl, then press back into downward dog",
+  "Bodyweight Cossack squat": "wide stance, sink to one side, other leg straight",
+  "Bodyweight Jefferson curl": "roll down one vertebra at a time, no weight",
+  "Bodyweight overhead reach hold": "arms overhead against a wall, hold the position",
+  "Bodyweight serratus press": "push the floor away, let the shoulder blades spread",
+  "Bodyweight wrist extension hold": "palms down on the floor, sit back into the wrists",
+  "Bridge preparation": "lie down, feet planted, press hips up",
+  "Butterfly stretch": "soles together, let the knees drop",
+  "Cat-cow": "on all fours, round then arch the spine",
+  "Child’s pose reach": "sit back on heels, reach both arms long",
+  "Controlled spinal extension": "arch the spine slowly, no bouncing",
+  "Copenhagen plank": "side plank with the top leg on a bench",
+  "Cossack progression": "wide stance, sink to one side as far as control allows",
+  "Cossack squat to standing reach": "sink into a cossack, stand and reach overhead",
+  "Crab walk to bridge": "crab position, press the hips up into a bridge",
+  "Deep split squat": "long lunge stance, sink deep and hold",
+  "Deep squat to overhead reach": "sit into a deep squat, reach one arm overhead",
+  "Deficit single-leg calf raise": "one foot on a step, heel drops below the edge",
+  "Doorway pec stretch": "forearm on a doorframe, step through",
+  "Figure-4 stretch": "ankle across the opposite knee, pull in",
+  "Frog rock": "knees wide on the floor, rock the hips back",
+  "Full-ROM RDL": "hinge at the hips, full stretch at the bottom",
+  "Half-kneeling hip-flexor stretch": "half kneel, tuck the pelvis, press forward",
+  "Heel-elevated squat rock": "heels raised, squat down and rock",
+  "Hollow-body leg lower": "on your back, lower straight legs slowly",
+  "Jefferson curl progression": "roll down slowly through the spine, light weight",
+  "Knee-to-wall": "toes near a wall, drive the knee to touch it",
+  "Kneeling wrist rock": "hands on the floor, rock forward and back",
+  "Knuckle push-up hold": "hold a push-up position on your knuckles",
+  "Loaded 90/90 lift-off": "90/90 lift-off holding a light weight",
+  "Loaded Cossack": "cossack squat holding a weight at the chest",
+  "Loaded calf raise": "calf raise holding weight, full range",
+  "Loaded pike": "pike position with weight, reach for the toes",
+  "Loaded scapular shrug": "hold weight, shrug the shoulder blades only",
+  "Loaded shoulder flexion": "raise a light weight overhead slowly",
+  "Loaded wrist extension": "light weight, extend the wrist through range",
+  "Nordic curl eccentric": "kneel, ankles anchored, lower slowly",
+  "Open book": "lie on your side, rotate the top arm open",
+  "Overhead carries": "walk holding a weight locked out overhead",
+  "Pike push-up, slow lower": "hips high, lower the head to the floor slowly",
+  "Prayer stretch": "palms together, lower the hands to stretch the wrists",
+  "Prone Y-T-W raises": "face down, lift arms in Y, T and W shapes",
+  "Prone extension hold": "face down, lift the chest and hold",
+  "Prone press-up hold": "face down, press the chest up, hips stay down",
+  "Prone scapular retraction": "face down, squeeze the shoulder blades together",
+  "Reverse Nordic eccentric": "kneel upright, lean back slowly",
+  "Scapular CARs": "circle the shoulder blade through its full range",
+  "Scapular pull-up": "hang, pull the shoulder blades down without bending the arms",
+  "Scapular push-up": "push-up position, spread and squeeze the shoulder blades",
+  "Scapular push-up, slow": "as above, with a slow tempo",
+  "Scapular wall slides with control": "back to the wall, slide the arms up and down",
+  "Seated forward fold": "sit, legs straight, fold forward",
+  "Seated knee extension hold": "sit, straighten the knee and hold it there",
+  "Seated pancake lift-off": "legs wide, lift the torso off the floor",
+  "Seated pike compression": "legs straight, actively pull the chest to the thighs",
+  "Segmental cat-cow": "cat-cow moving one segment at a time",
+  "Serratus wall press": "press the forearms into a wall, let the blades spread",
+  "Shoulder CARs": "slow controlled circle of the whole shoulder",
+  "Shoulder lift-offs": "arms out in front, lift them off a surface",
+  "Side-lying adduction hold": "on your side, lift the bottom leg and hold",
+  "Single-leg RDL, bodyweight": "hinge on one leg, back leg extends behind",
+  "Single-leg balance reach": "stand on one leg, reach in different directions",
+  "Single-leg calf raise off a step": "one foot on a step, full heel drop and raise",
+  "Single-leg glute bridge": "bridge with one foot planted",
+  "Slow eccentric calf raise": "raise up, lower over 3-4 seconds",
+  "Slow tempo split-squat descent": "split squat, lower over 3-4 seconds",
+  "Slow-tempo sissy squat": "lean back on the knees, lower slowly",
+  "Standing hamstring sweep": "leg out front, sweep the hands down the leg",
+  "Standing hip CARs": "stand, circle the hip through its full range",
+  "Step-down, slow lower": "step down from a box over 3-4 seconds",
+  "Supine band hamstring hold": "on your back, band around the foot, hold the stretch",
+  "Supine hamstring stretch": "on your back, pull one straight leg toward you",
+  "Supported deep squat": "deep squat holding something for balance",
+  "Supported knee flexion rock": "kneel supported, rock back onto the heels",
+  "Tabletop wrist rock": "on all fours, rock over the wrists",
+  "Tabletop wrist rock, loaded": "as above, shifting more weight onto the hands",
+  "Terminal knee extension hold": "straighten the knee fully and hold the contraction",
+  "Thoracic rotations": "rotate the upper back, hips still",
+  "Thread the needle": "on all fours, thread one arm under the other",
+  "Tibialis raise hold": "heels down, toes lifted, hold",
+  "Wall slides": "back to the wall, slide the arms overhead",
+  "Wall-sit isometric": "back against a wall, thighs parallel, hold",
+  "Weighted Cossack squat": "cossack squat holding a weight at the chest",
+  "Wall-supported overhead hold": "arms overhead against a wall, hold",
+  "Weighted ankle rocker": "knee-to-wall holding a weight",
+  "Weighted extension hold": "back extension holding light weight",
+  "Weighted good morning": "bar on the back, hinge forward",
+  "Weighted scapular pull": "hang or hold weight, pull the blades down",
+  "Weighted serratus press": "press a light weight up, let the blade travel",
+  "Weighted side lunge": "side lunge holding a weight",
+  "Weighted step-down": "step down holding a weight",
+  "Weighted wrist curl": "light weight, curl the wrist through range",
+  "Wide-stance lateral rock": "wide stance, rock side to side",
+  "Wide-stance sit into a lunge": "wide stance, sit toward one side",
+  "Wrist circles": "slow circles at the wrist, both directions",
+  "Wrist lift-offs": "palms down, lift the hands off the floor"
+};
+function mobilityCue(name){
+  if(!name) return '';
+  if(MOBILITY_CUES[name]) return MOBILITY_CUES[name];
+  // Fall back by stripping qualifiers, so a variant inherits its base movement's cue
+  // rather than rendering nothing.
+  const base = name.replace(/^(Loaded|Weighted|Bodyweight|Slow|Slow-tempo|Deficit|Single-leg|Active)\s+/i, '')
+                   .replace(/,.*$/, '').trim();
+  const hit = Object.keys(MOBILITY_CUES).find(k => k.toLowerCase() === base.toLowerCase());
+  return hit ? MOBILITY_CUES[hit] : '';
+}
+
+// Whether a movement is prescribed in reps or in time. Everything was being given a hold
+// duration, so "Ankle circles 2x60s" and "Cat-cow 2x60s" appeared alongside genuine
+// holds — a circle isn't something you hold, and a minute of it is a meaningless target.
+// Pattern rules cover the library; the override map handles the cases where the name
+// misleads (a "hold" inside a rep drill, or a stretch that's really a movement).
+const MOBILITY_REP_PATTERNS = /circles|CARs|switches|transitions|rock|rocks|slides|push-up|pull-up|raise|curl|shrug|press|walk|crawl|flow|sweep|dislocates|lift-off|lift-offs|eccentric|descent|lower|step-down|cat-cow|open book|thread the needle|angels|Y-T-W|rollout|distraction|reach-through/i;
+const MOBILITY_HOLD_PATTERNS = /hold|stretch|plank|sit|carry|carries|fold|pose|hang|compression|split squat|deep squat|squat hold|bridge|prayer/i;
+const MOBILITY_TYPE_OVERRIDE = {
+  'Bridge preparation': 'reps',           // built up rep by rep, not held from the start
+  'Deep squat to overhead reach': 'reps', // a flow, despite "squat"
+  'Cossack squat to standing reach': 'reps',
+  'Crab walk to bridge': 'reps',
+  'Bear crawl to downward dog flow': 'reps',
+  'Seated pike compression': 'reps',      // active compressions, not a passive hold
+  'Wall-sit isometric': 'hold',
+  'Copenhagen plank': 'hold',
+  'Overhead carries': 'hold',
+  'Deep split squat': 'hold',
+  'Supported deep squat': 'hold',
+  // Movements the patterns read the wrong way: these are repeated through a range rather
+  // than held at the end of one.
+  'Active knee flexion-extension through range': 'reps',
+  'Active hip flexion': 'reps',
+  'Full-ROM RDL': 'reps',
+  'Weighted good morning': 'reps',
+  'Single-leg RDL, bodyweight': 'reps',
+  'Controlled spinal extension': 'reps',
+  'Knee-to-wall': 'reps',
+  'Active/loaded knee-to-wall': 'reps',
+  'Loaded wrist extension': 'reps',
+  'Loaded shoulder flexion': 'reps',
+  'Segmental cat-cow': 'reps',
+  'Nordic curl eccentric': 'reps',
+  'Reverse Nordic eccentric': 'reps',
+  'Thoracic rotations': 'reps'
+};
+function mobilityPrescriptionType(name){
+  if(!name) return 'hold';
+  if(MOBILITY_TYPE_OVERRIDE[name]) return MOBILITY_TYPE_OVERRIDE[name];
+  // The literal word "hold" wins outright — "Knuckle push-up hold" is a position, not a
+  // set of push-ups, and the rep patterns would otherwise catch it on "push-up".
+  if(/\bhold\b/i.test(name)) return 'hold';
+  if(MOBILITY_REP_PATTERNS.test(name)) return 'reps';
+  if(MOBILITY_HOLD_PATTERNS.test(name)) return 'hold';
+  return 'hold';
+}
+
+// Rep equivalents of the hold doses, so a rep-based movement gets a rep target rather
+// than a converted stopwatch figure. Roughly time-matched at a controlled tempo, which
+// keeps session duration estimates honest across both kinds.
+const MOBILITY_REPS_BY_HOLD = { 60:10, 45:8, 40:8, 30:8, 20:6, 15:5 };
+const MOBILITY_SECONDS_PER_REP = 4;   // controlled tempo, both directions where relevant
+function mobilityDose(name, spec){
+  const type = mobilityPrescriptionType(name);
+  if(type === 'hold') return { ...spec, prescriptionType:'hold' };
+  const hold = spec.holdSeconds != null ? spec.holdSeconds : 30;
+  const reps = MOBILITY_REPS_BY_HOLD[hold] || Math.max(5, Math.round(hold / MOBILITY_SECONDS_PER_REP));
+  return { ...spec, holdSeconds: null, reps, prescriptionType:'reps' };
+}
+function mobilityDoseLabel(st){
+  const sets = st.sets != null ? st.sets : 2;
+  if(st.reps != null) return `${sets}×${st.reps}`;
+  return `${sets}×${st.holdSeconds != null ? st.holdSeconds : 30}s`;
+}
 const MOBILITY_INTEGRATE_LIBRARY = ['Deep squat to overhead reach', 'Cossack squat to standing reach', 'Bear crawl to downward dog flow', 'Crab walk to bridge'];
 // Which cross-domain finisher expresses which skill goal. Keeps the last movement of a
 // session recognisably related to what the session was building toward.
@@ -7252,7 +7548,7 @@ async function getMobilityDomainsNeedingWork(activeGoalSkills){
 // with no category tag at all, which rendered as a single untagged GOAL line.
 // `domainFilter` lets the companion restrict to the complementary body area while
 // keeping identical structure and dosing.
-function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage, sessionType, dayIdx, budget, integrateIndex, domainFilter, coveredSoFar }){
+function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage, sessionType, dayIdx, budget, integrateIndex, domainFilter, coveredSoFar, bodyweightOnly }){
   const goalStretches = [];
   (mobilityGoals||[]).forEach(sg=>{
     buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType).forEach(st=>{
@@ -7302,7 +7598,9 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
     let name = null;
     for(let k=0; k<options.length; k++){
       const candidate = options[(dayIdx + k) % options.length];
-      if(!usedNames.has(candidate)){ name = candidate; break; }
+      if(usedNames.has(candidate)) continue;
+      if(bodyweightOnly && !isBodyweightMobility(candidate)) continue;
+      name = candidate; break;
     }
     if(!name) return false;
     usedNames.add(name);
@@ -7313,7 +7611,8 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
       : (cat === 'load'
           ? (MOBILITY_LOAD_DOSE[level] || MOBILITY_LOAD_DOSE[1])
           : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]));
-    otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category: cat, domain, reason, ...spec });
+    otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category: cat, domain, reason,
+      ...mobilityDose(name, spec) });
     return true;
   }
 
@@ -7346,7 +7645,8 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
     const integrateName = (preferred && MOBILITY_INTEGRATE_LIBRARY.includes(preferred))
       ? preferred
       : MOBILITY_INTEGRATE_LIBRARY[(integrateIndex||0) % MOBILITY_INTEGRATE_LIBRARY.length];
-    otherStretches.push({ name: integrateName, area:'', category:'integrate', sets:1, holdSeconds:45 });
+    otherStretches.push({ name: integrateName, area:'', category:'integrate',
+      ...mobilityDose(integrateName, { sets:1, holdSeconds:45 }) });
   }
 
   // Stored order exists only to control what the trim below removes first — the block
@@ -7413,6 +7713,7 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
 
   let placed = 0;
   let integrateCursor = 0;
+  const mobilityEquipmentPrefs = await getEquipmentPrefs();
   const coveredSoFar = {};   // domain -> true, accumulated across the days being generated
 
   for(let dayIdx=0; dayIdx<placedDates.length; dayIdx++){
@@ -7420,7 +7721,8 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
     const budget = Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP);
     const { stretches, trimNote } = buildMobilitySession({
       neededDomains, mobilityGoals, loadedROMCoverage, sessionType,
-      dayIdx, budget, integrateIndex: integrateCursor, coveredSoFar
+      dayIdx, budget, integrateIndex: integrateCursor, coveredSoFar,
+      bodyweightOnly: mobilityEquipmentPrefs.bodyweightMobility
     });
     integrateCursor++;
     stretches.forEach(s=>{ if(s.domain) coveredSoFar[s.domain] = true; });
@@ -7874,6 +8176,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   const companionNeededDomains = (includeBulletproofing && multiSessionOk)
     ? await getMobilityDomainsNeedingWork(mobilityGoalsForCompanion.map(sg=>sg.skill)) : [];
   const companionLoadedROM = (includeBulletproofing && multiSessionOk) ? await getRecentLoadedROMCoverage() : {};
+  const equipmentPrefs = await getEquipmentPrefs();
 
   // Running tally of planned sets per area across the week being generated, so each day
   // can see what the earlier days already covered and target what's still short.
@@ -7948,6 +8251,17 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       const altLift = getAlternateLiftForMovement(movement, mainLift);
       if(altLift) mainLift = altLift;
     }
+    // Swap the main lift for a bodyweight equivalent of the same movement pattern when
+    // equipment isn't available. Checked after the variation swap so it catches whichever
+    // lift actually ended up selected.
+    if(equipmentPrefs.bodyweightAll && mainLift){
+      const tags = guessTagsFromLibrary(mainLift.name);
+      const lib = tags && tags.exerciseId ? EXERCISE_LIBRARY[tags.exerciseId] : null;
+      if(lib && !isBodyweightExercise(lib)){
+        const sub = BODYWEIGHT_MAIN_LIFTS[movement] || BODYWEIGHT_MAIN_LIFTS[TAG_TO_MOVEMENT[tag]];
+        if(sub) mainLift = { ...sub };
+      }
+    }
     if(mainLift){
       const safeMainLift = applyInjurySafety({ ...mainLift, movement }, injuryMovementFlags);
       if(safeMainLift){
@@ -7975,14 +8289,18 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       skillPlacementsThisWeek[sg.skill] = placedCount + 1;
 
       const idx = sg.levelIndex;
-      const dose = ' (1-2 submaximal sets, well short of failure — grease-the-groove style since this is added alongside your main lift, not a dedicated skill session)';
+      // The dose used to be appended to the exercise NAME as a 25-word parenthetical, so
+      // a skill entry rendered as a paragraph sitting where every other row shows a short
+      // name. It's a prescription, so it belongs in the prescription slot with the rest.
       const skillArea = tree.area || '', skillSecondary = tree.secondaryArea || '';
 
       // Every session trains the current level with its real dose target — no
       // primer/next-level-taste structure. That was a design choice of mine, not
       // something the actual research on skill training frequency supports; repeated,
       // focused practice at the current target is what the sources actually describe.
-      exercises.push({ name: `${tree.label}: ${tree.levels[idx]}${dose}`, area: skillArea, secondaryArea: skillSecondary, movement: tree.movement });
+      exercises.push({ name: `${tree.label}: ${tree.levels[idx]}`, area: skillArea, secondaryArea: skillSecondary,
+        movement: tree.movement, isSkillWork: true, sets: 2, repLow: null, repHigh: null,
+        prescription: '1-2 easy sets, well short of failure' });
     });
 
     let compArea = complementaryArea(tag);
@@ -8019,7 +8337,13 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         // week), then let session length cap what survives. Injury-driven picks are
         // exempt from that cap — if a movement is hurting, the remedial work for it is
         // the last thing that should be dropped to save four minutes.
-        const ranked = await rankBulletproofingByNeed(compArea, BULLETPROOFING_LIBRARY[compArea].map(ex=>{
+        const bpCandidates = BULLETPROOFING_LIBRARY[compArea].filter(ex=>{
+          if(!equipmentPrefs.bodyweightAll) return true;
+          const tags = guessTagsFromLibrary(ex.name);
+          const lib = tags && tags.exerciseId ? EXERCISE_LIBRARY[tags.exerciseId] : null;
+          return !lib || isBodyweightExercise(lib);
+        });
+        const ranked = await rankBulletproofingByNeed(compArea, bpCandidates.map(ex=>{
           const tags = guessTagsFromLibrary(ex.name);
           return { name: ex.name, area: tags?tags.primary:'', secondaryArea: tags?tags.secondary:'', movement: tags?tags.movement:'', exerciseId: tags?tags.exerciseId:null };
         }));
@@ -8046,6 +8370,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     const daysRemaining = placedDates.length - i;
     const volumePicks = selectVolumeGapAccessories({
       tag, weekSetsByArea, daysRemaining, goalType: topGoalType, emphasisAreas, blockPhase: effectiveBlockPhase,
+      bodyweightOnly: equipmentPrefs.bodyweightAll,
       usedNames: weekUsedExerciseNames, injuryMovementFlags,
       // Headroom, not a target — the trim loop is the real limit. Raised when the area
       // taxonomy grew from 9 to 16: the same cap spread across nearly twice as many
@@ -8103,7 +8428,8 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         dayIdx: i,
         budget: Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP),
         integrateIndex: i,
-        domainFilter: compDomains
+        domainFilter: compDomains,
+        bodyweightOnly: equipmentPrefs.bodyweightMobility
       });
 
       if(stretches.length){
@@ -8442,6 +8768,12 @@ async function blockSummaryHtml(block){
       if(progression.weight != null && adjustment.lever==='weight'){
         weightLabel = `${Math.round(progression.weight * (1 + adjustment.delta/100) * 2) / 2}kg`;
       }
+      // Skill work carries its own prescription and isn't on a load-progression ladder —
+      // showing "3×8-12 @ add weight" beside it was wrong as well as noisy.
+      if(ex.isSkillWork){
+        rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${ex.prescription || 'easy sets'}</span></div>`);
+        continue;
+      }
       const arrow = progression.action==='add_weight' ? ' ↑' : '';
       const progNote = progression.note
         ? `<div class="score-note" style="margin:-4px 0 8px; padding-left:2px;">${progression.note}</div>`
@@ -8502,9 +8834,10 @@ async function blockSummaryHtml(block){
         // with no sets, no hold time and no session length, so there was no way to know
         // what to do or how long it would take.
         itemLines = items.map(s=>{
-          const sets = s.sets != null ? s.sets : 2;
-          const hold = s.holdSeconds != null ? s.holdSeconds : 30;
-          return `<strong>${s.name}</strong> <span class="mob-dose">${sets}×${hold}s</span>`;
+          const cue = mobilityCue(s.name);
+          const range = s.rangeNote ? ` · ${s.rangeNote}` : '';
+          return `<strong>${s.name}</strong> <span class="mob-dose">${mobilityDoseLabel(s)}${range}</span>`
+            + (cue ? `<div class="mob-cue">${cue}</div>` : '');
         });
       }
       html += `<div class="mobility-cat-group">
@@ -9603,9 +9936,9 @@ async function generateMobility(){
       <div class="warm-area">${BODY_AREAS[area]}</div>
       ${reasonLine}
       <div class="warm-drills">
-        <span class="mob-mod">Roll</span> ${trim('foam roll', proto.foamRoll)}
-        <span class="mob-mod">Dynamic</span> ${trim('dynamic', proto.dynamic)}
-        <span class="mob-mod">Static</span> ${staticText}
+        <div class="mob-line"><span class="mob-mod">Roll</span>${trim('foam roll', proto.foamRoll)}</div>
+        <div class="mob-line"><span class="mob-mod">Dynamic</span>${trim('dynamic', proto.dynamic)}</div>
+        <div class="mob-line"><span class="mob-mod">Static</span>${staticText}</div>
       </div>`;
     mobilityContainer.appendChild(card);
   });
