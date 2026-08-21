@@ -179,11 +179,25 @@
 
   .log{ margin-top:24px; }
   .log-title{ font-family:var(--sans); font-size:11px;  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
-  .log-entry{ font-family:var(--sans); font-size:10px; color:var(--dim); display:flex; justify-content:space-between; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:500; }
+  .log-entry{ font-family:var(--sans); font-size:10px; color:var(--dim); display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:500; }
+  /* Every .log-entry follows the same shape: name on the left, value on the right. They
+     were rendering at identical size, weight and colour, so an exercise name carried no
+     more visual weight than the reps beside it and the list read as undifferentiated
+     text. Promoting the left span is what makes a session scannable — you find the
+     exercise first, then read its numbers. */
+  .log-entry > span:first-child{ font-size:13px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+  .log-entry > span:last-child{ flex:none; text-align:right; }
   .mobility-cat-group{ margin-top:10px; }
   .mobility-cat-group:first-child{ margin-top:0; }
   .mobility-cat-label{ font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
   .mobility-cat-item{ font-family:var(--sans); font-size:13px; color:var(--text); padding:3px 0 3px 10px; }
+  /* Same hierarchy as .log-entry: the exercise leads, the dose follows quietly. */
+  .mobility-cat-item strong{ font-weight:700; letter-spacing:-0.01em; }
+  .mobility-cat-item .mob-dose{ font-size:10px; font-weight:500; color:var(--dim); letter-spacing:0.015em; }
+  /* Modality tag inside a stretching card — small, uppercase, sits inline ahead of the
+     drill so three modalities read as one wrapped line rather than three stacked ones. */
+  .mob-mod{ display:inline-block; font-family:var(--sans); font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); margin-right:4px; }
+  .mob-mod:not(:first-child){ margin-left:8px; }
   .log-entry:hover{ color:var(--text); }
   .d-badge{ color:var(--text); }
 
@@ -202,7 +216,7 @@
 
 
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
-  .week-wheel-col{ width:54%; position:relative; padding-left:6px; overflow:hidden; }
+  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
   .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:800; text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
   /* Drag only starts on a day label, deliberately — capturing the whole column stole
      page-scroll gestures from the empty space around the arc. But the labels themselves
@@ -336,7 +350,6 @@
       <div class="group" style="margin-top:0;">
         <div class="group-head"><div class="group-title">Warm-up</div></div>
         <div class="fields">
-          <div class="score-note">Priority: injury-flagged areas first, then areas where recent load has jumped, then standard prep for what you've selected.</div>
           <div id="warmupCards"></div>
         </div>
       </div>
@@ -355,7 +368,6 @@
       <div class="group" style="margin-top:0;">
         <div class="group-head"><div class="group-title">Post-exercise stretching</div></div>
         <div class="fields">
-          <div class="score-note">Factors in everything you've trained recently — strength, running, and logged mobility work — not just your warm-up areas. Better suited after training than right before.</div>
           <div id="mobilityCards"></div>
         </div>
       </div>
@@ -716,6 +728,15 @@
         <div class="field-row"><input type="checkbox" id="includeMobilityCheckbox" checked style="width:auto; flex:none;"><label for="includeMobilityCheckbox" style="font-size:13px;">Mobility (standalone sessions + bulletproofing added to strength days)</label></div>
         <div class="field-row"><input type="checkbox" id="includeRunningCheckbox" checked style="width:auto; flex:none;"><label for="includeRunningCheckbox" style="font-size:13px;">Running</label></div>
         <button id="saveTrainingSetupBtn" class="small" style="margin-top:8px;">Save setup</button>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:16px;">
+      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this install is running</div></div>
+      <div class="fields">
+        <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
+        <div id="updateCheckResult" class="score-note"></div>
+        <button id="checkUpdateBtn" class="outline">Check for update</button>
       </div>
     </div>
 
@@ -1154,7 +1175,7 @@ function activateTab(name){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
     activateDataSubView(activeView);
   }
-  if(name==='settings'){ loadTrainingSetup(); }
+  if(name==='settings'){ loadTrainingSetup(); renderAppVersion(); }
   updateFooterVisibility();
   const backdropEl = document.getElementById('scrollBackdrop');
   backdropEl.style.backgroundColor = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
@@ -1448,6 +1469,71 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    stored, via window.storage (real Claude-artifact storage, or the
    localStorage fallback when self-hosted).
 */
+/* ---------- APP VERSION / UPDATE CHECK ----------
+   A home-screen install had no way to report which build it was running, so a stale
+   copy was indistinguishable from an up-to-date one. Bump APP_VERSION on every deploy —
+   the checker below compares this constant against the one in the copy currently served.
+
+   Why this is needed at all: iOS caches the HTML for an "Add to Home Screen" app
+   aggressively, and GitHub Pages serves index.html with its own cache headers on top.
+   Neither is under this app's control, and a plain reload will often re-serve the cached
+   document rather than fetching a new one. */
+const APP_VERSION = '2026.08.21';
+
+// Registration is deliberately optional. If sw.js hasn't been deployed alongside
+// index.html the register() call rejects and is swallowed — the app carries on exactly
+// as before, just without the offline fallback and update handling.
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // Ask the browser to look for a new worker whenever the app is brought back to
+      // the foreground — a home-screen app is often resumed rather than cold-launched,
+      // so waiting for a fresh start can mean waiting a very long time.
+      document.addEventListener('visibilitychange', ()=>{
+        if(!document.hidden) reg.update().catch(()=>{});
+      });
+    }).catch(()=>{});
+  });
+}
+
+async function checkForUpdate(){
+  const out = document.getElementById('updateCheckResult');
+  const btn = document.getElementById('checkUpdateBtn');
+  if(out) out.textContent = 'Checking…';
+  if(btn) btn.disabled = true;
+  try{
+    // Cache-busting query AND no-store — the query alone defeats the HTTP cache, the
+    // header defeats any in-memory copy. Either on its own has been unreliable on iOS.
+    const url = location.pathname + '?updatecheck=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const m = text.match(/const APP_VERSION = '([^']+)'/);
+    if(!m) throw new Error('no version found in the served copy');
+    const latest = m[1];
+    if(latest === APP_VERSION){
+      if(out) out.textContent = `Up to date (${APP_VERSION}).`;
+      return { current: APP_VERSION, latest, updateAvailable: false };
+    }
+    if(out){
+      out.innerHTML = `Version ${latest} is available — you're on ${APP_VERSION}. `
+        + `<span id="applyUpdateLink" style="text-decoration:underline; cursor:pointer; color:var(--text); font-weight:700;">Reload now</span>`;
+      const link = document.getElementById('applyUpdateLink');
+      if(link) link.addEventListener('click', ()=>{
+        // Navigate to a URL the cache has never seen, rather than location.reload(),
+        // which on iOS frequently re-serves the same cached document.
+        location.replace(location.pathname + '?v=' + latest);
+      });
+    }
+    return { current: APP_VERSION, latest, updateAvailable: true };
+  } catch(e){
+    if(out) out.textContent = 'Could not check — ' + e.message + '. If you\'re offline, this is expected.';
+    return { error: e.message };
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+}
+
 const OURA_CLIENT_ID = '62367975-4a6e-445d-a195-1936ce98c7af';
 const OURA_TOKEN_WORKER_URL = 'https://dogfoodoura.jordandf1.workers.dev';
 const OURA_REDIRECT_URI = window.location.origin + window.location.pathname; // must exactly match what's registered with Oura
@@ -2830,12 +2916,24 @@ async function renderMobilityAssessment(skipCollapse){
 
   const assessedCount = MOBILITY_DOMAINS.filter(d=>scores[d]!=null).length;
   const summary = document.getElementById('mobilityAssessmentSummary');
-  summary.textContent = assessedCount === 0 ? 'Not assessed yet — self-rate each domain 0-5' : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
+  // lastUpdated was being written on every save and never read, so a rating from months
+  // ago drove today's prescription with nothing to say it had gone stale. Mobility was
+  // the only system here with no feedback loop: levels changed only by manual re-rating,
+  // and nothing ever asked for one.
+  const staleDays = assessmentAgeDays(existing);
+  const isStale = staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS;
+  summary.textContent = assessedCount === 0
+    ? 'Not assessed yet — self-rate each domain 1-5'
+    : isStale
+      ? `Last rated ${staleDays} days ago — worth re-testing`
+      : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
   if(skipCollapse) return;
   const body = document.getElementById('mobilityAssessmentBody');
   const chevron = document.getElementById('mobilityAssessmentChevron');
-  if(assessedCount === 0){
-    body.style.display = 'flex'; // nothing assessed yet — expand by default as a first-time prompt
+  if(assessedCount === 0 || isStale){
+    // Expand for a first-time rating, and again once it's gone stale — an out-of-date
+    // assessment is the same problem as no assessment, just less visible.
+    body.style.display = 'flex';
     chevron.style.transform = 'rotate(180deg)';
   } else {
     body.style.display = 'none';
@@ -2979,12 +3077,8 @@ function renderWheelPositions(dragOffsetDeg){
   // was simply invisible. Size the circle to fit the column instead: leave room for the
   // widest label at 0deg on the right, and keep the leftmost point inside the box, so
   // all seven days stay on screen whichever day is active.
-  // Two allowances, because a rotated label's box is wider than its anchor point:
-  // room on the right for the widest active label at 0deg, and room on the left for the
-  // box overhang of a label rotated near 180deg (measured at ~38px).
-  const LABEL_ALLOWANCE = 77, ROTATION_OVERHANG = 40;
-  const radius = Math.max(38, Math.min(56, (colWidth - LABEL_ALLOWANCE - ROTATION_OVERHANG) / 2));
-  const centerX = radius + ROTATION_OVERHANG, centerY = colHeight * 0.38;
+  const centerX = 14, centerY = colHeight * 0.38;
+  const radius = Math.max(60, colWidth - 115);
   dates.forEach((date, i) => {
     // Relative to the active day (not absolute index) — this is what makes the
     // whole arc actually shift when the active day changes or while dragging,
@@ -3762,6 +3856,21 @@ async function renderMacroInsights(){
   } else {
     html += `<div class="log-entry">No clear volume-vs-recovery pattern yet (r=${tolerance.r.toFixed(2)}, n=${tolerance.n} weeks) — your recovery doesn't show a strong relationship to weekly volume in this window.</div>`;
   }
+
+  // Mobility exposure floor. Volume for lifting and running was already tracked here;
+  // mobility had no weekly view at all, so a domain getting nothing all week was
+  // invisible. Reported, not auto-corrected — the fix is usually a session, not a tweak.
+  try{
+    const mobGoals = await getOrCreateAutoMobilityGoal();
+    const under = await getUnderExposedDomains(thisWeekDates, mobGoals.map(g=>g.skill));
+    if(under.length){
+      const names = under.slice(0,4).map(u=>`${u.domain} ${Math.round(u.seconds/60*10)/10}min`).join(' · ');
+      html += `<div class="log-entry"><span>Mobility coverage</span><span>${under.length} below floor</span></div>`
+        + `<div class="score-note">Under ${Math.round(MOBILITY_WEEKLY_MIN_SECONDS/60)}min this week: ${names}${under.length>4?' …':''}</div>`;
+    } else {
+      html += `<div class="log-entry"><span>Mobility coverage</span><span>all domains met</span></div>`;
+    }
+  } catch(e){}
 
   body.innerHTML = html;
 }
@@ -6825,21 +6934,36 @@ const MOBILITY_PROGRESSION_LIBRARY = {
     scapula: ['Scapular wall slides with control', 'Scapular pull-up', 'Serratus wall press'],
     wrists: ['Active wrist flexion-extension hold', 'Wrist lift-offs', 'Tabletop wrist rock']
   },
+  // LOAD, bodyweight-first. Every domain now leads with options that need no equipment —
+  // bodyweight loading is still loading (slow eccentrics, deficits, single-leg, long
+  // levers all raise tension without a dumbbell), and the previous lists opened with
+  // "Loaded"/"Weighted" entries that quietly assumed a gym. Weighted variants stay in the
+  // rotation for when equipment is available.
   load: {
-    ankles: ['Loaded calf raise', 'Weighted ankle rocker', 'Deficit single-leg calf raise'],
-    knees: ['Deep split squat', 'Slow-tempo sissy squat', 'Weighted step-down'],
-    hips: ['Deep split squat', 'Bridge preparation', 'Weighted Cossack squat', 'Loaded 90/90 lift-off'],
-    hamstrings: ['Full-ROM RDL', 'Loaded pike', 'Nordic curl eccentric', 'Weighted good morning'],
-    adductors: ['Loaded Cossack', 'Copenhagen plank', 'Weighted side lunge'],
-    spine: ['Jefferson curl progression', 'Bridge preparation', 'Weighted extension hold'],
-    shoulders: ['Loaded shoulder flexion', 'Overhead carries', 'Bottoms-up kettlebell hold'],
-    scapula: ['Weighted scapular pull', 'Loaded scapular shrug', 'Weighted serratus press'],
-    wrists: ['Loaded wrist extension', 'Weighted wrist curl', 'Loaded knuckle push-up hold']
+    ankles: ['Slow eccentric calf raise', 'Single-leg calf raise off a step', 'Deficit single-leg calf raise', 'Loaded calf raise', 'Weighted ankle rocker'],
+    knees: ['Deep split squat', 'Slow-tempo sissy squat', 'Reverse Nordic eccentric', 'Step-down, slow lower', 'Weighted step-down'],
+    hips: ['Deep split squat', 'Bridge preparation', 'Single-leg glute bridge', 'Bodyweight Cossack squat', 'Weighted Cossack squat', 'Loaded 90/90 lift-off'],
+    hamstrings: ['Nordic curl eccentric', 'Single-leg RDL, bodyweight', 'Loaded pike', 'Full-ROM RDL', 'Weighted good morning'],
+    adductors: ['Copenhagen plank', 'Bodyweight Cossack squat', 'Wide-stance sit into a lunge', 'Loaded Cossack', 'Weighted side lunge'],
+    spine: ['Bridge preparation', 'Bodyweight Jefferson curl', 'Prone extension hold', 'Jefferson curl progression', 'Weighted extension hold'],
+    shoulders: ['Wall-supported overhead hold', 'Pike push-up, slow lower', 'Bodyweight overhead reach hold', 'Loaded shoulder flexion', 'Overhead carries'],
+    scapula: ['Scapular pull-up', 'Scapular push-up, slow', 'Bodyweight serratus press', 'Weighted scapular pull', 'Loaded scapular shrug'],
+    wrists: ['Knuckle push-up hold', 'Tabletop wrist rock, loaded', 'Bodyweight wrist extension hold', 'Loaded wrist extension', 'Weighted wrist curl']
   }
 };
 // Integration is inherently cross-domain (per section 11: "can they use the ROM in a
 // complex movement?"), so it isn't keyed by single domain the way the other three are.
 const MOBILITY_INTEGRATE_LIBRARY = ['Deep squat to overhead reach', 'Cossack squat to standing reach', 'Bear crawl to downward dog flow', 'Crab walk to bridge'];
+// Which cross-domain finisher expresses which skill goal. Keeps the last movement of a
+// session recognisably related to what the session was building toward.
+const SKILL_TO_INTEGRATE = {
+  deepsquat: 'Deep squat to overhead reach',
+  overheadsquat: 'Deep squat to overhead reach',
+  middlesplit: 'Cossack squat to standing reach',
+  frontsplits: 'Cossack squat to standing reach',
+  pike: 'Bear crawl to downward dog flow',
+  bridge: 'Crab walk to bridge'
+};
 
 
 // Reasoned mapping from weakest assessment domain to the skill goal that most directly
@@ -6853,6 +6977,49 @@ async function getMobilityAssessment(){
   try{ const r = await window.storage.get('settings:mobilityAssessment'); return JSON.parse(r.value); }
   catch(e){ return null; }
 }
+// Roughly a training block. Long enough that a re-rate isn't nagging, short enough that
+// a level can't silently drive months of prescriptions after it stopped being true.
+const MOBILITY_REASSESS_DAYS = 42;
+
+// Weekly floor per domain. The stretching literature treats accumulated weekly duration
+// as a key moderator of ROM change, but nothing here tracked it — per-domain exposure was
+// whatever fell out of however many mobility sessions happened to be generated. On a
+// strength-heavy week that can be zero, which is how a domain quietly detrains.
+const MOBILITY_WEEKLY_MIN_SECONDS = 180;
+async function getWeeklyDomainExposure(dates){
+  const seconds = {};
+  for(const date of dates){
+    for(const slot of ['am','pm']){
+      try{
+        const blk = JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value);
+        if(blk.type !== 'mobility') continue;
+        (blk.details.stretches||[]).forEach(s=>{
+          if(!s.domain) return;
+          seconds[s.domain] = (seconds[s.domain]||0) + (s.sets||2)*(s.holdSeconds||30);
+        });
+      } catch(e){}
+    }
+  }
+  return seconds;
+}
+
+// Domains that a mobility GOAL or a genuine deficit says should be worked, but which the
+// week as planned leaves below the floor. Surfaced rather than auto-fixed: topping up
+// would mean inventing session time the person hasn't got.
+async function getUnderExposedDomains(dates, activeGoalSkills){
+  const needed = await getMobilityDomainsNeedingWork(activeGoalSkills);
+  const exposure = await getWeeklyDomainExposure(dates);
+  return needed
+    .map(n => ({ domain: n.domain, seconds: exposure[n.domain] || 0 }))
+    .filter(n => n.seconds < MOBILITY_WEEKLY_MIN_SECONDS)
+    .sort((a,b) => a.seconds - b.seconds);
+}
+function assessmentAgeDays(assessment){
+  if(!assessment || !assessment.lastUpdated) return null;
+  const days = (new Date(todayStr) - new Date(assessment.lastUpdated)) / (1000*60*60*24);
+  return days >= 0 ? Math.floor(days) : null;
+}
+
 async function saveMobilityAssessment(scores){
   return await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr }));
 }
@@ -7024,6 +7191,13 @@ const MOBILITY_LEVEL_DOSE = {
   3: { sets:3, holdSeconds:20 }   // loaded — closer to strength dosing than stretching
 };
 const MOBILITY_MAINTENANCE_DOSE = { sets:2, holdSeconds:20 };
+// Dose for the loaded rung, by the domain's assessed level. A restricted domain loads
+// through a shorter range for less time — the modality is the same, the exposure isn't.
+const MOBILITY_LOAD_DOSE = {
+  1: { sets:2, holdSeconds:15, rangeNote:'partial range — only where you have control' },
+  2: { sets:3, holdSeconds:20, rangeNote:'through your current range' },
+  3: { sets:3, holdSeconds:20, rangeNote:'full range' }
+};
 async function getMobilityDomainsNeedingWork(activeGoalSkills){
   const assessment = await getMobilityAssessment();
   const scores = (assessment && assessment.scores) || {};
@@ -7078,7 +7252,7 @@ async function getMobilityDomainsNeedingWork(activeGoalSkills){
 // with no category tag at all, which rendered as a single untagged GOAL line.
 // `domainFilter` lets the companion restrict to the complementary body area while
 // keeping identical structure and dosing.
-function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage, sessionType, dayIdx, budget, integrateIndex, domainFilter }){
+function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage, sessionType, dayIdx, budget, integrateIndex, domainFilter, coveredSoFar }){
   const goalStretches = [];
   (mobilityGoals||[]).forEach(sg=>{
     buildMobilitySkillStretches(sg, dayIdx, loadedROMCoverage, sessionType).forEach(st=>{
@@ -7094,44 +7268,124 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
   const otherStretches = [];
   const goalDomainSet = new Set(goalStretches.map(s=>s.skill).filter(Boolean));
 
-  (neededDomains||[]).forEach(({domain, category, reason, level})=>{
-    if(domainFilter && !domainFilter.includes(domain)) return;
-    // Skip domains a mobility GOAL already prescribes for — otherwise the same domain
-    // gets double-dosed by the goal ladder and the deficit pass in one session.
-    if(goalDomainSet.has(MOBILITY_DOMAIN_TO_SKILL[domain])) return;
-    const options = MOBILITY_PROGRESSION_LIBRARY[category] && MOBILITY_PROGRESSION_LIBRARY[category][domain];
-    if(!options || !options.length) return;
-    const name = options[dayIdx % options.length];
-    if(usedNames.has(name)) return;
+  // Domains that feed an active skill goal. Excluding these outright was a mistake: it
+  // removed exactly the joints the goal depends on from the preparatory work, so the
+  // session ran through three unrelated body parts and then arrived at the goal cold.
+  // A Deep Squat goal should be preceded by ankle and knee work, not by adductors.
+  // They're included as preparation instead, capped below the LOAD rung — the goal's own
+  // progression supplies the loaded expression, so repeating it here would double-dose.
+  const PREP_CAP = { access:'access', control:'control', load:'control' };
+  const servesGoal = domain => goalDomainSet.has(MOBILITY_DOMAIN_TO_SKILL[domain]);
+
+  // Order so goal-serving domains come first within the session build. Combined with the
+  // ACCESS -> CONTROL -> LOAD -> INTEGRATE -> GOAL display order, that gives a session
+  // that ramps into its goal rather than switching subject at the last line.
+  // Domains already worked earlier in this same generated week sort last. Without this
+  // every session in the week picked the same top-priority domains and the rest got
+  // nothing at all — measured at five of nine domains on zero seconds across three
+  // sessions. Priority still decides who goes first; coverage decides who goes next.
+  const covered = coveredSoFar || {};
+  const orderedNeeds = (neededDomains||[]).slice().sort((a,b)=>{
+    const ac = covered[a.domain] ? 1 : 0, bc = covered[b.domain] ? 1 : 0;
+    if(ac !== bc) return ac - bc;
+    const ag = servesGoal(a.domain) ? 0 : 1, bg = servesGoal(b.domain) ? 0 : 1;
+    return ag - bg;
+  });
+
+  function pushRung(domain, cat, level, reason){
+    const options = MOBILITY_PROGRESSION_LIBRARY[cat] && MOBILITY_PROGRESSION_LIBRARY[cat][domain];
+    if(!options || !options.length) return false;
+    // Walk the rotation for an unused option instead of giving up on the first clash.
+    // Several domains legitimately share an exercise (Deep split squat serves both knees
+    // and hips), so a single-shot lookup silently dropped a domain's whole rung whenever
+    // another domain had already claimed that name this session.
+    let name = null;
+    for(let k=0; k<options.length; k++){
+      const candidate = options[(dayIdx + k) % options.length];
+      if(!usedNames.has(candidate)){ name = candidate; break; }
+    }
+    if(!name) return false;
     usedNames.add(name);
     // Maintenance keeps the pattern present but reduced, rather than dropping it —
     // the same movement at lighter dose, not a different exercise.
     const spec = sessionType==='maintenance'
       ? MOBILITY_MAINTENANCE_DOSE
-      : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]);
-    otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category, domain, reason, ...spec });
+      : (cat === 'load'
+          ? (MOBILITY_LOAD_DOSE[level] || MOBILITY_LOAD_DOSE[1])
+          : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]));
+    otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category: cat, domain, reason, ...spec });
+    return true;
+  }
+
+  orderedNeeds.forEach(({domain, category, reason, level})=>{
+    if(domainFilter && !domainFilter.includes(domain)) return;
+    const isPrep = servesGoal(domain);
+    const cat = isPrep ? (PREP_CAP[category] || 'access') : category;
+    const label = isPrep
+      ? `prep for ${goalStretches[0] && goalStretches[0].skillLabel ? goalStretches[0].skillLabel : 'your goal'}`
+      : reason;
+    pushRung(domain, cat, level, label);
+    // EVERY domain also gets a loaded rung, not just the ones already assessed at
+    // level 3. Reserving loading for the least-restricted domains was backwards against
+    // the evidence: loaded full-ROM training drives range of motion at least as well as
+    // stretching (Alizadeh et al., ES 0.73) while also building strength through it. The
+    // level now scales the RANGE and dose of the loading rather than gating access to it
+    // — a restricted ankle still gets loaded, through the range it currently has.
+    if(cat !== 'load') pushRung(domain, 'load', level, label);
   });
 
   // INTEGRATE — a single cross-domain finisher, and only when there's something to
   // integrate. No point tacking one onto an otherwise empty session.
   if(MOBILITY_INTEGRATE_LIBRARY.length && (otherStretches.length || goalStretches.length)){
-    const integrateName = MOBILITY_INTEGRATE_LIBRARY[(integrateIndex||0) % MOBILITY_INTEGRATE_LIBRARY.length];
+    // Pick the finisher that actually expresses the goal, rather than rotating blindly
+    // through the library. The integrate movement is the one item that ties the session's
+    // separate domains into a single pattern, so landing on an unrelated one is what made
+    // the last line feel disconnected from everything before it.
+    const activeSkill = goalStretches.find(s=>s.skill) && goalStretches.find(s=>s.skill).skill;
+    const preferred = SKILL_TO_INTEGRATE[activeSkill];
+    const integrateName = (preferred && MOBILITY_INTEGRATE_LIBRARY.includes(preferred))
+      ? preferred
+      : MOBILITY_INTEGRATE_LIBRARY[(integrateIndex||0) % MOBILITY_INTEGRATE_LIBRARY.length];
     otherStretches.push({ name: integrateName, area:'', category:'integrate', sets:1, holdSeconds:45 });
   }
 
-  // Stored order puts goal first purely so the trim below can protect it — the block
-  // summary regroups by category for display and ends on GOAL regardless of this order.
-  const stretches = [...goalStretches, ...otherStretches.filter(s=>s.category==='load'),
-    ...otherStretches.filter(s=>s.category==='control'), ...otherStretches.filter(s=>s.category==='access'),
-    ...otherStretches.filter(s=>s.category==='integrate')];
+  // Stored order exists only to control what the trim below removes first — the block
+  // summary regroups by category for display regardless. INTEGRATE now sits near the
+  // front alongside GOAL because it was being trimmed out of every session: it's the
+  // cross-domain movement that ties the preceding work together, so losing it is exactly
+  // what makes a session feel like a list of unrelated drills. ACCESS goes last (trimmed
+  // first) since it's the most numerous and least specific rung.
+  // Trim whole domains, not whole categories. Stripping every ACCESS rung to fit the
+  // clock left restricted domains with loading but nothing that opened the position
+  // first. Dropping the lowest-priority DOMAIN instead keeps every domain that survives
+  // properly worked — which is also what makes a session read as connected rather than
+  // as a scatter of half-finished areas.
+  const integrateItems = otherStretches.filter(s=>s.category==='integrate');
+  const domainOrder = [];
+  otherStretches.forEach(s=>{
+    if(s.category==='integrate' || !s.domain) return;
+    if(!domainOrder.includes(s.domain)) domainOrder.push(s.domain);
+  });
+  // Rungs within a domain stay in ladder order so the session reads access -> load.
+  const rungRank = { access:0, control:1, load:2 };
+  const groupedByDomain = domainOrder.map(d =>
+    otherStretches.filter(s=>s.domain===d).sort((a,b)=>(rungRank[a.category]||0)-(rungRank[b.category]||0)));
+  const stretches = [...goalStretches, ...integrateItems, ...groupedByDomain.flat()];
 
   // The cap is a ceiling, not a target — it only bites when genuine need exceeds the
   // time available. Trim from the end, protecting goal stretches (always at the front).
   const trimmedNames = [];
   let estimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
-  while(estimate != null && estimate > budget && stretches.length > goalStretches.length){
-    const removed = stretches.pop();
-    trimmedNames.push(removed.name);
+  const protectedCount = goalStretches.length + integrateItems.length;
+  while(estimate != null && estimate > budget && stretches.length > protectedCount){
+    // Remove the last domain's whole group at once rather than one rung at a time.
+    const lastDomain = stretches[stretches.length-1].domain;
+    if(!lastDomain){ stretches.pop(); }
+    else {
+      while(stretches.length > protectedCount && stretches[stretches.length-1].domain === lastDomain){
+        trimmedNames.push(stretches.pop().name);
+      }
+    }
     estimate = estimateSessionDuration({ type:'mobility', details:{ stretches } });
   }
   const trimNote = trimmedNames.length ? ` — trimmed ${trimmedNames.join(', ')} to fit your ${budget}min session length` : '';
@@ -7159,15 +7413,17 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
 
   let placed = 0;
   let integrateCursor = 0;
+  const coveredSoFar = {};   // domain -> true, accumulated across the days being generated
 
   for(let dayIdx=0; dayIdx<placedDates.length; dayIdx++){
     const date = placedDates[dayIdx];
     const budget = Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP);
     const { stretches, trimNote } = buildMobilitySession({
       neededDomains, mobilityGoals, loadedROMCoverage, sessionType,
-      dayIdx, budget, integrateIndex: integrateCursor
+      dayIdx, budget, integrateIndex: integrateCursor, coveredSoFar
     });
     integrateCursor++;
+    stretches.forEach(s=>{ if(s.domain) coveredSoFar[s.domain] = true; });
 
     try{
       await window.storage.get(`weekplan:${date}:am`); // already occupied — skip silently
@@ -8111,7 +8367,10 @@ async function suggestProgression(ex, focusInfo){
   const history = await getLoggedHistoryForExercise(ex.exerciseId, ex.name, 3);
   const last = history[0];
   if(!last || !last.weight){
-    return { action:'baseline', weight:null, note:'First time logging this — work up to a weight you can control for the full range.' };
+    // No note: "add weight" in the load slot already says it's new, and this line was
+    // repeating verbatim under every untrained exercise — six identical sentences in one
+    // session is noise, not guidance.
+    return { action:'baseline', weight:null, note:null };
   }
   const repHigh = ex.repHigh != null ? ex.repHigh : (focusInfo ? focusInfo.repHigh : 12);
   const perSet = Array.isArray(last.repsPerSet) && last.repsPerSet.length ? last.repsPerSet : null;
@@ -8126,25 +8385,20 @@ async function suggestProgression(ex, focusInfo){
 
   if(hitTopOnEverySet){
     const next = Math.round((last.weight + increment) * 2) / 2;
-    return { action:'add_weight', weight: next,
-      note: `Every set hit ${repHigh} last time — up ${increment}kg.` };
+    return { action:'add_weight', weight: next, note: `+${increment}kg — hit ${repHigh} on every set` };
   }
   if(effort && effort.level === 'submaximal'){
     // Reps flat across sets at this load means the sets weren't near failure, so the
     // limiter is effort rather than load. Adding weight here would mask that.
-    return { action:'push_reps', weight: last.weight,
-      note: `Reps held steady last time (${effort.dropPct}% drop-off) — there's likely more in reserve. Same weight, push closer to ${repHigh}.` };
+    return { action:'push_reps', weight: last.weight, note: `Reps in reserve — push toward ${repHigh}` };
   }
   if(stalled){
-    return { action:'stalled', weight: last.weight,
-      note: `Same weight for ${sameWeightRun} sessions without reaching ${repHigh} — hold here, or swap the variation.` };
+    return { action:'stalled', weight: last.weight, note: `Stalled ${sameWeightRun} sessions — hold or swap variation` };
   }
   if(effort && effort.level === 'near_failure'){
-    return { action:'hold', weight: last.weight,
-      note: `Worked close to failure last time (${effort.dropPct}% drop-off) — repeat this weight and let the reps come.` };
+    return { action:'hold', weight: last.weight, note: `Near failure last time — repeat` };
   }
-  return { action:'add_reps', weight: last.weight,
-    note: `Same weight — add reps toward ${repHigh} on every set before going up.` };
+  return { action:'add_reps', weight: last.weight, note: `Add reps toward ${repHigh}` };
 }
 
 
@@ -8238,18 +8492,31 @@ async function blockSummaryHtml(block){
           // skillLabel/levelIndex can be missing on legacy stretches saved before this
           // schema existed — fall back to the plain stretch name rather than rendering
           // the literal word "undefined" when that happens.
-          if(main.skillLabel == null || main.levelIndex == null) return main.name;
-          return test ? `${main.skillLabel} L${main.levelIndex+1} → L${main.levelIndex+2}` : `${main.skillLabel} L${main.levelIndex+1}`;
+          if(main.skillLabel == null || main.levelIndex == null) return `<strong>${main.name}</strong>`;
+          return test
+            ? `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1} → L${main.levelIndex+2}</span>`
+            : `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1}</span>`;
         });
       } else {
-        itemLines = items.map(s=>s.name);
+        // Show the actual dose. A mobility block previously listed bare exercise names
+        // with no sets, no hold time and no session length, so there was no way to know
+        // what to do or how long it would take.
+        itemLines = items.map(s=>{
+          const sets = s.sets != null ? s.sets : 2;
+          const hold = s.holdSeconds != null ? s.holdSeconds : 30;
+          return `<strong>${s.name}</strong> <span class="mob-dose">${sets}×${hold}s</span>`;
+        });
       }
       html += `<div class="mobility-cat-group">
         <div class="mobility-cat-label">${categoryLabels[cat]}</div>
         ${itemLines.map(t=>`<div class="mobility-cat-item">→ ${t}</div>`).join('')}
       </div>`;
     });
-    return html;
+    const mins = estimateSessionDuration(block);
+    const durationLine = mins != null
+      ? `<div class="score-note" style="margin:0 0 8px;">~${mins} min · ${stretches.length} exercise${stretches.length===1?'':'s'}</div>`
+      : '';
+    return durationLine + html;
   }
   return '';
 }
@@ -9222,7 +9489,7 @@ async function generateWarmup(){
   // bookending with Raise and Potentiate matches the full evidence-supported structure.
   const raiseCard = document.createElement('div');
   raiseCard.className = 'warm-card planned';
-  raiseCard.innerHTML = `<div class="warm-area">Raise</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">· Easy cardio (bike, jog, skip) — elevate heart rate, breathing, muscle temperature</div>`;
+  raiseCard.innerHTML = `<div class="warm-area">Raise</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">Easy cardio — bike, jog or skip</div>`;
   container.appendChild(raiseCard);
 
   // Per F.2 of the exercise intelligence report: supplement the static two-drill picks
@@ -9244,20 +9511,23 @@ async function generateWarmup(){
   selected.forEach(area=>{
     const drills = getWarmupDrills(area);
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag);
-    const plannedNote = exercisesByArea[area] ? `<div class="warm-reason" style="margin-top:-6px;margin-bottom:10px;">Planned: ${exercisesByArea[area].join(', ')}</div>` : '';
+    // Two lines per area, not five. "Planned session prep" plus a separate "Planned:
+    // Overhead Press" line said the same thing twice, and one drill per line turned four
+    // focus areas into twenty lines of scrolling before the actual workout appeared.
+    const plannedFor = exercisesByArea[area] ? exercisesByArea[area].join(', ') : '';
+    const reasonLine = plannedFor && r.cls==='planned' ? plannedFor : r.text;
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
     card.innerHTML = `
       <div class="warm-area">${BODY_AREAS[area]}</div>
-      <div class="warm-reason ${r.reasonCls}">${r.text}</div>
-      ${plannedNote}
-      <div class="warm-drills">${drills.map(d=>'· '+d).join('<br>')}</div>`;
+      <div class="warm-reason ${r.reasonCls}">${reasonLine}</div>
+      <div class="warm-drills">${drills.join(' · ')}</div>`;
     container.appendChild(card);
   });
 
   const potentiateCard = document.createElement('div');
   potentiateCard.className = 'warm-card planned';
-  potentiateCard.innerHTML = `<div class="warm-area">Potentiate</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">· Ramp-up sets of your first working movement — build toward working weight/pace progressively rather than jumping straight in</div>`;
+  potentiateCard.innerHTML = `<div class="warm-area">Potentiate</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">Ramp-up sets toward your first working weight</div>`;
   container.appendChild(potentiateCard);
 }
 
@@ -9313,19 +9583,29 @@ async function generateMobility(){
       reasonText = 'Worked by today\'s run';
     }
     const skipNote = stretchingNotesByArea[area];
-    const staticLine = skipNote
-      ? `<strong style="color:var(--text);">Static</strong> — Optional today: ${skipNote.exerciseName} already covered this (${skipNote.rationale})`
-      : `<strong style="color:var(--text);">Static</strong> — ${proto.static}`;
+    // Each modality description restated its own label ("Foam roll — Foam roll upper
+    // back/lats, 60-90s"), and the PNF protocol is identical boilerplate for every area.
+    // Strip the restatement, label the modality once, and hoist the shared PNF protocol
+    // to a single line at the end of the section instead of repeating it per area.
+    const trim = (label, text)=> text
+      .replace(new RegExp('^' + label + '[:,]?\\s*', 'i'), '')
+      .replace(/^roll\s+/i, '')          // "Roll the back of the upper arm" -> "the back of..."
+      .replace(/^the\s+/i, '');
+    const staticText = skipNote
+      ? `optional — ${skipNote.exerciseName} covered this`
+      : trim('static', proto.static);
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
+    // Only show a reason when it's a real flag. "Planned session prep" under every area
+    // was a line that carried no information the heading didn't already give.
+    const reasonLine = r.cls==='planned' ? '' : `<div class="warm-reason ${r.reasonCls}">${reasonText}</div>`;
     card.innerHTML = `
       <div class="warm-area">${BODY_AREAS[area]}</div>
-      <div class="warm-reason ${r.reasonCls}">${reasonText}</div>
+      ${reasonLine}
       <div class="warm-drills">
-        <strong style="color:var(--text);">Foam roll</strong> — ${proto.foamRoll}<br><br>
-        <strong style="color:var(--text);">Dynamic</strong> — ${proto.dynamic}<br><br>
-        ${staticLine}<br><br>
-        <strong style="color:var(--text);">PNF (band-assisted)</strong> — ${proto.pnf}
+        <span class="mob-mod">Roll</span> ${trim('foam roll', proto.foamRoll)}
+        <span class="mob-mod">Dynamic</span> ${trim('dynamic', proto.dynamic)}
+        <span class="mob-mod">Static</span> ${staticText}
       </div>`;
     mobilityContainer.appendChild(card);
   });
@@ -9897,6 +10177,14 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
   computeSleepDebt();
   
 });
+
+function renderAppVersion(){
+  const el = document.getElementById('appVersionOut');
+  if(el) el.textContent = APP_VERSION;
+}
+const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
+if(checkUpdateBtnEl) checkUpdateBtnEl.addEventListener('click', checkForUpdate);
+renderAppVersion();
 
 loadRecoveryEntry(todayStr);
 refreshRecoveryLog();
