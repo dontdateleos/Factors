@@ -17,6 +17,23 @@
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
 
   :root{
+    /* Type scale. The app had drifted to twelve font sizes and five weights — six of
+       those sizes sat within 6px of each other, which reads as inconsistency rather than
+       hierarchy. Five text steps, three weights, plus display sizes that don't compete
+       with body copy.
+       --fs-lg is pinned at 16px deliberately: iOS zooms the viewport when a focused
+       input is under 16px, so that is a functional floor, not a stylistic choice. */
+    --fs-tag:11px;      /* mono tags, uppercase meta, badges */
+    --fs-sm:12px;       /* secondary text, notes, captions */
+    --fs-md:13px;       /* primary content — exercise names, list rows */
+    --fs-lg:16px;       /* inputs, buttons — iOS zoom floor */
+    --fs-xl:18px;       /* section titles */
+    --fs-display:46px;  /* the one big number */
+    --fs-score:58px;    /* recovery score, the largest thing on screen */
+    --fs-num:26px;      /* goal priority numerals */
+    --fw-normal:400;
+    --fw-medium:500;
+    --fw-bold:700;
     --bg:#fbfaf6;
     --panel:#ffffff;
     --line:#1c1d17;
@@ -48,7 +65,7 @@
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; position:relative; -webkit-text-stroke:0.1px currentColor; }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
-  h1{ font-size:46px; font-weight:700; margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
+  h1{ font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
@@ -61,9 +78,9 @@
   .tabs.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); }
   .tabs.tabs-more-left{ -webkit-mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); }
   .tabs.tabs-more-left.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); }
-  .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   .tab svg{ width:18px; height:18px; }
-  .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:700; }
+  .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
   .tab[data-tab="insights"].active{ background:var(--block-lime); }
   .tab[data-tab="training"].active{ background:var(--block-orange); }
   .tab[data-tab="goals"].active{ background:var(--block-blue); }
@@ -80,7 +97,7 @@
   body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--block-red); }
   .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
 
-  .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:14px; font-weight:600; margin-bottom:22px; line-height:1.35; }
+  .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:22px; line-height:1.35; }
 
   .panel.active.panel-enter{ animation: panelFadeIn 0.12s ease-out; }
   .snap-reveal{ animation: panelSnap 0.16s steps(4, end); }
@@ -100,12 +117,12 @@
 
   .mini-gauge{ position:relative; width:44px; height:44px; flex-shrink:0; }
   .mini-gauge svg{ width:100%; height:100%; }
-  .mini-gauge-num{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px; font-weight:600; }
+  .mini-gauge-num{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); }
 
   .toast-icon{ display:inline-block; vertical-align:middle; margin-right:6px; width:14px; height:14px; }
 
   .header-brand{ display:block; position:relative; }
-  .tab-label{ font-family:var(--sans); font-size:14px; font-weight:700; color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+  .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   h1 .logo-line{ display:block; }
   .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
     .header-dither-row canvas{ display:block; }
@@ -115,122 +132,210 @@
   .panel.active{ display:block; }
 
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:8px 10px; border-radius:0; }
+  input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px 10px; border-radius:0; }
 
   .group{ margin-bottom:22px; background:transparent; }
   .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:12px 14px 8px; border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
-  .group-title{ font-size:18px; font-weight:700; letter-spacing:-0.03em; text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
-  .group-sub{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0.15px currentColor; }
+  .group-title{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em; text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
+  .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0.15px currentColor; }
   .fields{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
-  .mobility-domain-label{ font-family:var(--sans); font-size:13px; flex-shrink:0; }
-  .rating-btn-group{ display:flex; gap:4px; }
-  .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:12px; font-weight:700; cursor:pointer; background:var(--bg); color:var(--text); }
+  .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
   .rating-btn.active{ background:var(--text); color:var(--bg); }
   .mobility-legend{ margin-bottom:10px; }
-  .mobility-legend summary{ font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; }
-  .mobility-legend-body{ margin-top:8px; font-size:10px; color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:500; }
-  .evidence-badge{ font-family:var(--mono); font-size:9px; font-weight:700; padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
+  .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
+  .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  .evidence-badge{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
   .evidence-badge.strong{ background:var(--text); color:var(--bg); }
   .evidence-badge.moderate{ background:transparent; border:1.5px solid var(--text); color:var(--text); }
   .evidence-badge.practical{ background:transparent; border:1px solid var(--dim); color:var(--dim); }
-  .field-label{ font-family:var(--sans); font-size:12px; color:var(--dim); width:112px; flex-shrink:0; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
-  .src-tag{ font-family:var(--mono); font-size:10px; padding:2px 6px; border-radius:0; color:var(--text); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:700; }
+  .field-label{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); width:112px; flex-shrink:0; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
+  .src-tag{ font-family:var(--mono); font-size:var(--fs-tag); padding:2px 6px; border-radius:0; color:var(--text); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:var(--fw-bold); }
   .src-tag.oura{ background:var(--block-purple); }
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--text); }
-  input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:8px 10px; border-radius:0; min-width:0; }
+  input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px 10px; border-radius:0; min-width:0; }
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
      a select sized itself to its longest OPTION and pushed the whole page sideways.
      Basis stays `auto` so a select starts at its natural width (a basis of 0 collapsed
      the Weekly split/duration pickers to "Aut…" and "1 w…"); shrink:1 is what lets a
      long option like "Low — rarely flares with load" compress instead of overflowing. */
-  select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:0 10px; border-radius:0; height:31px; }
+  select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:0 10px; border-radius:0; height:31px; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
-  .disagree-note{ font-family:var(--sans); font-size:10px; color:var(--text); margin-top:2px; display:none; }
+  .disagree-note{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); margin-top:2px; display:none; }
   .disagree-note.show{ display:block; }
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
   .score-card{ flex:1; border:2px solid var(--border-bold); border-radius:0; padding:14px; background:transparent; text-align:center; }
-  .score-num{ font-family:var(--sans); font-size:58px; font-weight:700; color:var(--text); letter-spacing:-0.04em; -webkit-text-stroke:0.7px var(--text); }
+  .score-num{ font-family:var(--sans); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.04em; -webkit-text-stroke:0.7px var(--text); }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.2; }
-  .score-label{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
-  .score-note{ font-size:10px; color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:500; }
+  .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
+  .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   footer{ position:fixed; bottom:0; left:0; right:0; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
-  button{ font-family:var(--sans); font-size:12px; letter-spacing:0.015em; text-transform:uppercase; font-weight:700; height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--text); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
+  button{ font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--text); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
   .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; stroke-width:2.5; }
-  .empty-state span{ font-family:var(--sans); font-size:12px; }
+  .empty-state span{ font-family:var(--sans); font-size:var(--fs-sm); }
   
-  .trend-arrow{ font-size:11px; margin-left:4px; }
+  .trend-arrow{ font-size:var(--fs-tag); margin-left:4px; }
   .trend-arrow.down{ color:var(--text); }
   .trend-arrow.up{ color:var(--text); }
-  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:700; }
-  button.small{ flex:none; height:31px; padding:0 12px; font-size:11px; }
+  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:var(--fw-bold); }
+  button.small{ flex:none; height:31px; padding:0 12px; font-size:var(--fs-tag); }
   button.outline{ background:var(--bg); color:var(--text); }
   button.outline:active{ background:var(--text); color:var(--bg); opacity:1; }
-  .status{ font-family:var(--sans); font-size:10px; color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:500; }
+  .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   .log{ margin-top:24px; }
-  .log-title{ font-family:var(--sans); font-size:11px;  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
-  .log-entry{ font-family:var(--sans); font-size:10px; color:var(--dim); display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:500; }
+  .log-title{ font-family:var(--sans); font-size:var(--fs-tag);  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
+  .log-entry{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   /* Every .log-entry follows the same shape: name on the left, value on the right. They
      were rendering at identical size, weight and colour, so an exercise name carried no
      more visual weight than the reps beside it and the list read as undifferentiated
      text. Promoting the left span is what makes a session scannable — you find the
      exercise first, then read its numbers. */
-  .log-entry > span:first-child{ font-size:13px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+  .log-entry > span:first-child{ font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.01em; }
   .log-entry > span:last-child{ flex:none; text-align:right; }
   .mobility-cat-group{ margin-top:10px; }
   .mobility-cat-group:first-child{ margin-top:0; }
-  .mobility-cat-label{ font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
-  .mobility-cat-item{ font-family:var(--sans); font-size:13px; color:var(--text); padding:3px 0 3px 10px; }
+  .mobility-cat-label{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
+  .mobility-cat-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:3px 0 3px 10px; }
   /* Same hierarchy as .log-entry: the exercise leads, the dose follows quietly. */
-  .mobility-cat-item strong{ font-weight:700; letter-spacing:-0.01em; }
-  .mobility-cat-item .mob-dose{ font-size:10px; font-weight:500; color:var(--dim); letter-spacing:0.015em; }
+  .mobility-cat-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
+  .mobility-cat-item .mob-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
   /* Modality tag inside a stretching card — small, uppercase, sits inline ahead of the
      drill so three modalities read as one wrapped line rather than three stacked ones. */
   /* Fixed width so ROLL / DYNAMIC / STATIC line up as a column and the drills beside
      them start at the same x — the sequence is meant to be worked in order, so it should
      read as an ordered list rather than three ragged sentences. */
-  .mob-mod{ display:inline-block; min-width:54px; font-family:var(--sans); font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
+  .mob-mod{ display:inline-block; min-width:54px; font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
   /* One modality per line — collapsing all three onto a single wrapped line saved space
      but made them unreadable as a sequence you work through in order. */
   .mob-line{ padding:2px 0; }
   /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
      easy to skip past when you do. */
-  .mob-cue{ font-family:var(--sans); font-size:11px; font-weight:500; color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
+  .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
   .log-entry:hover{ color:var(--text); }
+  /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
+     and dismissible because an update you're not ready for shouldn't be a wall. */
+  .update-banner{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:center;
+    justify-content:space-between; gap:10px; padding:10px 14px; background:var(--text); color:var(--bg);
+    font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; }
+  .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
+  .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
+  .update-banner-x{ font-size:var(--fs-xl); line-height:1; cursor:pointer; padding:0 6px; opacity:0.7; }
+  /* Collapsible Settings sections. Head is a 44px tap target in its own right. */
+  .group-head.collapsible{ display:flex; align-items:center; justify-content:space-between; min-height:44px; -webkit-tap-highlight-color:transparent; }
+  .collapse-chevron{ font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s; flex:none; margin-left:10px; }
+  .group-head.collapsible:active{ opacity:0.6; }
+  /* Touch targets. Measured 15 controls under the 44px guideline on Goals — the reorder
+     arrows and the maintenance checkbox were the worst, at 31px and 13px. These are used
+     mid-session with imprecise taps, so the hit area is grown with padding and a
+     pseudo-element rather than by inflating the visual control, which would undo the
+     compactness the rest of this pass is buying. */
+  .goal-move-up, .goal-move-down{ position:relative; }
+  .goal-move-up::after, .goal-move-down::after{ content:''; position:absolute; inset:-9px -8px; }
+  /* Controls stay 31px visually — that's a deliberate standard matching the tab bar, and
+     raising them to 44px made the select the loudest element on its row. The TAP AREA is
+     decoupled instead: expanded vertically for everything (rows have space above and
+     below), and horizontally only where nothing sits alongside. 8 of the 19 under-size
+     controls sit in horizontal pairs (Prev/Next, goal reorder arrows), so a horizontal
+     expansion there would have neighbours stealing each other's taps — the same collision
+     the stacked checkboxes hit. */
+  button, select{ position:relative; }
+  button::after, select::after{ content:''; position:absolute; left:0; right:0; top:-9px; bottom:-9px; pointer-events:auto; }
+  /* <select> is a replaced element and won't render ::after at all, so the technique
+     above does nothing for it. The row absorbs the extra reach instead: a taller row with
+     the select centred means a tap landing above or below still finds it, without the
+     control itself growing. */
+  .field-row:has(select), .edit-row:has(select), .week-controls:has(select),
+  .goal-row:has(select), .skill-goal-row:has(select){ min-height:44px; align-items:center; }
+  /* Catch-all for select rows that aren't one of the named row classes — the selects in
+     the week controls and skill-goal editor sit in plain flex containers. */
+  div:has(> select):not(.fields):not(.panel){ min-height:44px; align-items:center; }
+  /* Isolated controls — full-width rows and standalone actions — can also grow sideways. */
+  .fields > button::after, .field-row > select:only-of-type::after, button.primary::after{ left:-6px; right:-6px; }
+  /* Paired controls stay within their own width so neighbours can't collide. */
+  .mob-step-nav button::after, .goal-move-up::after, .goal-move-down::after,
+  .week-controls button::after{ left:0; right:0; }
+
+  /* Checkboxes render at 13px, well under the 44px guideline. Expanding each one with a
+     pseudo-element made adjacent checkboxes overlap and steal each other's taps, so the
+     ROW carries the height instead — the label is already linked via `for`, so the whole
+     44px strip is tappable and neighbours can't collide. */
+  .field-row:has(input[type="checkbox"]){ min-height:44px; align-items:center; }
+  .field-row:has(input[type="checkbox"]) label{ flex:1; cursor:pointer; padding:11px 0; }
+  .mobility-legend summary, details summary{ position:relative; padding:6px 0; }
+  /* Mobility assessment wheel. Vertical list of domains, five visible with opacity
+     falling off from the centre, and the 1-5 scale horizontal beneath. Replaces a nine-row
+     grid that ran 594px with 45 targets at 28px square. */
+  .mob-wheel{ position:relative; height:170px; overflow:hidden; display:flex; flex-direction:column;
+    justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+  .mob-wheel:active{ cursor:grabbing; }
+  .mob-wheel-item{ height:34px; display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--sans); color:var(--text); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
+    font-size:var(--fs-sm); padding:0 2px; }
+  .mob-wheel-item.focused{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
+  .mob-wheel-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mob-wheel-score{ font-family:var(--mono); color:var(--dim); flex:none; margin-left:10px; }
+  .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
+  /* Marks the selection row so it's clear which name the numbers below apply to. */
+  .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+    height:34px; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    pointer-events:none; opacity:0.25; }
+  .mob-scale-row{ display:flex; gap:4px; margin-top:10px; }
+  .mob-scale-btn{ flex:1; height:46px; display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--border-bold); background:var(--panel); color:var(--text);
+    font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold); cursor:pointer;
+    -webkit-tap-highlight-color:transparent; }
+  .mob-scale-btn.active{ background:var(--text); color:var(--bg); }
+  .mob-scale-btn:active{ transform:scale(0.96); }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
+  /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
+  .conf-head{ display:flex; align-items:center; gap:6px; cursor:pointer; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
+  .conf-bar{ flex:1; height:3px; background:rgba(0,0,0,0.12); position:relative; overflow:hidden; }
+  .conf-bar-fill{ position:absolute; left:0; top:0; bottom:0; }
+  .conf-pct{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); }
+  .conf-chevron{ font-size:var(--fs-tag); color:var(--dim); }
+  .conf-headline{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); margin-top:2px; text-align:left; letter-spacing:0.01em; }
+  .conf-detail{ margin-top:8px; text-align:left; }
+  .conf-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:6px; padding:5px 0; border-top:1px solid var(--line); }
+  .conf-dot{ width:6px; height:6px; border-radius:50%; }
+  .conf-name{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); color:var(--text); }
+  .conf-stage{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; }
+  .conf-sub{ grid-column:2 / -1; font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); }
   /* Superset slot marker (A1/A2) and drop-set flag. Small and monospaced so a paired
      block is scannable at a glance without competing with the exercise name. */
-  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.06em; color:var(--bg); background:var(--text); padding:1px 4px; margin-right:6px; vertical-align:middle; }
-  .drop-tag{ font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.04em; color:var(--dim); margin-left:6px; }
+  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; color:var(--bg); background:var(--text); padding:1px 4px; margin-right:6px; vertical-align:middle; }
+  .drop-tag{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--dim); margin-left:6px; }
   .log-entry.ss-row{ padding-top:6px; padding-bottom:6px; }
   .d-badge{ color:var(--text); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:14px; }
-  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:12px; color:var(--dim); cursor:pointer; background:var(--panel); }
+  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; background:var(--panel); }
   .type-btn.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
 
-  .remove-row{ font-family:var(--mono); color:var(--text); font-size:16px; cursor:pointer; padding:0 4px; flex:none; }
-  .add-row{ font-family:var(--sans); font-size:11px; color:var(--text); font-weight:700; cursor:pointer; text-align:center; padding:8px; border:2px solid var(--border-bold); border-radius:0; }
+  .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
+  /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
+     pseudo-element that a later rule was overriding anyway. */
+  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:14px 8px; border:2px solid var(--border-bold); border-radius:0; }
 
   .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:14px; margin-bottom:10px; background:transparent; }
   .injury-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .injury-part{ font-weight:600; font-size:14px; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .injury-meta{ font-family:var(--sans); font-size:10px; color:var(--dim); letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
+  .injury-part{ font-weight:var(--fw-bold); font-size:var(--fs-md); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
+  .injury-meta{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
   .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
-  .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:800; text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
+  .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
   /* Drag only starts on a day label, deliberately — capturing the whole column stole
      page-scroll gestures from the empty space around the arc. But the labels themselves
      are small targets, the far ones only 16px tall. This pseudo-element grows the hit
@@ -239,34 +344,34 @@
      item starts the same drag. */
   .wheel-day-item::before{ content:''; position:absolute; inset:-16px -22px; }
   .week-wheel-detail{ width:52%; padding:16px 4px 16px 14px; display:flex; flex-direction:column; justify-content:center; gap:12px; overflow-y:auto; }
-  .wheel-detail-day{ font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
+  .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
   .wheel-workout-card:active{ background:rgba(255,255,255,0.35); }
   select:active{ background:#f2f2f2; }
   .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
-  .wheel-workout-type{ font-family:var(--sans); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--text); }
-  .wheel-workout-chevron{ opacity:0.5; font-size:15px; }
-  .wheel-ex-names{ font-family:var(--sans); font-size:12px; line-height:1.5; color:var(--text); opacity:0.85; }
-  .wheel-add-card{ border:2px solid var(--border-bold); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:12px; color:var(--text); cursor:pointer; }
+  .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--text); }
+  .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
+  .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:var(--text); opacity:0.85; }
+  .wheel-add-card{ border:2px solid var(--border-bold); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--text); cursor:pointer; }
 
   #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-  .mobility-row-info{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; color:var(--dim); }
+  .mobility-row-info{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; font-size:var(--fs-sm); color:var(--dim); }
   .mobility-row-info.test{ align-items:flex-start; }
   .mobility-row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
   #skillGoalRows .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-  #skillGoalRows select{ flex:1; min-width:90px; font-size:16px; }
+  #skillGoalRows select{ flex:1; min-width:90px; font-size:var(--fs-lg); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .goal-priority-badge{ font-family:var(--sans); font-size:11px; color:var(--text); letter-spacing:0.06em; font-weight:700; display:flex; align-items:baseline; gap:6px; }
-  .goal-priority-num{ font-size:26px; font-weight:700; letter-spacing:-0.025em; }
+  .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
+  .goal-priority-num{ font-size:var(--fs-num); font-weight:var(--fw-bold); letter-spacing:-0.025em; }
   .goal-row-controls{ display:flex; gap:10px; align-items:center; }
-  .goal-row-controls button{ padding:2px 8px; font-size:12px; }
+  .goal-row-controls button{ padding:2px 8px; font-size:var(--fs-sm); }
   .goal-row .field-row{ margin-bottom:8px; }
-  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:16px; padding:8px; border-radius:0; }
-  #blockEditPanel select{ flex:1; min-width:70px; font-size:16px; padding:8px 4px; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px; border-radius:0; }
+  #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-lg); padding:8px 4px; }
 
 
   .rec-card{ position:relative; border-radius:0; padding:16px; margin-bottom:14px; background:transparent; }
@@ -287,17 +392,17 @@
   .rec-card.modify{ border-left-color:var(--warn); }
   .rec-card.hold{ border-left-color:var(--dim); }
   .rec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .rec-type{ font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.04em; padding:4px 10px; display:inline-block; text-transform:uppercase; transform:rotate(-2deg); border:2px solid var(--border-bold); }
+  .rec-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.04em; padding:4px 10px; display:inline-block; text-transform:uppercase; transform:rotate(-2deg); border:2px solid var(--border-bold); }
   .rec-type.reduce{ background:var(--bad); color:var(--bg); }
   .rec-type.add{ background:var(--accent); color:var(--bg); }
   .rec-type.modify{ background:var(--warn); color:var(--bg); }
   .rec-type.hold{ background:var(--dim); color:var(--bg); }
-  .rec-conf{ font-family:var(--mono); font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
-  .rec-title{ font-size:14px; margin-bottom:8px; font-weight:700; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .rec-signals{ font-family:var(--sans); font-size:10px; color:var(--dim); line-height:1.6; margin-bottom:12px; letter-spacing:0.015em; font-weight:500; }
+  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
+  .rec-title{ font-size:var(--fs-md); margin-bottom:8px; font-weight:var(--fw-bold); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
+  .rec-signals{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); line-height:1.6; margin-bottom:12px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   .rec-actions{ display:flex; gap:8px; }
 
-  .plan-pill{ font-family:var(--sans); font-size:11px; padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
+  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
@@ -309,15 +414,15 @@
   .warm-card.load .warm-area::before{ background:var(--warn); }
   .warm-card.planned .warm-area::before{ background:var(--accent); }
   .warm-card .warm-reason, .warm-card .warm-drills{ padding-left:14px; }
-  .warm-area{ font-size:14px; font-weight:600; margin-bottom:2px; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .warm-reason{ font-family:var(--sans); font-size:10px; color:var(--dim);  letter-spacing:0.06em; margin-bottom:10px; }
+  .warm-area{ font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:2px; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
+  .warm-reason{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.06em; margin-bottom:10px; }
   .warm-reason.injury{ color:var(--text); }
   .warm-reason.load{ color:var(--text); }
-  .warm-drills{ font-size:13px; line-height:1.9; }
-  .trend-flag{ font-family:var(--sans); font-size:12px; padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
+  .warm-drills{ font-size:var(--fs-md); line-height:1.9; }
+  .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; }
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; }
   @media (prefers-reduced-motion: reduce){ #toast{ transition:opacity 0.1s linear; } }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
@@ -350,7 +455,7 @@
       <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
       <div class="score-label" id="overallScoreLabel">Overall</div>
     </div>
-    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:10px; opacity:0.75;"></div>
+    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:var(--fs-tag); opacity:0.75;"></div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
     <div class="session-type" id="todaySessionTypePills">
@@ -414,13 +519,13 @@
       <div class="score-note" style="margin-bottom:10px;">Tap a day, tap a workout to edit it.</div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        <select id="programSplitOverride" style="width:auto; font-size:16px; padding:4px 6px;">
+        <select id="programSplitOverride" style="width:auto; font-size:var(--fs-lg); padding:4px 6px;">
           <option value="auto">Auto split</option>
           <option value="full_body">Full Body</option>
           <option value="upper_lower">Upper / Lower</option>
           <option value="ppl">Push / Pull / Legs</option>
         </select>
-        <select id="programWeeksSelect" style="width:auto; font-size:16px; padding:4px 6px;">
+        <select id="programWeeksSelect" style="width:auto; font-size:var(--fs-lg); padding:4px 6px;">
           <option value="1">1 week</option>
           <option value="4">4 weeks</option>
           <option value="8">8 weeks</option>
@@ -437,8 +542,8 @@
 
       <div class="field-row" style="margin-top:16px; margin-bottom:0; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent; flex-wrap:wrap;">
         <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
-        <label for="deloadWeekCheckbox" style="font-size:13px; flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
-        <span id="deloadSuggestedBadge" style="display:none; flex:none; font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--text); color:var(--bg); padding:3px 6px;">Suggested</span>
+        <label for="deloadWeekCheckbox" style="font-size:var(--fs-md); flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
+        <span id="deloadSuggestedBadge" style="display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--text); color:var(--bg); padding:3px 6px;">Suggested</span>
       </div>
       <div id="deloadSuggestedNote" class="score-note" style="display:none; margin-bottom:14px;"></div>
 
@@ -484,10 +589,10 @@
       <div class="group" style="margin-top:16px;">
         <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
           <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
-          <span id="mobilityAssessmentChevron" style="font-size:12px; color:var(--dim); transition:transform 0.15s;">▾</span>
+          <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
         </div>
         <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-          <div class="score-note">Recognizes your biggest actual gaps instead of rotating through every area equally. Wrists can be rated here but don't currently feed into generation — no wrist-specific mobility content exists yet.</div>
+          <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
           <div id="mobilityAssessmentRows"></div>
           <button id="saveMobilityAssessmentBtn">Save assessment</button>
           <div id="saveMobilityAssessmentResult" class="score-note"></div>
@@ -735,17 +840,17 @@
             <option value="90">90 min+</option>
           </select>
         </div>
-        <div class="field-row"><input type="checkbox" id="multiSessionOkCheckbox" style="width:auto; flex:none;"><label for="multiSessionOkCheckbox" style="font-size:13px;">I'm okay with multiple sessions on the same day</label></div>
-        <div class="field-row"><input type="checkbox" id="bodyweightAllCheckbox" style="width:auto; flex:none;"><label for="bodyweightAllCheckbox" style="font-size:13px;">Bodyweight only — all training</label></div>
-        <div class="field-row"><input type="checkbox" id="bodyweightMobilityCheckbox" style="width:auto; flex:none;"><label for="bodyweightMobilityCheckbox" style="font-size:13px;">Bodyweight only — mobility</label></div>
-        <div class="field-row"><input type="checkbox" id="useSupersetsCheckbox" style="width:auto; flex:none;"><label for="useSupersetsCheckbox" style="font-size:13px;">Allow supersets when short on time</label></div>
-        <div class="field-row"><input type="checkbox" id="useDropSetsCheckbox" style="width:auto; flex:none;"><label for="useDropSetsCheckbox" style="font-size:13px;">Allow drop sets when short on time</label></div>
-        <div class="score-note">Same results as straight sets in less time, not better results — so these only apply when a session won't otherwise fit. Supersets raise perceived effort, so expect sessions to feel harder.</div>
+        <div class="field-row"><input type="checkbox" id="multiSessionOkCheckbox" style="width:auto; flex:none;"><label for="multiSessionOkCheckbox" style="font-size:var(--fs-md);">I'm okay with multiple sessions on the same day</label></div>
+        <div class="field-row"><input type="checkbox" id="bodyweightAllCheckbox" style="width:auto; flex:none;"><label for="bodyweightAllCheckbox" style="font-size:var(--fs-md);">Bodyweight only — all training</label></div>
+        <div class="field-row"><input type="checkbox" id="bodyweightMobilityCheckbox" style="width:auto; flex:none;"><label for="bodyweightMobilityCheckbox" style="font-size:var(--fs-md);">Bodyweight only — mobility</label></div>
+        <div class="field-row"><input type="checkbox" id="useSupersetsCheckbox" style="width:auto; flex:none;"><label for="useSupersetsCheckbox" style="font-size:var(--fs-md);">Allow supersets when short on time</label></div>
+        <div class="field-row"><input type="checkbox" id="useDropSetsCheckbox" style="width:auto; flex:none;"><label for="useDropSetsCheckbox" style="font-size:var(--fs-md);">Allow drop sets when short on time</label></div>
+        <div class="score-note">Same results in less time, not better results — applied only when a session won't otherwise fit. Expect sessions to feel harder.</div>
         <div class="score-note">Bands count as bodyweight; barbells, dumbbells, cables and machines don't.</div>
-        <div class="score-note" style="margin-top:12px;">What should generated programs include? Allocates available days between strength and running by priority + evidence-based ratios (not an even split). Spreads days to reduce heavy-lift/key-run adjacency. Only touches empty days.</div>
-        <div class="field-row"><input type="checkbox" id="includeStrengthCheckbox" checked style="width:auto; flex:none;"><label for="includeStrengthCheckbox" style="font-size:13px;">Strength</label></div>
-        <div class="field-row"><input type="checkbox" id="includeMobilityCheckbox" checked style="width:auto; flex:none;"><label for="includeMobilityCheckbox" style="font-size:13px;">Mobility (standalone sessions + bulletproofing added to strength days)</label></div>
-        <div class="field-row"><input type="checkbox" id="includeRunningCheckbox" checked style="width:auto; flex:none;"><label for="includeRunningCheckbox" style="font-size:13px;">Running</label></div>
+        <div class="score-note" style="margin-top:12px;">Allocates your days by goal priority, spaces hard sessions apart, and only fills empty days.</div>
+        <div class="field-row"><input type="checkbox" id="includeStrengthCheckbox" checked style="width:auto; flex:none;"><label for="includeStrengthCheckbox" style="font-size:var(--fs-md);">Strength</label></div>
+        <div class="field-row"><input type="checkbox" id="includeMobilityCheckbox" checked style="width:auto; flex:none;"><label for="includeMobilityCheckbox" style="font-size:var(--fs-md);">Mobility (standalone sessions + bulletproofing added to strength days)</label></div>
+        <div class="field-row"><input type="checkbox" id="includeRunningCheckbox" checked style="width:auto; flex:none;"><label for="includeRunningCheckbox" style="font-size:var(--fs-md);">Running</label></div>
         <button id="saveTrainingSetupBtn" class="small" style="margin-top:8px;">Save setup</button>
       </div>
     </div>
@@ -760,28 +865,26 @@
     </div>
 
     <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Backup &amp; Restore</div><div class="group-sub">move data between hosting methods</div></div>
-      <div class="fields">
-        <div class="score-note">Export everything currently stored (works whether this is running as a Claude artifact or self-hosted). Paste the result into Bulk Import on another copy of this app to bring the data across.</div>
+      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
+        <div class="score-note">Copies everything out. Paste into Bulk Import on another copy to move your data.</div>
         <button id="exportAllBtn">Export all data</button>
-        <textarea id="exportOutput" readonly placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:11px;"></textarea>
+        <textarea id="exportOutput" readonly placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <div id="exportResult" class="score-note"></div>
 
-        <div class="score-note" style="margin-top:16px;">If storage was ever down and data got logged elsewhere as a backup, paste it here to write it all back in one go — useful after an outage or migration, not for normal daily use.</div>
-        <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:11px;"></textarea>
+        <div class="score-note" style="margin-top:16px;">Writes exported data back in. For migrations and recovery, not daily use.</div>
+        <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <button id="bulkImportBtn">Import</button>
         <div id="bulkImportResult" class="score-note"></div>
       </div>
     </div>
     <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
         <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
         <details>
           <summary>Terms and Conditions</summary>
-          <div style="font-size:12px; line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
+          <div style="font-size:var(--fs-sm); line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
 <p style="margin:6px 0;"><strong>⚠️ THIS IS A DRAFT, NOT A FINAL LEGAL DOCUMENT.</strong> It's written to give you a real, substantive starting point — not filler text — but it has not been reviewed by a lawyer and should not be published or relied upon until it has been. Sections in `[brackets]` need real information filled in before this goes anywhere near production. Given this app collects health-adjacent data (sleep, HRV, injury history) and will integrate with third-party device APIs, the sections marked 🔴 below are the ones where getting real legal review matters most — don't skip those even if you're tempted to launch fast.</p>
-<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">Last updated: [DATE]</div>
+<div style="font-style:italic; opacity:0.7; font-size:var(--fs-tag); margin:4px 0;">Last updated: [DATE]</div>
 <h4 style="margin:18px 0 6px;">1. Acceptance of These Terms</h4>
 <p style="margin:6px 0;">By creating an account, accessing, or using [APP NAME] (the "App," "Service," "we," "us," or "our"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, do not use the App.</p>
 <p style="margin:6px 0;">These Terms constitute a legally binding agreement between you and [COMPANY NAME], a [ENTITY TYPE, e.g., limited liability company] organized under the laws of [JURISDICTION].</p>
@@ -850,7 +953,7 @@
 <h4 style="margin:18px 0 6px;">11. Limitation of Liability</h4>
 <p style="margin:6px 0;">TO THE MAXIMUM EXTENT PERMITTED BY LAW, [COMPANY NAME] SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO PERSONAL INJURY, LOSS OF DATA, OR LOSS OF PROFITS, ARISING FROM YOUR USE OF THE APP.</p>
 <p style="margin:6px 0;">OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM ARISING FROM THESE TERMS OR YOUR USE OF THE APP SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE [12] MONTHS PRECEDING THE CLAIM.</p>
-<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">🔴 Some jurisdictions do not allow the exclusion of certain warranties or the limitation of liability for personal injury — this clause needs to be checked against wherever your actual users are located, not just your own jurisdiction of incorporation.</div>
+<div style="font-style:italic; opacity:0.7; font-size:var(--fs-tag); margin:4px 0;">🔴 Some jurisdictions do not allow the exclusion of certain warranties or the limitation of liability for personal injury — this clause needs to be checked against wherever your actual users are located, not just your own jurisdiction of incorporation.</div>
 <h4 style="margin:18px 0 6px;">12. Indemnification</h4>
 <p style="margin:6px 0;">You agree to indemnify and hold harmless [COMPANY NAME] from any claims, damages, or expenses arising from your violation of these Terms or your misuse of the App.</p>
 <h4 style="margin:18px 0 6px;">13. Termination</h4>
@@ -862,7 +965,7 @@
 <p style="margin:6px 0;">These Terms are governed by the laws of [JURISDICTION], without regard to conflict-of-law principles. [Add arbitration clause / venue selection here if desired — this is a real strategic choice, not boilerplate, and worth discussing with a lawyer given it affects how disputes actually get resolved.]</p>
 <h4 style="margin:18px 0 6px;">16. Contact</h4>
 <p style="margin:6px 0;">Questions about these Terms can be sent to [support@yourdomain.com].</p>
-<div style="font-weight:700; margin:14px 0 4px; font-size:12px;">What I'd flag as genuinely non-negotiable before this goes live:</div>
+<div style="font-weight:700; margin:14px 0 4px; font-size:var(--fs-sm);">What I'd flag as genuinely non-negotiable before this goes live:</div>
 <p style="margin:6px 0;">1. <strong>Section 4 (Not Medical Advice)</strong> needs a lawyer's eyes given the app handles injury data and gives exercise recommendations that touch on active injuries — this is the section with the most real liability exposure.</p>
 <p style="margin:6px 0;">2. <strong>Section 8</strong> needs to match whatever you actually sign with Oura/Garmin, not just describe the integration generically.</p>
 <p style="margin:6px 0;">3. <strong>Section 6</strong> needs your actual pricing and a real answer on refunds, especially given the EU/UK cancellation-right note.</p>
@@ -871,9 +974,9 @@
         </details>
         <details style="margin-top:10px;">
           <summary>Privacy Policy</summary>
-          <div style="font-size:12px; line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
+          <div style="font-size:var(--fs-sm); line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
 <p style="margin:6px 0;"><strong>⚠️ THIS IS A DRAFT, NOT A FINAL LEGAL DOCUMENT.</strong> It has not been reviewed by a lawyer. Given this app collects health-adjacent data (sleep, HRV, injury history) and connects to third-party providers (Oura, Garmin), the sections marked 🔴 need real legal review before this is published or relied upon — not just a read-through.</p>
-<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">Last updated: [DATE]</div>
+<div style="font-style:italic; opacity:0.7; font-size:var(--fs-tag); margin:4px 0;">Last updated: [DATE]</div>
 <h4 style="margin:18px 0 6px;">1. Who We Are</h4>
 <p style="margin:6px 0;">[APP NAME] is operated by [COMPANY NAME] ("we," "us," "our"). This Privacy Policy explains what data we collect, why, and what rights you have over it. It should be read alongside our [Terms and Conditions].</p>
 <h4 style="margin:18px 0 6px;">2. 🔴 What Data We Collect</h4>
@@ -928,7 +1031,7 @@
 <li>Withdraw consent for a specific data use (e.g., disconnecting a third-party integration)</li>
 <li>Object to certain processing</li>
 </ul>
-<div style="font-style:italic; opacity:0.7; font-size:11px; margin:4px 0;">This section needs real legal tailoring depending on your actual user base's location — GDPR (EU/UK users), CCPA/CPRA (California users), and other regional frameworks each impose specific, different obligations (like required response timeframes, specific notice language, and in some cases a formal Data Protection Officer). A generic "you have rights" paragraph is not sufficient on its own once you have real users in these regions.</div>
+<div style="font-style:italic; opacity:0.7; font-size:var(--fs-tag); margin:4px 0;">This section needs real legal tailoring depending on your actual user base's location — GDPR (EU/UK users), CCPA/CPRA (California users), and other regional frameworks each impose specific, different obligations (like required response timeframes, specific notice language, and in some cases a formal Data Protection Officer). A generic "you have rights" paragraph is not sufficient on its own once you have real users in these regions.</div>
 <p style="margin:6px 0;">To exercise these rights, contact us at [privacy@yourdomain.com]. [Note: the app already includes an in-app "Export All Data" / "Clear All Data" feature that covers export and deletion functionally — this section should reference that directly once it's live in the shipped version, not just describe the concept abstractly.]</p>
 <h4 style="margin:18px 0 6px;">7. Data Security</h4>
 <p style="margin:6px 0;">We use industry-standard measures to protect your data, including encryption in transit and at rest, and access controls limiting who can view your data internally. No system is perfectly secure, and we cannot guarantee absolute security — if we become aware of a breach affecting your data, we will notify you as required by applicable law.</p>
@@ -940,7 +1043,7 @@
 <p style="margin:6px 0;">We may update this Privacy Policy from time to time. We'll notify you of material changes by [email / in-app notice] before they take effect.</p>
 <h4 style="margin:18px 0 6px;">11. Contact</h4>
 <p style="margin:6px 0;">Questions about this policy or your data can be sent to [privacy@yourdomain.com].</p>
-<div style="font-weight:700; margin:14px 0 4px; font-size:12px;">What I'd flag as genuinely non-negotiable before this goes live:</div>
+<div style="font-weight:700; margin:14px 0 4px; font-size:var(--fs-sm);">What I'd flag as genuinely non-negotiable before this goes live:</div>
 <p style="margin:6px 0;">1. <strong>Section 2</strong> needs to stay perfectly accurate to what the app actually collects — this document should be updated every time a new data type is added to the app, not written once and forgotten.</p>
 <p style="margin:6px 0;">2. <strong>Section 6</strong> is the one most likely to have real regulatory teeth depending on where your users are — this is where "close enough" isn't good enough.</p>
 <p style="margin:6px 0;">3. <strong>Section 9</strong> only matters once real hosting infrastructure exists, but needs to be revisited the moment it does, not left as a placeholder indefinitely.</p>
@@ -950,9 +1053,8 @@
       </div>
     </div>
     <div class="group" style="margin-top:16px; border-color:var(--bad);">
-      <div class="group-head"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--text);">permanently deletes everything</div></div>
-      <div class="fields">
-        <div class="score-note">Wipes every entry, plan, goal, injury, and setting — a true blank slate, as if you'd just installed this. Export a backup above first if you want to keep anything. This cannot be undone.</div>
+      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--text);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
+        <div class="score-note">Erases everything permanently. Export a backup first.</div>
         <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
         <div id="clearAllDataResult" class="score-note"></div>
       </div>
@@ -961,7 +1063,7 @@
     <div class="group" style="margin-top:16px; border-color:var(--warn);">
       <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--text);">dev only — clears prior test data first</div></div>
       <div class="fields">
-        <div class="score-note">Seeds realistic recovery + training history so you can see how Today/Warm-up/Trends actually respond, without waiting weeks for real data. Seeding a new scenario replaces any previously-seeded test data — your real logged data is never touched.</div>
+        <div class="score-note">Seeds fake history so you can see how the app responds without waiting weeks. Replaces previous test data; never touches real logs.</div>
         <div class="field-row"><span class="field-label">Scenario</span>
           <select id="testScenarioSelect">
             <option value="well_recovered">Well recovered</option>
@@ -982,7 +1084,7 @@
     <div class="group" style="margin-top:16px; border-color:var(--bad);">
       <div class="group-head"><div class="group-title">Engine Regression Suite</div><div class="group-sub" style="color:var(--text);">dev only — wipes ALL data between each scenario</div></div>
       <div class="fields">
-        <div class="score-note">Runs a real, re-runnable set of scenarios against the actual decision engine (adjacency/conflict, session stress, injury safety, adaptation trends, completion tracking, goal demand, deload signal) and reports genuine PASS/FAIL — not a demo. Each scenario wipes all storage first for a clean slate, and the suite leaves storage empty when finished. Export a backup first if you have real data you want to keep.</div>
+        <div class="score-note">Runs the real decision engine and reports PASS/FAIL. Wipes all storage — export a backup first.</div>
         <button id="runScenarioSuiteBtn" class="primary">Run regression suite</button>
         <div id="scenarioSuiteProgress" class="score-note"></div>
         <div id="scenarioSuiteResults"></div>
@@ -1515,6 +1617,42 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   });
 }
 
+// Passive update check. The manual button in Settings only helps if you think to press
+// it, and a home-screen app is RESUMED rather than reloaded — you can go weeks without a
+// cold start. This checks quietly when the app comes back to the foreground and surfaces
+// a dismissible banner only when there's genuinely a newer version deployed.
+const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;   // don't re-check on every glance
+let lastUpdateCheck = 0;
+async function passiveUpdateCheck(){
+  const now = Date.now();
+  if(now - lastUpdateCheck < UPDATE_CHECK_INTERVAL_MS) return;
+  lastUpdateCheck = now;
+  try{
+    const res = await fetch(location.pathname + '?updatecheck=' + now, { cache:'no-store' });
+    if(!res.ok) return;
+    const m = (await res.text()).match(/const APP_VERSION = '([^']+)'/);
+    if(!m || m[1] === APP_VERSION) return;
+    showUpdateBanner(m[1]);
+  } catch(e){ /* offline or blocked — silent by design */ }
+}
+
+function showUpdateBanner(version){
+  if(document.getElementById('updateBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'updateBanner';
+  bar.className = 'update-banner';
+  bar.innerHTML = `<span>Version ${version} available</span>`
+    + `<span class="update-banner-actions"><button class="small" id="updateBannerGo">Reload</button>`
+    + `<span id="updateBannerDismiss" class="update-banner-x">×</span></span>`;
+  document.body.appendChild(bar);
+  document.getElementById('updateBannerGo').addEventListener('click', ()=>{
+    location.replace(location.pathname + '?v=' + version);
+  });
+  document.getElementById('updateBannerDismiss').addEventListener('click', ()=> bar.remove());
+}
+
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) passiveUpdateCheck(); });
+
 async function checkForUpdate(){
   const out = document.getElementById('updateCheckResult');
   const btn = document.getElementById('checkUpdateBtn');
@@ -1552,6 +1690,21 @@ async function checkForUpdate(){
     if(btn) btn.disabled = false;
   }
 }
+
+// Progressive disclosure for Settings. Backup, Legal and Start Fresh are reference and
+// destructive actions — things you touch rarely but which occupied 955px of a 2198px
+// panel. Collapsed by default, they stop competing with the settings you actually adjust.
+document.querySelectorAll('.group-head.collapsible').forEach(head=>{
+  head.addEventListener('click', ()=>{
+    const key = head.dataset.collapse;
+    const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
+    const chev = head.querySelector('.collapse-chevron');
+    if(!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : '';
+    if(chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+  });
+});
 
 const OURA_CLIENT_ID = '62367975-4a6e-445d-a195-1936ce98c7af';
 const OURA_TOKEN_WORKER_URL = 'https://dogfoodoura.jordandf1.workers.dev';
@@ -1955,7 +2108,7 @@ async function renderOuraConnectionStatus(){
   try{
     const r = await window.storage.get('oura:lastDebug');
     const d = JSON.parse(r.value);
-    debugHtml = `<div class="score-note" style="margin-top:8px; font-family:var(--mono); font-size:10px; word-break:break-word;">Last attempt (${d.at}): ${d.message}</div>`;
+    debugHtml = `<div class="score-note" style="margin-top:8px; font-family:var(--mono); font-size:var(--fs-tag); word-break:break-word;">Last attempt (${d.at}): ${d.message}</div>`;
   } catch(e){}
 
   if(tokens){
@@ -1970,7 +2123,7 @@ async function renderOuraConnectionStatus(){
     document.getElementById('ouraTestBtn').addEventListener('click', testOuraWorkerConnection);
   } else {
     el.innerHTML = `
-      <div class="score-note">Connect your Oura account to sync sleep, HRV, and readiness data automatically instead of entering it by hand.</div>
+      <div class="score-note">Syncs sleep, HRV and readiness automatically.</div>
       <button id="ouraConnectBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>Connect Oura</button>
       <button id="ouraTestBtn" class="small outline">Test connection</button>
       ${debugHtml}`;
@@ -1984,7 +2137,7 @@ async function renderAppleHealthStatus(message){
   const el = document.getElementById('appleHealthStatus');
   el.innerHTML = `
     <div class="score-note">Apple Health (via Health Auto Export)</div>
-    ${message ? `<div class="score-note" style="font-family:var(--mono); font-size:10px;">${message}</div>` : ''}
+    ${message ? `<div class="score-note" style="font-family:var(--mono); font-size:var(--fs-tag);">${message}</div>` : ''}
     <button id="appleHealthSyncBtn" class="small"><svg width="12" height="12" viewBox="3.2 2.65 13 16" fill="currentColor" style="margin-right:5px;"><path d="M12.15 7.5c-1.1-.08-2.03.6-2.56.6-.53 0-1.35-.58-2.22-.56-1.14.02-2.2.66-2.78 1.68-1.2 2.08-.31 5.16.86 6.85.57.83 1.25 1.76 2.15 1.72.86-.03 1.19-.55 2.23-.55 1.04 0 1.34.55 2.24.53.93-.02 1.51-.85 2.08-1.68.65-.94.92-1.86.93-1.9-.02-.01-1.79-.69-1.81-2.73-.02-1.7 1.39-2.52 1.45-2.56-.8-1.17-2.03-1.3-2.47-1.33-1.02-.09-1.9.6-2.4.6"/><path d="M14.7 5.6c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.99 1.02-.44.5-.82 1.31-.72 2.08.75.06 1.53-.38 2.01-.95z"/></svg>Check for new data</button>`;
   document.getElementById('appleHealthSyncBtn').addEventListener('click', async ()=>{
     renderAppleHealthStatus('Checking...');
@@ -2743,7 +2896,7 @@ function addGoalRow(goal){
     <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance" placeholder="or leave blank"></div>
     <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time" placeholder="or leave blank"></div>
     <div class="field-row"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
-    <div class="field-row"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;"><label style="font-size:12px;">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
+    <div class="field-row"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;"><label style="font-size:var(--fs-sm);">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
 
   row.querySelector('.goal-type').value = goal.type || 'strength';
   row.querySelector('.goal-target-exercise').value = goal.targetExercise || '';
@@ -2778,7 +2931,7 @@ const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const container = document.getElementById('availableDaysCheckboxes');
   WEEKDAY_NAMES.forEach(day=>{
     const label = document.createElement('label');
-    label.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:12px;';
+    label.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:var(--fs-sm);';
     label.innerHTML = `<input type="checkbox" class="avail-day" value="${day}" style="width:auto;"> ${day}`;
     container.appendChild(label);
   });
@@ -2827,7 +2980,7 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance){
     <select class="skg-skill"></select>
     <select class="skg-level"></select>
     <div class="score-note skg-detail" style="margin-top:-4px;"></div>
-    <div class="field-row" style="flex-basis:100%;"><input type="checkbox" class="skg-maintenance" style="width:auto; flex:none;" ${isMaintenance?'checked':''}><label style="font-size:12px;">Maintenance — keep this in rotation without pushing further while I focus elsewhere</label></div>
+    <div class="field-row" style="flex-basis:100%;"><input type="checkbox" class="skg-maintenance" style="width:auto; flex:none;" ${isMaintenance?'checked':''}><label style="font-size:var(--fs-sm);">Maintenance — keep this in rotation without pushing further while I focus elsewhere</label></div>
     <div class="score-note skg-warning" style="color:var(--text); display:none;"></div>
     <span class="remove-row">×</span>`;
   container.appendChild(row);
@@ -2922,6 +3075,8 @@ async function renderMobilityAssessment(skipCollapse){
   const container = document.getElementById('mobilityAssessmentRows');
   const existing = await getMobilityAssessment();
   const scores = (existing && existing.scores) || {};
+  // Working copy so the stepper can hold edits without writing to storage on every tap.
+  if(!mobilityDraftScores) mobilityDraftScores = { ...scores };
 
   // Full level definitions shown ONCE here rather than repeated inside 9 separate
   // verbose dropdowns — collapsed by default via <details> so it's there for reference
@@ -2932,27 +3087,142 @@ async function renderMobilityAssessment(skipCollapse){
       <div class="mobility-legend-body">${MOBILITY_DOMAIN_LEVEL_LABELS.join('<br>')}</div>
     </details>`;
 
-  const rowsHtml = MOBILITY_DOMAINS.map(domain => `
-    <div class="mobility-domain-row" data-domain="${domain}">
-      <div class="mobility-domain-label">${domain.charAt(0).toUpperCase()+domain.slice(1)}</div>
-      <div class="rating-btn-group">
-        ${[1,2,3,4,5].map(level => `<div class="rating-btn ${scores[domain]===level?'active':''}" data-level="${level}">${level}</div>`).join('')}
-      </div>
-    </div>`).join('');
+  // A focused stepper rather than nine rows of five buttons. The full grid was 594px —
+  // 38% of the whole Goals tab — and its 45 targets were 28px square, well under the
+  // 44px guideline, on a screen used with sweaty hands. One domain at a time costs a
+  // third of the height and gives each rating a target more than twice the area.
+  // Rows still carry data-domain and .rating-btn.active so the existing save handler
+  // keeps working unchanged.
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const idx = mobilityStepIndex;
+  const domain = MOBILITY_DOMAINS[idx];
+  const prev = idx > 0 ? MOBILITY_DOMAINS[idx-1] : null;
+  const next = idx < MOBILITY_DOMAINS.length-1 ? MOBILITY_DOMAINS[idx+1] : null;
+  const rated = MOBILITY_DOMAINS.filter(d=>mobilityDraftScores[d]!=null).length;
+  const dot = d => mobilityDraftScores[d]!=null ? mobilityDraftScores[d] : '·';
 
-  container.innerHTML = legendHtml + rowsHtml;
+  // A vertical wheel of domains with the 1-5 scale horizontal beneath it. The nine-row
+  // grid this replaces was 594px — 38% of the Goals tab — with 45 targets at 28px square.
+  // Five names visible at once, opacity falling off from the centre, so it still reads as
+  // a list you're moving through rather than an isolated card.
+  const WHEEL_VISIBLE = 2;   // items shown either side of the focused one
+  const wheelItems = [];
+  for(let offset = -WHEEL_VISIBLE; offset <= WHEEL_VISIBLE; offset++){
+    const i = idx + offset;
+    const d = MOBILITY_DOMAINS[i];
+    const dist = Math.abs(offset);
+    if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
+    const score = mobilityDraftScores[d];
+    wheelItems.push(`
+      <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
+           style="opacity:${offset===0?1:(dist===1?0.45:0.18)};">
+        <span class="mob-wheel-name">${cap(d)}</span>
+        <span class="mob-wheel-score">${score!=null?score:'–'}</span>
+      </div>`);
+  }
 
-  // Tap a number to select it; tap the already-active number again to clear back to
-  // "not assessed" — no separate blank/reset control needed for that.
-  container.querySelectorAll('.mobility-domain-row').forEach(row=>{
-    row.querySelectorAll('.rating-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const alreadyActive = btn.classList.contains('active');
-        row.querySelectorAll('.rating-btn').forEach(b=>b.classList.remove('active'));
-        if(!alreadyActive) btn.classList.add('active');
-      });
+  const stepperHtml = `
+    <div class="mob-wheel" id="mobWheel">
+      ${wheelItems.join('')}
+      <div class="mob-wheel-focus-line"></div>
+    </div>
+    <div class="mob-scale-row">
+      ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}">${l}</div>`).join('')}
+    </div>
+    <div class="mob-step-count">${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
+    <div style="display:none;">
+      ${MOBILITY_DOMAINS.map(d=>`<div class="mobility-domain-row" data-domain="${d}">${
+        [1,2,3,4,5].map(l=>`<div class="rating-btn ${mobilityDraftScores[d]===l?'active':''}" data-level="${l}"></div>`).join('')
+      }</div>`).join('')}
+    </div>`;
+
+  container.innerHTML = legendHtml + stepperHtml;
+
+  const goTo = i => {
+    mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, i));
+    renderMobilityAssessment(true);
+  };
+
+  // Tap a number to rate the focused domain; tap the active one again to clear it back to
+  // "not assessed". Rating auto-advances — the point of a wheel is not reaching for a
+  // next control nine times.
+  container.querySelectorAll('.mob-scale-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const lvl = parseInt(btn.dataset.level, 10);
+      if(mobilityDraftScores[domain] === lvl){
+        delete mobilityDraftScores[domain];
+        renderMobilityAssessment(true);
+        return;
+      }
+      mobilityDraftScores[domain] = lvl;
+      if(mobilityStepIndex < MOBILITY_DOMAINS.length-1) mobilityStepIndex++;
+      renderMobilityAssessment(true);
     });
   });
+
+  // Tap a neighbouring name to jump to it.
+  container.querySelectorAll('.mob-wheel-item[data-offset]').forEach(item=>{
+    const off = parseInt(item.dataset.offset, 10);
+    if(off === 0) return;
+    item.addEventListener('click', ()=>goTo(mobilityStepIndex + off));
+  });
+
+  // Drag or wheel to scroll the list, same interaction as the week navigator.
+  // Drag handling lives on the CONTAINER, not the wheel, and is bound once. Binding it to
+  // the wheel meant every re-render replaced the element the pointer was captured on, so
+  // the drag died on its first step and the index never moved past one.
+  if(!mobilityWheelBound){
+    mobilityWheelBound = true;
+    const host = document.getElementById('mobilityAssessmentRows');
+    let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false;
+    const STEP_PX = 34;             // sustained finger travel per domain — one row height
+    const FLICK_MIN_PX = 8;         // below this it's a tap, not a swipe
+    const FLICK_MIN_VELOCITY = 0.25; // px/ms — separates a flick from a slow short drag
+    host.addEventListener('pointerdown', e=>{
+      if(!e.target.closest('#mobWheel')) return;
+      dragging = true; startY = e.clientY; accumulated = 0;
+      startTime = e.timeStamp; moved = false;
+      host.setPointerCapture(e.pointerId);
+    });
+    host.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      const delta = e.clientY - startY;
+      const steps = Math.trunc((delta - accumulated) / STEP_PX);
+      if(steps !== 0){
+        accumulated += steps * STEP_PX;
+        moved = true;
+        // Dragging down brings earlier items into view, like a physical wheel.
+        mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex - steps));
+        renderMobilityAssessment(true);
+      }
+    });
+    const endDrag = e => {
+      if(!dragging) return;
+      dragging = false;
+      try{ host.releasePointerCapture(e.pointerId); }catch(_){}
+      // Flick: a quick swipe travels less than one row, so a pure drag threshold ignores
+      // it entirely and the wheel feels stuck. Short + fast counts as intent to move, with
+      // the number of steps scaled by how fast — same as a physical wheel being spun.
+      if(moved) return;
+      const dy = e.clientY - startY;
+      const dt = Math.max(1, e.timeStamp - startTime);
+      const velocity = Math.abs(dy) / dt;               // px per ms
+      if(Math.abs(dy) < FLICK_MIN_PX || velocity < FLICK_MIN_VELOCITY) return;
+      const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+      const dir = dy > 0 ? -1 : 1;                       // swipe up = later domains
+      mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + dir*steps));
+      renderMobilityAssessment(true);
+    };
+    host.addEventListener('pointerup', endDrag);
+    host.addEventListener('pointercancel', endDrag);
+    host.addEventListener('wheel', e=>{
+      if(!e.target.closest('#mobWheel')) return;
+      e.preventDefault();
+      mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + (e.deltaY > 0 ? 1 : -1)));
+      renderMobilityAssessment(true);
+    }, { passive:false });
+  }
+
 
   const assessedCount = MOBILITY_DOMAINS.filter(d=>scores[d]!=null).length;
   const summary = document.getElementById('mobilityAssessmentSummary');
@@ -3352,7 +3622,7 @@ function openBlockEditor(date, slot, block){
       row.className = 'edit-row';
       if(skippedForInjury){
         row.innerHTML = `
-          <div style="flex:1; font-size:12px; color:var(--dim); font-style:italic; padding:6px 0;">${name}</div>
+          <div style="flex:1; font-size:var(--fs-sm); color:var(--dim); font-style:italic; padding:6px 0;">${name}</div>
           <span class="remove-row">×</span>`;
         row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
         rowsContainer.appendChild(row);
@@ -3364,12 +3634,12 @@ function openBlockEditor(date, slot, block){
         <span class="remove-row">×</span>
         <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
           <input type="number" class="week-ex-sets" placeholder="sets" style="max-width:56px;" title="sets actually done">
-          <span style="font-size:11px; color:var(--dim);">×</span>
+          <span style="font-size:var(--fs-tag); color:var(--dim);">×</span>
           <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="reps" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
-          <span style="font-size:11px; color:var(--dim);">@</span>
+          <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
           <input type="number" class="week-ex-weight" placeholder="kg" style="max-width:64px;" title="weight actually used">
         </div>
-        <div class="ex-tags-toggle" style="flex-basis:100%; font-size:11px; font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
+        <div class="ex-tags-toggle" style="flex-basis:100%; font-size:var(--fs-tag); font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
         <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
           <select class="week-ex-area">${areaOptionsHtml(area)}</select>
           <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
@@ -3921,6 +4191,133 @@ async function renderMacroInsights(){
   body.innerHTML = html;
 }
 
+
+/* ---------- SYSTEM CONFIDENCE ----------
+   What the engine is actually driving from, per subsystem, and what unlocks next.
+
+   The app renders confident-sounding statements — "+2.5kg, hit 12 on every set", "9/16
+   areas at MEV", "close to failure, 40% drop-off" — but some rest on months of logged
+   data and others rest on a hardcoded default. They look identical, so there is no way
+   to tell which is which. On day three you'd be following prescriptions built almost
+   entirely from assumptions, presented with the same certainty as ones built from a year
+   of history.
+
+   This is the same instinct the code already applies to itself (VARIATION_ROTATION_WEEKS
+   labelled a design choice, drop-off thresholds labelled provisional, Athlete Level
+   reported +/-1 tier) pointed at the interface instead. It changes no prescription — it
+   only says how much to trust one. */
+
+const CONFIDENCE_STAGE = { defaults:0, learning:1, personalised:2 };
+function plural(n, word){ return `${n} ${word}${n===1?'':'s'}`; }
+const CONFIDENCE_LABEL = { defaults:'Defaults', learning:'Learning', personalised:'Yours' };
+
+async function getSystemConfidence(){
+  const rows = [];
+
+  // 1. Recovery scoring — needs paired recovery entries.
+  const baseline = await getBaselineStatus();
+  rows.push({
+    key:'recovery', name:'Recovery scoring',
+    stage: baseline.pairedDays >= 28 ? 'personalised' : (baseline.pairedDays >= 7 ? 'learning' : 'defaults'),
+    detail: `${baseline.pairedDays} day${baseline.pairedDays===1?'':'s'} logged`,
+    next: baseline.pairedDays >= 28 ? null
+      : (baseline.pairedDays >= 7 ? `${plural(28-baseline.pairedDays,'more day')} for full modeling`
+                                  : `${plural(7-baseline.pairedDays,'more day')} to start personalising`)
+  });
+
+  const sessions = await getAllTrainingSessions();
+  const strength = sessions.filter(s=>s.type==='strength');
+
+  // 2. Load progression — driven by logged sessions per exercise.
+  rows.push({
+    key:'progression', name:'Load progression',
+    stage: strength.length >= 6 ? 'personalised' : (strength.length >= 2 ? 'learning' : 'defaults'),
+    detail: strength.length ? `${strength.length} strength session${strength.length===1?'':'s'} logged` : 'no sessions logged',
+    next: strength.length >= 6 ? null : `${Math.max(0, 6-strength.length)} more sessions to progress from your own numbers`
+  });
+
+  // 3. Effort estimation — needs per-set reps, which is opt-in.
+  const withPerSet = strength.filter(s=>(s.exercises||[]).some(e=>Array.isArray(e.repsPerSet) && e.repsPerSet.length>1)).length;
+  rows.push({
+    key:'effort', name:'Effort estimation',
+    stage: withPerSet >= 5 ? 'personalised' : (withPerSet >= 1 ? 'learning' : 'defaults'),
+    detail: withPerSet ? `${withPerSet} session${withPerSet===1?'':'s'} with per-set reps` : 'not tracked yet',
+    next: withPerSet >= 5 ? null : 'log reps per set (e.g. 12,10,7) to unlock'
+  });
+
+  // 4. Mobility prescription — driven by the self-assessment, which goes stale.
+  const assessment = await getMobilityAssessment();
+  const scores = (assessment && assessment.scores) || {};
+  const assessed = MOBILITY_DOMAINS.filter(d=>scores[d]!=null).length;
+  const age = assessmentAgeDays(assessment);
+  const stale = age != null && age >= MOBILITY_REASSESS_DAYS;
+  rows.push({
+    key:'mobility', name:'Mobility targeting',
+    stage: (assessed === MOBILITY_DOMAINS.length && !stale) ? 'personalised' : (assessed ? 'learning' : 'defaults'),
+    detail: assessed ? `${assessed}/${MOBILITY_DOMAINS.length} domains rated${stale ? `, ${age}d old` : ''}` : 'not assessed',
+    next: assessed === 0 ? 'rate your domains to target the right ones'
+        : stale ? 're-rate — this one is out of date'
+        : (assessed < MOBILITY_DOMAINS.length ? `${MOBILITY_DOMAINS.length-assessed} domains still unrated` : null)
+  });
+
+  // 5. Volume tolerance — the correlation needs several weeks before it means anything.
+  const tolerance = await computeTrainingTolerance();
+  const weeks = tolerance && tolerance.n ? tolerance.n : 0;
+  rows.push({
+    key:'tolerance', name:'Volume tolerance',
+    stage: weeks >= 6 ? 'personalised' : (weeks >= 3 ? 'learning' : 'defaults'),
+    detail: weeks ? `${weeks} week${weeks===1?'':'s'} of history` : 'no history yet',
+    next: weeks >= 6 ? null : `${plural(Math.max(0, 6-weeks),'more week')} before this is meaningful`
+  });
+
+  const score = rows.reduce((a,r)=> a + CONFIDENCE_STAGE[r.stage], 0);
+  const max = rows.length * 2;
+  return { rows, score, max, pct: Math.round(score/max*100) };
+}
+
+
+// Compact by default — one line and a bar. Tapping expands the per-system breakdown.
+// Deliberately not a permanent panel: the Today tab has been trimmed repeatedly and this
+// is reference information, not something to read before every session.
+let confidenceExpanded = false;
+async function renderSystemConfidence(){
+  const el = document.getElementById('baselineStatus');
+  if(!el) return;
+  const c = await getSystemConfidence();
+  const stageOf = pct => pct >= 80 ? 'personalised' : (pct >= 35 ? 'learning' : 'defaults');
+  const overall = stageOf(c.pct);
+  const colour = overall==='personalised' ? 'var(--good)' : overall==='learning' ? 'var(--warn)' : 'var(--dim)';
+  const dotColour = s => s==='personalised' ? 'var(--good)' : s==='learning' ? 'var(--warn)' : 'var(--dim)';
+
+  // Lead with whatever is furthest behind and still actionable — that's the single most
+  // useful thing to tell someone about a system that's still warming up.
+  const pending = c.rows.filter(r=>r.next).sort((a,b)=>CONFIDENCE_STAGE[a.stage]-CONFIDENCE_STAGE[b.stage]);
+  const headline = pending.length ? pending[0].next : 'running fully on your own data';
+
+  const detail = confidenceExpanded ? `
+    <div class="conf-detail">
+      ${c.rows.map(r=>`
+        <div class="conf-row">
+          <span class="conf-dot" style="background:${dotColour(r.stage)};"></span>
+          <span class="conf-name">${r.name}</span>
+          <span class="conf-stage">${CONFIDENCE_LABEL[r.stage]}</span>
+          <div class="conf-sub">${r.detail}${r.next ? ` · ${r.next}` : ''}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="conf-head" id="confToggle">
+      <span style="color:${colour}; font-weight:700;">${CONFIDENCE_LABEL[overall]}</span>
+      <span class="conf-bar"><span class="conf-bar-fill" style="width:${c.pct}%; background:${colour};"></span></span>
+      <span class="conf-pct">${c.score}/${c.max}</span>
+      <span class="conf-chevron">${confidenceExpanded ? '\u25B4' : '\u25BE'}</span>
+    </div>
+    <div class="conf-headline">${headline}</div>
+    ${detail}`;
+  const toggle = document.getElementById('confToggle');
+  if(toggle) toggle.addEventListener('click', ()=>{ confidenceExpanded = !confidenceExpanded; renderSystemConfidence(); });
+}
+
 /* ---------- INJURIES ---------- */
 function severityNow(initial, onsetDate, halfLife){
   const days = (Date.now() - new Date(onsetDate).getTime()) / (1000*60*60*24);
@@ -4021,7 +4418,7 @@ async function refreshInjuries(){
           </div>
         </div>
         <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
-        ${inj.notes ? `<div style="font-size:12px;margin-top:6px;color:var(--dim);">${inj.notes}</div>` : ''}
+        ${inj.notes ? `<div style="font-size:var(--fs-sm);margin-top:6px;color:var(--dim);">${inj.notes}</div>` : ''}
         <div class="injury-actions">
           ${!inj.resolved ? `<button class="small resolve-btn" data-id="${inj.id}">Mark resolved</button>` : ''}
           <button class="small outline delete-btn" data-id="${inj.id}">Delete</button>
@@ -7404,6 +7801,12 @@ const SKILL_TO_INTEGRATE = {
 // skill in the current progression trees, so it falls back at generation time.
 const MOBILITY_DOMAIN_TO_SKILL = { ankles:'deepsquat', knees:'deepsquat', hips:'frontsplits', hamstrings:'pike', adductors:'middlesplit', spine:'bridge', shoulders:'overheadsquat', scapula:'overheadsquat', wrists:null };
 
+// Stepper state. Draft scores are held here rather than in storage so tapping through
+// the assessment doesn't write nine times; the existing Save button still commits.
+let mobilityStepIndex = 0;
+let mobilityDraftScores = null;
+let mobilityWheelBound = false;
+
 async function getMobilityAssessment(){
   try{ const r = await window.storage.get('settings:mobilityAssessment'); return JSON.parse(r.value); }
   catch(e){ return null; }
@@ -8048,8 +8451,11 @@ async function generateMultiWeekProgram(numWeeks, splitOverride, options){
 }
 
 function describeWeekResult(r, weekNum, isDeload){
-  if(r.error === 'no-setup') return { error: 'Set your available training days above first (Training Setup).' };
-  if(r.error === 'no-goals') return { error: 'Add at least one goal above first.' };
+  // Point at the right tab. Both of these said "above", but Training Setup lives on
+  // Settings and goals live on Goals — neither is on the Weekly tab where this button is,
+  // so a new user tapping Generate was sent looking in the wrong place on their first action.
+  if(r.error === 'no-setup') return { error: 'Set your available training days in Settings → Training Setup first.' };
+  if(r.error === 'no-goals') return { error: 'Add at least one goal on the Goals tab first.' };
   if(r.error === 'no-lift-or-run-goal') return { error: 'No strength, running, or mobility goal found — nothing to generate from.' };
   if(r.error === 'nothing-selected') return { error: 'Strength and running are both unchecked, and there\'s no mobility goal set — nothing to generate.' };
   const parts = [];
@@ -9155,15 +9561,15 @@ async function generateRecommendations(){
   const container = document.getElementById('recommendationCards');
   container.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div><div class="skeleton short"></div>';
 
-  const baseline = await getBaselineStatus();
-  const baselineEl = document.getElementById('baselineStatus');
-  const baselineColor = baseline.stage==='personalized' ? 'var(--good)' : baseline.stage==='learning' ? 'var(--warn)' : 'var(--dim)';
-  baselineEl.innerHTML = `<span style="color:${baselineColor};">${baseline.label}</span> — ${baseline.note}`;
+  // Replaces the old single dim line. Same footprint when collapsed, but it now reports
+  // every subsystem rather than recovery days alone — and, crucially, what unlocks next,
+  // so the app stops asking for data without ever saying what the data buys.
+  await renderSystemConfidence();
 
   let entry;
   try{ const r = await window.storage.get(keyFor(todayStr)); entry = JSON.parse(r.value); }
   catch(e){
-    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:600;">Log today\'s recovery to unlock today\'s recommendations →</div>';
+    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:var(--fw-bold);">Log today\'s recovery to unlock today\'s recommendations →</div>';
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
     refreshRecHistory();
     return;
@@ -10607,7 +11013,7 @@ document.getElementById('runScenarioSuiteBtn').addEventListener('click', async (
     progress.textContent = `${passed}/${results.length} passed.`;
     progress.style.color = passed===results.length ? 'var(--good)' : 'var(--bad)';
     resultsEl.innerHTML = results.map(r => `
-      <div class="log-entry"><span>${r.pass?'✓':'✗'} ${r.description}</span><span style="font-family:var(--mono); font-size:10px;">${r.backlogRef}</span></div>
+      <div class="log-entry"><span>${r.pass?'✓':'✗'} ${r.description}</span><span style="font-family:var(--mono); font-size:var(--fs-tag);">${r.backlogRef}</span></div>
       ${!r.pass ? `<div class="score-note" style="color:var(--text);">${r.note}</div>` : ''}
     `).join('');
     showToast(`Regression suite: ${passed}/${results.length} passed`);
