@@ -6418,6 +6418,55 @@ const BODYWEIGHT_MAIN_LIFTS = {
   pull:  { name:'Pull-up', area:'thoracic', secondaryArea:'biceps', movement:'pull', exerciseId:'pullup' }
 };
 
+// When a HIGH back/spine flag removes a main lift, these are tried in order before the
+// slot is abandoned. Each is tagged spineLoad:'low' so it passes the exemption above.
+// Deliberately short: only swaps that are uncontroversially spine-neutral belong here.
+// Keyed on movement+area, NOT exercise name. Name-keying silently failed: the generator
+// picks 'Dumbbell Bench Press', 'Incline Bench Press', 'Incline Dumbbell Press' etc., none
+// of which matched a 'Bench Press' key, so the fallback found no candidates and abandoned
+// the slot. Movement+area matches every variant of a pattern. Each candidate is tagged
+// spineLoad:'low' so it still has to pass applyInjurySafety — the gate stays the single
+// source of truth about what's allowed.
+const SPINE_NEUTRAL_BY_PATTERN = {
+  'push|chest': [
+    { name:'Machine Chest Press', area:'chest', secondaryArea:'triceps', movement:'push', spineLoad:'low' },
+    { name:'Floor Press',         area:'chest', secondaryArea:'triceps', movement:'push', spineLoad:'low' }
+  ],
+  'push|shoulders': [
+    { name:'Seated Supported DB Press', area:'shoulders', secondaryArea:'triceps', movement:'push', spineLoad:'low' }
+  ],
+  'push|triceps': [
+    { name:'Cable Triceps Pushdown', area:'triceps', secondaryArea:'', movement:'push', spineLoad:'low' }
+  ],
+  'pull|back': [
+    { name:'Chest-Supported Row', area:'back', secondaryArea:'biceps', movement:'pull', spineLoad:'low' }
+  ],
+  'pull|thoracic': [
+    { name:'Chest-Supported Row', area:'thoracic', secondaryArea:'biceps', movement:'pull', spineLoad:'low' }
+  ]
+};
+// Returns a verified spine-neutral stand-in for any exercise, main lift or accessory,
+// or null when there's no uncontroversially safe swap for that pattern.
+let _spineAltRotation = 0;
+function findSpineNeutralAlt(exercise, movementFlags, usedNames){
+  if(!exercise || !exercise.movement) return null;
+  const key = exercise.movement + '|' + (exercise.area || '');
+  const cands = SPINE_NEUTRAL_BY_PATTERN[key] || [];
+  // Prefer a candidate not already used this week, so a multi-session block doesn't
+  // collapse every removed press onto the same machine. Falls back to any safe option
+  // rather than skipping the slot when all of them are already in use.
+  const unused = usedNames ? cands.filter(c=>!usedNames.has(c.name)) : cands;
+  // usedNames is per-session for accessories, so it can't stop every day picking the same
+  // first candidate. A module-level offset rotates the starting point across the week,
+  // giving the same variety the uninjured plan gets from its own exercise pool.
+  const pool = unused.length ? unused : cands;
+  const rotated = pool.slice(_spineAltRotation % pool.length).concat(pool.slice(0, _spineAltRotation % pool.length));
+  for(const cand of rotated.concat(cands)){
+    const checked = applyInjurySafety({ ...cand }, movementFlags);
+    if(checked){ _spineAltRotation++; return checked; }
+  }
+  return null;
+}
 const MAIN_LIFT_DEFAULTS = {
   lower: { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
   legs:  { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' },
@@ -6820,12 +6869,26 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
       .sort((a,b)=> b.rank - a.rank);
     if(!options.length) continue;
     const chosen = options[0];
-    const safe = applyInjurySafety({
+    const candidate = {
       name: chosen.ex.name, area: chosen.ex.area, secondaryArea: chosen.ex.secondaryArea || '',
       movement: chosen.ex.movement || '', exerciseId: chosen.id
-    }, injuryMovementFlags);
+    };
+    let safe = applyInjurySafety(candidate, injuryMovementFlags);
+    // Accessories previously had no fallback — a high spine flag silently dropped the
+    // slot even when a supported variant was available. Same gate, same labelling as
+    // main lifts; only skip when there's genuinely no safe stand-in for the pattern.
+    if(!safe){
+      const flag = injuryMovementFlags[candidate.movement];
+      if(flag && isSpinePart(flag.part)){
+        const alt = findSpineNeutralAlt(candidate, injuryMovementFlags, usedNames);
+        if(alt){
+          alt.substitutionNote = `${candidate.name} removed (${flag.part} flagged high) — spine-neutral variant substituted`;
+          safe = alt;
+        }
+      }
+    }
     if(!safe) continue;
-    usedNames.add(chosen.ex.name);
+    usedNames.add(safe.name);
     picks.push({ ...safe, _gapArea: g.area, _gapSize: Math.round(g.gap*10)/10 });
   }
   return picks;
@@ -8620,11 +8683,24 @@ async function getInjuryMovementFlags(){
 // presenting an unverified safety claim as fact. Moderate: allow, but flag clearly so the
 // user can judge for themselves. Low: unchanged — existing warm-up/mobility handling
 // already covers light flags; this only governs actual loaded exercise selection.
+//
+// Spine-load refinement (v1.1): a movement-level flag is too coarse for back injuries —
+// bench aggravates a lower back via the arch and brace, while a supported machine press
+// is largely spine-neutral, yet both share movement:'push'. Exercises explicitly tagged
+// spineLoad:'low' are therefore allowed through a HIGH flag *only when the flagged part
+// is the back/spine itself* (a shoulder flag on 'push' still removes them — the exemption
+// is about tissue, not pattern), and they carry a clear label so the swap is never silent.
+function isSpinePart(part){ return /back|spine|lumbar|thoracic|sacro|si joint/i.test(part||''); }
 function applyInjurySafety(exercise, movementFlags){
   if(!exercise || !exercise.movement || !movementFlags) return exercise;
   const flag = movementFlags[exercise.movement];
   if(!flag) return exercise;
-  if(flag.irritability === 'high') return null;
+  if(flag.irritability === 'high'){
+    if(exercise.spineLoad === 'low' && isSpinePart(flag.part)){
+      return { ...exercise, name: `${exercise.name} (spine-neutral — ${flag.part} flagged high)`, injuryFlagged: true };
+    }
+    return null;
+  }
   if(flag.irritability === 'moderate'){
     return { ...exercise, name: `${exercise.name} (flagged — ${flag.part} irritability, watch load)`, injuryFlagged: true };
   }
@@ -8797,7 +8873,22 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         (usedMovementsThisWeek[movement] = usedMovementsThisWeek[movement] || []).push(mainLift.name);
       } else {
         const flag = injuryMovementFlags[movement];
-        exercises.push({ name: `${movement} pattern skipped — ${flag.part} flagged high irritability, avoid loading directly today`, area:'', secondaryArea:'', movement:'', skippedForInjury:true });
+        // Spine flags get one more chance: a verified spine-neutral variant of the same
+        // lift, run back through the same safety gate so the exemption stays the single
+        // source of truth about what is allowed.
+        let alt = null;
+        if(isSpinePart(flag.part)){
+          alt = findSpineNeutralAlt({ ...mainLift, movement }, injuryMovementFlags,
+            new Set(Object.values(usedMovementsThisWeek).flat()));
+        }
+        if(alt){
+          alt.isMainLift = true;
+          alt.substitutionNote = `${mainLift.name} removed (${flag.part} flagged high) — spine-neutral variant substituted`;
+          exercises.push(alt);
+          (usedMovementsThisWeek[movement] = usedMovementsThisWeek[movement] || []).push(alt.name);
+        } else {
+          exercises.push({ name: `${movement} pattern skipped — ${flag.part} flagged high irritability, avoid loading directly today`, area:'', secondaryArea:'', movement:'', skippedForInjury:true });
+        }
       }
     }
     if(tag==='full_body'){
@@ -10795,6 +10886,16 @@ const ENGINE_SCENARIOS = [
     setup: async ()=>{},
     run: async ()=> applyInjurySafety({ name:'Bench Press', movement:'push' }, { push:{irritability:'high', part:'shoulder'} }),
     expect: (r)=> r===null ? {pass:true} : {pass:false, note:`expected null (skipped) — got ${JSON.stringify(r)}`} },
+
+  { id:'spine_neutral_passes_high_back_flag', backlogRef:'v1.1', description:'spineLoad:low exercise survives a HIGH back flag, clearly labelled',
+    setup: async ()=>{},
+    run: async ()=> applyInjurySafety({ name:'Machine Chest Press', movement:'push', spineLoad:'low' }, { push:{irritability:'high', part:'lower back'} }),
+    expect: (r)=> (r && r.injuryFlagged===true && r.name.includes('spine-neutral')) ? {pass:true} : {pass:false, note:`expected labelled spine-neutral pass — got ${JSON.stringify(r)}`} },
+
+  { id:'spine_exemption_is_tissue_not_pattern', backlogRef:'v1.1', description:'spineLoad:low does NOT bypass a HIGH shoulder flag on the same movement',
+    setup: async ()=>{},
+    run: async ()=> applyInjurySafety({ name:'Machine Chest Press', movement:'push', spineLoad:'low' }, { push:{irritability:'high', part:'shoulder'} }),
+    expect: (r)=> r===null ? {pass:true} : {pass:false, note:`shoulder flag must still remove it — got ${JSON.stringify(r)}`} },
 
   { id:'plateau_despite_good_recovery', backlogRef:'§19', description:'Plateau despite good recovery — should suggest stimulus change, not fatigue',
     setup: async ()=>{
