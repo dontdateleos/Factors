@@ -47,6 +47,9 @@
     --warn:#d98a00;
     --good:#5c6b0f;
     --bone:#e9e2c8;
+    --reverse-bg:#0c0d0b;   /* dark fill for buttons/badges — independent of --text */
+    --on-light:#0c0d0b;     /* text on any light fill (inputs, tags, outline buttons) */
+    --on-light-dim:#191a0e; /* secondary text on a light fill */
     --ink:#0c0d0b;
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -56,7 +59,7 @@
     --block-blue:#7dd8ef;
     --block-yellow:#f0c419;
     --block-purple:#c2b0f7;
-    --block-red:#aba6a0;
+    --block-red:#ff92ac;
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
     --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
@@ -70,14 +73,6 @@
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
-  /* The bar is 428px of tabs in a 390px viewport, so "Settings" is cut by the screen
-     edge. It has always been scrollable — the problem was that a hard clip reads as a
-     rendering fault rather than an invitation. The fade is applied by class, toggled on
-     actual scroll position, so it disappears once you reach the end instead of implying
-     there is more when there isn't. */
-  .tabs.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, #000 80%, rgba(0,0,0,0.15) 100%); }
-  .tabs.tabs-more-left{ -webkit-mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to left, #000 80%, rgba(0,0,0,0.15) 100%); }
-  .tabs.tabs-more-left.tabs-more-right{ -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); mask-image:linear-gradient(to right, rgba(0,0,0,0.15) 0%, #000 20%, #000 80%, rgba(0,0,0,0.15) 100%); }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   .tab svg{ width:18px; height:18px; }
   .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
@@ -142,19 +137,19 @@
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
-  .rating-btn.active{ background:var(--text); color:var(--bg); }
+  .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mobility-legend{ margin-bottom:10px; }
   .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
   .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   .evidence-badge{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
-  .evidence-badge.strong{ background:var(--text); color:var(--bg); }
+  .evidence-badge.strong{ background:var(--reverse-bg); color:var(--bg); }
   .evidence-badge.moderate{ background:transparent; border:1.5px solid var(--text); color:var(--text); }
   .evidence-badge.practical{ background:transparent; border:1px solid var(--dim); color:var(--dim); }
   .field-label{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); width:112px; flex-shrink:0; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
-  .src-tag{ font-family:var(--mono); font-size:var(--fs-tag); padding:2px 6px; border-radius:0; color:var(--text); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:var(--fw-bold); }
+  .src-tag{ font-family:var(--mono); font-size:var(--fs-tag); padding:2px 6px; border-radius:0; color:var(--on-light); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:var(--fw-bold); }
   .src-tag.oura{ background:var(--block-purple); }
   .src-tag.garmin{ background:var(--block-blue); }
-  .src-tag.secondary{ background:var(--accent-dim); color:var(--text); }
+  .src-tag.secondary{ background:var(--accent-dim); color:var(--on-light); }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px 10px; border-radius:0; min-width:0; }
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
      a select sized itself to its longest OPTION and pushed the whole page sideways.
@@ -176,7 +171,7 @@
 
   footer{ position:fixed; bottom:0; left:0; right:0; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
-  button{ font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--text); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
+  button{ font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--reverse-bg); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
   .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
@@ -186,10 +181,10 @@
   .trend-arrow{ font-size:var(--fs-tag); margin-left:4px; }
   .trend-arrow.down{ color:var(--text); }
   .trend-arrow.up{ color:var(--text); }
-  button.primary{ background:var(--text); color:var(--bg); border-color:var(--border-bold); font-weight:var(--fw-bold); }
+  button.primary{ background:var(--reverse-bg); color:var(--bg); border-color:var(--border-bold); font-weight:var(--fw-bold); }
   button.small{ flex:none; height:31px; padding:0 12px; font-size:var(--fs-tag); }
-  button.outline{ background:var(--bg); color:var(--text); }
-  button.outline:active{ background:var(--text); color:var(--bg); opacity:1; }
+  button.outline{ background:var(--bg); color:var(--reverse-bg); }
+  button.outline:active{ background:var(--reverse-bg); color:var(--bg); opacity:1; }
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   .log{ margin-top:24px; }
@@ -222,10 +217,11 @@
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
   .log-entry:hover{ color:var(--text); }
+
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
      and dismissible because an update you're not ready for shouldn't be a wall. */
   .update-banner{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:center;
-    justify-content:space-between; gap:10px; padding:10px 14px; background:var(--text); color:var(--bg);
+    justify-content:space-between; gap:10px; padding:10px 14px; background:var(--reverse-bg); color:var(--bg);
     font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; }
   .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
   .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
@@ -291,10 +287,10 @@
     pointer-events:none; opacity:0.25; }
   .mob-scale-row{ display:flex; gap:4px; margin-top:10px; }
   .mob-scale-btn{ flex:1; height:46px; display:flex; align-items:center; justify-content:center;
-    border:2px solid var(--border-bold); background:var(--panel); color:var(--text);
+    border:2px solid var(--border-bold); background:var(--panel); color:var(--on-light);
     font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold); cursor:pointer;
     -webkit-tap-highlight-color:transparent; }
-  .mob-scale-btn.active{ background:var(--text); color:var(--bg); }
+  .mob-scale-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mob-scale-btn:active{ transform:scale(0.96); }
   .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
@@ -312,14 +308,14 @@
   .conf-sub{ grid-column:2 / -1; font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); }
   /* Superset slot marker (A1/A2) and drop-set flag. Small and monospaced so a paired
      block is scannable at a glance without competing with the exercise name. */
-  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; color:var(--bg); background:var(--text); padding:1px 4px; margin-right:6px; vertical-align:middle; }
+  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; color:var(--bg); background:var(--reverse-bg); padding:1px 4px; margin-right:6px; vertical-align:middle; }
   .drop-tag{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--dim); margin-left:6px; }
   .log-entry.ss-row{ padding-top:6px; padding-bottom:6px; }
   .d-badge{ color:var(--text); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:14px; }
-  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; background:var(--panel); }
-  .type-btn.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
+  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:var(--on-light-dim); cursor:pointer; background:var(--panel); }
+  .type-btn.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
 
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
   /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
@@ -403,7 +399,7 @@
   .rec-actions{ display:flex; gap:8px; }
 
   .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
-  .plan-pill.active{ color:var(--bg); background:var(--text); border-color:var(--border-bold); }
+  .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
   .warm-card{ border:none; border-radius:0; padding:12px 0; margin-bottom:0; background:transparent; border-bottom:1px solid var(--line); }
@@ -497,7 +493,7 @@
     </div>
 
     <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">where today's plan came from</div></div>
+      <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">why today looks like this</div></div>
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
         <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
@@ -516,7 +512,7 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
-      <div class="score-note" style="margin-bottom:10px;">Tap a day, tap a workout to edit it.</div>
+      <div class="score-note" style="margin-bottom:10px;">Tap a day, tap a workout, change it.</div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
         <select id="programSplitOverride" style="width:auto; font-size:var(--fs-lg); padding:4px 6px;">
@@ -543,17 +539,17 @@
       <div class="field-row" style="margin-top:16px; margin-bottom:0; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent; flex-wrap:wrap;">
         <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
         <label for="deloadWeekCheckbox" style="font-size:var(--fs-md); flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
-        <span id="deloadSuggestedBadge" style="display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--text); color:var(--bg); padding:3px 6px;">Suggested</span>
+        <span id="deloadSuggestedBadge" style="display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--reverse-bg); color:var(--bg); padding:3px 6px;">Suggested</span>
       </div>
       <div id="deloadSuggestedNote" class="score-note" style="display:none; margin-bottom:14px;"></div>
 
       <div class="group" style="margin-top:24px;">
-        <div class="group-head"><div class="group-title">Weekly Load</div><div class="group-sub">macro — vs your own trailing average</div></div>
+        <div class="group-head"><div class="group-title">Weekly Load</div><div class="group-sub">macro — against your own trailing average, not a chart</div></div>
         <div class="fields" id="macroInsightsBody"></div>
       </div>
 
       <div class="group" style="margin-top:16px;">
-        <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">how the sessions were chosen</div></div>
+        <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div></div>
         <div class="fields">
           <div id="generateProgramResult" class="score-note"></div>
         </div>
@@ -565,10 +561,10 @@
   <!-- GOALS PANEL -->
   <div class="panel" id="panel-goals">
       <div class="group">
-        <div class="group-head"><div class="group-title">Goals</div><div class="group-sub">up to 3, ordered by priority</div></div>
+        <div class="group-head"><div class="group-title">Goals</div><div class="group-sub">up to 3, in the order you actually mean them</div></div>
         <div class="fields">
-          <div class="score-note">Reorder with ↑↓ — the top goal gets the most weight in generated programs.</div>
-          <div class="score-note">Leave targets blank — we'll set a realistic one from your recent training.</div>
+          <div class="score-note">Reorder with ↑↓. The top one wins most arguments with the generator.</div>
+          <div class="score-note">Leave targets blank and we'll set one from what you've actually been lifting.</div>
           <div id="goalListRows"></div>
           <div class="add-row" id="addGoalRow">+ add goal</div>
         </div>
@@ -746,7 +742,7 @@
         <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
         <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
         <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
-        <div class="score-note" id="bodyMetricsLastUpdated">No metrics recorded yet.</div>
+        <div class="score-note" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
         <button id="updateBodyMetricsBtn">Update body metrics</button>
       </div>
     </div>
@@ -815,7 +811,7 @@
       </div>
     </div>
     <div class="group">
-      <div class="group-head"><div class="group-title">Goal Profile</div><div class="group-sub">shapes recovery thresholds app-wide</div></div>
+      <div class="group-head"><div class="group-title">Goal Profile</div><div class="group-sub">shapes every recovery threshold in here</div></div>
       <div class="fields">
         <select id="goalProfile">
           <option value="perform">Perform</option>
@@ -825,7 +821,7 @@
       </div>
     </div>
     <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Training Setup</div><div class="group-sub">used to shape generated programs</div></div>
+      <div class="group-head"><div class="group-title">Training Setup</div><div class="group-sub">what the generator builds around</div></div>
       <div class="fields">
         <div class="score-note">Which days can you train?</div>
         <div id="availableDaysCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
@@ -856,7 +852,7 @@
     </div>
 
     <div class="group" style="margin-top:16px;">
-      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this install is running</div></div>
+      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this copy is running</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <div id="updateCheckResult" class="score-note"></div>
@@ -1248,20 +1244,6 @@ if(!window.storage){
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
-// Keeps the tab-bar fade honest: it only shows on the side that actually has more to
-// reach, and clears once you're at that end.
-(function initTabScrollAffordance(){
-  const bar = document.querySelector('.tabs');
-  if(!bar) return;
-  function update(){
-    const more = bar.scrollWidth - bar.clientWidth;
-    bar.classList.toggle('tabs-more-right', more > 2 && bar.scrollLeft < more - 2);
-    bar.classList.toggle('tabs-more-left', more > 2 && bar.scrollLeft > 2);
-  }
-  bar.addEventListener('scroll', update, { passive:true });
-  window.addEventListener('resize', update);
-  update();
-})();
 const panels = document.querySelectorAll('.panel');
 const footerRecoveryEl = document.getElementById('footerRecovery');
 
@@ -1539,7 +1521,7 @@ async function loadBodyMetricsDisplay(asOfDate){
     document.getElementById('bodyHeight').value='';
     document.getElementById('bodyWeight').value='';
     document.getElementById('bodyFat').value='';
-    note.textContent = 'No metrics recorded yet.';
+    note.textContent = "No metrics yet. It only knows what it has been told.";
   }
 }
 
@@ -2566,7 +2548,7 @@ async function refreshRecoveryLog(){
   const list = document.getElementById('logListRecovery');
   try{
     const res = await window.storage.list('entry:');
-    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>No entries yet</span></div>'; return; }
+    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; return; }
     const dates = res.keys.map(k=>k.replace('entry:','')).sort().reverse().slice(0,14);
     list.innerHTML='';
     for(const d of dates){
@@ -2577,7 +2559,7 @@ async function refreshRecoveryLog(){
       div.addEventListener('click', ()=>{ dateInput.value=d; fillRecoveryForm(e); });
       list.appendChild(div);
     }
-  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>No entries yet</span></div>'; }
+  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; }
 }
 
 document.getElementById('saveBtnRecovery').addEventListener('click', saveRecoveryEntry);
@@ -4379,7 +4361,7 @@ async function refreshInjuries(){
   try{
     const res = await window.storage.list('injury:');
     if(!res||!res.keys||res.keys.length===0){
-      list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 20h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>No injuries logged</span></div>';
+      list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 20h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>No injuries logged. Enjoy it.</span></div>';
       return;
     }
     list.innerHTML='';
@@ -4445,7 +4427,7 @@ async function refreshInjuries(){
         refreshInjuries();
       });
     });
-  } catch(e){ list.innerHTML='<div class="log-entry">No injuries logged</div>'; }
+  } catch(e){ list.innerHTML='<div class="log-entry">No injuries logged. Enjoy it.</div>'; }
 }
 
 /* ---------- RECOMMENDATION ENGINE ---------- */
@@ -6223,7 +6205,7 @@ async function renderGoalProgress(){
   const body = document.getElementById('goalProgressBody');
   const goals = await getCurrentGoals(todayStr);
   if(!goals || !goals.list || goals.list.length===0){
-    body.innerHTML = '<div class="log-entry">No goals set yet — add at least one above.</div>';
+    body.innerHTML = '<div class="log-entry">No goals yet — pick at least one.</div>';
     return;
   }
   let html = '';
@@ -9478,7 +9460,7 @@ async function renderPrevWorkoutsForDate(){
   const sessions = await getAllTrainingSessions();
   const dayMatches = sessions.filter(s=>s.date===date).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
   if(dayMatches.length===0){
-    container.innerHTML = '<div class="score-note" style="margin-top:8px;">Nothing logged this day.</div>';
+    container.innerHTML = '<div class="score-note" style="margin-top:8px;">Nothing logged that day.</div>';
     return;
   }
   container.innerHTML = dayMatches.map(s=>{
