@@ -342,6 +342,36 @@
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
     height:34px; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
     pointer-events:none; opacity:0.25; }
+  /* The black region the lower half of the wheel is read against. Its top edge is put
+     through the middle of the focused domain name, so that one word is cut in two: the
+     tops of its letters stay dark on the page, the bottoms turn purple on the black. The
+     same trick the recommendation cards use, except the boundary is measured from the
+     glyph rather than being where a panel happens to start.
+     Full bleed: -28px cancels .fields' 14px and main's 14px both. */
+  .mob-stage{ position:relative; margin:6px -28px 0; padding:0 28px 14px; }
+  .mob-stage .mob-wheel{ position:relative; z-index:0; }
+  .mob-stage .mob-scale-row, .mob-stage .mob-step-count{ position:relative; z-index:2; }
+  /* top is written per render. Nothing here is interactive — the live wheel underneath
+     takes the drags, and the scale row sits above this in z-order. */
+  .mob-ink{ position:absolute; left:0; right:0; bottom:0; background:#0c0d0b;
+    overflow:hidden; pointer-events:none; z-index:1; }
+  /* Holds a twin of the wheel, pushed back up by exactly what the panel's top edge cut
+     off, so the two copies coincide to the pixel and only the colour changes across the
+     boundary. Raising the panel moves its children's origin with it — the same correction
+     the weekly carousel needs. */
+  .mob-ink-inner{ position:absolute; left:28px; right:28px; }
+  /* Only the focused name changes colour across the boundary — that split word is the
+     whole point of the black, and painting its neighbours purple too buried it. */
+  .mob-ink .mob-wheel-item{ color:var(--bg); }
+  .mob-ink .mob-wheel-item.focused .mob-wheel-name{ color:var(--block-purple); }
+  .mob-ink .mob-wheel-score{ color:rgba(251,250,246,0.55); }
+  .mob-ink .mob-wheel-item.focused .mob-wheel-score{ color:var(--block-purple); }
+  .mob-ink .mob-wheel-focus-line{ border-top-color:var(--bg); border-bottom-color:var(--bg); }
+  .mob-stage .mob-step-count{ color:rgba(251,250,246,0.7); }
+  .mob-stage .mob-scale-btn{ border-color:var(--bg); }
+  /* Selected reads as black-on-light everywhere else in the app; on the black that is the
+     ground itself, so the fill takes the tab's purple instead. */
+  .mob-stage .mob-scale-btn.active{ background:var(--block-purple); color:var(--on-light); border-color:var(--block-purple); }
   .mob-scale-row{ display:flex; gap:4px; margin-top:10px; }
   .mob-scale-btn{ flex:1; height:46px; display:flex; align-items:center; justify-content:center;
     border:2px solid var(--border-bold); background:var(--panel); color:var(--on-light);
@@ -388,32 +418,9 @@
      sitting above a rule. The title is filled in as an edge word at render time. */
   .header-panel{ position:relative; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 0; padding:0 14px 16px; overflow:visible; }
   .header-panel .edge-word{ --edge-word-size:28px; }
-  .header-panel.mobility .edge-word{ --edge-word-colour:var(--block-purple); }
   .header-panel .field-label{ color:rgba(251,250,246,0.7); }
   .header-panel label, .header-panel .score-note{ color:rgba(251,250,246,0.75); }
-  .header-panel .group-sub{ color:rgba(251,250,246,0.7); }
   .header-panel .fields{ padding-left:0; padding-right:0; }
-  /* The panel's own disclosure row. The summary line doubles as the hit target, so the
-     split heading above it stays untouchable — it is a positioned zero-height element and
-     makes a poor button. */
-  .header-panel-toggle{ display:flex; justify-content:space-between; align-items:center;
-    gap:12px; cursor:pointer; padding:2px 0 6px; }
-  .header-panel-toggle .group-sub{ flex-basis:auto; }
-  .header-panel-toggle span{ font-size:var(--fs-sm); color:rgba(251,250,246,0.7);
-    transition:transform 0.15s; flex:none; }
-  /* The mobility wheel is drawn for a light page. On the panel every one of its greys
-     inverts, or it is a black list on a black ground. */
-  .header-panel .mob-wheel-item{ color:var(--bg); }
-  .header-panel .mob-wheel-score{ color:rgba(251,250,246,0.5); }
-  .header-panel .mob-wheel-item.focused .mob-wheel-score{ color:var(--bg); }
-  .header-panel .mob-wheel-focus-line{ border-top-color:var(--bg); border-bottom-color:var(--bg); opacity:0.4; }
-  .header-panel .mob-step-count{ color:rgba(251,250,246,0.7); }
-  .header-panel .mob-scale-btn{ border-color:var(--bg); }
-  /* Selected reads as black-on-light everywhere else in the app; here that is the panel
-     itself, so the fill carries the panel's own accent instead. */
-  .header-panel .mob-scale-btn.active{ background:var(--block-purple); color:var(--on-light); border-color:var(--block-purple); }
-  .header-panel .mobility-legend summary{ color:rgba(251,250,246,0.7); }
-  .header-panel .mobility-legend-body{ color:rgba(251,250,246,0.75); }
   /* Buttons are black-on-light by default, which is invisible on the panel. */
   .header-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .header-panel button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
@@ -855,11 +862,10 @@
         </div>
       </div>
 
-      <div class="group header-panel mobility">
-        <div class="header-panel-title">Mobility Assessment</div>
-        <div class="header-panel-toggle" id="mobilityAssessmentToggleHeader">
-          <div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div>
-          <span id="mobilityAssessmentChevron">▾</span>
+      <div class="group" style="margin-top:16px;">
+        <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+          <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
+          <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
         </div>
         <div class="fields" id="mobilityAssessmentBody" style="display:none;">
           <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
@@ -1850,7 +1856,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.34';
+const APP_VERSION = '2026.08.25.35';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3460,6 +3466,56 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
 }
 document.getElementById('addSkillGoalRow').addEventListener('click', ()=>addSkillGoalRow());
 
+// Puts the black region's top edge through the middle of the focused domain name, then
+// hangs a twin of the wheel inside it. Everything above the edge stays dark on the page,
+// everything below is purple on black, and the focused word is cut across its own letters.
+//
+// The boundary is measured from the glyph rather than taken as a fraction of the row: the
+// names are mixed case, so the middle of the WORD is the middle of its capitals, which is
+// nowhere near the middle of a 34px row. Measured against the whole name rather than one
+// character for the same reason — the split has to look centred on "Ankles", not on 'n'.
+function positionMobilityInk(container){
+  const stage = container.querySelector('.mob-stage');
+  const ink = stage && stage.querySelector('.mob-ink');
+  const inner = ink && ink.querySelector('.mob-ink-inner');
+  const wheel = stage && stage.querySelector('.mob-wheel');
+  const nameEl = wheel && wheel.querySelector('.mob-wheel-item.focused .mob-wheel-name');
+  if(!stage || !ink || !inner || !wheel || !nameEl) return;
+  // A hidden section has no layout to measure; the toggle re-renders on open, so skipping
+  // here costs nothing.
+  const nameRect = nameEl.getBoundingClientRect();
+  if(!nameRect.height) return;
+
+  const cs = getComputedStyle(nameEl);
+  const ctx = positionMobilityInk._ctx
+    || (positionMobilityInk._ctx = document.createElement('canvas').getContext('2d'));
+  ctx.font = `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
+  const m = ctx.measureText(nameEl.textContent || 'X');
+  // Where the baseline sits inside the rendered line box, then the ink's midpoint about it.
+  const baseline = (nameRect.height - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
+    + m.fontBoundingBoxAscent;
+  const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  const stageRect = stage.getBoundingClientRect();
+  const boundary = (nameRect.top - stageRect.top) + centre;
+
+  ink.style.top = boundary + 'px';
+  inner.innerHTML = '';
+  const twin = wheel.cloneNode(true);
+  twin.removeAttribute('id');
+  // The falloff was set for dark type on a light page. The neighbours sit wholly inside
+  // the black (only the focused row straddles the edge, so nothing is lightened on one
+  // side and not the other), and light type at 0.28 on black all but vanishes.
+  twin.querySelectorAll('.mob-wheel-item[data-offset]').forEach(el=>{
+    const o = parseFloat(el.style.opacity);
+    if(o > 0 && o < 1) el.style.opacity = Math.min(1, o * 1.7);
+  });
+  inner.appendChild(twin);
+  // The panel is the twin's offset parent, so its own top edge is the twin's origin. Push
+  // the twin back up by exactly that, or the copy sits `boundary` px below the wheel it is
+  // meant to coincide with and the word reads as doubled rather than split.
+  inner.style.top = (-boundary) + 'px';
+}
+
 async function renderMobilityAssessment(skipCollapse){
   const container = document.getElementById('mobilityAssessmentRows');
   const existing = await getMobilityAssessment();
@@ -3514,14 +3570,17 @@ async function renderMobilityAssessment(skipCollapse){
   }
 
   const stepperHtml = `
-    <div class="mob-wheel" id="mobWheel">
-      ${wheelItems.join('')}
-      <div class="mob-wheel-focus-line"></div>
+    <div class="mob-stage">
+      <div class="mob-ink"><div class="mob-ink-inner"></div></div>
+      <div class="mob-wheel" id="mobWheel">
+        ${wheelItems.join('')}
+        <div class="mob-wheel-focus-line"></div>
+      </div>
+      <div class="mob-scale-row">
+        ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}">${l}</div>`).join('')}
+      </div>
+      <div class="mob-step-count">${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
     </div>
-    <div class="mob-scale-row">
-      ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}">${l}</div>`).join('')}
-    </div>
-    <div class="mob-step-count">${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
     <div style="display:none;">
       ${MOBILITY_DOMAINS.map(d=>`<div class="mobility-domain-row" data-domain="${d}">${
         [1,2,3,4,5].map(l=>`<div class="rating-btn ${mobilityDraftScores[d]===l?'active':''}" data-level="${l}"></div>`).join('')
@@ -3629,7 +3688,10 @@ async function renderMobilityAssessment(skipCollapse){
     : isStale
       ? `Last rated ${staleDays} days ago — worth re-testing`
       : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
-  if(skipCollapse) return;
+  // Placed only once the section's visibility for this render is settled. The boundary is
+  // measured from laid-out text, and a collapsed section has none — running it before the
+  // block below meant the very first render always measured zero and left the ink unplaced.
+  if(skipCollapse){ positionMobilityInk(container); return; }
   const body = document.getElementById('mobilityAssessmentBody');
   const chevron = document.getElementById('mobilityAssessmentChevron');
   if(assessedCount === 0 || isStale){
@@ -3637,6 +3699,7 @@ async function renderMobilityAssessment(skipCollapse){
     // assessment is the same problem as no assessment, just less visible.
     body.style.display = 'flex';
     chevron.style.transform = 'rotate(180deg)';
+    positionMobilityInk(container);
   } else {
     body.style.display = 'none';
     chevron.style.transform = 'rotate(0deg)';
@@ -3650,6 +3713,9 @@ document.getElementById('mobilityAssessmentToggleHeader').addEventListener('clic
   chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
   if(isHidden){
     body.classList.remove('snap-reveal'); void body.offsetWidth; body.classList.add('snap-reveal');
+    // The ink boundary is measured from laid-out text, and there is none while the section
+    // is closed — so the first render after an open has to place it again.
+    positionMobilityInk(document.getElementById('mobilityAssessmentRows'));
   }
 });
 document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', async ()=>{
@@ -4010,14 +4076,12 @@ async function renderWeekGrid(){
           ? Math.max(10, Math.round((realSets / maxSets) * 46))
           : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
         const n = realSets > 0 ? realSets : null;
-        // The current week is the only solid bar; every other week is white inside an
-        // outline. Before this they were all the same black shape at three opacities, so
-        // "which week am I on" was a judgement about grey levels. Filled vs hollow is a
-        // difference in kind, and it survives being glanced at. Past and future still
-        // separate, but now only in the weight of the outline.
-        const barStyle = isNow
-          ? 'background:var(--reverse-bg); border:2px solid var(--border-bold);'
-          : `background:var(--panel); border:2px solid rgba(12,13,11,${isPast ? 0.8 : 0.32});`;
+        // The current week is the only solid bar; every other week is plain white. Before
+        // this they were all the same black shape at three opacities, so "which week am I
+        // on" was a judgement about grey levels. Filled vs empty is a difference in kind
+        // and survives being glanced at. Past and future no longer read apart — the week
+        // labels underneath carry that, and an outline drawn faintly enough not to compete
+        // with the filled bar was too faint to tell two greys apart anyway.
         // The bars live in a band of their own rather than sizing the row. The row had a
         // fixed height while a column was a bar plus three lines of text, so the tallest
         // bar pushed its own number up out of the row and into the caption above it.
@@ -4027,7 +4091,7 @@ async function renderWeekGrid(){
         cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
           <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; ${barStyle}"></div>
+            <div style="width:100%; height:${h}px; background:${isNow ? 'var(--reverse-bg)' : '#ffffff'};"></div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
           <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
