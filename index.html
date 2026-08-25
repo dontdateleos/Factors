@@ -7870,59 +7870,76 @@ function assignSlotsWithAdjacency(dates, strengthSlots, runSlots){
   // the pairing the overlap table already scores at 0.85. Greedy: place the heaviest unit
   // first, then repeatedly take whichever remaining unit conflicts least with the one
   // just placed.
+  // conflictScore measures recovery OVERLAP, and two easy runs genuinely overlap very
+  // little — 0.2, lower than an easy run beside an upper-body day. Left to that number
+  // alone the greedy actively chains easy runs onto consecutive days: it is picking the
+  // least-conflicting neighbour and another easy run always is one. Recovery overlap
+  // isn't the only reason to separate two sessions of the same kind, so landing on
+  // consecutive calendar days carries an explicit same-kind penalty. Sized to outweigh
+  // the easy-run pairings it has to beat (easy beside heavy lower is 1.5) and to stay far
+  // below the collisions that genuinely matter (heavy_lower|heavy_lower is 8.1), so it
+  // reorders only where nothing more important is at stake.
+  const SAME_KIND_ADJACENT_PENALTY = 2;
+  const unitKind = u => u.some(s => s.kind === 'run') ? 'run' : 'strength';
+  const worstOverlap = (unitA, unitB) => {
+    let worst = 0;
+    unitA.forEach(a => unitB.forEach(b => {
+      worst = Math.max(worst, conflictScore(a.stressType, b.stressType, a.stressWeight, b.stressWeight));
+    }));
+    return worst;
+  };
+  // What it costs for these two units to land on consecutive days.
+  const adjacentCost = (unitA, unitB) =>
+    worstOverlap(unitA, unitB) + (unitKind(unitA) === unitKind(unitB) ? SAME_KIND_ADJACENT_PENALTY : 0);
+  // Cost of a whole week: every pair of units that ends up on consecutive days.
+  const placementCost = pl => {
+    let total = 0;
+    for(let a=0; a<pl.length; a++){
+      for(let b=a+1; b<pl.length; b++){
+        if(Math.abs(pl[a].dateIdx - pl[b].dateIdx) === 1) total += adjacentCost(pl[a].unit, pl[b].unit);
+      }
+    }
+    return total;
+  };
   const ordered = [];
   const pool = placedUnits.slice();
   if(pool.length) ordered.push(pool.shift());
   while(pool.length){
     const prev = ordered[ordered.length - 1];
+    // Only penalize when the two units actually land on consecutive days — an even spread
+    // usually leaves a rest day between them, and across a gap the kinds don't matter.
+    const prevDateIdx = usedIndices[ordered.length - 1];
+    const nextDateIdx = usedIndices[ordered.length];
+    const landsAdjacent = prevDateIdx != null && nextDateIdx != null && (nextDateIdx - prevDateIdx) === 1;
     let bestIdx = 0, bestScore = Infinity;
     for(let c = 0; c < pool.length; c++){
-      let worst = 0;
-      prev.forEach(pa => pool[c].forEach(pb => {
-        worst = Math.max(worst, conflictScore(pa.stressType, pb.stressType, pa.stressWeight, pb.stressWeight));
-      }));
+      let worst = worstOverlap(prev, pool[c]);
+      if(landsAdjacent && unitKind(pool[c]) === unitKind(prev)) worst += SAME_KIND_ADJACENT_PENALTY;
       if(worst < bestScore){ bestScore = worst; bestIdx = c; }
     }
     ordered.push(pool.splice(bestIdx, 1)[0]);
   }
   const placement = ordered.map((unit, unitIdx) => ({ dateIdx: usedIndices[unitIdx], unit }));
 
-  // Conflict-weighted repair: for each high-stress unit, check total conflict against
-  // its immediate neighbors; if above threshold, try swapping with a clean placement
-  // elsewhere. Generalizes the old binary heavy-lower-vs-run check to the full table.
+  // Repair by minimising the cost of the WHOLE week, swapping any two units whenever that
+  // lowers it. The previous pass scored only the moved unit against its new neighbours: it
+  // never counted what the displaced unit inherited, so a swap could read as an
+  // improvement while making the week worse. It also fired only above a fixed threshold,
+  // and since two easy runs score 0.2 and two strength days 0.9, a same-kind cluster never
+  // crossed it — the pass would break up a legitimate alternating week to relieve one
+  // heavy day and pile the runs together, which is exactly the layout it exists to avoid.
+  // Both units of a swap are now priced, and same-kind adjacency is part of the price.
   let swapped = true, iterations = 0;
-  while(swapped && iterations < 12){
+  let cost = placementCost(placement);
+  while(swapped && iterations < 24){
     swapped = false; iterations++;
-    for(let p=0; p<placement.length; p++){
-      const stressTypes = placement[p].unit.map(u=>u.stressType);
-      const neighborConflict = placement.reduce((sum, other, oi) => {
-        if(oi===p) return sum;
-        const dist = Math.abs(other.dateIdx - placement[p].dateIdx);
-        if(dist > 1) return sum;
-        const otherTypes = other.unit.map(u=>u.stressType);
-        let pairSum = 0;
-        stressTypes.forEach(a=>otherTypes.forEach(b=>{ pairSum += conflictScore(a,b); }));
-        return sum + pairSum;
-      }, 0);
-      if(neighborConflict <= 2.5) continue;
-      for(let j=0; j<placement.length; j++){
-        if(j===p) continue;
-        if(Math.abs(placement[j].dateIdx - placement[p].dateIdx) <= 1) continue;
-        const testConflict = placement.reduce((sum, other, oi) => {
-          if(oi===p || oi===j) return sum;
-          const dist = Math.abs(other.dateIdx - placement[j].dateIdx);
-          if(dist > 1) return sum;
-          const otherTypes = other.unit.map(u=>u.stressType);
-          let pairSum = 0;
-          stressTypes.forEach(a=>otherTypes.forEach(b=>{ pairSum += conflictScore(a,b); }));
-          return sum + pairSum;
-        }, 0);
-        if(testConflict < neighborConflict){
-          [placement[p].dateIdx, placement[j].dateIdx] = [placement[j].dateIdx, placement[p].dateIdx];
-          swapped = true; break;
-        }
+    for(let a=0; a<placement.length && !swapped; a++){
+      for(let b=a+1; b<placement.length; b++){
+        [placement[a].dateIdx, placement[b].dateIdx] = [placement[b].dateIdx, placement[a].dateIdx];
+        const after = placementCost(placement);
+        if(after < cost - 1e-9){ cost = after; swapped = true; break; }
+        [placement[a].dateIdx, placement[b].dateIdx] = [placement[b].dateIdx, placement[a].dateIdx];
       }
-      if(swapped) break;
     }
   }
 
