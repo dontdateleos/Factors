@@ -2001,15 +2001,39 @@ async function syncOuraDataForDate(date){
   sixtyDaysBack.setDate(sixtyDaysBack.getDate() - 60);
   const rangeStart = localDateStr(sixtyDaysBack);
 
-  const [sleepData, dailySleepData, readinessData, activityData, stressData, resilienceData, restModeData] = await Promise.all([
-    fetchOuraEndpoint('sleep', token, date),
-    fetchOuraEndpoint('daily_sleep', token, date),
-    fetchOuraEndpoint('daily_readiness', token, date),
-    fetchOuraEndpoint('daily_activity', token, date),
-    fetchOuraEndpoint('daily_stress', token, date),
-    fetchOuraEndpoint('daily_resilience', token, date),
-    fetchOuraEndpoint('rest_mode_period', token, date, rangeStart), // period-based, needs a wider window
-  ]);
+  // Promise.all rejects on the FIRST failure, so a single endpoint the account can't
+  // read — daily_resilience answers 401 for tokens whose grant doesn't cover it —
+  // discarded the entire sync, including the sleep, HRV and readiness that had all
+  // returned perfectly well. Each endpoint now stands or falls on its own; only losing
+  // every core endpoint is a real failure worth reporting as one.
+  const OURA_ENDPOINTS = [
+    { key:'sleep',      name:'sleep',           core:true },
+    { key:'dailySleep', name:'daily_sleep',     core:true },
+    { key:'readiness',  name:'daily_readiness', core:true },
+    { key:'activity',   name:'daily_activity' },
+    { key:'stress',     name:'daily_stress' },
+    { key:'resilience', name:'daily_resilience' },
+    { key:'restMode',   name:'rest_mode_period', start: rangeStart }, // period-based, needs a wider window
+  ];
+  const settled = await Promise.allSettled(
+    OURA_ENDPOINTS.map(e => fetchOuraEndpoint(e.name, token, date, e.start)));
+  const got = {}, failures = [];
+  settled.forEach((r, i) => {
+    const e = OURA_ENDPOINTS[i];
+    if(r.status === 'fulfilled'){ got[e.key] = r.value; return; }
+    got[e.key] = { data: [] };
+    failures.push({ name: e.name, core: !!e.core, message: (r.reason && r.reason.message) || 'failed' });
+  });
+  const coreEndpoints = OURA_ENDPOINTS.filter(e => e.core).length;
+  if(failures.filter(f => f.core).length === coreEndpoints){
+    // Everything that matters failed — that's an authorization problem, not a gap.
+    throw new Error(failures.some(f => /HTTP 401/.test(f.message))
+      ? 'Oura rejected the request (401) — tap Disconnect, then Connect Oura to re-authorize'
+      : `Oura sync failed — ${failures[0].message}`);
+  }
+  const sleepData = got.sleep, dailySleepData = got.dailySleep, readinessData = got.readiness,
+        activityData = got.activity, stressData = got.stress, resilienceData = got.resilience,
+        restModeData = got.restMode;
 
   // Each endpoint's `data` array can have 0+ entries for the date (0 if no data
   // synced yet that day, 2+ if there was a long sleep plus a nap) — take the
@@ -2084,7 +2108,7 @@ async function syncOuraDataForDate(date){
   // expects, and the app already computes its own trailing baseline internally.
 
   await window.storage.set(keyFor(date), JSON.stringify(updated));
-  return { ...updated, _noDataAtAll: noDataAtAll };
+  return { ...updated, _noDataAtAll: noDataAtAll, _skipped: failures };
 }
 
 async function syncOuraSelectedDate(){
@@ -2098,7 +2122,12 @@ async function syncOuraSelectedDate(){
       await logOuraDebug(`Connected to Oura, but no data available for ${dateLabel} — this is normal if the ring hadn't synced to the Oura app yet, or didn't record a sleep session that night.`);
       showToast(`No Oura data available for ${dateLabel}`);
     } else {
-      await logOuraDebug(`Synced ${dateLabel} — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}`);
+      // Name what was skipped rather than hiding it: the data still landed, but a
+      // permanently unreadable endpoint is worth knowing about.
+      const skipped = (entry._skipped || []).length
+        ? ` (skipped ${entry._skipped.map(f=>f.name).join(', ')} — ${entry._skipped[0].message})`
+        : '';
+      await logOuraDebug(`Synced ${dateLabel} — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}${skipped}`);
       if(dateInput.value === targetDate){ fillRecoveryForm(entry); }
       showToast(`Oura data synced for ${dateLabel}`);
     }
