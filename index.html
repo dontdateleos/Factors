@@ -3420,6 +3420,28 @@ async function isDeloadWeek(date){
 // lets it match the same thick, intentional weight the score numbers now use.
 const SCORE_PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg>';
 
+// planned_session:<date> is only ever a MIRROR of that day's scheduled strength block —
+// the Daily and Today views read it instead of the weekplan directly. Deleting a block,
+// clearing the week, or replacing a strength slot with a run/mobility one all left the
+// mirror behind, so Today went on showing a strength session that was no longer
+// scheduled. Call this after any change to a day's blocks so the mirror can't drift.
+async function syncPlannedSessionMirror(date){
+  let strengthBlock = null;
+  for(const slot of ['am','pm']){
+    try{
+      const r = await window.storage.get(`weekplan:${date}:${slot}`);
+      const b = JSON.parse(r.value);
+      if(b.type==='strength'){ strengthBlock = b; break; }
+    } catch(e){}
+  }
+  const exercises = (strengthBlock && strengthBlock.details && strengthBlock.details.exercises) || [];
+  if(exercises.length){
+    await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag: strengthBlock.details.workoutTag }));
+  } else {
+    try{ await window.storage.delete(`planned_session:${date}`); } catch(e){}
+  }
+}
+
 document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
   if(!confirm('Clear every scheduled block this week? This cannot be undone.')) return;
   const dates = getWeekDates();
@@ -3432,6 +3454,7 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
         cleared++;
       } catch(e){}
     }
+    await syncPlannedSessionMirror(date);
   }
   showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear');
   renderWeekGrid();
@@ -3734,6 +3757,7 @@ async function placeBlock(date, slot, type){
   try{
     const result = await window.storage.set(`weekplan:${date}:${slot}`, JSON.stringify(block));
     if(!result) throw new Error('save failed');
+    await syncPlannedSessionMirror(date);
     showToast(`${type} scheduled`);
   } catch(e){ showToast('Save failed — try again', true); return; }
   await renderWeekGrid();
@@ -3946,6 +3970,7 @@ function openBlockEditor(date, slot, block){
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
     try{
       await window.storage.delete(`weekplan:${date}:${slot}`);
+      await syncPlannedSessionMirror(date);
       showToast('Block removed');
     } catch(e){ showToast('Delete failed — try again', true); }
     panel.style.display = 'none';
@@ -4014,9 +4039,7 @@ function openBlockEditor(date, slot, block){
       if(!result) throw new Error('save failed');
       // mirror strength blocks into planned_session so the Daily tab's existing
       // "load plan for date" behavior picks this up automatically when that day arrives
-      if(block.type==='strength' && details.exercises.length){
-        await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises: details.exercises }));
-      }
+      await syncPlannedSessionMirror(date);
     } catch(e){ /* surfaced by the caller's own toast — see logWeekSessionBtn below */ }
   }
 document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=>{
@@ -10743,7 +10766,13 @@ async function getTodaysBlockAndSlotForType(type){
 
 async function getTodaysBlockForType(type){
   if(type==='strength'){
-    const exercises = await getPlannedExercisesToday();
+    // Guard against a stale planned_session mirror outliving the block it mirrored: if
+    // nothing of type strength is scheduled today, there is no strength session today,
+    // whatever the mirror still says.
+    const scheduled = await getTodaysBlockAndSlotForType('strength');
+    if(!scheduled) return null;
+    const mirrored = await getPlannedExercisesToday();
+    const exercises = mirrored.length ? mirrored : ((scheduled.block.details && scheduled.block.details.exercises) || []);
     return exercises.length ? { type:'strength', details:{ exercises } } : null;
   }
   for(const slot of ['am','pm']){
@@ -10971,8 +11000,15 @@ async function blockSummaryHtml(block){
             + (cue ? `<div class="mob-cue">${cue}</div>` : '');
         });
       }
+      // GOAL lines read as a bare skill name and a level number, which says nothing about
+      // what the block is for or what the arrow means. One line of plain English under the
+      // header, only where it's needed.
+      const catNote = cat==='goal'
+        ? `<div class="mob-cue" style="padding:2px 0 4px;">Direct practice on your skill goal — the level shown is where you are now, and an arrow (L2 → L3) means today also tests whether you're ready to move up.</div>`
+        : '';
       html += `<div class="mobility-cat-group">
         <div class="mobility-cat-label">${categoryLabels[cat]}</div>
+        ${catNote}
         ${itemLines.map(t=>`<div class="mobility-cat-item">→ ${t}</div>`).join('')}
       </div>`;
     });
