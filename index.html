@@ -1353,6 +1353,7 @@ function activateTab(name){
   if(name==='insights'){ generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab(); generateWarmup().then(()=>generateMobility()); }
   if(name==='training'){
     activateTrainingSubView('weekly');
+    restorePlanSummary();
   }
   if(name==='goals'){ loadCurrentGoals(); renderMobilityAssessment(); }
   if(name==='injuries'){ refreshInjuries(); renderInjuryRetrospective(); }
@@ -1666,7 +1667,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.2';
+const APP_VERSION = '2026.08.25.3';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -10169,6 +10170,17 @@ async function checkSessionLengthFit(){
   return { target, strengthFit, mobilityFit };
 }
 
+// Puts the stored explanation back after a reload. Skips a summary from an earlier week
+// — it would describe a week that is no longer the one on screen.
+async function restorePlanSummary(){
+  const result = document.getElementById('generateProgramResult');
+  if(!result || result.textContent.trim()) return;
+  try{
+    const v = JSON.parse((await window.storage.get(`planSummary:${getWeekDates()[0]}`)).value);
+    if(v && v.html) result.innerHTML = v.html;
+  } catch(e){}
+}
+
 document.getElementById('generateProgramFromGoalsBtn').addEventListener('click', async ()=>{
   const result = document.getElementById('generateProgramResult');
   const numWeeks = parseInt(document.getElementById('programWeeksSelect').value, 10);
@@ -10229,6 +10241,10 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     }
     result.innerHTML = msg;
     result.style.color = 'var(--text)';
+    // The generated week persists but the reason for it didn't: this explanation only
+    // existed in the DOM from the moment Generate was pressed, so any reload left the
+    // section that explains the week blank while the week itself was still there.
+    try{ await window.storage.set(`planSummary:${getWeekDates()[0]}`, JSON.stringify({ html: msg, at: new Date().toISOString() })); } catch(e){}
     showToast(`${numWeeks} week${numWeeks===1?'':'s'} generated`);
     renderWeekGrid();
   } catch(e){
@@ -12217,9 +12233,33 @@ async function refreshPlanSourceDisplay(){
   const container = document.getElementById('planCheckboxes');
   const label = document.getElementById('planSourceLabel');
   const plannedExercises = await getPlannedExercisesToday();
+  // getPlannedExercisesToday only knows about the strength mirror, so a scheduled run or
+  // mobility day reported "no plan saved for today" while the session sat right there on
+  // the Weekly tab. Today's session isn't always a strength one.
+  const scheduled = [];
+  for(const slot of ['am','pm']){
+    try{ scheduled.push(JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value)); } catch(e){}
+  }
   if(plannedExercises.length > 0){
     container.style.display = 'none';
     label.innerHTML = `Using today's planned session: <strong style="color:var(--text);">${plannedExercises.map(e=>e.name).join(', ')}</strong> — saved on the Weekly tab. Select below only to add extra focus areas.`;
+    label.style.display = 'block';
+  } else if(scheduled.length){
+    const describe = b => {
+      if(b.type==='run'){
+        const d = b.details||{};
+        const kind = d.runType ? `${d.runType} run` : 'run';
+        return d.walkRun ? `${kind} (walk-run intervals)` : (d.distanceKm ? `${kind}, ${d.distanceKm}km` : kind);
+      }
+      if(b.type==='mobility'){
+        const n = (b.details.stretches||[]).length;
+        return `mobility session (${n} exercise${n===1?'':'s'})`;
+      }
+      const names = (b.details.exercises||[]).map(e=>e.name).filter(Boolean);
+      return names.length ? names.join(', ') : 'strength session';
+    };
+    container.style.display = 'flex';
+    label.innerHTML = `Today's planned session: <strong style="color:var(--text);">${scheduled.map(describe).join(' + ')}</strong> — saved on the Weekly tab. Select below only to add extra focus areas.`;
     label.style.display = 'block';
   } else {
     container.style.display = 'flex';
