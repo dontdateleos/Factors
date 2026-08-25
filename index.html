@@ -252,7 +252,11 @@
   /* A flag on one exercise: what an active injury says should change about it, and the
      two answers. Yellow because it is the one thing in a plan row asking for a decision. */
   .ex-flag{ display:flex; align-items:center; gap:8px; margin:9px 0 1px 20px; background:var(--block-yellow); color:var(--on-light); padding:5px 5px 5px 8px; }
-  .ex-flag-label{ flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.1em; }
+  /* Red where the injury is irritable enough that the plan shouldn't stand as written. */
+  .ex-flag.high{ background:var(--bad); color:var(--bg); }
+  .ex-flag.high .ex-flag-btn{ border-color:var(--bg); color:var(--bg); }
+  .ex-flag.high .ex-flag-btn.accept{ background:var(--bg); color:var(--bad); }
+  .ex-flag-label{ flex:none; white-space:nowrap; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.1em; }
   .ex-flag-text{ flex:1; min-width:0; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.01em; line-height:1.35; }
   .ex-flag-btn{ flex:none; width:26px; height:26px; min-width:26px; padding:0; border:2px solid var(--on-light); border-radius:0; background:transparent; color:var(--on-light); font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .ex-flag-btn.accept{ background:var(--on-light); color:var(--block-yellow); }
@@ -1788,7 +1792,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.26';
+const APP_VERSION = '2026.08.25.27';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -11668,6 +11672,9 @@ function injuryFlagForExercise(ex, movementFlags){
   if(!movement) return null;
   const flag = movementFlags[movement];
   if(!flag) return null;
+  // Severity drives the colour: red where the injury is irritable enough that the plan
+  // shouldn't stand, yellow where it's a nudge. Text is kept to the part and the answer —
+  // this sits inside a plan row, so a sentence would out-weigh the exercise above it.
   if(flag.irritability === 'high'){
     // Already the spine-neutral variant against a spinal flag — this IS the substitution,
     // so there is nothing left to offer. Without this the swapped-in exercise inherits the
@@ -11675,11 +11682,11 @@ function injuryFlagForExercise(ex, movementFlags){
     if(ex.spineLoad === 'low' && isSpinePart(flag.part)) return null;
     const alt = injurySafeAltFor({ movement, area }, movementFlags);
     return alt
-      ? { kind:'substitute', label:'Swap', text:`${flag.part} flagged high — ${alt.name} instead`, alt }
-      : { kind:'remove', label:'Skip', text:`${flag.part} flagged high — no verified-safe variant of this pattern` };
+      ? { kind:'substitute', severity:'high', label:'Swap', text:`${flag.part} → ${alt.name}`, alt }
+      : { kind:'remove', severity:'high', label:'Skip', text: flag.part };
   }
   if(flag.irritability === 'moderate'){
-    return { kind:'reduce', label:'Ease off', text:`${flag.part} irritable — drop a set` };
+    return { kind:'reduce', severity:'moderate', label:'−1 set', text: flag.part };
   }
   return null;
 }
@@ -11780,7 +11787,7 @@ async function blockSummaryHtml(block){
       const decision = flagDecisions[key];
       const flag = decision ? null : injuryFlagForExercise(ex, movementFlags);
       const tag = flag
-        ? `<div class="ex-flag" data-ex-key="${encodeURIComponent(key)}" data-kind="${flag.kind}"`
+        ? `<div class="ex-flag ${flag.severity}" data-ex-key="${encodeURIComponent(key)}" data-kind="${flag.kind}"`
           + ` data-alt="${encodeURIComponent(flag.alt ? flag.alt.name : '')}">`
           + `<span class="ex-flag-label">${flag.label}</span>`
           + `<span class="ex-flag-text">${flag.text}</span>`
