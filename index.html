@@ -10805,11 +10805,35 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
     }
     const emptyDates = forcedDates || await getAvailableEmptyDates();
     if(emptyDates.length === 0) return { placed: 0 };
+    // Pick WHICH DAYS run before deciding what each run is. Types were assigned first —
+    // long pinned to the last free day, then everything else filled from the front — which
+    // bunched runs into the earliest days and left the long run stranded next to whatever
+    // landed on the day before it. Spreading the dates evenly across the week first means
+    // four runs land Mon/Wed/Fri/Sun rather than Mon/Thu/Sat/Sun. (The hybrid path doesn't
+    // come through here; it gets its spacing from assignSlotsWithAdjacency.)
+    const runCount = Math.min(tier.runsPerWeek, emptyDates.length);
+    const chosen = [];
+    for(let k=0; k<runCount; k++){
+      const idx = Math.round(k * (emptyDates.length-1) / Math.max(1, runCount-1));
+      if(!chosen.includes(idx)) chosen.push(idx);
+    }
+    // An even spread can land twice on the same index when the run count is close to the
+    // number of available days; backfill so the requested count still lands.
+    for(let i=0; i<emptyDates.length && chosen.length<runCount; i++){
+      if(!chosen.includes(i)) chosen.push(i);
+    }
+    chosen.sort((a,b)=>a-b);
+    const runDates = chosen.map(i=>emptyDates[i]);
+
     toPlace = [];
-    if(tier.longCount > 0) toPlace.push({ date: emptyDates[emptyDates.length-1], runType: 'long' });
-    const usedDates = new Set(toPlace.map(t=>t.date));
+    const usedDates = new Set();
+    if(tier.longCount > 0 && runDates.length){
+      const longDate = runDates[runDates.length-1];
+      toPlace.push({ date: longDate, runType: 'long' });
+      usedDates.add(longDate);
+    }
     let qualityPlaced = 0;
-    for(const d of emptyDates){
+    for(const d of runDates){
       if(usedDates.has(d) || qualityPlaced >= tier.qualityCount) continue;
       const lastQualityDate = toPlace.filter(t=>['tempo','interval'].includes(t.runType)).map(t=>t.date).pop();
       if(lastQualityDate){
@@ -10820,13 +10844,14 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
       usedDates.add(d);
       qualityPlaced++;
     }
-    let easyNeeded = tier.runsPerWeek - toPlace.length;
-    for(const d of emptyDates){
-      if(usedDates.has(d) || easyNeeded<=0) continue;
+    for(const d of runDates){
+      if(usedDates.has(d)) continue;
       toPlace.push({ date: d, runType: 'easy' });
       usedDates.add(d);
-      easyNeeded--;
     }
+    // Chronological, so the every-other-day companion mobility alternates down the week
+    // rather than down the order types happened to be assigned in.
+    toPlace.sort((a,b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   }
 
   let sessionLength = 45;
@@ -10836,6 +10861,51 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
     sessionLength = parseInt(setup.sessionLength, 10) || 45;
   } catch(e){}
   const personalPace = await getPersonalPaceByType();
+
+  // Companion mobility lived entirely inside generateStrengthProgram, so running days
+  // got none at all — measured on a hybrid week: four strength days each had a mobility
+  // companion, both run days had nothing. Running loads exactly the tissue that most
+  // needs it (calves, ankles, hips, hamstrings), so a run day is arguably the better
+  // slot, not the one to skip. Kept as a helper because the loop below has more than one
+  // exit: the beginner walk-run path used to `continue` straight past this, which put
+  // run days back to having no mobility at all for anyone on that tier.
+  async function placeRunCompanionMobility(item){
+    if(!multiSessionOkForRuns) return;
+    if(!(sessionLength >= 75 || toPlace.indexOf(item) % 2 === 0)) return;
+    try{
+      await window.storage.get(`weekplan:${item.date}:pm`); // slot taken — leave it
+      return;
+    } catch(e){}
+    const runDomains = ['ankles','knees','hips','hamstrings','adductors'];
+    const runGoals = (runCompanionGoals||[]).filter(sg=>{
+      const domain = Object.keys(MOBILITY_DOMAIN_TO_SKILL).find(d=>MOBILITY_DOMAIN_TO_SKILL[d]===sg.skill);
+      return domain ? runDomains.includes(domain) : false;
+    });
+    const { stretches, trimNote } = buildMobilitySession({
+      neededDomains: (runNeededDomains||[]).filter(n=>runDomains.includes(n.domain)),
+      mobilityGoals: runGoals,
+      loadedROMCoverage: runLoadedROM,
+      sessionType: 'normal',
+      dayIdx: toPlace.indexOf(item),
+      budget: Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP),
+      integrateIndex: toPlace.indexOf(item),
+      domainFilter: runDomains,
+      bodyweightOnly: runEquipmentPrefs.bodyweightMobility,
+      weekSecondsByArea: runWeekSecondsByArea
+    });
+    if(!stretches.length) return;
+    await window.storage.set(`weekplan:${item.date}:pm`, JSON.stringify({
+      type:'mobility',
+      details: { stretches, notes:`Post-run mobility — targeting the lower-body tissue the run just loaded` + trimNote }
+    }));
+    const spentRun = {};
+    stretches.forEach(st=>{
+      const secs = romSecondsFor(st); if(!secs) return;
+      if(st.area) spentRun[st.area] = (spentRun[st.area]||0) + secs;
+      (MOBILITY_SKILL_TARGET_AREAS[st.skill]||[]).forEach(a=>{ spentRun[a] = (spentRun[a]||0) + secs; });
+    });
+    await saveStretchLedgerFor(item.date, spentRun);
+  }
 
   for(const item of toPlace){
     const slot = (runSlotOverride && runSlotOverride[item.date]) || 'am';
@@ -10883,6 +10953,7 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
           intervalReps: p.intervalReps || null, durationMin: totalMin, sessionBody: body,
           notes: `Level ${prog.level+1}/${prog.levelCount} — 5 min walk to warm up · ${body} · 5 min walk to cool down (~${totalMin} min). ${prog.detail ? prog.detail.advancementCriteria : ''}` }
       }));
+      await placeRunCompanionMobility(item);
       continue;
     }
     if(item.runType!=='long' && item.runType!=='race'){
@@ -10918,47 +10989,7 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
       details: { runType: item.runType, distanceKm, warmup: runWarmup, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note }
     }));
 
-    // Companion mobility lived entirely inside generateStrengthProgram, so running days
-    // got none at all — measured on a hybrid week: four strength days each had a mobility
-    // companion, both run days had nothing. Running loads exactly the tissue that most
-    // needs it (calves, ankles, hips, hamstrings), so a run day is arguably the better
-    // slot, not the one to skip.
-    if(multiSessionOkForRuns && (sessionLength >= 75 || toPlace.indexOf(item) % 2 === 0)){
-      try{
-        await window.storage.get(`weekplan:${item.date}:pm`); // slot taken — leave it
-      } catch(e){
-        const runDomains = ['ankles','knees','hips','hamstrings','adductors'];
-        const runGoals = (runCompanionGoals||[]).filter(sg=>{
-          const domain = Object.keys(MOBILITY_DOMAIN_TO_SKILL).find(d=>MOBILITY_DOMAIN_TO_SKILL[d]===sg.skill);
-          return domain ? runDomains.includes(domain) : false;
-        });
-        const { stretches, trimNote } = buildMobilitySession({
-          neededDomains: (runNeededDomains||[]).filter(n=>runDomains.includes(n.domain)),
-          mobilityGoals: runGoals,
-          loadedROMCoverage: runLoadedROM,
-          sessionType: 'normal',
-          dayIdx: toPlace.indexOf(item),
-          budget: Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP),
-          integrateIndex: toPlace.indexOf(item),
-          domainFilter: runDomains,
-          bodyweightOnly: runEquipmentPrefs.bodyweightMobility,
-          weekSecondsByArea: runWeekSecondsByArea
-        });
-        if(stretches.length){
-          await window.storage.set(`weekplan:${item.date}:pm`, JSON.stringify({
-            type:'mobility',
-            details: { stretches, notes:`Post-run mobility — targeting the lower-body tissue the run just loaded` + trimNote }
-          }));
-          const spentRun = {};
-          stretches.forEach(st=>{
-            const secs = romSecondsFor(st); if(!secs) return;
-            if(st.area) spentRun[st.area] = (spentRun[st.area]||0) + secs;
-            (MOBILITY_SKILL_TARGET_AREAS[st.skill]||[]).forEach(a=>{ spentRun[a] = (spentRun[a]||0) + secs; });
-          });
-          await saveStretchLedgerFor(item.date, spentRun);
-        }
-      }
-    }
+    await placeRunCompanionMobility(item);
   }
   return { placed: toPlace.length, tier: tierKey, goalNote };
 }
