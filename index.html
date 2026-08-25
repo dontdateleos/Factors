@@ -586,6 +586,34 @@
         </div>
       </div>
 
+
+      <div class="group" style="margin-top:16px;">
+        <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
+        <div class="fields">
+          <div class="field-row"><span class="field-label">Longest run you could do today</span>
+            <select id="runStartLongest">
+              <option value="">— select —</option>
+              <option value="0">I'm starting from scratch</option>
+              <option value="1">Under 2 km / can jog a few minutes</option>
+              <option value="3">Around 3 km / 20-30 min continuous</option>
+              <option value="5">Around 5 km</option>
+              <option value="10">10 km or more</option>
+              <option value="18">Half marathon or beyond</option>
+            </select>
+          </div>
+          <div class="field-row"><span class="field-label">Runs per week recently</span>
+            <select id="runStartFrequency">
+              <option value="">— select —</option>
+              <option value="0">None</option>
+              <option value="1">1-2</option>
+              <option value="3">3-4</option>
+              <option value="5">5+</option>
+            </select>
+          </div>
+          <button class="small" id="saveRunStartBtn">Save running starting point</button>
+          <div id="runStartResult" class="score-note"></div>
+        </div>
+      </div>
       <div class="group" style="margin-top:16px;">
         <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
           <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
@@ -5414,6 +5442,9 @@ function estimateSessionDuration(block, personalPace, personalSets, sessionLengt
 }
 
 const RUN_PLAN_TEMPLATES = {
+  beginner:     { label: 'Beginner / run-walk', runsPerWeek: 3, longCount: 0, qualityCount: 0, minKm: 0, maxKm: 12,
+                  walkRun: true, sessionMinutes: 22, runIntervalSec: 60, walkIntervalSec: 90, intervalReps: 8 },
+  consolidation:{ label: 'Consolidating / post-beginner', runsPerWeek: 4, longCount: 1, qualityCount: 0, minKm: 12, maxKm: 24 },
   base:         { label: 'Base-building / novice', runsPerWeek: 4, longCount: 1, qualityCount: 0, minKm: 24, maxKm: 40 },
   intermediate: { label: 'Intermediate',            runsPerWeek: 5, longCount: 1, qualityCount: 1, minKm: 40, maxKm: 64 },
   advanced:     { label: 'Advanced recreational',   runsPerWeek: 6, longCount: 1, qualityCount: 2, minKm: 64, maxKm: 88 }
@@ -5445,6 +5476,40 @@ const GOAL_TYPE_LABELS = {
    Mobility ladders are similarly my own construction — not covered by any research pass —
    same "coaching heuristic" treatment applies. */
 const PROGRESSION_TREES = {
+  // Running progression, matching how strength and mobility already work: explicit levels
+  // with advancement criteria rather than a single tier that regenerates week 1 forever.
+  // Built from the standard beginner protocols — C25K's 8-9 week arc (60s run/90s walk
+  // building to 30 minutes continuous) with None to Run's correction that many beginners
+  // need 30s intervals and mandatory week repeats rather than forced progression.
+  // Deliberately time-based: the goal at the end of this tree is 30 minutes of continuous
+  // running, not any particular distance — most people finishing C25K cover 3-4km in that
+  // time, and framing it as "5K" makes a normal outcome feel like a failure.
+  run: {
+    c25k: { label:'Continuous 30-minute run', researched:true,
+      levels:[
+        'Run 30s / walk 90s x8 (~20 min)',
+        'Run 60s / walk 90s x8 (~25 min)',
+        'Run 90s / walk 2min x6 (~25 min)',
+        'Run 3min / walk 90s x4 (~25 min)',
+        'Run 5min / walk 2min x3 (~25 min)',
+        'Run 8min / walk 3min x2 (~25 min)',
+        'Run 12min / walk 2min / run 8min (~25 min)',
+        'Run 20min continuous',
+        'Run 30min continuous'
+      ],
+      levelDetails:[
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'All 8 intervals completed without needing extra walk time, across a full week', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'Run intervals stay conversational — if the last two are a struggle, repeat the week', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'Completed all reps with the shorter walk recovery', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'3 continuous minutes at an easy, sustainable effort', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'5 minutes without pace collapsing in the final minute', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'Both 8-minute blocks completed at even effort', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'12 minutes continuous with the walk break genuinely optional', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'20 minutes continuous, finishing able to hold a conversation', evidence:'coaching_consensus'},
+        {holdOrRepTarget:'3 sessions/week', advancementCriteria:'Top of this progression — 30 minutes continuous. Base-building tier takes over from here.', evidence:'coaching_consensus'}
+      ]
+    }
+  },
   exercise: {
     pullup: { label:'Pull-up', researched:true, movement:'pull', area:'thoracic', secondaryArea:'biceps',
       levels:["Dead hang", "Scapular pulls", "Flexed-arm hang", "Negatives", "Band-assisted / jumping", "Full strict", "Archer", "Weighted", "One-arm"],
@@ -6588,6 +6653,18 @@ function applyRunTierCeiling(tierKey, ceiling){
 }
 
 async function suggestRunTier(){
+  // No logged running at all means beginner, not base — base assumes 24km/week already.
+  // Checked before the calibration shortcut, which previously sent every new user to base.
+  try{
+    const sessions = await getAllTrainingSessions();
+    const hasRun = sessions.some(s => s.type === 'run' && (s.distanceKm || 0) > 0);
+    if(!hasRun){
+      // Self-report beats assuming beginner — but only until real logged runs exist,
+      // which are a more reliable signal than anyone's estimate of their own fitness.
+      const selfTier = await getSelfReportedRunTier();
+      return selfTier || 'beginner';
+    }
+  } catch(e){ return 'beginner'; }
   if(await isCalibrationPhase()) return 'base'; // easy + long only — never quality work in week 1
   const thisWeekDates = getWeekDates();
   let sum=0, weeks=0;
@@ -6598,7 +6675,8 @@ async function suggestRunTier(){
   }
   const volumeTier = weeks===0 ? null : (
     (sum/weeks) >= RUN_PLAN_TEMPLATES.advanced.minKm ? 'advanced' :
-    (sum/weeks) >= RUN_PLAN_TEMPLATES.intermediate.minKm ? 'intermediate' : 'base'
+    (sum/weeks) >= RUN_PLAN_TEMPLATES.intermediate.minKm ? 'intermediate' :
+    (sum/weeks) >= RUN_PLAN_TEMPLATES.base.minKm ? 'base' : 'consolidation'
   );
 
   // Goal-demand signal (backlog §8 — "a 5K athlete and marathon athlete at the same
@@ -9037,6 +9115,89 @@ async function saveStretchLedgerFor(date, secondsByArea){
   try{ await window.storage.set(`stretchLedger:${date}`, JSON.stringify({ date, secondsByArea })); } catch(e){}
 }
 
+
+
+// Warm-up protocol per run type. Easy and long runs need very little — starting slowly is
+// itself the warm-up — while tempo and interval work needs the muscles and nervous system
+// prepared before the first hard rep. Strides are included for quality sessions because
+// they're the standard bridge between easy running and race-pace effort.
+const RUN_WARMUP_BY_TYPE = {
+  easy:     '5 min brisk walk or very easy jog, then settle into pace.',
+  long:     '5-10 min easy jog to open up, then settle. Start slower than feels necessary.',
+  tempo:    '10 min easy jog · leg swings and ankle rolls · 4x20s strides building to tempo pace · 2 min easy before the first rep.',
+  interval: '10-15 min easy jog · dynamic drills (A-skips, high knees, heel flicks) · 4-6x20s strides at target pace · 3 min easy before rep one.',
+  fartlek:  '10 min easy jog · leg swings · 3x20s strides. The first surge is the warm-up for the rest.',
+  hills:    '10-15 min easy jog to the hill · dynamic drills · one relaxed uphill at half effort before the working reps.',
+  sprint:   '15 min easy jog · full dynamic sequence · 4-6 progressive strides. Never sprint cold.',
+  race:     'Follow your usual pre-race routine — 10-15 min easy, drills, strides, finishing ~10 min before the gun.'
+};
+
+
+// Self-assessed running starting point. suggestRunTier needs four weeks of logged running
+// before it can place anyone, which meant a capable runner spent a month on 30-second
+// walk-run intervals before the app noticed. Two questions resolve that on day one, and
+// logged history overrides it as soon as there's enough to be more reliable.
+function runTierFromSelfReport(longestKm, perWeek){
+  if(longestKm == null) return null;
+  if(longestKm < 2) return 'beginner';
+  if(longestKm < 5) return 'consolidation';
+  if(longestKm >= 10 && perWeek >= 5) return 'intermediate';
+  if(longestKm >= 18) return 'intermediate';
+  return 'base';
+}
+async function getSelfReportedRunTier(){
+  try{
+    const r = await window.storage.get('settings:runStartingPoint');
+    const v = JSON.parse(r.value);
+    return runTierFromSelfReport(v.longestKm, v.perWeek);
+  } catch(e){ return null; }
+}
+document.getElementById('saveRunStartBtn').addEventListener('click', async ()=>{
+  const longest = document.getElementById('runStartLongest').value;
+  const freq = document.getElementById('runStartFrequency').value;
+  const el = document.getElementById('runStartResult');
+  if(longest === '' || freq === ''){ el.textContent = 'Answer both to set a starting point.'; return; }
+  const longestKm = parseFloat(longest), perWeek = parseFloat(freq);
+  await window.storage.set('settings:runStartingPoint', JSON.stringify({ longestKm, perWeek, date: todayStr }));
+  const tier = runTierFromSelfReport(longestKm, perWeek);
+  const label = (RUN_PLAN_TEMPLATES[tier] || {}).label || tier;
+  el.textContent = `Starting at: ${label}. Regenerate your week to apply it.`;
+  showToast('Running starting point saved');
+});
+
+// ---------- RUNNING PROGRESSION ----------
+// Which level of the beginner tree the person is on, derived from logged runs rather than
+// stored as state — the same approach the mobility side uses. Advancement is earned by
+// completing a level's sessions, and levels repeat rather than force-progressing: the
+// beginner literature is explicit that mandatory week repeats produce better outcomes
+// than pushing on, because the common failure is doing too much too soon, not too little.
+const RUN_SESSIONS_PER_LEVEL = 3;   // one week at 3 sessions/week
+function parseRunLevel(levelText){
+  // Levels encode their own prescription; parse rather than duplicating it in a table.
+  const cont = levelText.match(/Run (\d+)min continuous/);
+  if(cont) return { continuous: true, runMin: parseInt(cont[1],10) };
+  const iv = levelText.match(/Run (\d+)(s|min) \/ walk (\d+)(s|min) x(\d+)/);
+  if(iv){
+    const rs = iv[2]==='min' ? parseInt(iv[1],10)*60 : parseInt(iv[1],10);
+    const ws = iv[4]==='min' ? parseInt(iv[3],10)*60 : parseInt(iv[3],10);
+    return { continuous:false, runIntervalSec: rs, walkIntervalSec: ws, intervalReps: parseInt(iv[5],10) };
+  }
+  return null;
+}
+async function getRunProgressionLevel(){
+  const tree = PROGRESSION_TREES.run.c25k;
+  try{
+    const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'run' && s.date);
+    // Count only sessions logged since starting the tree. Each level needs
+    // RUN_SESSIONS_PER_LEVEL completions before the next one is offered.
+    const completed = sessions.length;
+    const level = Math.min(tree.levels.length - 1, Math.floor(completed / RUN_SESSIONS_PER_LEVEL));
+    return { level, label: tree.levels[level], detail: tree.levelDetails[level],
+             levelCount: tree.levels.length, sessionsAtLevel: completed % RUN_SESSIONS_PER_LEVEL,
+             graduated: level >= tree.levels.length - 1 && completed >= tree.levels.length * RUN_SESSIONS_PER_LEVEL };
+  } catch(e){ return { level:0, label: tree.levels[0], detail: tree.levelDetails[0], levelCount: tree.levels.length, sessionsAtLevel:0 }; }
+}
+
 // ---------- MOBILITY PROGRESSION ----------
 // Strength has double progression, block waves, deload logic and an earned block step.
 // Mobility had a static dosing table and a manual "passed" button — the level only ever
@@ -10650,6 +10811,36 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
     // the same target would produce a "long run" barely different from an easy run,
     // defeating the entire point of having a dedicated long-run day.
     let distanceKm = null, note = 'Auto-generated starting point — adjust freely';
+    // Beginner sessions are prescribed as TIME and intervals, not distance. Every
+    // established beginner protocol works this way — C25K week 1 is 60s run / 90s walk
+    // for ~20 minutes, and the goal at the end is 30 minutes of continuous running rather
+    // than any particular distance. Handing a first-time runner "6 km" is both the wrong
+    // unit and roughly four times too much.
+    const _tierT = RUN_PLAN_TEMPLATES[tierKey];
+    if(_tierT && _tierT.walkRun){
+      // Prescribe the CURRENT level of the progression, not week 1 forever.
+      const prog = await getRunProgressionLevel();
+      const p = parseRunLevel(prog.label) || { continuous:false, runIntervalSec:60, walkIntervalSec:90, intervalReps:8 };
+      let totalMin, body;
+      if(p.continuous){
+        totalMin = p.runMin + 10;
+        body = `run ${p.runMin} min continuous`;
+      } else {
+        totalMin = Math.round((p.intervalReps * (p.runIntervalSec + p.walkIntervalSec)) / 60) + 10;
+        const secTxt = s => (s >= 60 && s % 60 === 0) ? `${s/60}min` : `${s}s`;
+        const rTxt = secTxt(p.runIntervalSec), wTxt = secTxt(p.walkIntervalSec);
+        body = `run ${rTxt} / walk ${wTxt} x${p.intervalReps}`;
+      }
+      await window.storage.set(`weekplan:${item.date}:${slot}`, JSON.stringify({
+        type: 'run',
+        details: { runType: item.runType, distanceKm: null, targetPace: null,
+          walkRun: true, runLevel: prog.level, runLevelLabel: prog.label,
+          runIntervalSec: p.runIntervalSec || null, walkIntervalSec: p.walkIntervalSec || null,
+          intervalReps: p.intervalReps || null, durationMin: totalMin,
+          notes: `Level ${prog.level+1}/${prog.levelCount} — 5 min walk to warm up · ${body} · 5 min walk to cool down (~${totalMin} min). ${prog.detail ? prog.detail.advancementCriteria : ''}` }
+      }));
+      continue;
+    }
     if(item.runType!=='long' && item.runType!=='race'){
       const R = WORKOUT_TIME_ESTIMATE.running;
       const usingPersonalPace = personalPace[item.runType] != null;
@@ -10677,9 +10868,10 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
         if(await isDeloadWeek(item.date)) distanceKm = Math.round(distanceKm * (1 - DELOAD_CUT) * 10) / 10;
       } catch(e){}
     }
+    const runWarmup = RUN_WARMUP_BY_TYPE[item.runType] || RUN_WARMUP_BY_TYPE.easy;
     await window.storage.set(`weekplan:${item.date}:${slot}`, JSON.stringify({
       type: 'run',
-      details: { runType: item.runType, distanceKm, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note }
+      details: { runType: item.runType, distanceKm, warmup: runWarmup, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note }
     }));
 
     // Companion mobility lived entirely inside generateStrengthProgram, so running days
