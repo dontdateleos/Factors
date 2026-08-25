@@ -6614,8 +6614,12 @@ async function isCalibrationPhase(){
 // the lower back) because running loads both heavily — an angry Achilles or lower back
 // changes what a running week should look like just as much as a bad hamstring.
 const RUNNING_INJURY_AREAS = ['ankles','calves','quads_knees','hips','hamstrings','lower_back'];
-const RUN_TIER_RANK = { base:1, intermediate:2, advanced:3 };
-const RUN_TIER_BY_RANK = { 1:'base', 2:'intermediate', 3:'advanced' };
+// Beginner and consolidation were added below base without being added here, so every
+// tier the ranking didn't know fell through to rank 1 and came back out as 'base' —
+// an injury ceiling PROMOTED a beginner to a 24km/week plan, which is the opposite of
+// what a ceiling is for. Ranks must cover every tier in RUN_PLAN_TEMPLATES.
+const RUN_TIER_RANK = { beginner:1, consolidation:2, base:3, intermediate:4, advanced:5 };
+const RUN_TIER_BY_RANK = { 1:'beginner', 2:'consolidation', 3:'base', 4:'intermediate', 5:'advanced' };
 
 // Injury as a ceiling on running capacity, applied at GENERATION time rather than only
 // as a day-of REDUCE card. Strength already does this via applyInjurySafety/
@@ -6666,18 +6670,21 @@ function applyRunTierCeiling(tierKey, ceiling){
 }
 
 async function suggestRunTier(){
+  let sessions;
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return 'beginner'; }
+  const runs = sessions.filter(s => s.type === 'run' && (s.distanceKm || 0) > 0);
+  // What someone tells us about where they're starting holds until they have actually run
+  // enough SINCE saying it for measured history to be the better signal. Any single
+  // logged run used to discard the self-report outright, so saying "I can manage under
+  // 2km" changed nothing at all for anyone who had ever logged a run — while the save
+  // confirmation still reported the tier as changed.
+  const selfReport = await getSelfReportedRunRecord();
+  if(selfReport && runs.filter(s => s.date >= selfReport.date).length < RUN_SELF_REPORT_OVERRIDE_RUNS){
+    return applyRunTierCeiling(selfReport.tier, await getRunningCapacityCeiling());
+  }
   // No logged running at all means beginner, not base — base assumes 24km/week already.
   // Checked before the calibration shortcut, which previously sent every new user to base.
-  try{
-    const sessions = await getAllTrainingSessions();
-    const hasRun = sessions.some(s => s.type === 'run' && (s.distanceKm || 0) > 0);
-    if(!hasRun){
-      // Self-report beats assuming beginner — but only until real logged runs exist,
-      // which are a more reliable signal than anyone's estimate of their own fitness.
-      const selfTier = await getSelfReportedRunTier();
-      return selfTier || 'beginner';
-    }
-  } catch(e){ return 'beginner'; }
+  if(!runs.length) return 'beginner';
   if(await isCalibrationPhase()) return 'base'; // easy + long only — never quality work in week 1
   const thisWeekDates = getWeekDates();
   let sum=0, weeks=0;
@@ -6708,7 +6715,7 @@ async function suggestRunTier(){
   const ceiling = await getRunningCapacityCeiling();
   if(!volumeTier) return applyRunTierCeiling(goalTier, ceiling);
   if(!goalTier) return applyRunTierCeiling(volumeTier, ceiling);
-  const tierRank = { base:1, intermediate:2, advanced:3 };
+  const tierRank = RUN_TIER_RANK;
   // Recent volume is a ceiling, not a target — goal ambition never pushes past what
   // current capacity actually supports (Training Tolerance concern, §5), but a high-
   // capacity runner with a modest goal correctly scales down rather than over-training
@@ -9175,12 +9182,20 @@ function runTierFromSelfReport(longestKm, perWeek){
   if(longestKm >= 18) return 'intermediate';
   return 'base';
 }
-async function getSelfReportedRunTier(){
+// How much logged running it takes before measured history is the better signal. Two
+// weeks at the beginner protocol's three sessions a week: one run is not more reliable
+// than an explicit statement about where someone is starting from.
+const RUN_SELF_REPORT_OVERRIDE_RUNS = 6;
+async function getSelfReportedRunRecord(){
   try{
-    const r = await window.storage.get('settings:runStartingPoint');
-    const v = JSON.parse(r.value);
-    return runTierFromSelfReport(v.longestKm, v.perWeek);
+    const v = JSON.parse((await window.storage.get('settings:runStartingPoint')).value);
+    const tier = runTierFromSelfReport(v.longestKm, v.perWeek);
+    return tier ? { tier, date: v.date || todayStr } : null;
   } catch(e){ return null; }
+}
+async function getSelfReportedRunTier(){
+  const rec = await getSelfReportedRunRecord();
+  return rec ? rec.tier : null;
 }
 document.getElementById('saveRunStartBtn').addEventListener('click', async ()=>{
   const longest = document.getElementById('runStartLongest').value;
