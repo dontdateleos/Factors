@@ -164,8 +164,12 @@
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
   .score-card{ flex:1; border:2px solid var(--border-bold); border-radius:0; padding:14px; background:transparent; text-align:center; }
-  .score-num{ font-family:var(--sans); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.04em; -webkit-text-stroke:0.7px var(--text); }
-  .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.2; }
+  /* Weighted to sit with the logo rather than beside it: the same tight tracking and
+     short leading, and a stroke heavy enough to read as drawn rather than typed. Tabular
+     figures because this number animates between values — proportional digits change the
+     number's width mid-count, which reads as a wobble on the one figure most looked at. */
+  .score-num{ font-family:var(--sans); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.05em; line-height:0.92; -webkit-text-stroke:1.8px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
+  .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
   .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
@@ -1672,7 +1676,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.5';
+const APP_VERSION = '2026.08.25.6';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12617,10 +12621,10 @@ async function generateWarmup(){
 // longer behind a button. Kept as a named function rather than an inline handler so
 // activateTab('insights') can call it directly.
 async function generateMobility(){
-  // Same reasoning as generateWarmup — post-exercise stretching is what follows a
-  // strength or run session, not something bolted onto a mobility session that already
-  // covers these domains at a properly progressed dose.
-  if(todaySessionType === 'mobility'){
+  // Strength days only. A mobility session already covers these domains at a properly
+  // progressed dose, and a run day's stretching belongs to the companion mobility block
+  // the generator places alongside the run rather than to a second list here.
+  if(todaySessionType !== 'strength'){
     document.getElementById('mobilitySection').style.display = 'none';
     return;
   }
