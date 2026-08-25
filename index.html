@@ -412,9 +412,14 @@
      the page that interrupts you, so it borrows exactly that: full-bleed black, the
      verdict set at logo scale in the type's own colour, everything else inverted
      beneath it. */
-  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:0 -14px 14px; padding:16px 14px 18px; }
+  /* The verdict's cap-height is set flush to the band's top edge rather than sitting
+     inside a margin, so the word runs into the page above instead of being placed on a
+     panel — measured, not eyeballed: the caps' ink starts 4px below the line box top at
+     this size and leading, so -4px puts them exactly on the edge. On the Today page the
+     ADD colour is the page's own lime, so there the two genuinely merge. */
+  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:0 -14px 14px; padding:0 14px 18px; overflow:hidden; }
   .rec-head{ display:block; margin-bottom:12px; }
-  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; color:var(--block-purple); -webkit-text-stroke:0.6px currentColor; }
+  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; margin-top:-4px; color:var(--block-purple); -webkit-text-stroke:0.6px currentColor; }
   .rec-card.reduce .rec-type{ color:var(--block-red); }
   .rec-card.add    .rec-type{ color:var(--block-lime); }
   .rec-card.modify .rec-type{ color:var(--block-yellow); }
@@ -1696,7 +1701,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.12';
+const APP_VERSION = '2026.08.25.13';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
