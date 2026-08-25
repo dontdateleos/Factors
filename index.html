@@ -299,6 +299,18 @@
      control itself growing. */
   .field-row:has(select), .edit-row:has(select), .week-controls:has(select),
   .goal-row:has(select), .skill-goal-row:has(select){ min-height:44px; align-items:center; }
+  /* Skill goal rows: selects on one line, everything else tucked under them. */
+  .skg-line{ display:flex; gap:6px; align-items:center; width:100%; }
+  /* Category is narrow — it only ever says Exercise or Mobility — so the skill name gets
+     the room. Three selects on one line truncated all three to "Mob… Pike… 2. St…". */
+  .skg-line .skg-category{ flex:0 0 96px; }
+  .skg-line .skg-skill{ flex:1 1 auto; min-width:0; }
+  .skg-level{ width:100%; margin-top:6px; }
+  .skg-line .remove-row{ flex:none; }
+  .skg-detail{ margin:4px 0 0; line-height:1.45; }
+  .skg-maint{ display:flex; align-items:center; gap:7px; margin-top:6px; font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
+  .skg-maint input{ width:auto; flex:none; margin:0; }
+  .skg-auto-note{ margin-top:4px; }
   /* Catch-all for select rows that aren't one of the named row classes — the selects in
      the week controls and skill-goal editor sit in plain flex containers. */
   div:has(> select):not(.fields):not(.panel){ min-height:44px; align-items:center; }
@@ -508,6 +520,12 @@
   .goal-row-panel label{ color:rgba(251,250,246,0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
   .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  /* Target exercise, weight and date come off the box: saved without one, a strength goal
+     is benchmarked from what you have actually been lifting. The inputs stay in the DOM,
+     hidden, so a target already set is carried rather than blanked on the next save, and
+     every reader and writer of them is left alone. */
+  .goal-row [data-goal-field="exercise"], .goal-row [data-goal-field="weight"],
+  .goal-row [data-goal-field="date"]{ display:none !important; }
   .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
   .rec-body{ padding:0; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
@@ -558,7 +576,7 @@
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
     <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><span>Weekly</span></div>
     <div class="tab" data-tab="goals" role="tab" tabindex="0" aria-selected="false"><span>Goals</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Injuries</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Function</span></div>
     <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><span>Data</span></div>
     <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><span>Settings</span></div>
   </div>
@@ -704,17 +722,6 @@
         </div>
       </div>
 
-      <div class="group" style="margin-top:16px;">
-        <div class="group-head"><div class="group-title">Skill Goals</div><div class="group-sub">mobility & exercise progressions</div></div>
-        <div class="fields">
-          <details class="mobility-legend">
-            <summary>Where do these progressions come from?</summary>
-            <div class="mobility-legend-body">Exercise progressions from coaching consensus (pull-up/push-up/pistol/dip/handstand — see the research). Pike/bridge/front-split/middle-split are independently verified against real studies (marked with an asterisk); pancake/deep-squat/overhead-squat and muscle-up are reasonable extensions, not directly sourced.</div>
-          </details>
-          <div id="skillGoalRows"></div>
-          <div class="add-row" id="addSkillGoalRow">+ add skill goal</div>
-        </div>
-      </div>
 
 
       <div class="group" style="margin-top:16px;">
@@ -744,18 +751,6 @@
           <div id="runStartResult" class="score-note"></div>
         </div>
       </div>
-      <div class="group" style="margin-top:16px;">
-        <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-          <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
-          <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
-        </div>
-        <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-          <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
-          <div id="mobilityAssessmentRows"></div>
-          <button id="saveMobilityAssessmentBtn">Save assessment</button>
-          <div id="saveMobilityAssessmentResult" class="score-note"></div>
-        </div>
-      </div>
 
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
@@ -765,10 +760,6 @@
         <div class="fields" id="blockTargetBody"></div>
       </div>
 
-      <div class="group" style="margin-top:24px;">
-        <div class="group-head"><div class="group-title">Mobility progression</div><div class="group-sub">where each skill sits, and what moves it</div></div>
-        <div class="fields" id="mobilityProgressBody"></div>
-      </div>
 
       <div class="group" style="margin-top:24px;">
         <div class="group-head"><div class="group-title">Progress</div></div>
@@ -785,6 +776,10 @@
         <div class="score-note">While something is sore the generator scales back the sessions that load it, drops quality and long running when it's bad enough, and the warm-up targets that area first. Mark it resolved the moment it stops bothering you.</div>
       </div>
     </div>
+
+
+
+
 
     <div class="group header-panel injuries">
       <div class="header-panel-title">Log new injury</div>
@@ -827,6 +822,40 @@
       <div class="log-title">Active &amp; recent injuries</div>
       <div id="injuryList"></div>
     </div>
+
+      <div class="group" style="margin-top:16px;">
+        <div class="group-head"><div class="group-title">Skill Goals</div><div class="group-sub">mobility & exercise progressions</div></div>
+        <div class="fields">
+          <details class="mobility-legend">
+            <summary>Where do these progressions come from?</summary>
+            <div class="mobility-legend-body">Exercise progressions from coaching consensus (pull-up/push-up/pistol/dip/handstand — see the research). Pike/bridge/front-split/middle-split are independently verified against real studies (marked with an asterisk); pancake/deep-squat/overhead-squat and muscle-up are reasonable extensions, not directly sourced.</div>
+          </details>
+          <div id="skillGoalRows"></div>
+          <div class="add-row" id="addSkillGoalRow">+ add skill goal</div>
+        </div>
+      </div>
+
+      <div class="group" style="margin-top:16px;">
+        <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+          <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
+          <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
+        </div>
+        <div class="fields" id="mobilityAssessmentBody" style="display:none;">
+          <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
+          <div id="mobilityAssessmentRows"></div>
+          <button id="saveMobilityAssessmentBtn">Save assessment</button>
+          <div id="saveMobilityAssessmentResult" class="score-note"></div>
+        </div>
+      </div>
+
+      <div class="group" style="margin-top:24px;">
+        <div class="group-head"><div class="group-title">Mobility progression</div><div class="group-sub">where each skill sits, and what moves it</div></div>
+        <div class="fields" id="mobilityProgressBody"></div>
+      </div>
+
+      <button class="primary" id="saveFunctionBtn">Save skill goals &amp; assessment</button>
+      <div id="saveFunctionResult" class="score-note" style="margin-top:8px; margin-bottom:20px;"></div>
+
 
     <div class="group" style="margin-top:20px;">
       <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
@@ -1480,8 +1509,14 @@ function activateTab(name){
     activateTrainingSubView('weekly');
     restorePlanSummary();
   }
-  if(name==='goals'){ loadCurrentGoals(); renderMobilityAssessment(); }
-  if(name==='injuries'){ initHeaderPanels(); refreshInjuries(); renderInjuryRetrospective(); }
+  // Skill goals, the assessment and the progression live on Function now. loadCurrentGoals
+  // fills both tabs' rows — the queries don't care which panel is showing — so it runs for
+  // either, and each tab renders what it actually displays.
+  if(name==='goals'){ loadCurrentGoals(); }
+  if(name==='injuries'){
+    initHeaderPanels(); loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
+    refreshInjuries(); renderInjuryRetrospective();
+  }
   if(name==='data'){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
     activateDataSubView(activeView);
@@ -1792,7 +1827,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.27';
+const APP_VERSION = '2026.08.25.28';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3157,7 +3192,7 @@ function addGoalRow(goal){
     <div class="field-row" data-goal-field="weight"><span class="field-label">Target weight (kg)</span><input type="number" class="goal-target-weight" placeholder="or leave blank"></div>
     <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance" placeholder="or leave blank"></div>
     <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time" placeholder="or leave blank"></div>
-    <div class="field-row"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
+    <div class="field-row" data-goal-field="date"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
     <div class="field-row"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;"><label style="font-size:var(--fs-sm);">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
 
   row.querySelector('.goal-type').value = goal.type || 'strength';
@@ -3289,15 +3324,20 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
   const autoNote = autoGenerated
     ? `<div class="score-note skg-auto-note" style="margin-top:-4px;">Auto-added from your lowest mobility assessment score — remove it, or check Maintenance if you'd rather focus elsewhere.</div>`
     : '';
+  // Compact: the three selects share one line, the level detail is a single wrapped note
+  // rather than a block, and "Maintenance" is a short label — the long sentence explaining
+  // it was taller than the row it belonged to.
   row.innerHTML = `
-    <select class="skg-category">${catOptions}</select>
-    <select class="skg-skill"></select>
+    <div class="skg-line">
+      <select class="skg-category">${catOptions}</select>
+      <select class="skg-skill"></select>
+      <span class="remove-row">×</span>
+    </div>
     <select class="skg-level"></select>
-    <div class="score-note skg-detail" style="margin-top:-4px;"></div>
+    <div class="score-note skg-detail"></div>
     ${autoNote}
-    <div class="field-row" style="flex-basis:100%;"><input type="checkbox" class="skg-maintenance" style="width:auto; flex:none;" ${isMaintenance?'checked':''}><label style="font-size:var(--fs-sm);">Maintenance — keep this in rotation without pushing further while I focus elsewhere</label></div>
-    <div class="score-note skg-warning" style="color:var(--text); display:none;"></div>
-    <span class="remove-row">×</span>`;
+    <label class="skg-maint" title="Keep this in rotation without pushing it further while you focus elsewhere"><input type="checkbox" class="skg-maintenance" ${isMaintenance?'checked':''}>Maintenance</label>
+    <div class="score-note skg-warning" style="color:var(--text); display:none;"></div>`;
   container.appendChild(row);
 
   const catSelect = row.querySelector('.skg-category');
@@ -3374,7 +3414,9 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
     const skill = tree[skillSelect.value];
     const idx = parseInt(levelSelect.value, 10);
     const detail = skill.levelDetails && skill.levelDetails[idx];
-    detailEl.innerHTML = detail ? `Target: ${detail.holdOrRepTarget} — ${detail.advancementCriteria} ${evidenceBadgeHtml(detail.evidence)}` : '';
+    // Target and tier only. What advances the level is spelled out by Mobility progression
+    // further down the same tab, and repeating it here made the row several lines tall.
+    detailEl.innerHTML = detail ? `Target: ${detail.holdOrRepTarget} ${evidenceBadgeHtml(detail.evidence)}` : '';
   }
 
   catSelect.addEventListener('change', ()=>{ populateSkills(); recheckAllSkillGoalConcurrency(); });
@@ -6674,8 +6716,11 @@ function buildGoalTimeline(startValue, startDate, endValue, endDate){
   });
 }
 
-document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
-  const result = document.getElementById('saveGoalsResult');
+// Bound to the button on Goals and the one on Function. Both write the same record —
+// the priority goals and the skill goals live in it together — so whichever tab you are
+// on, saving from it saves all of it rather than half.
+async function saveGoalsFromForm(resultElId){
+  const result = document.getElementById(resultElId);
   const list = [];
   for(const row of document.querySelectorAll('#goalListRows .goal-row')){
     const g = {
@@ -6740,12 +6785,15 @@ document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
       : 'Goals saved.';
     result.style.color = 'var(--text)';
     showToast('Goals saved');
-    flashConfirm(document.getElementById('saveGoalsBtn'));
+    flashConfirm(document.getElementById(resultElId === 'saveFunctionResult' ? 'saveFunctionBtn' : 'saveGoalsBtn'));
     await renderGoalProgress();
+    await renderMobilityProgression();
   } catch(e){
     result.textContent = 'Save failed — try again.'; result.style.color = 'var(--text)';
   }
-});
+}
+document.getElementById('saveGoalsBtn').addEventListener('click', ()=> saveGoalsFromForm('saveGoalsResult'));
+document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
 // Adaptation Engine (backlog §4 — "one of the most important changes"). Classifies each
 // goal's recent trend by comparing a recent window against the prior window of the same
