@@ -361,6 +361,12 @@
 
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
   .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
+  /* Sits at the exact centre the day labels orbit, so the arc reads as a dial with a
+     hub rather than a list bent into a curve. */
+  .wheel-hub{ position:absolute; transform:translateY(-50%); text-align:left; pointer-events:none; line-height:1; }
+  .wheel-hub-label{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); margin-bottom:3px; }
+  .wheel-hub-num{ display:block; font-family:var(--sans); font-size:34px; font-weight:var(--fw-bold); letter-spacing:-0.05em; color:var(--text); -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; }
+  .wheel-hub-of{ display:block; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.06em; margin-top:2px; }
   .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
   /* Drag only starts on a day label, deliberately — capturing the whole column stole
      page-scroll gestures from the empty space around the arc. But the labels themselves
@@ -400,33 +406,29 @@
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-lg); padding:8px 4px; }
 
 
-  .rec-card{ position:relative; border-radius:0; padding:16px; margin-bottom:14px; background:transparent; }
-  .rec-card::before{
-    content:''; position:absolute; inset:-2px; pointer-events:none;
-    background:
-      linear-gradient(var(--border-bold), var(--border-bold)) top left / 18px 3px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) top left / 3px 18px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) top right / 18px 3px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) top right / 3px 18px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) bottom left / 18px 3px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) bottom left / 3px 18px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) bottom right / 18px 3px no-repeat,
-      linear-gradient(var(--border-bold), var(--border-bold)) bottom right / 3px 18px no-repeat;
-  }
-  .rec-card.reduce{ border-left-color:var(--bad); }
-  .rec-card.add{ border-left-color:var(--accent); }
-  .rec-card.modify{ border-left-color:var(--warn); }
-  .rec-card.hold{ border-left-color:var(--dim); }
-  .rec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .rec-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.04em; padding:4px 10px; display:inline-block; text-transform:uppercase; transform:rotate(-2deg); border:2px solid var(--border-bold); }
-  .rec-type.reduce{ background:var(--bad); color:var(--bg); }
-  .rec-type.add{ background:var(--accent); color:var(--bg); }
-  .rec-type.modify{ background:var(--warn); color:var(--bg); }
-  .rec-type.hold{ background:var(--dim); color:var(--bg); }
-  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; }
-  .rec-title{ font-size:var(--fs-md); margin-bottom:8px; font-weight:var(--fw-bold); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .rec-signals{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); line-height:1.6; margin-bottom:12px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
-  .rec-actions{ display:flex; gap:8px; }
+  /* The corner-bracket frame and the rotated sticker were decoration applied to a box.
+     These cards are the only thing on the page that interrupts you, so they now announce
+     themselves structurally instead: a heavy rule across the top in the card's own
+     colour, the verdict set in it, and everything below plain. Same vocabulary as the
+     plan rows and the score — rules, uppercase mono meta, no boxes, no rounding. */
+  .rec-card{ position:relative; border-radius:0; padding:0 0 4px; margin-bottom:24px; background:transparent; border-top:7px solid var(--dim); }
+  .rec-card.reduce{ border-top-color:var(--bad); }
+  .rec-card.add{ border-top-color:var(--accent-ink); }
+  .rec-card.modify{ border-top-color:var(--warn); }
+  .rec-card.hold{ border-top-color:var(--dim); }
+  .rec-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0 12px; }
+  .rec-type{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.16em; text-transform:uppercase; color:var(--text); }
+  .rec-card.reduce .rec-type{ color:var(--bad); }
+  .rec-card.modify .rec-type{ color:var(--warn); }
+  .rec-card.add .rec-type{ color:var(--accent-ink); }
+  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
+  .rec-title{ font-size:var(--fs-xl); line-height:1.14; margin-bottom:14px; font-weight:var(--fw-bold); letter-spacing:-0.035em; -webkit-text-stroke:0.5px currentColor; }
+  .rec-signals{ margin-bottom:16px; }
+  /* Bullets were glyphs on wrapped lines, so a two-line signal lost its own left edge.
+     A rule holds the block together and the indent survives the wrap. */
+  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.55; letter-spacing:0.015em; padding:5px 0 5px 12px; border-left:2px solid var(--line); }
+  .rec-signal + .rec-signal{ margin-top:2px; }
+  .rec-actions{ display:flex; gap:10px; }
 
   .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
@@ -1696,7 +1698,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.9';
+const APP_VERSION = '2026.08.25.10';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3619,6 +3621,9 @@ function extractBlockNames(block){
   return [];
 }
 
+// Block position for the wheel hub. renderWheelPositions runs on every drag frame and has
+// to stay synchronous, so the value is cached here and refreshed by renderWeekGrid.
+let wheelBlockPos = null;
 const WHEEL_ANGLE_STEP = 180/6; // degrees per day-step — same total span as the original fixed arc
 const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger movement
 
@@ -3657,6 +3662,20 @@ function renderWheelPositions(dragOffsetDeg){
     el.style.fontSize = Math.max(16, 28 - dist*7) + 'px';
     wheelCol.appendChild(el);
   });
+
+  if(wheelBlockPos){
+    const hub = document.createElement('div');
+    hub.className = 'wheel-hub';
+    // Sits at the arc's pivot height. Anchored a few pixels in from the left rather than
+    // centred on centerX itself — the orbit centre is close enough to the column edge
+    // that a centred hub is half outside the overflow:hidden box.
+    hub.style.left = Math.max(4, centerX - 10) + 'px';
+    hub.style.top = centerY + 'px';
+    hub.innerHTML = `<span class="wheel-hub-label">Week</span>`
+      + `<span class="wheel-hub-num">${wheelBlockPos.weekInBlock}</span>`
+      + `<span class="wheel-hub-of">of ${wheelBlockPos.length}</span>`;
+    wheelCol.appendChild(hub);
+  }
 }
 
 (function setupWheelDragGesture(){
@@ -3715,6 +3734,8 @@ async function renderWeekGrid(){
     try{
       const dates = getWeekDates();
       const pos = await getBlockPosition(dates[0]);
+      wheelBlockPos = pos;
+      renderWheelPositions(0); // redraw so the hub appears as soon as the position is known
       // Each week reads as a bar whose height is its planned volume, so the wave is
       // legible without reading labels. Session counts sit under each bar so the strip
       // answers "what's coming" rather than only "where am I" — previously the only
@@ -5015,10 +5036,10 @@ function buildRecCard(type, title, signals, confidence, meta){
       ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
     </div>
     <div class="rec-title">${title}</div>
-    <div class="rec-signals">${signals.map(s=>'• '+s).join('<br>')}</div>
+    <div class="rec-signals">${signals.map(s=>`<div class="rec-signal">${s}</div>`).join('')}</div>
     <div class="rec-actions">
       <button class="small accept-btn">Accept</button>
-      <button class="small dismiss-btn">Dismiss</button>
+      <button class="small outline dismiss-btn">Dismiss</button>
     </div>`;
   card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card));
   card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card));
