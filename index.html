@@ -503,7 +503,9 @@
       </div>
     </div>
 
-    <div class="log" style="margin-top:16px;">
+    <!-- Hidden by request. The element stays so refreshRecHistory still has somewhere to
+         write and its callers don't need guarding. -->
+    <div class="log" style="margin-top:16px; display:none;">
       <div class="log-title">Recommendation history</div>
       <div id="recHistory"></div>
     </div>
@@ -511,9 +513,12 @@
     <div class="group" style="margin-top:16px;">
       <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">why today looks like this</div></div>
       <div class="fields">
-        <div id="planSourceLabel" class="score-note" style="margin-bottom:10px;"></div>
-        <div id="planCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        <div class="score-note" style="margin-top:12px;">Log stretch sessions on the Weekly tab to feed this.</div>
+        <div id="planSourceLabel" class="score-note" style="margin-bottom:0;"></div>
+        <!-- The session-type pills are gone from the UI. The element stays because
+             initWarmupTab and refreshPlanSourceDisplay both address it, and
+             selectedPlanTypes — now always empty — still feeds computeWarmupAreas, which
+             works from the day's planned exercises. -->
+        <div id="planCheckboxes" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -1667,7 +1672,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.4';
+const APP_VERSION = '2026.08.25.5';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12230,26 +12235,10 @@ const LOAD_RATIO_THRESH = 1.3;
 let selectedPlanTypes = new Set();
 
 function initWarmupTab(){
-  const container = document.getElementById('planCheckboxes');
-  if(container.children.length === 0){
-    Object.keys(PLAN_TYPES).forEach(key=>{
-      const pill = document.createElement('div');
-      pill.className = 'plan-pill';
-      pill.textContent = PLAN_TYPES[key].label;
-      pill.dataset.key = key;
-      pill.addEventListener('click', ()=>{
-        pill.classList.toggle('active');
-        if(selectedPlanTypes.has(key)) selectedPlanTypes.delete(key); else selectedPlanTypes.add(key);
-        generateWarmup();
-      });
-      container.appendChild(pill);
-    });
-  }
   refreshPlanSourceDisplay();
 }
 
 async function refreshPlanSourceDisplay(){
-  const container = document.getElementById('planCheckboxes');
   const label = document.getElementById('planSourceLabel');
   const plannedExercises = await getPlannedExercisesToday();
   // getPlannedExercisesToday only knows about the strength mirror, so a scheduled run or
@@ -12260,8 +12249,7 @@ async function refreshPlanSourceDisplay(){
     try{ scheduled.push(JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value)); } catch(e){}
   }
   if(plannedExercises.length > 0){
-    container.style.display = 'none';
-    label.innerHTML = `Using today's planned session: <strong style="color:var(--text);">${plannedExercises.map(e=>e.name).join(', ')}</strong> — saved on the Weekly tab. Select below only to add extra focus areas.`;
+    label.innerHTML = `Using today's planned session: <strong style="color:var(--text);">${plannedExercises.map(e=>e.name).join(', ')}</strong> — saved on the Weekly tab.`;
     label.style.display = 'block';
   } else if(scheduled.length){
     const describe = b => {
@@ -12277,12 +12265,10 @@ async function refreshPlanSourceDisplay(){
       const names = (b.details.exercises||[]).map(e=>e.name).filter(Boolean);
       return names.length ? names.join(', ') : 'strength session';
     };
-    container.style.display = 'flex';
-    label.innerHTML = `Today's planned session: <strong style="color:var(--text);">${scheduled.map(describe).join(' + ')}</strong> — saved on the Weekly tab. Select below only to add extra focus areas.`;
+    label.innerHTML = `Today's planned session: <strong style="color:var(--text);">${scheduled.map(describe).join(' + ')}</strong> — saved on the Weekly tab.`;
     label.style.display = 'block';
   } else {
-    container.style.display = 'flex';
-    label.textContent = 'No plan saved for today yet — select session type(s) below, or save exercises on the Weekly tab first.';
+    label.textContent = 'No plan saved for today yet — plan one on the Weekly tab.';
     label.style.display = 'block';
   }
 }
