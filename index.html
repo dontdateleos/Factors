@@ -165,6 +165,14 @@
   .header-panel input[type=number], .header-panel input[type=text], .header-panel input[type=date],
   .header-panel textarea{ padding:5px 9px; }
   .goal-row-panel select, .header-panel select{ height:28px; }
+  /* Controls on Function are set at the size of the labels beside them rather than the
+     app-wide --fs-lg. That 16px is a functional floor on iOS — below it, focusing a field
+     zooms the viewport and it stays zoomed — so this is a deliberate trade, and reverting
+     it is deleting this block. */
+  .header-panel input[type=text], .header-panel input[type=number], .header-panel input[type=date],
+  .header-panel select, .header-panel textarea,
+  #skillGoalRows input, #mobilityAssessmentBody select,
+  #mobilityAssessmentBody input{ font-size:var(--fs-md); }
   .goal-row-panel .field-label, .header-panel .field-label{ font-size:var(--fs-md); }
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
      a select sized itself to its longest OPTION and pushed the whole page sideways.
@@ -389,7 +397,7 @@
   /* A section whose heading is set across the top edge of a black panel instead of
      sitting above a rule. The title is filled in as an edge word at render time. */
   .header-panel{ position:relative; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 0; padding:0 14px 16px; overflow:visible; }
-  .header-panel .edge-word{ --edge-word-size:38px; }
+  .header-panel .edge-word{ --edge-word-size:28px; }
   .header-panel.injuries .edge-word{ --edge-word-colour:var(--block-purple); }
   .header-panel .field-label{ color:rgba(251,250,246,0.7); }
   .header-panel label, .header-panel .score-note{ color:rgba(251,250,246,0.75); }
@@ -462,8 +470,10 @@
   .mobility-row-info.test{ align-items:flex-start; }
   .mobility-row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
-  #skillGoalRows .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-  #skillGoalRows select{ flex:1; min-width:90px; font-size:var(--fs-lg); }
+  #skillGoalRows .edit-row{ display:block; margin-bottom:14px; }
+  /* Widths and size are set by the .skg-* rules near the top. This selector is an id, so
+     anything it declares outranks them however the classes are written. */
+  #skillGoalRows select{ font-size:var(--fs-md); height:28px; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -856,10 +866,6 @@
       <div id="saveFunctionResult" class="score-note" style="margin-top:8px; margin-bottom:20px;"></div>
 
 
-    <div class="group" style="margin-top:20px;">
-      <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
-      <div class="fields" id="injuryRetroBody"></div>
-    </div>
   </div>
 
 
@@ -1012,6 +1018,11 @@
       <div class="group-sub" style="margin-bottom:12px;">pick a date to see what was logged</div>
       <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
       <div id="prevWorkoutsResults"></div>
+
+      <div class="group" style="margin-top:20px;">
+        <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
+        <div class="fields" id="injuryRetroBody"></div>
+      </div>
     </div>
   </div>
 
@@ -1514,7 +1525,7 @@ function activateTab(name){
   if(name==='goals'){ loadCurrentGoals(); }
   if(name==='injuries'){
     initHeaderPanels(); loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
-    refreshInjuries(); renderInjuryRetrospective();
+    refreshInjuries();
   }
   if(name==='data'){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
@@ -1547,6 +1558,7 @@ function activateDataSubView(view){
   if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
   if(view==='history'){
     renderBlockHistory();
+    renderInjuryRetrospective();
     if(document.getElementById('prevWorkoutsDate').value) renderPrevWorkoutsForDate();
   }
   updateFooterVisibility();
@@ -1826,7 +1838,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.30';
+const APP_VERSION = '2026.08.25.31';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
