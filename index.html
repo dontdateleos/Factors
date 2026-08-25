@@ -603,7 +603,14 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
-      <div class="score-note" style="margin-bottom:10px;">Tap a day, tap a workout, change it.</div>
+      <!-- The wheel leads. Everything that used to sit above it is below it now, so the
+           ink panel behind the arc can run to the top of the page on its side. -->
+      <div class="week-wheel-stage" id="weekWheelStage">
+        <div class="week-wheel-col" id="weekWheelCol"><div class="wheel-ink"><div class="wheel-ink-inner" id="weekWheelInk"></div></div></div>
+        <div class="week-wheel-detail" id="weekWheelDetail"></div>
+      </div>
+
+      <div class="score-note" style="margin:12px 0 10px;">Tap a day, tap a workout, change it.</div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
         <select id="programSplitOverride" style="width:auto; font-size:var(--fs-lg); padding:4px 6px;">
@@ -619,10 +626,6 @@
         </select>
         <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
         <button class="small outline" id="clearAllWeekBtn">Clear all</button>
-      </div>
-      <div class="week-wheel-stage" id="weekWheelStage">
-        <div class="week-wheel-col" id="weekWheelCol"><div class="wheel-ink"><div class="wheel-ink-inner" id="weekWheelInk"></div></div></div>
-        <div class="week-wheel-detail" id="weekWheelDetail"></div>
       </div>
       <div id="weekBlockStrip" style="margin:14px 0 8px;"></div>
 
@@ -1742,7 +1745,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.19';
+const APP_VERSION = '2026.08.25.20';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3735,13 +3738,20 @@ function renderWheelPositions(dragOffsetDeg){
     if(ink) ink.appendChild(el.cloneNode(true));
   });
 
-  // The label the boundary is measured against is whichever day is active, at rest.
   const inkPanel = ink && ink.parentElement;
   if(inkPanel){
-    const activeDate = dates[activeWheelDayIndex];
-    const activeLabel = WEEK_DAY_LABELS[activeWheelDayIndex] + (activeDate===todayStr ? ' \u2022' : '');
-    const boundary = wheelInkBoundary(centerX, radius, activeLabel);
+    // Fixed to Thursday's label, not whichever day happens to be active. The boundary is
+    // a property of the panel rather than of the day on it, and measuring it per day made
+    // the edge shift every time the wheel turned.
+    const boundary = wheelInkBoundary(centerX, radius, WEEK_DAY_LABELS[3]);
     inkPanel.style.right = Math.max(0, colWidth - boundary) + 'px';
+    // Run the panel up to the top of the page on this side. The offset is measured rather
+    // than assumed because what sits above the wheel can change height.
+    const mainEl = wheelCol.closest('main');
+    if(mainEl && colRect.height){
+      const overshoot = colRect.top - mainEl.getBoundingClientRect().top;
+      inkPanel.style.top = (-Math.max(0, overshoot)) + 'px';
+    }
   }
 
   if(wheelBlockPos){
