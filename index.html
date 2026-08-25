@@ -6673,14 +6673,19 @@ async function suggestRunTier(){
   let sessions;
   try{ sessions = await getAllTrainingSessions(); } catch(e){ return 'beginner'; }
   const runs = sessions.filter(s => s.type === 'run' && (s.distanceKm || 0) > 0);
-  // What someone tells us about where they're starting holds until they have actually run
-  // enough SINCE saying it for measured history to be the better signal. Any single
-  // logged run used to discard the self-report outright, so saying "I can manage under
-  // 2km" changed nothing at all for anyone who had ever logged a run — while the save
-  // confirmation still reported the tier as changed.
+  // A stated starting point holds until it is changed. Logged runs do not quietly
+  // overrule it: it's a setting, and a setting that expires on its own is a setting
+  // nobody can rely on. The single exit is finishing the progression it starts you on —
+  // its top rung is 30 minutes continuous, and the tree hands over from there — so
+  // completing the plan promotes you rather than leaving you repeating its last week.
   const selfReport = await getSelfReportedRunRecord();
-  if(selfReport && runs.filter(s => s.date >= selfReport.date).length < RUN_SELF_REPORT_OVERRIDE_RUNS){
-    return applyRunTierCeiling(selfReport.tier, await getRunningCapacityCeiling());
+  if(selfReport){
+    const ceilingNow = await getRunningCapacityCeiling();
+    if(selfReport.tier === 'beginner'){
+      const prog = await getRunProgressionLevel();
+      if(prog && prog.graduated) return applyRunTierCeiling('consolidation', ceilingNow);
+    }
+    return applyRunTierCeiling(selfReport.tier, ceilingNow);
   }
   // No logged running at all means beginner, not base — base assumes 24km/week already.
   // Checked before the calibration shortcut, which previously sent every new user to base.
@@ -9174,6 +9179,17 @@ const RUN_WARMUP_BY_TYPE = {
 // before it can place anyone, which meant a capable runner spent a month on 30-second
 // walk-run intervals before the app noticed. Two questions resolve that on day one, and
 // logged history overrides it as soon as there's enough to be more reliable.
+// Where in the beginner progression to start. Every option under 2km resolved to the
+// beginner tier and every beginner started at level 1, so "I'm starting from scratch" and
+// "I can jog a few minutes" produced an identical plan — 30 seconds of running at a time
+// for someone who just said they can run for minutes. Someone who can already jog a few
+// minutes starts at the 3-minute interval; deliberately below what they reported, since
+// the protocol's whole premise is that beginners fail by starting too hard.
+function runStartLevelFromSelfReport(longestKm){
+  if(longestKm == null || longestKm < 1) return 0;   // from scratch -> run 30s / walk 90s
+  if(longestKm < 2) return 3;                        // a few minutes -> run 3min / walk 90s
+  return 0;                                          // 3km+ leaves the beginner tree entirely
+}
 function runTierFromSelfReport(longestKm, perWeek){
   if(longestKm == null) return null;
   if(longestKm < 2) return 'beginner';
@@ -9182,10 +9198,6 @@ function runTierFromSelfReport(longestKm, perWeek){
   if(longestKm >= 18) return 'intermediate';
   return 'base';
 }
-// How much logged running it takes before measured history is the better signal. Two
-// weeks at the beginner protocol's three sessions a week: one run is not more reliable
-// than an explicit statement about where someone is starting from.
-const RUN_SELF_REPORT_OVERRIDE_RUNS = 6;
 async function getSelfReportedRunRecord(){
   try{
     const v = JSON.parse((await window.storage.get('settings:runStartingPoint')).value);
@@ -9206,7 +9218,8 @@ document.getElementById('saveRunStartBtn').addEventListener('click', async ()=>{
   await window.storage.set('settings:runStartingPoint', JSON.stringify({ longestKm, perWeek, date: todayStr }));
   // Re-declaring where you're starting from restarts the progression, otherwise the old
   // anchor keeps counting runs logged before the reset.
-  await window.storage.set('settings:runProgressionStart', JSON.stringify({ date: todayStr }));
+  await window.storage.set('settings:runProgressionStart', JSON.stringify({
+    date: todayStr, startLevel: runStartLevelFromSelfReport(longestKm) }));
   const tier = runTierFromSelfReport(longestKm, perWeek);
   const label = (RUN_PLAN_TEMPLATES[tier] || {}).label || tier;
   el.textContent = `Starting at: ${label}. Regenerate your week to apply it.`;
@@ -9246,29 +9259,40 @@ function parseRunLevel(levelText){
 // was placed part-way up on day one, and any run done outside the plan advanced them
 // without their having completed the plan's sessions. Anchored to the self-reported
 // starting point where there is one, otherwise to the first day the tree is consulted.
-async function getRunProgressionAnchor(){
-  try{ return JSON.parse((await window.storage.get('settings:runProgressionStart')).value).date; } catch(e){}
-  let date = todayStr;
+async function getRunProgressionStart(){
+  try{
+    const v = JSON.parse((await window.storage.get('settings:runProgressionStart')).value);
+    // Records written before the tree tracked a starting level carry only a date.
+    return { date: v.date, startLevel: v.startLevel || 0 };
+  } catch(e){}
+  let date = todayStr, startLevel = 0;
   try{
     const v = JSON.parse((await window.storage.get('settings:runStartingPoint')).value);
     if(v && v.date) date = v.date;
+    startLevel = runStartLevelFromSelfReport(v && v.longestKm);
   } catch(e){}
-  try{ await window.storage.set('settings:runProgressionStart', JSON.stringify({ date })); } catch(e){}
-  return date;
+  try{ await window.storage.set('settings:runProgressionStart', JSON.stringify({ date, startLevel })); } catch(e){}
+  return { date, startLevel };
 }
 
 async function getRunProgressionLevel(){
   const tree = PROGRESSION_TREES.run.c25k;
+  const top = tree.levels.length - 1;
   try{
-    const anchor = await getRunProgressionAnchor();
-    const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'run' && s.date && s.date >= anchor);
-    // Each level needs RUN_SESSIONS_PER_LEVEL completions before the next is offered.
+    const start = await getRunProgressionStart();
+    const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'run' && s.date && s.date >= start.date);
+    // Each level needs RUN_SESSIONS_PER_LEVEL completions before the next is offered,
+    // counted from wherever the stated starting point put you rather than always from
+    // the bottom rung.
     const completed = sessions.length;
-    const level = Math.min(tree.levels.length - 1, Math.floor(completed / RUN_SESSIONS_PER_LEVEL));
+    const startLevel = Math.min(top, start.startLevel || 0);
+    const level = Math.min(top, startLevel + Math.floor(completed / RUN_SESSIONS_PER_LEVEL));
+    const levelsToClear = tree.levels.length - startLevel;
     return { level, label: tree.levels[level], detail: tree.levelDetails[level],
-             levelCount: tree.levels.length, sessionsAtLevel: completed % RUN_SESSIONS_PER_LEVEL,
-             graduated: level >= tree.levels.length - 1 && completed >= tree.levels.length * RUN_SESSIONS_PER_LEVEL };
-  } catch(e){ return { level:0, label: tree.levels[0], detail: tree.levelDetails[0], levelCount: tree.levels.length, sessionsAtLevel:0 }; }
+             levelCount: tree.levels.length, startLevel,
+             sessionsAtLevel: completed % RUN_SESSIONS_PER_LEVEL,
+             graduated: level >= top && completed >= levelsToClear * RUN_SESSIONS_PER_LEVEL };
+  } catch(e){ return { level:0, label: tree.levels[0], detail: tree.levelDetails[0], levelCount: tree.levels.length, startLevel:0, sessionsAtLevel:0 }; }
 }
 
 // ---------- MOBILITY PROGRESSION ----------
