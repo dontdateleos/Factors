@@ -328,19 +328,21 @@
   /* Mobility assessment wheel. Vertical list of domains, five visible with opacity
      falling off from the centre, and the 1-5 scale horizontal beneath. Replaces a nine-row
      grid that ran 594px with 45 targets at 28px square. */
-  .mob-wheel{ position:relative; height:170px; overflow:hidden; display:flex; flex-direction:column;
+  /* One row height, and the wheel is five of them. The drag's step distance is the same
+     number — see STEP_PX — so these have to move together. */
+  .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 5); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .mob-wheel:active{ cursor:grabbing; }
-  .mob-wheel-item{ height:34px; display:flex; align-items:center; justify-content:space-between;
+  .mob-wheel-item{ height:var(--mob-row); display:flex; align-items:center; justify-content:space-between;
     font-family:var(--sans); color:var(--text); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
-    font-size:var(--fs-sm); padding:0 2px; }
-  .mob-wheel-item.focused{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
+    font-size:var(--fs-lg); padding:0 2px; }
+  .mob-wheel-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .mob-wheel-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .mob-wheel-score{ font-family:var(--mono); color:var(--dim); flex:none; margin-left:10px; }
   .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
   /* Marks the selection row so it's clear which name the numbers below apply to. */
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:34px; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    height:var(--mob-row); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
     pointer-events:none; opacity:0.25; }
   /* The black region the lower half of the wheel is read against. Its top edge is put
      through the middle of the focused domain name, so that one word is cut in two: the
@@ -1856,7 +1858,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.35';
+const APP_VERSION = '2026.08.25.36';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3626,7 +3628,7 @@ async function renderMobilityAssessment(skipCollapse){
     mobilityWheelBound = true;
     const host = document.getElementById('mobilityAssessmentRows');
     let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false;
-    const STEP_PX = 34;             // sustained finger travel per domain — one row height
+    const STEP_PX = 38;             // sustained finger travel per domain — one row height (--mob-row)
     const FLICK_MIN_PX = 8;         // below this it's a tap, not a swipe
     const FLICK_MIN_VELOCITY = 0.25; // px/ms — separates a flick from a slow short drag
     host.addEventListener('pointerdown', e=>{
