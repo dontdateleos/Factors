@@ -406,24 +406,27 @@
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-lg); padding:8px 4px; }
 
 
-  /* Built from what the app already does everywhere else: a titled band in a flat block
-     colour from the tab palette, a hard 2px rule under it, a white panel body, and rows
-     separated by hairlines — the same construction as .group + .group-head + .log-entry.
-     The band colour is what tells you the verdict, exactly as the tab bar colours a
-     section. Deliberately not the lime of the Today page, which the card sits on. */
-  .rec-card{ position:relative; border:2px solid var(--border-bold); border-radius:0; background:var(--panel); margin-bottom:16px; padding:0; overflow:hidden; }
-  .rec-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:9px 12px; border-bottom:2px solid var(--border-bold); background:var(--block-purple); }
-  .rec-card.reduce .rec-head{ background:var(--block-red); }
-  .rec-card.add    .rec-head{ background:var(--block-blue); }
-  .rec-card.modify .rec-head{ background:var(--block-yellow); }
-  .rec-type{ font-family:var(--sans); font-size:var(--fs-xl); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.03em; color:var(--on-light); -webkit-text-stroke:0.4px var(--on-light); }
-  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.06em; color:var(--on-light-dim); white-space:nowrap; }
-  .rec-body{ padding:12px 12px 14px; }
-  .rec-title{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); letter-spacing:-0.015em; line-height:1.32; color:var(--on-light); margin-bottom:4px; }
-  /* Hairline-separated rows, same as a log list. Bullets were glyphs on wrapped lines, so
-     a two-line signal used to lose its own left edge. */
-  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--on-light-dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid var(--line); }
-  .rec-actions{ display:flex; gap:8px; margin-top:12px; }
+  /* Third pass, and a different shape rather than another card treatment. The boldest
+     thing this app owns is the black band with the logo set huge across it — used for
+     the header and the tab bar and nowhere else. A recommendation is the one thing on
+     the page that interrupts you, so it borrows exactly that: full-bleed black, the
+     verdict set at logo scale in the type's own colour, everything else inverted
+     beneath it. */
+  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:0 -14px 14px; padding:16px 14px 18px; }
+  .rec-head{ display:block; margin-bottom:12px; }
+  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; color:var(--block-purple); -webkit-text-stroke:0.6px currentColor; }
+  .rec-card.reduce .rec-type{ color:var(--block-red); }
+  .rec-card.add    .rec-type{ color:var(--block-lime); }
+  .rec-card.modify .rec-type{ color:var(--block-yellow); }
+  .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
+  .rec-body{ padding:0; }
+  .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
+  /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
+     used to lose its own left edge. */
+  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:rgba(251,250,246,0.72); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(251,250,246,0.22); }
+  .rec-actions{ display:flex; gap:8px; margin-top:16px; }
+  .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
 
   .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
@@ -1693,7 +1696,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.11';
+const APP_VERSION = '2026.08.25.12';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
