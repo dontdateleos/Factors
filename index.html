@@ -1688,7 +1688,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.7';
+const APP_VERSION = '2026.08.25.8';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5093,8 +5093,13 @@ async function getAcceptanceStats(){
   return stats;
 }
 
+const ACCEPTANCE_STATS_VISIBLE = false;
 function renderAcceptanceStats(stats){
   const el = document.getElementById('acceptanceStats');
+  // Hidden by request. It reported how often each recommendation type gets accepted
+  // rather than dismissed — feedback on the engine's own calibration, not on training.
+  // Decisions are still logged, so restoring it is deleting the next line.
+  if(!ACCEPTANCE_STATS_VISIBLE){ el.innerHTML=''; return; }
   const types = Object.keys(stats).filter(t=>stats[t].total >= 5);
   if(types.length === 0){ el.innerHTML=''; return; }
   el.innerHTML = '<div class="log-title">Acceptance rate (n≥5)</div>' + types.map(t=>{
@@ -5152,7 +5157,7 @@ async function checkReturnToRunRule(){
 
 // Drives the ring beside the score. Hidden entirely when there is no number — an empty
 // ring next to a placeholder reads as a score of zero.
-function setScoreRing(value){
+function setScoreRing(value, animate){
   const ring = document.getElementById('overallScoreRing');
   const fill = document.getElementById('overallScoreRingFill');
   if(!ring || !fill) return;
@@ -5161,6 +5166,16 @@ function setScoreRing(value){
   const circumference = 2 * Math.PI * 18; // r=18 in the viewBox above
   const pct = Math.max(0, Math.min(100, value)) / 100;
   fill.style.strokeDasharray = String(circumference);
+  // Snap back to empty with the transition off, force the browser to take that as the
+  // current state, then let the CSS transition carry it round. Without the reflow the two
+  // assignments coalesce into no visible change — and on a revisit the offset is already
+  // correct, so nothing would animate at all.
+  if(animate){
+    fill.style.transition = 'none';
+    fill.style.strokeDashoffset = String(circumference);
+    void fill.getBoundingClientRect();
+    fill.style.transition = '';
+  }
   fill.style.strokeDashoffset = String(circumference * (1 - pct));
 }
 
@@ -5176,7 +5191,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     const prevNum = parseInt(out.textContent);
     const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
     animateNumber(out, prev, capacityResult.score, 500);
-    setScoreRing(capacityResult.score);
+    setScoreRing(capacityResult.score, true);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
     return;
@@ -5203,7 +5218,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   const prevNum = parseInt(out.textContent);
   const prev = isNaN(prevNum) ? overall : prevNum;
   animateNumber(out, prev, overall, 500);
-  setScoreRing(overall);
+  setScoreRing(overall, true);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
   else { label.textContent='Typical'; }
@@ -11906,6 +11921,11 @@ const TENDINOPATHY_PROTOCOL = {
     }
   }
 
+  // "hold" cards are the engine's null result — "nothing corroborated, carry on" — stated
+  // as a card you then have to accept or dismiss. Filtered at the render point rather
+  // than at the six places they're built, so the reasoning stays in one piece and this
+  // is one line to undo.
+  cardQueue = cardQueue.filter(c => c.type !== 'hold');
   showNextCard();
 
   const acceptanceStats = await getAcceptanceStats();
