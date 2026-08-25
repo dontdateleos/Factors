@@ -157,12 +157,14 @@
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--on-light); }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px 10px; border-radius:0; min-width:0; }
-  /* Fields inside a panel are set a step down. --fs-lg is pinned at 16px because iOS
-     zooms the viewport when a focused input is smaller, so this trades that zoom for
-     type that sits with the labels beside it rather than towering over them. */
-  .goal-row-panel input[type=number], .goal-row-panel input[type=text], .goal-row-panel select,
-  .goal-row-panel input[type=date], .header-panel input[type=number], .header-panel input[type=text],
-  .header-panel select, .header-panel input[type=date], .header-panel textarea{ font-size:var(--fs-md); }
+  /* Field text stays at --fs-lg. It is pinned at 16px because iOS zooms the whole
+     viewport when a focused input is smaller than that, and the page stays zoomed after
+     — which is worse than the size it was trying to fix. The boxes are made less
+     dominant with tighter padding instead, and the labels come up to meet them. */
+  .goal-row-panel input[type=number], .goal-row-panel input[type=text], .goal-row-panel input[type=date],
+  .header-panel input[type=number], .header-panel input[type=text], .header-panel input[type=date],
+  .header-panel textarea{ padding:5px 9px; }
+  .goal-row-panel select, .header-panel select{ height:28px; }
   .goal-row-panel .field-label, .header-panel .field-label{ font-size:var(--fs-md); }
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
      a select sized itself to its longest OPTION and pushed the whole page sideways.
@@ -393,7 +395,12 @@
      origin — so the twins live in an inner box pushed back by exactly that bleed. Without
      it every cloned label sits one bleed-width left of the copy it is meant to sit on top
      of, and the two read as a doubled letter either side of the boundary. */
-  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; /* replaced per render by positionWheelInk */ z-index:1; background:var(--reverse-bg); overflow:hidden; pointer-events:none; }
+  /* #000000, not --reverse-bg: the header is pure black and the panel is meant to read as
+     a continuation of it, so the two greys can't be a shade apart. */
+  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; /* replaced per render */ z-index:1; background:#000000; overflow:hidden; pointer-events:none; }
+  /* The header's hairline rule runs straight across the join and reads as a gap in it.
+     On this tab the panel provides the separation instead. */
+  body.tab-training header{ border-bottom-color:transparent; }
   .wheel-ink-inner{ position:absolute; top:0; bottom:0; left:var(--ink-bleed); right:0; }
   .wheel-ink .wheel-day-item{ color:var(--block-orange); }
   .wheel-ink .wheel-hub-label, .wheel-ink .wheel-hub-of{ color:rgba(255,148,66,0.7); }
@@ -763,6 +770,14 @@
 
   <!-- INJURIES PANEL -->
   <div class="panel" id="panel-injuries">
+    <div class="group">
+      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, and how much it should change your training</div></div>
+      <div class="fields">
+        <div class="score-note">Log anything that hurts with a severity from 1 to 10. Severity fades on its own from the onset date — the half-life is how many days it takes to halve — so an entry quietly stops mattering as you recover rather than nagging forever.</div>
+        <div class="score-note">While something is sore the generator scales back the sessions that load it, drops quality and long running when it's bad enough, and the warm-up targets that area first. Mark it resolved the moment it stops bothering you.</div>
+      </div>
+    </div>
+
     <div class="group header-panel injuries">
       <div class="header-panel-title">Log new injury</div>
       <div class="fields">
@@ -1769,7 +1784,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.23';
+const APP_VERSION = '2026.08.25.24';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3900,6 +3915,10 @@ async function renderWeekGrid(){
       const maxSets = Math.max(1, ...Object.values(setsByWeek));
 
       const cells = [];
+      // A long block puts eight columns across a phone, so the labels tighten rather than
+      // overflow: smaller type, and the run distance drops out to leave room for the sets.
+      const dense = pos.length > 6;
+      const BAR_BAND = 46; // the bars' own height, independent of the text around them
       for(let w=1; w<=pos.length; w++){
         const dl = isDeloadPosition(w, pos.length);
         const phase = dl ? 'deload' : getBlockPhase(w, dl, pos.length);
@@ -3917,11 +3936,19 @@ async function renderWeekGrid(){
         const n = realSets > 0 ? realSets : null;
         const fill = isNow ? 'var(--reverse-bg)' : 'var(--border-bold)';
         const op = isNow ? 1 : (isPast ? 0.5 : 0.22);
-        cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; min-width:0;">
-          <div style="font-family:var(--mono); font-size:var(--fs-tag); opacity:${isNow?0.9:0.4};">${n != null ? n : ''}</div>
-          <div style="width:100%; height:${h}px; background:${fill}; opacity:${op};"></div>
-          <div style="font-family:var(--mono); font-size:var(--fs-tag); font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
-          <div style="font-family:var(--mono); font-size:var(--fs-tag); opacity:${isNow?0.7:0.3};">${plannedByWeek[w] ? plannedByWeek[w]+'s' : ''}${runKmByWeek[w] ? ' '+runKmByWeek[w]+'k' : ''}</div>
+        // The bars live in a band of their own rather than sizing the row. The row had a
+        // fixed height while a column was a bar plus three lines of text, so the tallest
+        // bar pushed its own number up out of the row and into the caption above it.
+        // The text rows hold a space when they have nothing to say, so a column with no
+        // figures keeps the same height as one with them and the bars share a baseline.
+        const tag = `font-family:var(--mono); font-size:${dense ? '9px' : 'var(--fs-tag)'}; white-space:nowrap;`;
+        cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
+          <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
+          <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
+            <div style="width:100%; height:${h}px; background:${fill}; opacity:${op};"></div>
+          </div>
+          <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
+          <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
         </div>`);
       }
 
@@ -3942,7 +3969,7 @@ async function renderWeekGrid(){
         ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
         : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
       strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Planned sets per week · sessions and run km below</div>
-        <div style="display:flex; gap:5px; align-items:flex-end; height:78px;">${cells.join('')}</div>
+        <div style="display:flex; gap:${dense ? 3 : 5}px; align-items:flex-end;">${cells.join('')}</div>
         <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
         ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
     } catch(e){ strip.innerHTML = ''; }
