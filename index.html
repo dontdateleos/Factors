@@ -1858,7 +1858,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.40';
+const APP_VERSION = '2026.08.25.41';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8713,7 +8713,7 @@ function buildMobilitySkillStretches(sg, dayIndex, loadedROMCoverage, sessionTyp
 // area system itself, which is separate, riskier work. Wrists has no reasonable match at
 // all (no wrist-related area exists anywhere in this app) — left mapped to null, meaning
 // it can still be assessed and displayed, but won't influence mobility generation.
-const MOBILITY_DOMAINS = ['ankles','knees','hips','hamstrings','adductors','spine','shoulders','scapula','wrists'];
+const MOBILITY_DOMAINS = ['ankles','calves','knees','hips','hamstrings','adductors','spine','shoulders','chest','scapula','wrists'];
 // Assessment domains and body-area names are different vocabularies for the same tissue,
 // and this is the ONLY translation between them. It had a second, divergent copy declared
 // inside buildMobilitySession which shadowed it; the two disagreed on three domains, so
@@ -8727,7 +8727,7 @@ const MOBILITY_DOMAINS = ['ankles','knees','hips','hamstrings','adductors','spin
 // - spine resolves to thoracic, matching what the domain actually tests and what its
 //   access and control rungs actually are. Its loaded rungs are lumbar, so a
 //   thoracic-heavy week can hold them back; that is the lesser of the two errors.
-const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'adductors', spine:'thoracic', shoulders:'shoulders', scapula:'shoulders', wrists:'forearms' };
+const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', calves:'calves', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'adductors', spine:'thoracic', shoulders:'shoulders', chest:'chest', scapula:'shoulders', wrists:'forearms' };
 // One generic five-rung ladder was being asked to describe nine different joints, so
 // "loaded mobility: meaningful force through large ROM" told you nothing about your
 // ankles specifically — it had to also cover wrists. These are per-domain instead, and
@@ -8746,6 +8746,15 @@ const MOBILITY_DOMAIN_TESTS = {
     'Same, with your toes 5cm back from the wall',
     'Same, with your toes 10cm back from the wall',
     'Toes 13cm+ back, and you can sit in a deep squat for a minute'
+  ],
+  // Ankles is a bent-knee test — knee-to-wall measures soleus. Gastroc is a different
+  // tissue, it is the one that tightens from mileage, and nothing here reached it.
+  calves: [
+    'Stand on a step and lower one heel below it with the leg straight',
+    'Wall calf stretch with the back knee locked straight and the heel down',
+    'Downward dog with both heels flat on the floor',
+    'Downward dog on one leg — the standing heel stays flat with the other lifted',
+    '15 slow single-leg calf raises, heel to the floor at the bottom and all the way up'
   ],
   knees: [
     'Kneel and sit back towards your heels, even with a gap',
@@ -8789,6 +8798,15 @@ const MOBILITY_DOMAIN_TESTS = {
     'Face down holding a stick, lift it up and past your head',
     'Hang from a bar, straight arms, relaxed, for 30 seconds'
   ],
+  // The shoulders test is an overhead reach, which lats and pecs both limit — so a tight
+  // chest read as a low SHOULDER score and got lat work. This tests the front on its own.
+  chest: [
+    'Standing, clasp your hands behind your back and straighten your arms',
+    'On your back, arms out in a T, both shoulders rest flat without you pressing them down',
+    'Doorway at shoulder height — step through to a stretch with your ribs down, not flared',
+    'Hands clasped behind your back, straight arms, lift them well away from your body',
+    'Lying along a foam roller, arms out in a T, the backs of both hands rest on the floor'
+  ],
   scapula: [
     'Hanging from a bar, shrug your shoulders up towards your ears',
     'Hanging, pull your shoulders down away from your ears and hold',
@@ -8816,23 +8834,27 @@ const MOBILITY_DOMAIN_TESTS = {
 const MOBILITY_PROGRESSION_LIBRARY = {
   access: {
     ankles: ['Ankle circles', 'Knee-to-wall', 'Heel-elevated squat rock', 'Banded ankle distraction'],
+    calves: ['Straight-leg heel walk', 'Wall calf stretch, knee locked', 'Downward dog heel walk', 'Foam roll calves'],
     knees: ['Terminal knee extension hold', 'Supported knee flexion rock', 'Seated knee extension hold'],
     hips: ['Supported deep squat', '90/90 switches', 'Half-kneeling hip-flexor stretch', 'Frog rock', 'Figure-4 stretch'],
     hamstrings: ['Supine hamstring stretch', 'Seated forward fold', 'Standing hamstring sweep', 'Supine band hamstring hold'],
     adductors: ['Adductor rockbacks', 'Butterfly stretch', 'Wide-stance lateral rock'],
     spine: ['Cat-cow', 'Thoracic rotations', 'Open book', 'Thread the needle', 'Child\u2019s pose reach'],
     shoulders: ['Shoulder CARs', 'Wall slides', 'Doorway pec stretch', 'Band dislocates'],
+    chest: ['Corner pec stretch', 'Floor angels', 'Foam roll chest and front shoulder', 'Supine chest opener hold'],
     scapula: ['Scapular CARs', 'Scapular push-up', 'Prone scapular retraction'],
     wrists: ['Wrist circles', 'Kneeling wrist rock', 'Prayer stretch']
   },
   control: {
     ankles: ['Active/loaded knee-to-wall', 'Tibialis raise hold', 'Single-leg balance reach'],
+    calves: ['Straight-leg heel drop hold', 'Single-leg balance with the heel down', 'Slow tempo heel raise'],
     knees: ['Active knee flexion-extension through range', 'Slow tempo split-squat descent', 'Wall-sit isometric'],
     hips: ['90/90 transitions', '90/90 lift-offs', 'Active hip flexion', 'Standing hip CARs', 'Seated pancake lift-off'],
     hamstrings: ['Active straight-leg raise', 'Seated pike compression', 'Hollow-body leg lower'],
     adductors: ['Cossack progression', 'Adductor lift-off', 'Side-lying adduction hold'],
     spine: ['Controlled spinal extension', 'Segmental cat-cow', 'Prone press-up hold'],
     shoulders: ['Shoulder lift-offs', 'Prone Y-T-W raises', 'Active overhead reach hold'],
+    chest: ['Prone Y-raise hold', 'Wall angels with the ribs down', 'Band pull-apart raise'],
     scapula: ['Scapular wall slides with control', 'Scapular pull-up', 'Serratus wall press'],
     wrists: ['Active wrist flexion-extension hold', 'Wrist lift-offs', 'Tabletop wrist rock']
   },
@@ -8843,12 +8865,14 @@ const MOBILITY_PROGRESSION_LIBRARY = {
   // rotation for when equipment is available.
   load: {
     ankles: ['Slow eccentric calf raise', 'Single-leg calf raise off a step', 'Deficit single-leg calf raise', 'Loaded calf raise', 'Weighted ankle rocker'],
+    calves: ['Straight-leg heel drop, slow lower', 'Bent-knee heel drop, slow lower', 'Deficit heel drop, eccentric', 'Loaded straight-leg heel raise', 'Weighted eccentric heel drop'],
     knees: ['Deep split squat', 'Slow-tempo sissy squat', 'Reverse Nordic eccentric', 'Step-down, slow lower', 'Weighted step-down'],
     hips: ['Deep split squat', 'Bridge preparation', 'Single-leg glute bridge', 'Bodyweight Cossack squat', 'Weighted Cossack squat', 'Loaded 90/90 lift-off'],
     hamstrings: ['Nordic curl eccentric', 'Single-leg RDL, bodyweight', 'Loaded pike', 'Full-ROM RDL', 'Weighted good morning'],
     adductors: ['Copenhagen plank', 'Bodyweight Cossack squat', 'Wide-stance sit into a lunge', 'Loaded Cossack', 'Weighted side lunge'],
     spine: ['Bridge preparation', 'Bodyweight Jefferson curl', 'Prone extension hold', 'Jefferson curl progression', 'Weighted extension hold'],
     shoulders: ['Wall-supported overhead hold', 'Pike push-up, slow lower', 'Bodyweight overhead reach hold', 'Loaded shoulder flexion', 'Overhead carries'],
+    chest: ['Push-up plus', 'Deep push-up on handles', 'Slow-lower ring or handle fly', 'Loaded chest opener hold', 'Weighted deep push-up hold'],
     scapula: ['Scapular pull-up', 'Scapular push-up, slow', 'Bodyweight serratus press', 'Weighted scapular pull', 'Loaded scapular shrug'],
     wrists: ['Knuckle push-up hold', 'Tabletop wrist rock, loaded', 'Bodyweight wrist extension hold', 'Loaded wrist extension', 'Weighted wrist curl']
   }
@@ -9065,7 +9089,7 @@ const SKILL_TO_INTEGRATE = {
 // legitimately touch hips (frontsplits/middlesplit/pancake all do) — picked the single
 // best-fit skill per domain rather than every overlapping option. Wrists has no direct
 // skill in the current progression trees, so it falls back at generation time.
-const MOBILITY_DOMAIN_TO_SKILL = { ankles:'deepsquat', knees:'deepsquat', hips:'frontsplits', hamstrings:'pike', adductors:'middlesplit', spine:'bridge', shoulders:'overheadsquat', scapula:'overheadsquat', wrists:null };
+const MOBILITY_DOMAIN_TO_SKILL = { ankles:'deepsquat', calves:null, knees:'deepsquat', hips:'frontsplits', hamstrings:'pike', adductors:'middlesplit', spine:'bridge', shoulders:'overheadsquat', chest:null, scapula:'overheadsquat', wrists:null };
 
 // Stepper state. Draft scores are held here rather than in storage so tapping through
 // the assessment doesn't write nine times; the existing Save button still commits.
@@ -11397,8 +11421,8 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       // bare names with no category tag, which rendered as one untagged GOAL line and
       // ignored assessment levels, mobility goals, and dosing entirely.
       const compDomains = compArea === 'upper'
-        ? ['shoulders','scapula','spine','wrists']
-        : ['ankles','knees','hips','hamstrings','adductors'];
+        ? ['shoulders','chest','scapula','spine','wrists']
+        : ['ankles','calves','knees','hips','hamstrings','adductors'];
       // Not filtered by complementary area: a pike goal disappeared entirely on upper-body
       // days, leaving it at 4.5 min/week against a 10 min target. The complementary
       // rotation governs ACCESS work; the goal skill is what the block exists to progress.
@@ -13865,6 +13889,21 @@ const ENGINE_SCENARIOS = [
     expect: (r)=> (r && !r.badMap.length && !r.unmapped.length && !r.badWarmup.length && !r.badMobility.length)
       ? {pass:true}
       : {pass:false, note:`off-vocabulary names — ${JSON.stringify(r)}`} },
+  // Adding a domain means touching five tables, and missing one of them fails quietly:
+  // a domain with no rungs is silently skipped by pushRung, and one with no checklist
+  // renders an empty list you can't rate. Neither throws.
+  { id:'every_mobility_domain_is_fully_wired', backlogRef:'Domain completeness', description:'Every mobility domain should have five checklist rungs, a body area, a skill mapping and access/control/load exercises',
+    setup: async ()=>{},
+    run: async ()=> ({
+      badChecklist: MOBILITY_DOMAINS.filter(d=> (MOBILITY_DOMAIN_TESTS[d]||[]).length !== 5),
+      noArea: MOBILITY_DOMAINS.filter(d=> !MOBILITY_DOMAIN_TO_AREA[d]),
+      noSkillKey: MOBILITY_DOMAINS.filter(d=> !(d in MOBILITY_DOMAIN_TO_SKILL)),
+      noRungs: ['access','control','load'].flatMap(c=>
+        MOBILITY_DOMAINS.filter(d=> !(MOBILITY_PROGRESSION_LIBRARY[c][d]||[]).length).map(d=> c+':'+d))
+    }),
+    expect: (r)=> (r && !r.badChecklist.length && !r.noArea.length && !r.noSkillKey.length && !r.noRungs.length)
+      ? {pass:true}
+      : {pass:false, note:`half-wired domains — ${JSON.stringify(r)}`} },
 ];
 
 async function runEngineScenarioSuite(onProgress){
