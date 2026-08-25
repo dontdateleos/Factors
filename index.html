@@ -216,6 +216,8 @@
   /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
+  .mob-goal-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:2px 0 0 14px; letter-spacing:0.01em; line-height:1.5; }
+  .mob-goal-key{ color:var(--text); font-weight:var(--fw-bold); letter-spacing:0.02em; }
   .log-entry:hover{ color:var(--text); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
@@ -10985,9 +10987,29 @@ async function blockSummaryHtml(block){
           // schema existed — fall back to the plain stretch name rather than rendering
           // the literal word "undefined" when that happens.
           if(main.skillLabel == null || main.levelIndex == null) return `<strong>${main.name}</strong>`;
-          return test
+          const header = test
             ? `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1} → L${main.levelIndex+2}</span>`
             : `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1}</span>`;
+          // The header alone named a skill and a level number and stopped there, so the
+          // one line that actually needed instructions was the only line without any.
+          // Spell out the movement and dose for the level being trained, and what the
+          // next level is waiting on, straight from the progression tree.
+          const tree = PROGRESSION_TREES.mobility[main.skill];
+          const detail = tree && tree.levelDetails && tree.levelDetails[main.levelIndex];
+          const nextDetail = tree && tree.levelDetails && tree.levelDetails[main.levelIndex+1];
+          const lines = [];
+          // main.name is the level's own movement name ("Half split, back knee down").
+          const target = detail && detail.holdOrRepTarget ? ` · target ${detail.holdOrRepTarget}` : '';
+          lines.push(`<span class="mob-goal-key">L${main.levelIndex+1} — do:</span> ${main.name} · ${mobilityDoseLabel(main)}${target}`);
+          if(detail && detail.advancementCriteria){
+            lines.push(`<span class="mob-goal-key">To reach L${main.levelIndex+2}:</span> ${detail.advancementCriteria}`);
+          }
+          if(test){
+            const nextName = test.nextLevelLabel || (tree && tree.levels && tree.levels[main.levelIndex+1]) || `L${main.levelIndex+2}`;
+            const nextTarget = nextDetail && nextDetail.holdOrRepTarget ? ` · target ${nextDetail.holdOrRepTarget}` : '';
+            lines.push(`<span class="mob-goal-key">Test today:</span> ${nextName} · ${mobilityDoseLabel(test)}${nextTarget} — clear it and you move up`);
+          }
+          return header + lines.map(t=>`<div class="mob-goal-line">${t}</div>`).join('');
         });
       } else {
         // Show the actual dose. A mobility block previously listed bare exercise names
@@ -11004,7 +11026,7 @@ async function blockSummaryHtml(block){
       // what the block is for or what the arrow means. One line of plain English under the
       // header, only where it's needed.
       const catNote = cat==='goal'
-        ? `<div class="mob-cue" style="padding:2px 0 4px;">Direct practice on your skill goal — the level shown is where you are now, and an arrow (L2 → L3) means today also tests whether you're ready to move up.</div>`
+        ? `<div class="mob-cue" style="padding:2px 0 4px;">Direct practice on your skill goal — the one block that moves level by level.</div>`
         : '';
       html += `<div class="mobility-cat-group">
         <div class="mobility-cat-label">${categoryLabels[cat]}</div>
