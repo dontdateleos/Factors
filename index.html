@@ -216,8 +216,16 @@
   /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
-  .mob-goal-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:2px 0 0 14px; letter-spacing:0.01em; line-height:1.5; }
-  .mob-goal-key{ color:var(--text); font-weight:var(--fw-bold); letter-spacing:0.02em; }
+  /* Today's plan renders strength, running and mobility through one row shape: a bold
+     name with its dose beside it, then any number of labelled detail lines underneath.
+     Each block type used to invent its own layout, and the two-column rows in particular
+     pushed prescriptions to the right edge where they wrapped badly on a phone. */
+  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:6px 0 6px 10px; }
+  .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
+  .plan-item.ss-row{ padding-top:3px; padding-bottom:3px; }
+  .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
+  .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:2px 0 0 14px; letter-spacing:0.01em; line-height:1.5; }
+  .plan-key{ color:var(--text); font-weight:var(--fw-bold); letter-spacing:0.02em; }
   .log-entry:hover{ color:var(--text); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
@@ -9182,6 +9190,15 @@ function parseRunLevel(levelText){
     const ws = iv[4]==='min' ? parseInt(iv[3],10)*60 : parseInt(iv[3],10);
     return { continuous:false, runIntervalSec: rs, walkIntervalSec: ws, intervalReps: parseInt(iv[5],10) };
   }
+  // Levels that spell out a one-off sequence rather than a repeating interval — the
+  // second-to-last rung is "Run 12min / walk 2min / run 8min", which matched neither
+  // shape above and parsed as null. The generator's fallback for null is the week-two
+  // interval, so reaching that rung silently demoted you seven levels.
+  const seq = [...levelText.matchAll(/(run|walk) (\d+)(s|min)/gi)].map(m=>({
+    kind: m[1].toLowerCase(),
+    seconds: m[3]==='min' ? parseInt(m[2],10)*60 : parseInt(m[2],10)
+  }));
+  if(seq.length) return { continuous:false, sequence:seq, totalSeconds: seq.reduce((a,x)=>a+x.seconds,0) };
   return null;
 }
 async function getRunProgressionLevel(){
@@ -10822,12 +10839,15 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
       const prog = await getRunProgressionLevel();
       const p = parseRunLevel(prog.label) || { continuous:false, runIntervalSec:60, walkIntervalSec:90, intervalReps:8 };
       let totalMin, body;
+      const secTxt = s => (s >= 60 && s % 60 === 0) ? `${s/60}min` : `${s}s`;
       if(p.continuous){
         totalMin = p.runMin + 10;
         body = `run ${p.runMin} min continuous`;
+      } else if(p.sequence){
+        totalMin = Math.round(p.totalSeconds / 60) + 10;
+        body = p.sequence.map(x=>`${x.kind} ${secTxt(x.seconds)}`).join(' / ');
       } else {
         totalMin = Math.round((p.intervalReps * (p.runIntervalSec + p.walkIntervalSec)) / 60) + 10;
-        const secTxt = s => (s >= 60 && s % 60 === 0) ? `${s/60}min` : `${s}s`;
         const rTxt = secTxt(p.runIntervalSec), wTxt = secTxt(p.walkIntervalSec);
         body = `run ${rTxt} / walk ${wTxt} x${p.intervalReps}`;
       }
@@ -10836,7 +10856,7 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
         details: { runType: item.runType, distanceKm: null, targetPace: null,
           walkRun: true, runLevel: prog.level, runLevelLabel: prog.label,
           runIntervalSec: p.runIntervalSec || null, walkIntervalSec: p.walkIntervalSec || null,
-          intervalReps: p.intervalReps || null, durationMin: totalMin,
+          intervalReps: p.intervalReps || null, durationMin: totalMin, sessionBody: body,
           notes: `Level ${prog.level+1}/${prog.levelCount} — 5 min walk to warm up · ${body} · 5 min walk to cool down (~${totalMin} min). ${prog.detail ? prog.detail.advancementCriteria : ''}` }
       }));
       continue;
@@ -11084,6 +11104,18 @@ function formatPace(minPerKm){
   return `${mins}:${String(secs).padStart(2,'0')}/km`;
 }
 
+// One row of Today's plan. `lines` are optional {key, text} details rendered underneath
+// the name; a line without a key renders as plain sub-text (coaching cues, for instance).
+function planRow(name, dose, lines, opts){
+  opts = opts || {};
+  const detail = (lines||[]).filter(Boolean).map(l =>
+    `<div class="plan-line">${l.key ? `<span class="plan-key">${l.key}:</span> ` : ''}${l.text}</div>`
+  ).join('');
+  const doseHtml = dose ? ` <span class="plan-dose">${dose}</span>` : '';
+  return `<div class="plan-item${opts.rowClass ? ' ' + opts.rowClass : ''}">`
+    + `→ ${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}</div>`;
+}
+
 async function blockSummaryHtml(block){
   const isDeload = await isDeloadWeek(todayStr);
   if(block.type==='strength'){
@@ -11121,18 +11153,17 @@ async function blockSummaryHtml(block){
       // Skill work carries its own prescription and isn't on a load-progression ladder —
       // showing "3×8-12 @ add weight" beside it was wrong as well as noisy.
       if(ex.isSkillWork){
-        rows.push(`<div class="log-entry"><span>${ex.name}</span><span>${ex.prescription || 'easy sets'}</span></div>`);
+        rows.push(planRow(ex.name, ex.prescription || 'easy sets'));
         continue;
       }
       const arrow = progression.action==='add_weight' ? ' ↑' : '';
-      const progNote = progression.note
-        ? `<div class="score-note" style="margin:-4px 0 8px; padding-left:2px;">${progression.note}</div>`
-        : '';
       // A superset only makes sense if you can see which two exercises are paired, so the
       // slot marker leads the name rather than hiding in a note.
       const ssTag = ex.supersetSlot ? `<span class="ss-tag">${ex.supersetSlot}</span>` : '';
       const dropTag = ex.dropSet ? `<span class="drop-tag">+ drop</span>` : '';
-      rows.push(`<div class="log-entry${ex.supersetGroup?' ss-row':''}"><span>${ssTag}${ex.name}${dropTag}</span><span>${sets}×${repsLabel} @ ${weightLabel}${arrow}</span></div>${progNote}`);
+      rows.push(planRow(ex.name, `${sets}×${repsLabel} @ ${weightLabel}${arrow}`,
+        [ progression.note ? { key:'Progression', text: progression.note } : null ],
+        { lead: ssTag, trail: dropTag, rowClass: ex.supersetGroup ? 'ss-row' : '' }));
     }
     return rows.join('');
   }
@@ -11149,7 +11180,37 @@ async function blockSummaryHtml(block){
       targetPace = Math.max(2, targetPace * (1 + adjustment.delta/100));
     }
     const paceLabel = targetPace ? ` @ ${formatPace(targetPace)}` : '';
-    return `<div class="log-entry"><span>${d.runType||'Run'}</span><span>${distanceKm?distanceKm+'km':''}${paceLabel}</span></div>`;
+    const typeKey = d.runType || 'run';
+    const name = typeKey.charAt(0).toUpperCase() + typeKey.slice(1);
+    const lines = [];
+    let dose;
+    if(d.walkRun){
+      // A beginner walk-run session is prescribed as time and intervals and carries no
+      // distance at all, so a distance-only row rendered the whole session as the bare
+      // word "easy". Everything it was actually told to do lives in these fields.
+      const secTxt = x => (x >= 60 && x % 60 === 0) ? `${x/60} min` : `${x}s`;
+      let body = d.sessionBody;
+      if(!body && d.runIntervalSec && d.walkIntervalSec && d.intervalReps){
+        body = `run ${secTxt(d.runIntervalSec)} / walk ${secTxt(d.walkIntervalSec)} ×${d.intervalReps}`;
+      }
+      if(!body) body = d.runLevelLabel || 'walk-run intervals';
+      const levelCount = (PROGRESSION_TREES.run && PROGRESSION_TREES.run.c25k)
+        ? PROGRESSION_TREES.run.c25k.levels.length : null;
+      dose = [ d.runLevel != null && levelCount ? `Level ${d.runLevel+1}/${levelCount}` : null,
+               d.durationMin ? `~${d.durationMin} min` : null ].filter(Boolean).join(' · ');
+      lines.push({ key:'Do', text:`5 min walk to warm up · ${body} · 5 min walk to cool down` });
+      const tree = PROGRESSION_TREES.run && PROGRESSION_TREES.run.c25k;
+      const det = tree && tree.levelDetails && d.runLevel != null ? tree.levelDetails[d.runLevel] : null;
+      if(det && det.advancementCriteria) lines.push({ key:'To advance', text: det.advancementCriteria });
+    } else {
+      dose = `${distanceKm ? distanceKm + 'km' : ''}${paceLabel}`.trim();
+      // Stored on the block at generation; fall back to the protocol for this run type so
+      // blocks saved before warm-ups existed still show one.
+      const warm = d.warmup || (typeof RUN_WARMUP_BY_TYPE !== 'undefined' ? RUN_WARMUP_BY_TYPE[typeKey] : null);
+      if(warm) lines.push({ key:'Warm-up', text: warm });
+    }
+    if(d.notes && !d.walkRun && !/^Auto-generated/.test(d.notes)) lines.push({ text: d.notes });
+    return planRow(name, dose, lines);
   }
   if(block.type==='mobility'){
     const stretches = block.details.stretches||[];
@@ -11178,10 +11239,10 @@ async function blockSummaryHtml(block){
           // skillLabel/levelIndex can be missing on legacy stretches saved before this
           // schema existed — fall back to the plain stretch name rather than rendering
           // the literal word "undefined" when that happens.
-          if(main.skillLabel == null || main.levelIndex == null) return `<strong>${main.name}</strong>`;
+          if(main.skillLabel == null || main.levelIndex == null) return planRow(main.name, mobilityDoseLabel(main));
           const header = test
-            ? `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1} → L${main.levelIndex+2}</span>`
-            : `<strong>${main.skillLabel}</strong> <span class="mob-dose">L${main.levelIndex+1}</span>`;
+            ? `L${main.levelIndex+1} → L${main.levelIndex+2}`
+            : `L${main.levelIndex+1}`;
           // The header alone named a skill and a level number and stopped there, so the
           // one line that actually needed instructions was the only line without any.
           // Spell out the movement and dose for the level being trained, and what the
@@ -11192,16 +11253,16 @@ async function blockSummaryHtml(block){
           const lines = [];
           // main.name is the level's own movement name ("Half split, back knee down").
           const target = detail && detail.holdOrRepTarget ? ` · target ${detail.holdOrRepTarget}` : '';
-          lines.push(`<span class="mob-goal-key">L${main.levelIndex+1} — do:</span> ${main.name} · ${mobilityDoseLabel(main)}${target}`);
+          lines.push({ key:`L${main.levelIndex+1} — do`, text:`${main.name} · ${mobilityDoseLabel(main)}${target}` });
           if(detail && detail.advancementCriteria){
-            lines.push(`<span class="mob-goal-key">To reach L${main.levelIndex+2}:</span> ${detail.advancementCriteria}`);
+            lines.push({ key:`To reach L${main.levelIndex+2}`, text: detail.advancementCriteria });
           }
           if(test){
             const nextName = test.nextLevelLabel || (tree && tree.levels && tree.levels[main.levelIndex+1]) || `L${main.levelIndex+2}`;
             const nextTarget = nextDetail && nextDetail.holdOrRepTarget ? ` · target ${nextDetail.holdOrRepTarget}` : '';
-            lines.push(`<span class="mob-goal-key">Test today:</span> ${nextName} · ${mobilityDoseLabel(test)}${nextTarget} — clear it and you move up`);
+            lines.push({ key:'Test today', text:`${nextName} · ${mobilityDoseLabel(test)}${nextTarget} — clear it and you move up` });
           }
-          return header + lines.map(t=>`<div class="mob-goal-line">${t}</div>`).join('');
+          return planRow(main.skillLabel, header, lines);
         });
       } else {
         // Show the actual dose. A mobility block previously listed bare exercise names
@@ -11210,8 +11271,7 @@ async function blockSummaryHtml(block){
         itemLines = items.map(s=>{
           const cue = mobilityCue(s.name);
           const range = s.rangeNote ? ` · ${s.rangeNote}` : '';
-          return `<strong>${s.name}</strong> <span class="mob-dose">${mobilityDoseLabel(s)}${range}</span>`
-            + (cue ? `<div class="mob-cue">${cue}</div>` : '');
+          return planRow(s.name, `${mobilityDoseLabel(s)}${range}`, cue ? [{ text: cue }] : []);
         });
       }
       // GOAL lines read as a bare skill name and a level number, which says nothing about
@@ -11223,7 +11283,7 @@ async function blockSummaryHtml(block){
       html += `<div class="mobility-cat-group">
         <div class="mobility-cat-label">${categoryLabels[cat]}</div>
         ${catNote}
-        ${itemLines.map(t=>`<div class="mobility-cat-item">→ ${t}</div>`).join('')}
+        ${itemLines.join('')}
       </div>`;
     });
     const mins = estimateSessionDuration(block);
