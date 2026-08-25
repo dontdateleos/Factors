@@ -352,11 +352,20 @@
      pseudo-element that a later rule was overriding anyway. */
   .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:14px 8px; border:2px solid var(--border-bold); border-radius:0; }
 
-  .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:14px; margin-bottom:10px; background:transparent; }
-  .injury-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .injury-part{ font-weight:var(--fw-bold); font-size:var(--fs-md); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .injury-meta{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
-  .injury-actions{ display:flex; gap:8px; margin-top:10px; }
+  /* Same black panel and edge word as the goals, in the Injuries tab's purple. */
+  .injury-card{ position:relative; border:none; border-radius:0; padding:0 14px 16px; margin:26px -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  .injury-card:first-child{ margin-top:22px; }
+  .injury-card .edge-word{ --edge-word-colour:var(--block-purple); --edge-word-size:32px; }
+  .injury-head{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .injury-meta{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.7); letter-spacing:-0.005em; }
+  .injury-note{ font-size:var(--fs-sm); margin-top:6px; color:rgba(251,250,246,0.7); }
+  .injury-actions{ display:flex; gap:8px; margin-top:12px; }
+  .injury-card .injury-actions button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .injury-card .injury-actions button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
+  /* The gauge's track is drawn in --line, which is invisible against the panel. */
+  .injury-card .mini-gauge circle:first-child{ stroke:rgba(251,250,246,0.25); }
+  /* .trend-arrow is set in --text, which is the panel's own colour. */
+  .injury-card .trend-arrow{ color:var(--bg); }
 
 
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
@@ -1745,7 +1754,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.20';
+const APP_VERSION = '2026.08.25.21';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4914,7 +4923,8 @@ async function refreshInjuries(){
     for(const inj of injuries){
       const sev = inj.resolved ? 0 : severityNow(inj.initialSeverity, inj.date, inj.halfLife);
       const sevClass = sev < 3 ? 'low' : sev < 6 ? 'mid' : 'high';
-      const sevColor = sevClass==='low' ? 'var(--good)' : sevClass==='mid' ? 'var(--warn)' : 'var(--bad)';
+      // Picked to read on the panel: --good is a dark olive that disappears against it.
+      const sevColor = sevClass==='low' ? 'var(--block-lime)' : sevClass==='mid' ? 'var(--block-yellow)' : 'var(--bad)';
       const CIRC = 100.5; // 2*pi*16
       const offset = inj.resolved ? CIRC : CIRC * (1 - Math.min(sev,10)/10);
       let trendArrow = '';
@@ -4928,8 +4938,8 @@ async function refreshInjuries(){
       }
       const card = document.createElement('div'); card.className='injury-card';
       card.innerHTML = `
+        ${edgeWordHtml(inj.part)}
         <div class="injury-head">
-          <div class="injury-part">${inj.part}</div>
           <div class="mini-gauge">
             <svg viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="16" fill="none" stroke="var(--line)" stroke-width="5"/>
@@ -4938,14 +4948,17 @@ async function refreshInjuries(){
             </svg>
             <div class="mini-gauge-num" style="color:${sevColor};">${inj.resolved ? '✓' : sev.toFixed(1)}</div>
           </div>
+          <div style="flex:1;">
+            <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
+            ${inj.notes ? `<div class="injury-note">${inj.notes}</div>` : ''}
+          </div>
         </div>
-        <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
-        ${inj.notes ? `<div style="font-size:var(--fs-sm);margin-top:6px;color:var(--dim);">${inj.notes}</div>` : ''}
         <div class="injury-actions">
           ${!inj.resolved ? `<button class="small resolve-btn" data-id="${inj.id}">Mark resolved</button>` : ''}
           <button class="small outline delete-btn" data-id="${inj.id}">Delete</button>
         </div>`;
       list.appendChild(card);
+      calibrateEdgeWords(card);
     }
     list.querySelectorAll('.resolve-btn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
@@ -5147,12 +5160,23 @@ function calibrateEdgeWords(root){
     else if(cs.textTransform === 'lowercase') text = text.toLowerCase();
     const ch = text[EDGE_WORD_SPLIT_CHAR] || text[0];
     if(!ch) return;
-    const size = parseFloat(cs.fontSize);
-    const lineH = parseFloat(cs.lineHeight) || size * 0.9;
-    if(!size || !lineH) return;
     const ctx = calibrateEdgeWords._ctx
       || (calibrateEdgeWords._ctx = document.createElement('canvas').getContext('2d'));
-    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    // Shrink to fit first, since the split has to be measured at the size finally used.
+    // An injury's body part is free text — the ink never wraps, so a long one would run
+    // straight off the side of the panel.
+    let size = parseFloat(cs.fontSize);
+    const avail = wrap.getBoundingClientRect().width;
+    if(size && avail > 0){
+      ctx.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+      const tracking = (parseFloat(cs.letterSpacing) || 0) * Math.max(0, text.length - 1);
+      const drawn = ctx.measureText(text).width + tracking;
+      if(drawn > avail) size = Math.max(16, size * (avail / drawn));
+      wrap.style.fontSize = size + 'px';
+    }
+    const lineH = size * 0.9; // .edge-word-ink line-height
+    if(!size || !lineH) return;
+    ctx.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
     const m = ctx.measureText(ch);
     // Where the baseline sits in the line box, then the ink's own midpoint around it.
     const baseline = (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
