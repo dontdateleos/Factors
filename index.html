@@ -443,10 +443,27 @@
   /* Offset with top, not margin: a negative top margin on the card's first child collapses
      straight out through the card (which has no top padding or border) and moves the card
      itself, leaving the word exactly where it started. */
-  .rec-type{ position:relative; display:block; height:36px; top:-18px; margin-bottom:-6px; }
-  .rec-type-ink{ position:absolute; left:0; top:0; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; white-space:nowrap; }
-  .rec-type-ink.above{ color:var(--text); -webkit-text-stroke:0.6px var(--text); clip-path:inset(0 0 50% 0); }
-  .rec-type-ink.below{ color:var(--block-lime); -webkit-text-stroke:0.6px var(--block-lime); clip-path:inset(50% 0 0 0); }
+  /* A word straddling the top edge of a black panel, used by both the recommendation
+     cards and the goals. Sizes are in em so any font-size works: the caps' ink starts a
+     tenth of the size into the line box and stands seven tenths tall, so its midpoint is
+     0.45em down — which is exactly half of the 0.9em line box, so the 50% clip holds at
+     every size. Offset with top rather than margin: a negative top margin on a panel's
+     first child collapses out through a panel that has no top padding or border and
+     moves the panel itself. */
+  .edge-word{ --edge-word-colour:var(--block-lime); --edge-word-size:40px; position:relative; display:block; font-size:var(--edge-word-size); height:0.9em; top:-0.45em; margin-bottom:-0.15em; }
+  .edge-word-ink{ position:absolute; left:0; top:0; font-family:var(--sans); font-size:inherit; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; white-space:nowrap; }
+  .edge-word-ink.above{ color:var(--text); -webkit-text-stroke:0.6px var(--text); clip-path:inset(0 0 50% 0); }
+  .edge-word-ink.below{ color:var(--edge-word-colour); -webkit-text-stroke:0.6px var(--edge-word-colour); clip-path:inset(50% 0 0 0); }
+
+  /* Goals get the same black panel and the same word across its edge, in the Goals tab's
+     own blue. The body inverts because everything inside was written for dark-on-light. */
+  .goal-card{ position:relative; background:var(--reverse-bg); color:var(--bg); margin:26px -14px 0; padding:0 14px 16px; overflow:visible; }
+  .goal-card:first-child{ margin-top:22px; }
+  .goal-card .edge-word{ --edge-word-colour:var(--block-blue); --edge-word-size:34px; }
+  .goal-card .log-title{ color:var(--bg); }
+  .goal-card .score-note{ color:rgba(251,250,246,0.7); }
+  .goal-card .log-entry{ color:rgba(251,250,246,0.72); border-color:rgba(251,250,246,0.2); }
+  .goal-card .log-entry span{ color:inherit; }
   .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
   .rec-body{ padding:0; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
@@ -1725,7 +1742,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.16';
+const APP_VERSION = '2026.08.25.17';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5062,12 +5079,19 @@ async function clearTodayAdjustment(){
   try{ await window.storage.delete(`todayAdjustment:${todayStr}`); } catch(e){}
 }
 
+// One word painted twice and clipped at the panel's edge — black above it, the panel's
+// accent below. Shared so the cards and the goals split identically.
+function edgeWordHtml(text){
+  return `<span class="edge-word"><span class="edge-word-ink above">${text}</span>`
+       + `<span class="edge-word-ink below">${text}</span></span>`;
+}
+
 function buildRecCard(type, title, signals, confidence, meta){
   const card = document.createElement('div');
   card.className = `rec-card ${type}`;
   card.innerHTML = `
     <div class="rec-head">
-      <span class="rec-type"><span class="rec-type-ink above">${type}</span><span class="rec-type-ink below">${type}</span></span>
+      ${edgeWordHtml(type)}
       ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
     </div>
     <div class="rec-body">
@@ -5679,6 +5703,10 @@ const RUN_PLAN_TEMPLATES = {
 /* ---------- GOALS ---------- */
 const GOAL_TYPE_LABELS = {
   strength:'Strength', hypertrophy:'Hypertrophy / muscle gain', running:'Running performance', hyrox:'Hyrox'
+};
+// Short forms for the word set across the panel edge, where the full label won't fit.
+const GOAL_TYPE_SHORT = {
+  strength:'Strength', hypertrophy:'Muscle', running:'Running', hyrox:'Hyrox'
 };
 
 /* ---------- ATHLETE LEVEL (calculated, replacing the manual novice/intermediate/advanced toggle) ----------
@@ -6798,13 +6826,18 @@ async function renderGoalProgress(){
     const g = goals.list[i];
     g._index = i;
     const ringPercent = await computeGoalRingPercent(g);
-    html += `<div style="display:flex; align-items:center; gap:10px; margin-top:${i>0?'16px':'0'};">`;
+    html += `<div class="goal-card">`;
+    // The full label runs to "Hypertrophy / muscle gain", which is far too long to set at
+    // this size — the edge word takes a short form and the full one stays below.
+    html += edgeWordHtml(`P${i+1} ${GOAL_TYPE_SHORT[g.type] || GOAL_TYPE_LABELS[g.type]}`);
+    html += `<div style="display:flex; align-items:center; gap:10px;">`;
     html += renderProgressRing(ringPercent);
     html += `<div style="flex:1;">`;
-    html += `<div class="log-title" style="margin:0;"><span style="font-weight:700;">P${i+1}</span> ${i===0?'(top) ':''}— ${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
+    html += `<div class="log-title" style="margin:0;">${i===0?'Top priority — ':''}${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
     html += g.detail ? `<div class="score-note" style="margin:2px 0 0;">${g.detail}</div>` : '';
     html += `</div></div>`;
     html += await renderSingleGoalProgress(g);
+    html += `</div>`;
   }
   body.innerHTML = html;
   await renderBlockTarget();
