@@ -157,6 +157,13 @@
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--on-light); }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-lg); padding:8px 10px; border-radius:0; min-width:0; }
+  /* Fields inside a panel are set a step down. --fs-lg is pinned at 16px because iOS
+     zooms the viewport when a focused input is smaller, so this trades that zoom for
+     type that sits with the labels beside it rather than towering over them. */
+  .goal-row-panel input[type=number], .goal-row-panel input[type=text], .goal-row-panel select,
+  .goal-row-panel input[type=date], .header-panel input[type=number], .header-panel input[type=text],
+  .header-panel select, .header-panel input[type=date], .header-panel textarea{ font-size:var(--fs-md); }
+  .goal-row-panel .field-label, .header-panel .field-label{ font-size:var(--fs-md); }
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
      a select sized itself to its longest OPTION and pushed the whole page sideways.
      Basis stays `auto` so a select starts at its natural width (a basis of 0 collapsed
@@ -470,7 +477,9 @@
   /* The priority boxes on the Goals tab are the black panels — each one carries its own
      01 / 02 / 03 across its top edge in the tab's blue. Everything inside inverts,
      since the labels and buttons were written for dark-on-light. */
-  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 14px 14px; margin:30px -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  /* Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px.
+     The matching padding puts the contents back where the rest of the page's rows sit. */
+  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 28px 14px !important; margin:30px -28px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
   .goal-row-panel:first-child{ margin-top:24px; }
   .goal-row-panel .edge-word{ --edge-word-colour:var(--block-blue); --edge-word-size:44px; }
   .goal-row-panel .goal-priority-badge{ display:block; flex:1; }
@@ -626,6 +635,7 @@
       </div>
 
       <div class="score-note" style="margin:12px 0 10px;">Tap a day, tap a workout, change it.</div>
+      <div id="weekBlockStrip" style="margin:14px 0 12px;"></div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
         <select id="programSplitOverride" style="width:auto; font-size:var(--fs-lg); padding:4px 6px;">
@@ -642,7 +652,6 @@
         <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
         <button class="small outline" id="clearAllWeekBtn">Clear all</button>
       </div>
-      <div id="weekBlockStrip" style="margin:14px 0 8px;"></div>
 
       <div class="group" style="margin-top:18px;">
         <div class="group-head"><div class="group-title">Actual vs target</div><div class="group-sub">what you've logged this week, against landmarks and your own average</div></div>
@@ -1760,7 +1769,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.22';
+const APP_VERSION = '2026.08.25.23';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3767,7 +3776,10 @@ function renderWheelPositions(dragOffsetDeg){
     // its own padding, which left a thin strip of page colour above the panel.
     const header = document.querySelector('header');
     if(header && colRect.height){
-      const overshoot = Math.max(0, colRect.top - header.getBoundingClientRect().bottom);
+      // A few pixels past the header rather than exactly to it. Layout positions are
+      // fractional, so meeting it precisely left a hairline of page colour showing
+      // through. The header is sticky at z-index 10, so the overlap is hidden by it.
+      const overshoot = Math.max(0, colRect.top - header.getBoundingClientRect().bottom) + 4;
       inkPanel.style.top = (-overshoot) + 'px';
       // Push the twins back down by the same amount. The panel is the clones' offset
       // parent, so raising its top edge moves their origin with it — every orange label
