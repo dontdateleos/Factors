@@ -868,10 +868,17 @@
       <div class="fields">
         <div id="deviceConnectRow" style="display:flex; gap:10px;"></div>
         <div id="deviceConnectStatus" class="score-note"></div>
-        <div style="display:none;">
-          <div id="ouraConnectionStatus"></div>
-          <div id="appleHealthStatus"></div>
-        </div>
+        <!-- Disconnect, Test connection and the last-attempt debug line all live in
+             ouraConnectionStatus, which was display:none — so a connection that stopped
+             working had no reachable way to reconnect it and nothing on screen said why.
+             Kept behind a disclosure so the row of icons stays the normal view. -->
+        <details id="deviceDetails">
+          <summary style="font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer;">Connection details &amp; troubleshooting</summary>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+            <div id="ouraConnectionStatus"></div>
+            <div id="appleHealthStatus"></div>
+          </div>
+        </details>
       </div>
     </div>
     <div class="group">
@@ -1945,7 +1952,13 @@ async function getValidOuraAccessToken(){
     }));
     return data.access_token;
   } catch(e){
+    // A refresh failure is the single most likely reason a working connection stops
+    // working: refresh tokens rotate and a stale one can't be recovered from. It was
+    // logged to the console and swallowed, so the app still showed "Oura connected" and
+    // the only message the user ever saw was "Not connected to Oura" from a later step —
+    // which is both wrong-looking and doesn't say what to do about it.
     console.error('Oura token refresh failed:', e);
+    await logOuraDebug(`Your Oura login has expired and couldn't be renewed (${e.message}). Tap Disconnect, then Connect Oura to sign in again.`);
     return null; // stale/invalid refresh token — user will need to reconnect
   }
 }
@@ -1973,7 +1986,15 @@ async function fetchOuraEndpoint(endpoint, token, date, startDateOverride){
 
 async function syncOuraDataForDate(date){
   const token = await getValidOuraAccessToken();
-  if(!token) throw new Error('Not connected to Oura');
+  // Distinguish "never connected" from "connected, but the login expired" — the same
+  // null came back for both, and the second is the one that needs reconnecting.
+  if(!token){
+    let hadTokens = false;
+    try{ hadTokens = !!JSON.parse((await window.storage.get('oura:tokens')).value); } catch(e){}
+    throw new Error(hadTokens
+      ? 'Oura login expired — tap Disconnect, then Connect Oura to sign in again'
+      : 'Not connected to Oura');
+  }
 
   const [dy, dm, dd] = date.split('-').map(Number);
   const sixtyDaysBack = new Date(dy, dm-1, dd);
