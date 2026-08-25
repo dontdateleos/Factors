@@ -319,7 +319,12 @@
   .mob-scale-btn:active{ transform:scale(0.96); }
   .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
-  .conf-head{ display:flex; align-items:center; gap:6px; cursor:pointer; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
+  .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
+  /* The score itself is the disclosure now, so the label carries the chevron. */
+  .score-label-row{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px; }
+  .score-label-row .score-label{ margin-top:0; }
+  .score-label-row .conf-chevron{ transition:transform 0.15s; }
+  .score-label-row[aria-expanded="true"] .conf-chevron{ transform:rotate(180deg); }
   .conf-bar{ flex:1; height:3px; background:rgba(0,0,0,0.12); position:relative; overflow:hidden; }
   .conf-bar-fill{ position:absolute; left:0; top:0; bottom:0; }
   .conf-pct{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); }
@@ -480,9 +485,12 @@
         </svg>
       <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
       </div>
-      <div class="score-label" id="overallScoreLabel">Overall</div>
+      <div class="score-label-row" id="scoreToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="baselineStatus">
+        <div class="score-label" id="overallScoreLabel">Overall</div>
+        <span class="conf-chevron" id="scoreChevron">▾</span>
+      </div>
     </div>
-    <div id="baselineStatus" class="score-note" style="text-align:center; margin-bottom:4px; font-size:var(--fs-tag); opacity:0.75;"></div>
+    <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <div id="todayBlockContext" class="score-note" style="text-align:center; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
@@ -1688,7 +1696,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.8';
+const APP_VERSION = '2026.08.25.9';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4693,18 +4701,31 @@ async function renderSystemConfidence(){
         </div>`).join('')}
     </div>` : '';
 
+  // The standing bar is gone — the score is the disclosure. Collapsed, this whole strip
+  // renders nothing; opened, it carries what the bar used to show plus the detail rows.
+  const scoreToggle = document.getElementById('scoreToggle');
+  if(scoreToggle) scoreToggle.setAttribute('aria-expanded', String(!!confidenceExpanded));
+  if(!confidenceExpanded){ el.innerHTML = ''; return; }
   el.innerHTML = `
-    <div class="conf-head" id="confToggle">
+    <div class="conf-head">
       <span style="color:${colour}; font-weight:700;">${CONFIDENCE_LABEL[overall]}</span>
       <span class="conf-bar"><span class="conf-bar-fill" style="width:${c.pct}%; background:${colour};"></span></span>
       <span class="conf-pct">${c.score}/${c.max}</span>
-      <span class="conf-chevron">${confidenceExpanded ? '\u25B4' : '\u25BE'}</span>
     </div>
     <div class="conf-headline">${headline}</div>
     ${detail}`;
-  const toggle = document.getElementById('confToggle');
-  if(toggle) toggle.addEventListener('click', ()=>{ confidenceExpanded = !confidenceExpanded; renderSystemConfidence(); });
 }
+
+// Bound once. renderSystemConfidence redraws the panel below, never this control.
+(function bindScoreDisclosure(){
+  const toggle = document.getElementById('scoreToggle');
+  if(!toggle) return;
+  const flip = ()=>{ confidenceExpanded = !confidenceExpanded; renderSystemConfidence(); };
+  toggle.addEventListener('click', flip);
+  toggle.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); flip(); }
+  });
+})();
 
 /* ---------- INJURIES ---------- */
 function severityNow(initial, onsetDate, halfLife){
