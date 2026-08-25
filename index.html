@@ -1742,7 +1742,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.18';
+const APP_VERSION = '2026.08.25.19';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5116,6 +5116,45 @@ function edgeWordHtml(text){
        + `<span class="edge-word-ink below">${text}</span></span>`;
 }
 
+// Puts the edge on the vertical centre of one specific character's ink rather than at the
+// midpoint of the line box. For a word of capitals the two coincide, because caps share a
+// height — but "P1 STRENGTH" mixes a capital with a digit, and lining figures sit a little
+// shorter than caps, so the centre that matters has to be measured from the character
+// itself. Runs after insertion: a detached element has no resolved font to measure.
+const EDGE_WORD_SPLIT_CHAR = 1; // the second character
+function calibrateEdgeWords(root){
+  (root || document).querySelectorAll('.edge-word').forEach(wrap=>{
+    const above = wrap.querySelector('.edge-word-ink.above');
+    const below = wrap.querySelector('.edge-word-ink.below');
+    if(!above || !below) return;
+    const cs = getComputedStyle(above);
+    // text-transform changes what is drawn but not what textContent says. The card's type
+    // arrives lowercase and is uppercased in CSS, so measuring the raw string sizes a 'd'
+    // — an ascender, taller than the 'D' actually on screen — and puts the edge a pixel
+    // high. Measure what the reader sees.
+    let text = above.textContent || '';
+    if(cs.textTransform === 'uppercase') text = text.toUpperCase();
+    else if(cs.textTransform === 'lowercase') text = text.toLowerCase();
+    const ch = text[EDGE_WORD_SPLIT_CHAR] || text[0];
+    if(!ch) return;
+    const size = parseFloat(cs.fontSize);
+    const lineH = parseFloat(cs.lineHeight) || size * 0.9;
+    if(!size || !lineH) return;
+    const ctx = calibrateEdgeWords._ctx
+      || (calibrateEdgeWords._ctx = document.createElement('canvas').getContext('2d'));
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = ctx.measureText(ch);
+    // Where the baseline sits in the line box, then the ink's own midpoint around it.
+    const baseline = (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
+      + m.fontBoundingBoxAscent;
+    const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+    const pct = Math.max(0, Math.min(100, (centre / lineH) * 100));
+    wrap.style.top = (-centre) + 'px';
+    above.style.clipPath = `inset(0 0 ${100 - pct}% 0)`;
+    below.style.clipPath = `inset(${pct}% 0 0 0)`;
+  });
+}
+
 function buildRecCard(type, title, signals, confidence, meta){
   const card = document.createElement('div');
   card.className = `rec-card ${type}`;
@@ -5150,6 +5189,7 @@ function showNextCard(){
   const item = cardQueue[cardQueueIndex];
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
   container.appendChild(card);
+  calibrateEdgeWords(card);
 }
 
 async function logRecDecision(type, meta, decision, card){
@@ -6870,6 +6910,7 @@ async function renderGoalProgress(){
     html += `</div>`;
   }
   body.innerHTML = html;
+  calibrateEdgeWords(body);
   await renderBlockTarget();
   await renderMobilityProgression();
 }
