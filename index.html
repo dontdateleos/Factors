@@ -804,7 +804,7 @@
         <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-        <div class="score-note">Each area has five things to try, easiest first. Tick the last one you can do. Generated mobility work targets your lowest areas rather than rotating evenly &mdash; wrists don't feed it yet.</div>
+        <div class="score-note">Each area has five things to try, easiest first. Tick the last one you can do. Generated mobility work targets your lowest areas rather than rotating evenly.</div>
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note"></div>
@@ -1858,7 +1858,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.39';
+const APP_VERSION = '2026.08.25.40';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8714,7 +8714,20 @@ function buildMobilitySkillStretches(sg, dayIndex, loadedROMCoverage, sessionTyp
 // all (no wrist-related area exists anywhere in this app) — left mapped to null, meaning
 // it can still be assessed and displayed, but won't influence mobility generation.
 const MOBILITY_DOMAINS = ['ankles','knees','hips','hamstrings','adductors','spine','shoulders','scapula','wrists'];
-const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'hips', spine:'thoracic', shoulders:'shoulders', scapula:'shoulders', wrists:null };
+// Assessment domains and body-area names are different vocabularies for the same tissue,
+// and this is the ONLY translation between them. It had a second, divergent copy declared
+// inside buildMobilitySession which shadowed it; the two disagreed on three domains, so
+// what a stretch was CHARGED to and what a warm-up was CREDITED against could be different
+// areas for the same body part. Values here must be BODY_AREAS keys — that is the
+// vocabulary exercises tag, warm-up logs record, and the weekly ceiling counts in.
+// - adductors was pointed at 'hips', so adductor work was charged to the hip budget and
+//   crowded out by hip stretches even though an adductors area exists.
+// - wrists was null, which exempted it from the weekly ceiling and from ever being
+//   deprioritized by a forearm-heavy week. 'forearms' is what BODY_AREAS calls it.
+// - spine resolves to thoracic, matching what the domain actually tests and what its
+//   access and control rungs actually are. Its loaded rungs are lumbar, so a
+//   thoracic-heavy week can hold them back; that is the lesser of the two errors.
+const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'adductors', spine:'thoracic', shoulders:'shoulders', scapula:'shoulders', wrists:'forearms' };
 // One generic five-rung ladder was being asked to describe nine different joints, so
 // "loaded mobility: meaningful force through large ROM" told you nothing about your
 // ankles specifically — it had to also cover wrists. These are per-domain instead, and
@@ -9393,11 +9406,9 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
   // They're included as preparation instead, capped below the LOAD rung — the goal's own
   // progression supplies the loaded expression, so repeating it here would double-dose.
   const PREP_CAP = { access:'access', control:'control', load:'control' };
-  // Assessment domains and muscle-group area names aren't identical strings; without this
-  // the ceiling check silently never matches.
-  const MOBILITY_DOMAIN_TO_AREA = { hamstrings:'hamstrings', hips:'hips', ankles:'ankles',
-    knees:'quads_knees', quads:'quads_knees', shoulders:'shoulders', thoracic:'thoracic',
-    spine:'lower_back', wrists:'forearms', adductors:'adductors' };
+  // Domain-to-area translation is the module-level MOBILITY_DOMAIN_TO_AREA. A local copy
+  // used to shadow it here, and having drifted from it, the area a stretch was charged to
+  // and the area a warm-up was credited against stopped agreeing.
   const servesGoal = domain => goalDomainSet.has(MOBILITY_DOMAIN_TO_SKILL[domain]);
 
   // Order so goal-serving domains come first within the session build. Combined with the
@@ -12799,7 +12810,10 @@ const WARMUP_LIBRARY = {
   chest: ['push-up variations, light', 'band chest opener', 'foam roll upper back/chest opener', 'doorway pec stretch, 30s each side', 'banded push-up plus x10', 'floor angels, 10', 'doorway pec stretch, 30s each side', 'push-up plus, 10'],
   biceps: ['arm circles', 'light band curls, high reps', 'wrist/forearm rotations', 'band external rotations, light', 'supinated wall stretch, 20s each side'],
   triceps: ['arm circles', 'band pushdowns, light', 'light bodyweight dips, partial range', 'overhead band reach, 20s each side', 'scap push-ups, 10'],
-  wrists: ['wrist circles, 10 each direction', 'kneeling wrist rock, 8-10 each side', 'tabletop wrist rock, 8-10', 'fingertip push-back, 8-10', 'prayer stretch, 20-30s', 'reverse prayer stretch, 20-30s'],
+  // Keyed 'wrists' before, but nothing tags an exercise or a plan type that way — the
+  // body area is 'forearms', so this entry was unreachable and a forearm day got no
+  // wrist prep at all. Same for the MOBILITY_LIBRARY entry below.
+  forearms: ['wrist circles, 10 each direction', 'kneeling wrist rock, 8-10 each side', 'tabletop wrist rock, 8-10', 'fingertip push-back, 8-10', 'prayer stretch, 20-30s', 'reverse prayer stretch, 20-30s'],
   thoracic: ['cat-cow', 'band pull-aparts, overhead variation x12', 'thread the needle', 'open book', 'bench t-spine extension', 'quadruped reach-throughs', 'banded thoracic rotations, 8 each side', 'foam roll thoracic extensions', 'prone press-ups, 8', 'seated rotations, 8 each side', 'side-lying windmill, 8 each side', 'wall angels, 10'],
   lower_back: ['cat-cow', 'band pull-throughs, light', 'bird dog', 'glute bridges', 'dead bugs, 8 each side', 'banded dead bugs, 8 each side', 'prone press-up, 8', 'hip hinge pattern drill, bodyweight', 'McGill curl-up, 8 each side', 'side plank, 20s each side'],
   full_body: ['light general activation — easy cardio + dynamic stretch circuit', 'band circuit — pull-aparts, monster walks, good mornings', 'world\'s greatest stretch, 5 each side', 'inchworm walkouts, 6', 'easy row or bike, 3-5min', 'FIFA 11+ running series — forward, hip out, hip in, circling partner', 'skipping with arm circles, 60s'],
@@ -12880,7 +12894,7 @@ const MOBILITY_LIBRARY = {
     pnf: 'Band-assisted tricep PNF: contract 6s → relax → deepen, 3-4 cycles each side',
     eccentric: 'Overhead extension, slow lower at full stretch — 3 sets x 8-10'
   },
-  wrists: {
+  forearms: {
     foamRoll: 'Forearm massage/roll, 45-60s each side',
     static: 'Prayer stretch and reverse prayer, 30-45s each',
     dynamic: 'Wrist circles and tabletop rocks, 10 each direction',
@@ -13834,6 +13848,23 @@ const ENGINE_SCENARIOS = [
     },
     run: async ()=> await getPrioritizedMobilityDomains([]),
     expect: (domains)=> (domains && domains[0]==='shoulders') ? {pass:true} : {pass:false, note:`expected shoulders to rank first, since hamstrings was recently logged and should be deprioritized — got ${JSON.stringify(domains)}`} },
+  // Assessment domains and body areas are separate vocabularies, and every crossing
+  // between them has to land on a BODY_AREAS key or the weekly ceiling counts one body
+  // part under two names. That is not a hypothetical: a second copy of the domain map had
+  // drifted from the first, and both stretch libraries had a 'wrists' entry nothing could
+  // ever reach because exercises tag it 'forearms'. Nothing failed loudly — work was just
+  // charged to the wrong budget, or silently never offered.
+  { id:'mobility_area_vocabulary_is_consistent', backlogRef:'Domain/area vocabulary', description:'Every domain-to-area mapping and every stretch-library key should be a real BODY_AREAS key, so charging and crediting agree on which body part a stretch belongs to',
+    setup: async ()=>{},
+    run: async ()=> ({
+      badMap: Object.entries(MOBILITY_DOMAIN_TO_AREA).filter(([, a])=> !a || !BODY_AREAS[a]).map(([d])=>d),
+      unmapped: MOBILITY_DOMAINS.filter(d=> !MOBILITY_DOMAIN_TO_AREA[d]),
+      badWarmup: Object.keys(WARMUP_LIBRARY).filter(k=> !BODY_AREAS[k]),
+      badMobility: Object.keys(MOBILITY_LIBRARY).filter(k=> !BODY_AREAS[k])
+    }),
+    expect: (r)=> (r && !r.badMap.length && !r.unmapped.length && !r.badWarmup.length && !r.badMobility.length)
+      ? {pass:true}
+      : {pass:false, note:`off-vocabulary names — ${JSON.stringify(r)}`} },
 ];
 
 async function runEngineScenarioSuite(onProgress){
