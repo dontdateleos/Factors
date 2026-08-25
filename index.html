@@ -388,10 +388,32 @@
      sitting above a rule. The title is filled in as an edge word at render time. */
   .header-panel{ position:relative; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 0; padding:0 14px 16px; overflow:visible; }
   .header-panel .edge-word{ --edge-word-size:28px; }
-  .header-panel.injuries .edge-word{ --edge-word-colour:var(--block-purple); }
+  .header-panel.mobility .edge-word{ --edge-word-colour:var(--block-purple); }
   .header-panel .field-label{ color:rgba(251,250,246,0.7); }
   .header-panel label, .header-panel .score-note{ color:rgba(251,250,246,0.75); }
+  .header-panel .group-sub{ color:rgba(251,250,246,0.7); }
   .header-panel .fields{ padding-left:0; padding-right:0; }
+  /* The panel's own disclosure row. The summary line doubles as the hit target, so the
+     split heading above it stays untouchable — it is a positioned zero-height element and
+     makes a poor button. */
+  .header-panel-toggle{ display:flex; justify-content:space-between; align-items:center;
+    gap:12px; cursor:pointer; padding:2px 0 6px; }
+  .header-panel-toggle .group-sub{ flex-basis:auto; }
+  .header-panel-toggle span{ font-size:var(--fs-sm); color:rgba(251,250,246,0.7);
+    transition:transform 0.15s; flex:none; }
+  /* The mobility wheel is drawn for a light page. On the panel every one of its greys
+     inverts, or it is a black list on a black ground. */
+  .header-panel .mob-wheel-item{ color:var(--bg); }
+  .header-panel .mob-wheel-score{ color:rgba(251,250,246,0.5); }
+  .header-panel .mob-wheel-item.focused .mob-wheel-score{ color:var(--bg); }
+  .header-panel .mob-wheel-focus-line{ border-top-color:var(--bg); border-bottom-color:var(--bg); opacity:0.4; }
+  .header-panel .mob-step-count{ color:rgba(251,250,246,0.7); }
+  .header-panel .mob-scale-btn{ border-color:var(--bg); }
+  /* Selected reads as black-on-light everywhere else in the app; here that is the panel
+     itself, so the fill carries the panel's own accent instead. */
+  .header-panel .mob-scale-btn.active{ background:var(--block-purple); color:var(--on-light); border-color:var(--block-purple); }
+  .header-panel .mobility-legend summary{ color:rgba(251,250,246,0.7); }
+  .header-panel .mobility-legend-body{ color:rgba(251,250,246,0.75); }
   /* Buttons are black-on-light by default, which is invisible on the panel. */
   .header-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .header-panel button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
@@ -779,8 +801,8 @@
 
 
 
-    <div class="group header-panel injuries">
-      <div class="header-panel-title">Log new injury</div>
+    <div class="group" style="margin-top:16px;">
+      <div class="group-head"><div class="group-title">Log new injury</div><div class="group-sub">add one and the generator starts easing around it</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
         <div class="field-row"><span class="field-label">Type</span>
@@ -833,10 +855,11 @@
         </div>
       </div>
 
-      <div class="group" style="margin-top:16px;">
-        <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-          <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
-          <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
+      <div class="group header-panel mobility">
+        <div class="header-panel-title">Mobility Assessment</div>
+        <div class="header-panel-toggle" id="mobilityAssessmentToggleHeader">
+          <div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div>
+          <span id="mobilityAssessmentChevron">▾</span>
         </div>
         <div class="fields" id="mobilityAssessmentBody" style="display:none;">
           <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
@@ -1827,7 +1850,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.33';
+const APP_VERSION = '2026.08.25.34';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3478,10 +3501,13 @@ async function renderMobilityAssessment(skipCollapse){
     const d = MOBILITY_DOMAINS[i];
     const dist = Math.abs(offset);
     if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
+    // The falloff is a little shallower than it was on the light page. Faint light type on
+    // black loses more than faint dark type on cream does, and the neighbours are what
+    // make this read as a list rather than one isolated name.
     const score = mobilityDraftScores[d];
     wheelItems.push(`
       <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
-           style="opacity:${offset===0?1:(dist===1?0.45:0.18)};">
+           style="opacity:${offset===0?1:(dist===1?0.55:0.28)};">
         <span class="mob-wheel-name">${cap(d)}</span>
         <span class="mob-wheel-score">${score!=null?score:'–'}</span>
       </div>`);
@@ -3984,8 +4010,14 @@ async function renderWeekGrid(){
           ? Math.max(10, Math.round((realSets / maxSets) * 46))
           : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
         const n = realSets > 0 ? realSets : null;
-        const fill = isNow ? 'var(--reverse-bg)' : 'var(--border-bold)';
-        const op = isNow ? 1 : (isPast ? 0.5 : 0.22);
+        // The current week is the only solid bar; every other week is white inside an
+        // outline. Before this they were all the same black shape at three opacities, so
+        // "which week am I on" was a judgement about grey levels. Filled vs hollow is a
+        // difference in kind, and it survives being glanced at. Past and future still
+        // separate, but now only in the weight of the outline.
+        const barStyle = isNow
+          ? 'background:var(--reverse-bg); border:2px solid var(--border-bold);'
+          : `background:var(--panel); border:2px solid rgba(12,13,11,${isPast ? 0.8 : 0.32});`;
         // The bars live in a band of their own rather than sizing the row. The row had a
         // fixed height while a column was a bar plus three lines of text, so the tallest
         // bar pushed its own number up out of the row and into the caption above it.
@@ -3995,7 +4027,7 @@ async function renderWeekGrid(){
         cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
           <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; background:${fill}; opacity:${op};"></div>
+            <div style="width:100%; height:${h}px; ${barStyle}"></div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
           <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
