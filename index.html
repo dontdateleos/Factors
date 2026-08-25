@@ -249,6 +249,15 @@
   .plan-item.ss-row + .plan-item.ss-row{ border-top:none; }
   .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
   .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:8px 0 0 20px; letter-spacing:0.01em; line-height:1.6; }
+  /* A flag on one exercise: what an active injury says should change about it, and the
+     two answers. Yellow because it is the one thing in a plan row asking for a decision. */
+  .ex-flag{ display:flex; align-items:center; gap:8px; margin:9px 0 1px 20px; background:var(--block-yellow); color:var(--on-light); padding:5px 5px 5px 8px; }
+  .ex-flag-label{ flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.1em; }
+  .ex-flag-text{ flex:1; min-width:0; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.01em; line-height:1.35; }
+  .ex-flag-btn{ flex:none; width:26px; height:26px; min-width:26px; padding:0; border:2px solid var(--on-light); border-radius:0; background:transparent; color:var(--on-light); font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .ex-flag-btn.accept{ background:var(--on-light); color:var(--block-yellow); }
+  .ex-flag-btn:active{ opacity:0.6; }
+  .ex-flag-done{ margin:9px 0 1px 20px; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
   .plan-key{ color:var(--text); font-weight:var(--fw-bold); letter-spacing:0.04em; text-transform:uppercase; }
   .log-entry:hover{ color:var(--text); }
 
@@ -1784,7 +1793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.24';
+const APP_VERSION = '2026.08.25.25';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -11640,6 +11649,74 @@ function formatPace(minPerKm){
   return `${mins}:${String(secs).padStart(2,'0')}/km`;
 }
 
+// What an active injury says should change about one planned exercise, day-of. The same
+// rules the generator applies when it builds a week — but a week is built once and an
+// injury can be logged after it, so the plan on screen has to be able to answer for
+// itself. Deliberately deterministic: findSpineNeutralAlt rotates its pick on every call
+// so a session doesn't repeat one machine, which would mean a different suggestion each
+// time this re-rendered.
+function injurySafeAltFor(ex, movementFlags){
+  const cands = SPINE_NEUTRAL_BY_PATTERN[(ex.movement || '') + '|' + (ex.area || '')] || [];
+  for(const cand of cands){
+    if(applyInjurySafety({ ...cand }, movementFlags)) return cand;
+  }
+  return null;
+}
+function injuryFlagForExercise(ex, movementFlags){
+  if(!ex || !movementFlags) return null;
+  const lib = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
+  const movement = ex.movement || (lib && lib.movement);
+  const area = ex.area || (lib && lib.area);
+  if(!movement) return null;
+  const flag = movementFlags[movement];
+  if(!flag) return null;
+  if(flag.irritability === 'high'){
+    // Already the spine-neutral variant against a spinal flag — this IS the substitution,
+    // so there is nothing left to offer. Without this the swapped-in exercise inherits the
+    // movement pattern and gets flagged to swap for itself.
+    if(ex.spineLoad === 'low' && isSpinePart(flag.part)) return null;
+    const alt = injurySafeAltFor({ movement, area }, movementFlags);
+    return alt
+      ? { kind:'substitute', label:'Swap', text:`${flag.part} flagged high — ${alt.name} instead`, alt }
+      : { kind:'remove', label:'Skip', text:`${flag.part} flagged high — no verified-safe variant of this pattern` };
+  }
+  if(flag.irritability === 'moderate'){
+    return { kind:'reduce', label:'Ease off', text:`${flag.part} irritable — drop a set` };
+  }
+  return null;
+}
+
+// One decision per exercise per day, so a dismissed flag stays dismissed until tomorrow
+// and an applied one doesn't offer itself again.
+function exerciseFlagKey(ex){ return ex.exerciseId || ex.name || ''; }
+async function getExerciseFlagDecisions(date){
+  try{ return JSON.parse((await window.storage.get(`exFlags:${date}`)).value) || {}; }
+  catch(e){ return {}; }
+}
+async function setExerciseFlagDecision(date, key, value){
+  const all = await getExerciseFlagDecisions(date);
+  all[key] = value;
+  try{ await window.storage.set(`exFlags:${date}`, JSON.stringify(all)); } catch(e){}
+}
+
+// Edits today's strength block in place and re-mirrors it. The mirror is what Today reads,
+// so changing one without the other is what leaves the two disagreeing.
+async function mutateTodayStrengthPlan(fn){
+  for(const slot of ['am','pm']){
+    let block;
+    try{ block = JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value); }
+    catch(e){ continue; }
+    if(!block || block.type !== 'strength') continue;
+    const list = (block.details && block.details.exercises) || [];
+    if(!fn(list, block)) return false;
+    block.details.exercises = list;
+    try{ await window.storage.set(`weekplan:${todayStr}:${slot}`, JSON.stringify(block)); } catch(e){ return false; }
+    await syncPlannedSessionMirror(todayStr);
+    return true;
+  }
+  return false;
+}
+
 // One row of Today's plan. `lines` are optional {key, text} details rendered underneath
 // the name; a line without a key renders as plain sub-text (coaching cues, for instance).
 function planRow(name, dose, lines, opts){
@@ -11649,7 +11726,7 @@ function planRow(name, dose, lines, opts){
   ).join('');
   const doseHtml = dose ? ` <span class="plan-dose">${dose}</span>` : '';
   return `<div class="plan-item${opts.rowClass ? ' ' + opts.rowClass : ''}">`
-    + `→ ${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}</div>`;
+    + `→ ${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}${opts.tag || ''}</div>`;
 }
 
 async function blockSummaryHtml(block){
@@ -11661,6 +11738,8 @@ async function blockSummaryHtml(block){
     const focusInfo = focus && SESSION_FOCUS_INFO[focus];
     const personalSets = await getPersonalSetsByCategory();
     const adjustment = await getTodayAdjustment();
+    const movementFlags = await getInjuryMovementFlags();
+    const flagDecisions = await getExerciseFlagDecisions(todayStr);
     const rows = [];
     for(const ex of exercises){
       const libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
@@ -11697,9 +11776,22 @@ async function blockSummaryHtml(block){
       // slot marker leads the name rather than hiding in a note.
       const ssTag = ex.supersetSlot ? `<span class="ss-tag">${ex.supersetSlot}</span>` : '';
       const dropTag = ex.dropSet ? `<span class="drop-tag">+ drop</span>` : '';
+      // An injury logged after the week was generated still has to reach the plan, so the
+      // flag is offered here rather than silently applied — it changes what you lift.
+      const key = exerciseFlagKey(ex);
+      const decision = flagDecisions[key];
+      const flag = decision ? null : injuryFlagForExercise(ex, movementFlags);
+      const tag = flag
+        ? `<div class="ex-flag" data-ex-key="${encodeURIComponent(key)}" data-kind="${flag.kind}"`
+          + ` data-alt="${encodeURIComponent(flag.alt ? flag.alt.name : '')}">`
+          + `<span class="ex-flag-label">${flag.label}</span>`
+          + `<span class="ex-flag-text">${flag.text}</span>`
+          + `<button class="ex-flag-btn accept" title="Apply" aria-label="Apply this change">✓</button>`
+          + `<button class="ex-flag-btn reject" title="Leave it" aria-label="Leave it as planned">✕</button></div>`
+        : (decision === 'declined' ? `<div class="ex-flag-done">Flag dismissed for today</div>` : '');
       rows.push(planRow(ex.name, `${sets}×${repsLabel} @ ${weightLabel}${arrow}`,
         [ progression.note ? { key:'Progression', text: progression.note } : null ],
-        { lead: ssTag, trail: dropTag, rowClass: ex.supersetGroup ? 'ss-row' : '' }));
+        { lead: ssTag, trail: dropTag, rowClass: ex.supersetGroup ? 'ss-row' : '', tag }));
     }
     return `<div class="plan-list">${rows.join('')}</div>`;
   }
@@ -11899,6 +11991,36 @@ async function renderTodayWorkoutSummary(){
         <button class="primary" id="goLogWorkoutBtn">Log this workout →</button>
       </div>
     </div>`;
+  container.querySelectorAll('.ex-flag').forEach(el=>{
+    const key = decodeURIComponent(el.dataset.exKey || '');
+    const kind = el.dataset.kind;
+    const altName = decodeURIComponent(el.dataset.alt || '');
+    const finish = async (decision)=>{
+      await setExerciseFlagDecision(todayStr, key, decision);
+      await renderTodayWorkoutSummary();
+    };
+    el.querySelector('.reject').addEventListener('click', ()=> finish('declined'));
+    el.querySelector('.accept').addEventListener('click', async ()=>{
+      const applied = await mutateTodayStrengthPlan(list=>{
+        const i = list.findIndex(x=> exerciseFlagKey(x) === key);
+        if(i < 0) return false;
+        if(kind === 'remove'){ list.splice(i, 1); return true; }
+        if(kind === 'reduce'){
+          const cur = list[i].sets != null ? list[i].sets : 3;
+          list[i].sets = Math.max(1, cur - 1);
+          return true;
+        }
+        // A substitution is a different exercise: the old id and its progression history
+        // no longer describe what's being lifted, so neither travels with it.
+        list[i] = { ...list[i], name: altName, exerciseId: null, spineLoad: 'low' };
+        return true;
+      });
+      if(!applied){ showToast('Could not update today\'s plan', true); return; }
+      showToast(kind === 'remove' ? 'Removed from today' : kind === 'reduce' ? 'Set dropped' : `Swapped for ${altName}`);
+      await finish('accepted');
+    });
+  });
+
   const goBtn = document.getElementById('goLogWorkoutBtn');
   if(goBtn) goBtn.addEventListener('click', async ()=>{
     const found = await getTodaysBlockAndSlotForType(todaySessionType);
