@@ -344,44 +344,46 @@
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
     height:var(--mob-row); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
     pointer-events:none; opacity:0.25; }
-  /* The black region the lower half of the wheel is read against. Its top edge is put
-     through the middle of the focused domain name, so that one word is cut in two: the
-     tops of its letters stay dark on the page, the bottoms turn purple on the black. The
-     same trick the recommendation cards use, except the boundary is measured from the
-     glyph rather than being where a panel happens to start.
+  /* The black region the scale is read against. Its top edge is put through the middle of
+     the 1-5 numerals, so they are cut in two: the tops stay dark on the page, the bottoms
+     turn purple on the black. The boundary sits on the numerals rather than on the domain
+     name because the numerals are the one thing here that never moves — measured off the
+     name it jumped every time the wheel turned.
      Full bleed: -28px cancels .fields' 14px and main's 14px both. */
   .mob-stage{ position:relative; margin:6px -28px 0; padding:0 28px 14px; }
-  .mob-stage .mob-wheel{ position:relative; z-index:0; }
-  .mob-stage .mob-scale-row, .mob-stage .mob-step-count{ position:relative; z-index:2; }
-  /* top is written per render. Nothing here is interactive — the live wheel underneath
-     takes the drags, and the scale row sits above this in z-order. */
+  /* Below the ink: its lower half is painted over and redrawn by the twin. Above it: the
+     step count, which is wholly inside the black. */
+  .mob-stage .mob-scale-row{ position:relative; z-index:0; }
+  .mob-stage .mob-step-count{ position:relative; z-index:2; }
+  /* top is written per render. Nothing here is interactive — the live scale underneath
+     takes the taps. */
   .mob-ink{ position:absolute; left:0; right:0; bottom:0; background:#0c0d0b;
     overflow:hidden; pointer-events:none; z-index:1; }
-  /* Holds a twin of the wheel, pushed back up by exactly what the panel's top edge cut
+  /* Holds a twin of the scale row, pushed back up by exactly what the panel's top edge cut
      off, so the two copies coincide to the pixel and only the colour changes across the
      boundary. Raising the panel moves its children's origin with it — the same correction
      the weekly carousel needs. */
   .mob-ink-inner{ position:absolute; left:28px; right:28px; }
-  /* Only the focused name changes colour across the boundary — that split word is the
-     whole point of the black, and painting its neighbours purple too buried it. */
-  .mob-ink .mob-wheel-item{ color:var(--bg); }
-  .mob-ink .mob-wheel-item.focused .mob-wheel-name{ color:var(--block-purple); }
-  .mob-ink .mob-wheel-score{ color:rgba(251,250,246,0.55); }
-  .mob-ink .mob-wheel-item.focused .mob-wheel-score{ color:var(--block-purple); }
-  .mob-ink .mob-wheel-focus-line{ border-top-color:var(--bg); border-bottom-color:var(--bg); }
+  /* The twin is positioned outright, so the row's own top margin would push it 12px below
+     the copy it is meant to coincide with. */
+  .mob-ink .mob-scale-row{ margin-top:0; }
+  .mob-ink .mob-scale-btn{ color:var(--block-purple); }
   .mob-stage .mob-step-count{ color:rgba(251,250,246,0.7); }
-  .mob-stage .mob-scale-btn{ border-color:var(--bg); }
-  /* Selected reads as black-on-light everywhere else in the app; on the black that is the
-     ground itself, so the fill takes the tab's purple instead. */
-  .mob-stage .mob-scale-btn.active{ background:var(--block-purple); color:var(--on-light); border-color:var(--block-purple); }
-  .mob-scale-row{ display:flex; gap:4px; margin-top:10px; }
+  /* Numerals with no box around them. A bordered white button is white on either side of
+     the boundary, so there is nothing for the edge to cut — the digit itself has to be the
+     shape. The 46px row is kept for the tap target, which is the whole reason this
+     replaced a grid of 28px squares. */
+  .mob-scale-row{ display:flex; gap:4px; margin-top:12px; }
   .mob-scale-btn{ flex:1; height:46px; display:flex; align-items:center; justify-content:center;
-    border:2px solid var(--border-bold); background:var(--panel); color:var(--on-light);
-    font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold); cursor:pointer;
+    border:0; background:transparent; color:var(--text);
+    font-family:var(--mono); font-size:34px; font-weight:var(--fw-bold); cursor:pointer;
     -webkit-tap-highlight-color:transparent; }
-  .mob-scale-btn.active{ background:var(--reverse-bg); color:var(--bg); }
+  /* The selected number is filled the way selection is filled everywhere else in the app.
+     Below the boundary that black merges into the band, so the effect is the band growing
+     a tab upward around whichever number is on. */
+  .mob-scale-btn.active, .mob-ink .mob-scale-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mob-scale-btn:active{ transform:scale(0.96); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:10px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -1858,7 +1860,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.36';
+const APP_VERSION = '2026.08.25.37';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3468,54 +3470,49 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
 }
 document.getElementById('addSkillGoalRow').addEventListener('click', ()=>addSkillGoalRow());
 
-// Puts the black region's top edge through the middle of the focused domain name, then
-// hangs a twin of the wheel inside it. Everything above the edge stays dark on the page,
-// everything below is purple on black, and the focused word is cut across its own letters.
+// Puts the black region's top edge through the middle of the 1-5 numerals, then hangs a
+// twin of the scale row inside it. Numeral tops stay dark on the page, their bottoms are
+// purple on the black, and the selected one's fill merges into the band.
 //
-// The boundary is measured from the glyph rather than taken as a fraction of the row: the
-// names are mixed case, so the middle of the WORD is the middle of its capitals, which is
-// nowhere near the middle of a 34px row. Measured against the whole name rather than one
-// character for the same reason — the split has to look centred on "Ankles", not on 'n'.
+// The numerals carry the split rather than the domain name because they are the one thing
+// on this control that never moves: measured off the name, the edge jumped a few pixels
+// every time the wheel turned and every time a longer name came round.
+//
+// The boundary is measured from the glyph rather than taken as a fraction of the row —
+// a digit's ink fills nothing like the whole line box, and half of the box is well below
+// half of the number.
 function positionMobilityInk(container){
   const stage = container.querySelector('.mob-stage');
   const ink = stage && stage.querySelector('.mob-ink');
   const inner = ink && ink.querySelector('.mob-ink-inner');
-  const wheel = stage && stage.querySelector('.mob-wheel');
-  const nameEl = wheel && wheel.querySelector('.mob-wheel-item.focused .mob-wheel-name');
-  if(!stage || !ink || !inner || !wheel || !nameEl) return;
+  const row = stage && stage.querySelector('.mob-scale-row');
+  const numEl = row && row.querySelector('.mob-scale-num');
+  if(!stage || !ink || !inner || !row || !numEl) return;
   // A hidden section has no layout to measure; the toggle re-renders on open, so skipping
   // here costs nothing.
-  const nameRect = nameEl.getBoundingClientRect();
-  if(!nameRect.height) return;
+  const numRect = numEl.getBoundingClientRect();
+  if(!numRect.height) return;
 
-  const cs = getComputedStyle(nameEl);
+  const cs = getComputedStyle(numEl);
   const ctx = positionMobilityInk._ctx
     || (positionMobilityInk._ctx = document.createElement('canvas').getContext('2d'));
   ctx.font = `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
-  const m = ctx.measureText(nameEl.textContent || 'X');
+  const m = ctx.measureText(numEl.textContent || '0');
   // Where the baseline sits inside the rendered line box, then the ink's midpoint about it.
-  const baseline = (nameRect.height - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
+  const baseline = (numRect.height - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
     + m.fontBoundingBoxAscent;
   const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
   const stageRect = stage.getBoundingClientRect();
-  const boundary = (nameRect.top - stageRect.top) + centre;
+  const boundary = (numRect.top - stageRect.top) + centre;
 
   ink.style.top = boundary + 'px';
   inner.innerHTML = '';
-  const twin = wheel.cloneNode(true);
-  twin.removeAttribute('id');
-  // The falloff was set for dark type on a light page. The neighbours sit wholly inside
-  // the black (only the focused row straddles the edge, so nothing is lightened on one
-  // side and not the other), and light type at 0.28 on black all but vanishes.
-  twin.querySelectorAll('.mob-wheel-item[data-offset]').forEach(el=>{
-    const o = parseFloat(el.style.opacity);
-    if(o > 0 && o < 1) el.style.opacity = Math.min(1, o * 1.7);
-  });
+  const twin = row.cloneNode(true);
   inner.appendChild(twin);
-  // The panel is the twin's offset parent, so its own top edge is the twin's origin. Push
-  // the twin back up by exactly that, or the copy sits `boundary` px below the wheel it is
-  // meant to coincide with and the word reads as doubled rather than split.
-  inner.style.top = (-boundary) + 'px';
+  // The panel is the twin's offset parent, so its own top edge is the twin's origin. Put
+  // the copy back where the real row sits, or it lands at the top of the black and the
+  // numbers read as doubled rather than split.
+  inner.style.top = ((row.getBoundingClientRect().top - stageRect.top) - boundary) + 'px';
 }
 
 async function renderMobilityAssessment(skipCollapse){
@@ -3579,7 +3576,7 @@ async function renderMobilityAssessment(skipCollapse){
         <div class="mob-wheel-focus-line"></div>
       </div>
       <div class="mob-scale-row">
-        ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}">${l}</div>`).join('')}
+        ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}"><span class="mob-scale-num">${l}</span></div>`).join('')}
       </div>
       <div class="mob-step-count">${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
     </div>
