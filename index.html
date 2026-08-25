@@ -1667,7 +1667,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.3';
+const APP_VERSION = '2026.08.25.4';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -1974,11 +1974,11 @@ async function logOuraDebug(message){
 // silently wrong: Oura's awake_time is in SECONDS, but wakeTimeOura expects
 // MINUTES (confirmed from its penalty-scoring formula elsewhere in the app);
 // total_sleep_duration is also in seconds, converted to hours for durationHrs.
-async function fetchOuraEndpoint(endpoint, token, date, startDateOverride){
+async function fetchOuraEndpoint(endpoint, token, date, startDateOverride, endDateOverride){
   const res = await fetch(OURA_TOKEN_WORKER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'fetch_data', access_token: token, endpoint, start_date: startDateOverride || date, end_date: date }),
+    body: JSON.stringify({ action: 'fetch_data', access_token: token, endpoint, start_date: startDateOverride || date, end_date: endDateOverride || date }),
   });
   const data = await res.json();
   if(!res.ok) throw new Error(`${endpoint}: ${data.error || 'request failed'} (HTTP ${res.status})`);
@@ -1998,9 +1998,8 @@ async function syncOuraDataForDate(date){
   }
 
   const [dy, dm, dd] = date.split('-').map(Number);
-  const sixtyDaysBack = new Date(dy, dm-1, dd);
-  sixtyDaysBack.setDate(sixtyDaysBack.getDate() - 60);
-  const rangeStart = localDateStr(sixtyDaysBack);
+  const shiftDay = n => { const d = new Date(dy, dm-1, dd); d.setDate(d.getDate() + n); return localDateStr(d); };
+  const rangeStart = shiftDay(-60);
 
   // Promise.all rejects on the FIRST failure, so a single endpoint the account can't
   // read — daily_resilience answers 401 for tokens whose grant doesn't cover it —
@@ -2008,7 +2007,13 @@ async function syncOuraDataForDate(date){
   // returned perfectly well. Each endpoint now stands or falls on its own; only losing
   // every core endpoint is a real failure worth reporting as one.
   const OURA_ENDPOINTS = [
-    { key:'sleep',      name:'sleep',           core:true },
+    // Asked for a single day, this endpoint came back empty while daily_sleep and
+    // daily_readiness returned fine for the same date — so their scores landed and sleep
+    // duration and HRV, which only exist here, showed as "—". A window either side of the
+    // target day is robust both to an exclusive end date and to a sleep session that
+    // straddles midnight in the ring's timezone rather than the browser's; the period
+    // belonging to the target day is then selected below.
+    { key:'sleep',      name:'sleep',           core:true, start: shiftDay(-1), end: shiftDay(1) },
     { key:'dailySleep', name:'daily_sleep',     core:true },
     { key:'readiness',  name:'daily_readiness', core:true },
     { key:'activity',   name:'daily_activity' },
@@ -2017,7 +2022,7 @@ async function syncOuraDataForDate(date){
     { key:'restMode',   name:'rest_mode_period', start: rangeStart }, // period-based, needs a wider window
   ];
   const settled = await Promise.allSettled(
-    OURA_ENDPOINTS.map(e => fetchOuraEndpoint(e.name, token, date, e.start)));
+    OURA_ENDPOINTS.map(e => fetchOuraEndpoint(e.name, token, date, e.start, e.end)));
   const got = {}, failures = [];
   settled.forEach((r, i) => {
     const e = OURA_ENDPOINTS[i];
@@ -2025,6 +2030,12 @@ async function syncOuraDataForDate(date){
     got[e.key] = { data: [] };
     failures.push({ name: e.name, core: !!e.core, message: (r.reason && r.reason.message) || 'failed' });
   });
+  // An endpoint that answers 200 with zero rows is invisible otherwise — the sync just
+  // reports "—" for whatever it fed, with no way to tell a missing night from a request
+  // that asked the wrong question.
+  const emptyEndpoints = OURA_ENDPOINTS
+    .filter(e => !failures.some(f => f.name === e.name) && !((got[e.key] && got[e.key].data || []).length))
+    .map(e => e.name);
   const coreEndpoints = OURA_ENDPOINTS.filter(e => e.core).length;
   if(failures.filter(f => f.core).length === coreEndpoints){
     // Everything that matters failed — that's an authorization problem, not a gap.
@@ -2039,7 +2050,14 @@ async function syncOuraDataForDate(date){
   // Each endpoint's `data` array can have 0+ entries for the date (0 if no data
   // synced yet that day, 2+ if there was a long sleep plus a nap) — take the
   // longest sleep period, since that's what "last night's sleep" means here.
-  const sleepPeriods = sleepData.data || [];
+  const allSleep = sleepData.data || [];
+  // The widened window can return neighbouring nights, so pick the periods that belong to
+  // the target day. If none of them carry a day at all, take what came back rather than
+  // discarding it — an older response shape shouldn't lose the night's sleep.
+  const dayOf = sp => sp.day || (sp.bedtime_end || '').slice(0,10) || null;
+  const matching = allSleep.filter(sp => dayOf(sp) === date);
+  const sleepPeriods = matching.length ? matching
+    : (allSleep.length && allSleep.every(sp => !dayOf(sp)) ? allSleep : []);
   const mainSleep = sleepPeriods.reduce((longest, s) =>
     (!longest || (s.total_sleep_duration||0) > (longest.total_sleep_duration||0)) ? s : longest, null);
   const dailySleep = (dailySleepData.data || [])[0];
@@ -2109,7 +2127,7 @@ async function syncOuraDataForDate(date){
   // expects, and the app already computes its own trailing baseline internally.
 
   await window.storage.set(keyFor(date), JSON.stringify(updated));
-  return { ...updated, _noDataAtAll: noDataAtAll, _skipped: failures };
+  return { ...updated, _noDataAtAll: noDataAtAll, _skipped: failures, _empty: emptyEndpoints };
 }
 
 async function syncOuraSelectedDate(){
@@ -2128,7 +2146,8 @@ async function syncOuraSelectedDate(){
       const skipped = (entry._skipped || []).length
         ? ` (skipped ${entry._skipped.map(f=>f.name).join(', ')} — ${entry._skipped[0].message})`
         : '';
-      await logOuraDebug(`Synced ${dateLabel} — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}${skipped}`);
+      const empty = (entry._empty || []).length ? ` (no rows: ${entry._empty.join(', ')})` : '';
+      await logOuraDebug(`Synced ${dateLabel} — sleep ${entry.durationHrs ?? '—'}hrs, sleep score ${entry.sleepScoreOura ?? '—'}, readiness ${entry.readinessOura ?? '—'}, HRV ${entry.hrvOura ?? '—'}${empty}${skipped}`);
       if(dateInput.value === targetDate){ fillRecoveryForm(entry); }
       showToast(`Oura data synced for ${dateLabel}`);
     }
