@@ -781,8 +781,7 @@
     <div class="group">
       <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, and how much it should change your training</div></div>
       <div class="fields">
-        <div class="score-note">Log anything that hurts with a severity from 1 to 10. Severity fades on its own from the onset date — the half-life is how many days it takes to halve — so an entry quietly stops mattering as you recover rather than nagging forever.</div>
-        <div class="score-note">While something is sore the generator scales back the sessions that load it, drops quality and long running when it's bad enough, and the warm-up targets that area first. Mark it resolved the moment it stops bothering you.</div>
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity fades on its own &mdash; the half-life is how long it takes to halve. While it's active the generator eases the sessions that load it, and the warm-up targets it first.</div>
       </div>
     </div>
 
@@ -1838,7 +1837,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.31';
+const APP_VERSION = '2026.08.25.32';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
