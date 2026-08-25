@@ -406,29 +406,24 @@
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-lg); padding:8px 4px; }
 
 
-  /* The corner-bracket frame and the rotated sticker were decoration applied to a box.
-     These cards are the only thing on the page that interrupts you, so they now announce
-     themselves structurally instead: a heavy rule across the top in the card's own
-     colour, the verdict set in it, and everything below plain. Same vocabulary as the
-     plan rows and the score — rules, uppercase mono meta, no boxes, no rounding. */
-  .rec-card{ position:relative; border-radius:0; padding:0 0 4px; margin-bottom:24px; background:transparent; border-top:7px solid var(--dim); }
-  .rec-card.reduce{ border-top-color:var(--bad); }
-  .rec-card.add{ border-top-color:var(--accent-ink); }
-  .rec-card.modify{ border-top-color:var(--warn); }
-  .rec-card.hold{ border-top-color:var(--dim); }
-  .rec-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0 12px; }
-  .rec-type{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.16em; text-transform:uppercase; color:var(--text); }
-  .rec-card.reduce .rec-type{ color:var(--bad); }
-  .rec-card.modify .rec-type{ color:var(--warn); }
-  .rec-card.add .rec-type{ color:var(--accent-ink); }
-  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
-  .rec-title{ font-size:var(--fs-xl); line-height:1.14; margin-bottom:14px; font-weight:var(--fw-bold); letter-spacing:-0.035em; -webkit-text-stroke:0.5px currentColor; }
-  .rec-signals{ margin-bottom:16px; }
-  /* Bullets were glyphs on wrapped lines, so a two-line signal lost its own left edge.
-     A rule holds the block together and the indent survives the wrap. */
-  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.55; letter-spacing:0.015em; padding:5px 0 5px 12px; border-left:2px solid var(--line); }
-  .rec-signal + .rec-signal{ margin-top:2px; }
-  .rec-actions{ display:flex; gap:10px; }
+  /* Built from what the app already does everywhere else: a titled band in a flat block
+     colour from the tab palette, a hard 2px rule under it, a white panel body, and rows
+     separated by hairlines — the same construction as .group + .group-head + .log-entry.
+     The band colour is what tells you the verdict, exactly as the tab bar colours a
+     section. Deliberately not the lime of the Today page, which the card sits on. */
+  .rec-card{ position:relative; border:2px solid var(--border-bold); border-radius:0; background:var(--panel); margin-bottom:16px; padding:0; overflow:hidden; }
+  .rec-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:9px 12px; border-bottom:2px solid var(--border-bold); background:var(--block-purple); }
+  .rec-card.reduce .rec-head{ background:var(--block-red); }
+  .rec-card.add    .rec-head{ background:var(--block-blue); }
+  .rec-card.modify .rec-head{ background:var(--block-yellow); }
+  .rec-type{ font-family:var(--sans); font-size:var(--fs-xl); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.03em; color:var(--on-light); -webkit-text-stroke:0.4px var(--on-light); }
+  .rec-conf{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.06em; color:var(--on-light-dim); white-space:nowrap; }
+  .rec-body{ padding:12px 12px 14px; }
+  .rec-title{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); letter-spacing:-0.015em; line-height:1.32; color:var(--on-light); margin-bottom:4px; }
+  /* Hairline-separated rows, same as a log list. Bullets were glyphs on wrapped lines, so
+     a two-line signal used to lose its own left edge. */
+  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--on-light-dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid var(--line); }
+  .rec-actions{ display:flex; gap:8px; margin-top:12px; }
 
   .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
@@ -1698,7 +1693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.10';
+const APP_VERSION = '2026.08.25.11';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5032,14 +5027,16 @@ function buildRecCard(type, title, signals, confidence, meta){
   card.className = `rec-card ${type}`;
   card.innerHTML = `
     <div class="rec-head">
-      <span class="rec-type ${type}">${type}</span>
+      <span class="rec-type">${type}</span>
       ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
     </div>
-    <div class="rec-title">${title}</div>
-    <div class="rec-signals">${signals.map(s=>`<div class="rec-signal">${s}</div>`).join('')}</div>
-    <div class="rec-actions">
-      <button class="small accept-btn">Accept</button>
-      <button class="small outline dismiss-btn">Dismiss</button>
+    <div class="rec-body">
+      <div class="rec-title">${title}</div>
+      ${signals.map(s=>`<div class="rec-signal">${s}</div>`).join('')}
+      <div class="rec-actions">
+        <button class="small accept-btn">Accept</button>
+        <button class="small outline dismiss-btn">Dismiss</button>
+      </div>
     </div>`;
   card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card));
   card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card));
