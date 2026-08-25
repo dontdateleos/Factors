@@ -360,7 +360,25 @@
 
 
   .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
-  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:hidden; }
+  /* Same split as the recommendation card, but the boundary is a box rather than a line —
+     the labels rotate, so clipping each one individually would mean fighting its own
+     transform. Instead the wheel is drawn twice: once in black over the page, and again
+     in orange inside a black panel that clips by overflow. Where the panel is you see
+     orange on black; where a label runs past its edge you see the black copy on orange.
+     The panel takes no pointer events, so the drag still lands on the copy underneath. */
+  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:visible; }
+  /* z-index so the panel paints OVER the black copies rather than under them — both
+     layers are positioned, so DOM order alone would leave the black text sitting on top
+     of the black fill and muddying the orange twin beneath it. */
+  /* The panel bleeds past the column's left edge to the page edge, which moves its own
+     origin — so the twins live in an inner box pushed back by exactly that bleed. Without
+     it every cloned label sits one bleed-width left of the copy it is meant to sit on top
+     of, and the two read as a doubled letter either side of the boundary. */
+  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; z-index:1; background:var(--reverse-bg); overflow:hidden; pointer-events:none; }
+  .wheel-ink-inner{ position:absolute; top:0; bottom:0; left:var(--ink-bleed); right:0; }
+  .wheel-ink .wheel-day-item{ color:var(--block-orange); }
+  .wheel-ink .wheel-hub-label, .wheel-ink .wheel-hub-of{ color:rgba(255,148,66,0.7); }
+  .wheel-ink .wheel-hub-num{ color:var(--block-orange); -webkit-text-stroke-color:var(--block-orange); }
   /* Sits at the exact centre the day labels orbit, so the arc reads as a dial with a
      hub rather than a list bent into a curve. */
   .wheel-hub{ position:absolute; transform:translateY(-50%); text-align:left; pointer-events:none; line-height:1; }
@@ -586,7 +604,7 @@
         <button class="small outline" id="clearAllWeekBtn">Clear all</button>
       </div>
       <div class="week-wheel-stage" id="weekWheelStage">
-        <div class="week-wheel-col" id="weekWheelCol"></div>
+        <div class="week-wheel-col" id="weekWheelCol"><div class="wheel-ink"><div class="wheel-ink-inner" id="weekWheelInk"></div></div></div>
         <div class="week-wheel-detail" id="weekWheelDetail"></div>
       </div>
       <div id="weekBlockStrip" style="margin:14px 0 8px;"></div>
@@ -1707,7 +1725,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.15';
+const APP_VERSION = '2026.08.25.16';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3639,8 +3657,12 @@ const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger 
 function renderWheelPositions(dragOffsetDeg){
   const wheelCol = document.getElementById('weekWheelCol');
   if(!wheelCol) return;
+  const ink = document.getElementById('weekWheelInk');
   const dates = getWeekDates();
-  wheelCol.innerHTML = '';
+  // Clear only the day items — the ink panel itself has to survive, since it is what
+  // makes the black region the labels are read against.
+  wheelCol.querySelectorAll('.wheel-day-item, .wheel-hub').forEach(n=>n.remove());
+  if(ink) ink.innerHTML = '';
   const colRect = wheelCol.getBoundingClientRect();
   const colHeight = colRect.height || 460, colWidth = colRect.width || 150;
   // The arc travels the full circle (see theta below), so a day can sit at any angle
@@ -3670,6 +3692,9 @@ function renderWheelPositions(dragOffsetDeg){
     el.style.opacity = Math.max(0.28, 1 - dist*0.16); // continuous — no discrete active/inactive jump, so it interpolates smoothly mid-drag
     el.style.fontSize = Math.max(16, 28 - dist*7) + 'px';
     wheelCol.appendChild(el);
+    // The orange twin, identically placed. Only the copy in the outer layer is
+    // interactive; this one is inside a pointer-events:none panel.
+    if(ink) ink.appendChild(el.cloneNode(true));
   });
 
   if(wheelBlockPos){
@@ -3684,6 +3709,7 @@ function renderWheelPositions(dragOffsetDeg){
       + `<span class="wheel-hub-num">${wheelBlockPos.weekInBlock}</span>`
       + `<span class="wheel-hub-of">of ${wheelBlockPos.length}</span>`;
     wheelCol.appendChild(hub);
+    if(ink) ink.appendChild(hub.cloneNode(true));
   }
 }
 
