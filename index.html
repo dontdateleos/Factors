@@ -419,10 +419,10 @@
      ADD colour is the page's own lime, so there the two genuinely merge. */
   .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:0 -14px 14px; padding:0 14px 18px; overflow:hidden; }
   .rec-head{ display:block; margin-bottom:12px; }
-  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; margin-top:-4px; color:var(--block-purple); -webkit-text-stroke:0.6px currentColor; }
-  .rec-card.reduce .rec-type{ color:var(--block-red); }
-  .rec-card.add    .rec-type{ color:var(--block-lime); }
-  .rec-card.modify .rec-type{ color:var(--block-yellow); }
+  /* Always the Today page's own lime, whatever the verdict — the word already says which
+     it is, and one colour means every card merges into the field above it the same way
+     rather than only the ADD one landing the effect. */
+  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; margin-top:-4px; color:var(--block-lime); -webkit-text-stroke:0.6px currentColor; }
   .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
   .rec-body{ padding:0; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
@@ -1701,7 +1701,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.13';
+const APP_VERSION = '2026.08.25.14';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
