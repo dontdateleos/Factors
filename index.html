@@ -374,7 +374,7 @@
      origin — so the twins live in an inner box pushed back by exactly that bleed. Without
      it every cloned label sits one bleed-width left of the copy it is meant to sit on top
      of, and the two read as a doubled letter either side of the boundary. */
-  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; z-index:1; background:var(--reverse-bg); overflow:hidden; pointer-events:none; }
+  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; /* replaced per render by positionWheelInk */ z-index:1; background:var(--reverse-bg); overflow:hidden; pointer-events:none; }
   .wheel-ink-inner{ position:absolute; top:0; bottom:0; left:var(--ink-bleed); right:0; }
   .wheel-ink .wheel-day-item{ color:var(--block-orange); }
   .wheel-ink .wheel-hub-label, .wheel-ink .wheel-hub-of{ color:rgba(255,148,66,0.7); }
@@ -1742,7 +1742,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.17';
+const APP_VERSION = '2026.08.25.18';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3671,6 +3671,27 @@ let wheelBlockPos = null;
 const WHEEL_ANGLE_STEP = 180/6; // degrees per day-step — same total span as the original fixed arc
 const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger movement
 
+// Puts the ink panel's right edge through the middle of the active label's SECOND letter,
+// rather than at a fixed fraction of the column that happens to land near it. Measured
+// against the resting position of the day at 0deg — not the live element — so the edge
+// stays put while the wheel is dragged and the labels travel across it, instead of
+// jittering with them.
+function wheelInkBoundary(centerX, radius, label){
+  const ctx = wheelInkBoundary._ctx
+    || (wheelInkBoundary._ctx = document.createElement('canvas').getContext('2d'));
+  const root = getComputedStyle(document.documentElement);
+  const family = root.getPropertyValue('--sans').trim() || 'Helvetica, Arial, sans-serif';
+  const size = 28; // the size a day label takes at dist 0 — see the fontSize line below
+  ctx.font = `700 ${size}px ${family}`;
+  // letter-spacing is added AFTER each character and canvas doesn't apply it, so it
+  // belongs on the first letter's advance only — folding it into the second letter too
+  // carries half a gap into the halving and lands the edge past the centre.
+  const tracking = -0.01 * size; // .wheel-day-item letter-spacing
+  const first = label.length ? ctx.measureText(label[0]).width + tracking : 0;
+  const second = label.length > 1 ? ctx.measureText(label[1]).width : 0;
+  return centerX + radius + first + second / 2;
+}
+
 function renderWheelPositions(dragOffsetDeg){
   const wheelCol = document.getElementById('weekWheelCol');
   if(!wheelCol) return;
@@ -3713,6 +3734,15 @@ function renderWheelPositions(dragOffsetDeg){
     // interactive; this one is inside a pointer-events:none panel.
     if(ink) ink.appendChild(el.cloneNode(true));
   });
+
+  // The label the boundary is measured against is whichever day is active, at rest.
+  const inkPanel = ink && ink.parentElement;
+  if(inkPanel){
+    const activeDate = dates[activeWheelDayIndex];
+    const activeLabel = WEEK_DAY_LABELS[activeWheelDayIndex] + (activeDate===todayStr ? ' \u2022' : '');
+    const boundary = wheelInkBoundary(centerX, radius, activeLabel);
+    inkPanel.style.right = Math.max(0, colWidth - boundary) + 'px';
+  }
 
   if(wheelBlockPos){
     const hub = document.createElement('div');
