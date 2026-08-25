@@ -1666,7 +1666,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25';
+const APP_VERSION = '2026.08.25.2';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5109,7 +5109,7 @@ async function checkReturnToRunRule(){
   return null;
 }
 
-function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT){
+function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
 
@@ -5128,7 +5128,18 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT){
 
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
   if(parts.length === 0){
-    out.innerHTML=SCORE_PLACEHOLDER_SVG; label.textContent='Overall';
+    out.innerHTML=SCORE_PLACEHOLDER_SVG;
+    // Say WHY there is no number. A bare placeholder labelled "Overall" is
+    // indistinguishable from a broken score — it reads as the app failing rather than as
+    // the app waiting for something. The score needs sleep duration, wake time, or HRV
+    // against a baseline; name whichever of those is actually missing.
+    const e = entry || {};
+    const hasDuration = e.durationHrs != null;
+    const hasWake = (e.wakeTimeOura ?? e.wakeTimeGarmin) != null;
+    const hasHrv = (e.hrvGarmin ?? e.hrvOura) != null;
+    if(!hasDuration && !hasWake && !hasHrv) label.textContent = 'No sleep data for today yet';
+    else if(hasHrv && !hasDuration && !hasWake) label.textContent = 'HRV needs a baseline to score';
+    else label.textContent = 'Not enough to score yet';
     return;
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
@@ -11571,7 +11582,7 @@ async function generateRecommendations(){
   plannedEx.forEach(ex=>{ if(ex.area){ (plannedExAreas[ex.area]=plannedExAreas[ex.area]||[]).push(ex.name); } });
 
   const goalT = await currentGoalThresholds();
-  updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT);
+  updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry);
 
   const reduceSignals = [];
   if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
