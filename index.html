@@ -344,46 +344,43 @@
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
     height:var(--mob-row); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
     pointer-events:none; opacity:0.25; }
-  /* The black region the scale is read against. Its top edge is put through the middle of
-     the 1-5 numerals, so they are cut in two: the tops stay dark on the page, the bottoms
-     turn purple on the black. The boundary sits on the numerals rather than on the domain
-     name because the numerals are the one thing here that never moves — measured off the
-     name it jumped every time the wheel turned.
+  /* The checklist's level numerals run down a column, so the black runs down beside them
+     and the split is vertical: its RIGHT edge is put through the middle of the digits, left
+     halves purple on the black, right halves dark on the page. Same construction as the
+     horizontal version it replaces — a twin of the list hangs inside the black and is
+     pushed back by exactly what the edge cut off — turned ninety degrees.
      Full bleed: -28px cancels .fields' 14px and main's 14px both. */
   .mob-stage{ position:relative; margin:6px -28px 0; padding:0 28px 14px; }
-  /* Below the ink: its lower half is painted over and redrawn by the twin. Above it: the
-     step count, which is wholly inside the black. */
-  .mob-stage .mob-scale-row{ position:relative; z-index:0; }
+  /* Below the ink: the left of each row is painted over and redrawn by the twin. */
+  .mob-stage .mob-check{ position:relative; z-index:0; }
   .mob-stage .mob-step-count{ position:relative; z-index:2; }
-  /* top is written per render. Nothing here is interactive — the live scale underneath
-     takes the taps. */
-  .mob-ink{ position:absolute; left:0; right:0; bottom:0; background:#0c0d0b;
+  /* right and top are written per render. Nothing here is interactive — the live list
+     underneath takes the taps. */
+  .mob-ink{ position:absolute; left:0; bottom:0; background:#0c0d0b;
     overflow:hidden; pointer-events:none; z-index:1; }
-  /* Holds a twin of the scale row, pushed back up by exactly what the panel's top edge cut
-     off, so the two copies coincide to the pixel and only the colour changes across the
-     boundary. Raising the panel moves its children's origin with it — the same correction
-     the weekly carousel needs. */
-  .mob-ink-inner{ position:absolute; left:28px; right:28px; }
-  /* The twin is positioned outright, so the row's own top margin would push it 12px below
+  .mob-ink-inner{ position:absolute; top:0; }
+  /* The twin is positioned outright, so the list's own top margin would push it 14px below
      the copy it is meant to coincide with. */
-  .mob-ink .mob-scale-row{ margin-top:0; }
-  .mob-ink .mob-scale-btn{ color:var(--block-purple); }
-  .mob-stage .mob-step-count{ color:rgba(251,250,246,0.7); }
-  /* Numerals with no box around them. A bordered white button is white on either side of
-     the boundary, so there is nothing for the edge to cut — the digit itself has to be the
-     shape. The 46px row is kept for the tap target, which is the whole reason this
-     replaced a grid of 28px squares. */
-  .mob-scale-row{ display:flex; gap:4px; margin-top:12px; }
-  .mob-scale-btn{ flex:1; height:46px; display:flex; align-items:center; justify-content:center;
-    border:0; background:transparent; color:var(--text);
-    font-family:var(--mono); font-size:34px; font-weight:var(--fw-bold); cursor:pointer;
-    -webkit-tap-highlight-color:transparent; }
-  /* The selected number is filled the way selection is filled everywhere else in the app.
-     Below the boundary that black merges into the band, so the effect is the band growing
-     a tab upward around whichever number is on. */
-  .mob-scale-btn.active, .mob-ink .mob-scale-btn.active{ background:var(--reverse-bg); color:var(--bg); }
-  .mob-scale-btn:active{ transform:scale(0.96); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:10px; letter-spacing:0.02em; }
+  .mob-ink .mob-check{ margin-top:0; }
+  .mob-ink .mob-check-num{ color:var(--block-purple); }
+  .mob-stage .mob-step-count{ color:var(--dim); }
+  .mob-check{ margin-top:14px; }
+  /* Rows bleed to the edges so a ticked one can be filled edge to edge. 52px minimum: five
+     of these is the whole control, and each is its own tap target. */
+  .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:52px; cursor:pointer;
+    margin:0 -28px; padding:9px 28px; -webkit-tap-highlight-color:transparent; }
+  .mob-check-row:active{ opacity:0.6; }
+  .mob-check-num{ flex:none; width:38px; align-self:stretch; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:30px; font-weight:var(--fw-bold); color:var(--text); }
+  .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:var(--dim);
+    line-height:1.35; letter-spacing:-0.005em; }
+  /* A ticked rung is filled the whole way across, so the black is a staircase: the rungs
+     you have are solid bands, the ones you don't are just the column beside a split digit,
+     and how far it has climbed IS your level without reading a number. */
+  .mob-check-row.done{ background:var(--reverse-bg); }
+  .mob-check-row.done .mob-check-num, .mob-ink .mob-check-row.done .mob-check-num{ color:var(--bg); }
+  .mob-check-row.done .mob-check-text{ color:var(--bg); font-weight:var(--fw-medium); }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:12px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -803,11 +800,11 @@
   <div class="panel" id="panel-injuries">
     <div class="group">
       <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-        <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">self-rate each domain 0-5, used to prioritize generated mobility work</div></div>
+        <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div></div>
         <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-        <div class="score-note">Targets your biggest gaps rather than rotating evenly. Wrists don't feed generation yet.</div>
+        <div class="score-note">Each area has five things to try, easiest first. Tick the last one you can do. Generated mobility work targets your lowest areas rather than rotating evenly &mdash; wrists don't feed it yet.</div>
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note"></div>
@@ -1861,7 +1858,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.38';
+const APP_VERSION = '2026.08.25.39';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3471,66 +3468,73 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
 }
 document.getElementById('addSkillGoalRow').addEventListener('click', ()=>addSkillGoalRow());
 
-// Puts the black region's top edge through the middle of the 1-5 numerals, then hangs a
-// twin of the scale row inside it. Numeral tops stay dark on the page, their bottoms are
-// purple on the black, and the selected one's fill merges into the band.
+// Puts the black column's right edge through the middle of the level numerals, then hangs
+// a twin of the checklist inside it. Left halves of the digits are purple on the black,
+// right halves dark on the page, and a ticked rung's fill merges into the column.
 //
-// The numerals carry the split rather than the domain name because they are the one thing
-// on this control that never moves: measured off the name, the edge jumped a few pixels
-// every time the wheel turned and every time a longer name came round.
+// The numerals carry the split because they are the one thing on this control that never
+// moves: the statements beside them change length with every domain, and cutting THEM at a
+// fixed x would land mid-word somewhere different each time.
 //
-// The boundary is measured from the glyph rather than taken as a fraction of the row —
-// a digit's ink fills nothing like the whole line box, and half of the box is well below
-// half of the number.
+// The edge is measured from the glyph rather than taken as the middle of the cell — a
+// digit's ink is narrower than the box it is centred in, so the two are only the same by
+// accident.
 function positionMobilityInk(container){
   const stage = container.querySelector('.mob-stage');
   const ink = stage && stage.querySelector('.mob-ink');
   const inner = ink && ink.querySelector('.mob-ink-inner');
-  const row = stage && stage.querySelector('.mob-scale-row');
-  const numEl = row && row.querySelector('.mob-scale-num');
-  if(!stage || !ink || !inner || !row || !numEl) return;
+  // Direct child only. The ink panel is the stage's FIRST child and holds a copy of this
+  // same list, so a plain querySelector finds the twin whenever one is already hanging
+  // there — which is every call that isn't preceded by a re-render — and the function
+  // ends up measuring its own output and cloning the clone.
+  const list = stage && stage.querySelector(':scope > .mob-check');
+  const numEl = list && list.querySelector('.mob-check-num');
+  if(!stage || !ink || !inner || !list || !numEl) return;
   // A hidden section has no layout to measure; the toggle re-renders on open, so skipping
   // here costs nothing.
   const numRect = numEl.getBoundingClientRect();
-  if(!numRect.height) return;
+  if(!numRect.width) return;
 
   const cs = getComputedStyle(numEl);
   const ctx = positionMobilityInk._ctx
     || (positionMobilityInk._ctx = document.createElement('canvas').getContext('2d'));
   ctx.font = `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
   const m = ctx.measureText(numEl.textContent || '0');
-  // Where the baseline sits inside the rendered line box, then the ink's midpoint about it.
-  const baseline = (numRect.height - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
-    + m.fontBoundingBoxAscent;
-  const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  // The digit is centred in its cell, so it starts half the leftover width in; its ink
+  // centre is then the midpoint of the ink either side of that origin.
+  const originX = (numRect.width - m.width) / 2;
+  const centre = originX + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
   const stageRect = stage.getBoundingClientRect();
-  const boundary = (numRect.top - stageRect.top) + centre;
+  const boundary = (numRect.left - stageRect.left) + centre;
 
-  ink.style.top = boundary + 'px';
+  ink.style.right = Math.max(0, stageRect.width - boundary) + 'px';
+  ink.style.top = ((list.getBoundingClientRect().top - stageRect.top)) + 'px';
   inner.innerHTML = '';
-  const twin = row.cloneNode(true);
+  const twin = list.cloneNode(true);
   inner.appendChild(twin);
-  // The panel is the twin's offset parent, so its own top edge is the twin's origin. Put
-  // the copy back where the real row sits, or it lands at the top of the black and the
-  // numbers read as doubled rather than split.
-  inner.style.top = ((row.getBoundingClientRect().top - stageRect.top) - boundary) + 'px';
+  // The column is the twin's offset parent, so its own left edge is the twin's origin.
+  // Push the copy back out by exactly that, or it starts at the column's edge instead of
+  // where the real list sits and the digits read as doubled rather than split.
+  inner.style.left = ((list.getBoundingClientRect().left - stageRect.left) - 0) + 'px';
+  inner.style.width = list.getBoundingClientRect().width + 'px';
 }
 
 async function renderMobilityAssessment(skipCollapse){
   const container = document.getElementById('mobilityAssessmentRows');
   const existing = await getMobilityAssessment();
-  const scores = (existing && existing.scores) || {};
+  // A rating made against the old wording is not a rating on this scale — the rungs mean
+  // different things now. It is dropped rather than carried over, because a pre-ticked
+  // list nobody re-checked would look assessed while driving prescriptions off numbers
+  // that no longer describe anything.
+  const outdatedScale = !!existing && existing.scaleVersion !== MOBILITY_SCALE_VERSION;
+  const scores = (!outdatedScale && existing && existing.scores) || {};
   // Working copy so the stepper can hold edits without writing to storage on every tap.
   if(!mobilityDraftScores) mobilityDraftScores = { ...scores };
 
-  // Full level definitions shown ONCE here rather than repeated inside 9 separate
-  // verbose dropdowns — collapsed by default via <details> so it's there for reference
-  // without adding to the default reading load.
-  const legendHtml = `
-    <details class="mobility-legend">
-      <summary>What do the levels mean?</summary>
-      <div class="mobility-legend-body">${MOBILITY_DOMAIN_LEVEL_LABELS.join('<br>')}</div>
-    </details>`;
+  // The generic five-rung legend that used to sit here is gone. It described all nine
+  // domains at once, which is exactly why it could not describe any of them — the rungs
+  // are per-domain and inline now, so there is nothing left to look up.
+  const legendHtml = '';
 
   // A focused stepper rather than nine rows of five buttons. The full grid was 594px —
   // 38% of the whole Goals tab — and its 45 targets were 28px square, well under the
@@ -3576,10 +3580,16 @@ async function renderMobilityAssessment(skipCollapse){
         ${wheelItems.join('')}
         <div class="mob-wheel-focus-line"></div>
       </div>
-      <div class="mob-scale-row">
-        ${[1,2,3,4,5].map(l=>`<div class="mob-scale-btn ${mobilityDraftScores[domain]===l?'active':''}" data-level="${l}"><span class="mob-scale-num">${l}</span></div>`).join('')}
+      <div class="mob-check">
+        ${(MOBILITY_DOMAIN_TESTS[domain] || []).map((text, i)=>{
+          const lvl = i + 1;
+          const done = (mobilityDraftScores[domain] || 0) >= lvl;
+          return `<div class="mob-check-row${done ? ' done' : ''}" data-level="${lvl}">`
+            + `<span class="mob-check-num">${lvl}</span>`
+            + `<span class="mob-check-text">${text}</span></div>`;
+        }).join('')}
       </div>
-      <div class="mob-step-count">${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
+      <div class="mob-step-count">Tick the last one you can do · ${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
     </div>
     <div style="display:none;">
       ${MOBILITY_DOMAINS.map(d=>`<div class="mobility-domain-row" data-domain="${d}">${
@@ -3594,12 +3604,13 @@ async function renderMobilityAssessment(skipCollapse){
     renderMobilityAssessment(true);
   };
 
-  // Tap a number to rate the focused domain; tap the active one again to clear it back to
-  // "not assessed". Rating auto-advances — the point of a wheel is not reaching for a
-  // next control nine times.
-  container.querySelectorAll('.mob-scale-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const lvl = parseInt(btn.dataset.level, 10);
+  // Tap the last statement you can do; everything above it fills in, because the rungs are
+  // ordered and doing the fourth means doing the first three. Tapping your current top rung
+  // again clears the domain back to "not assessed". Rating auto-advances — the point of a
+  // wheel is not reaching for a next control nine times.
+  container.querySelectorAll('.mob-check-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const lvl = parseInt(row.dataset.level, 10);
       if(mobilityDraftScores[domain] === lvl){
         delete mobilityDraftScores[domain];
         renderMobilityAssessment(true);
@@ -3682,12 +3693,14 @@ async function renderMobilityAssessment(skipCollapse){
   // the only system here with no feedback loop: levels changed only by manual re-rating,
   // and nothing ever asked for one.
   const staleDays = assessmentAgeDays(existing);
-  const isStale = staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS;
-  summary.textContent = assessedCount === 0
-    ? 'Not assessed yet — self-rate each domain 1-5'
-    : isStale
-      ? `Last rated ${staleDays} days ago — worth re-testing`
-      : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
+  const isStale = outdatedScale || (staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS);
+  summary.textContent = outdatedScale
+    ? 'The levels changed — worth running through them again'
+    : assessedCount === 0
+      ? 'Not assessed yet — tick what you can do in each area'
+      : (staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS)
+        ? `Last rated ${staleDays} days ago — worth re-testing`
+        : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
   // Placed only once the section's visibility for this render is settled. The boundary is
   // measured from laid-out text, and a collapsed section has none — running it before the
   // block below meant the very first render always measured zero and left the ink unplaced.
@@ -8702,7 +8715,82 @@ function buildMobilitySkillStretches(sg, dayIndex, loadedROMCoverage, sessionTyp
 // it can still be assessed and displayed, but won't influence mobility generation.
 const MOBILITY_DOMAINS = ['ankles','knees','hips','hamstrings','adductors','spine','shoulders','scapula','wrists'];
 const MOBILITY_DOMAIN_TO_AREA = { ankles:'ankles', knees:'quads_knees', hips:'hips', hamstrings:'hamstrings', adductors:'hips', spine:'thoracic', shoulders:'shoulders', scapula:'shoulders', wrists:null };
-const MOBILITY_DOMAIN_LEVEL_LABELS = ['1 — Foundation: basic positions with major compensation','2 — Controlled ROM: can enter positions, limited active control','3 — Loaded mobility: meaningful force through large ROM','4 — Advanced flexibility: pursuing major goals in this area','5 — Performance mobility: full active control + strength at end range'];
+// One generic five-rung ladder was being asked to describe nine different joints, so
+// "loaded mobility: meaningful force through large ROM" told you nothing about your
+// ankles specifically — it had to also cover wrists. These are per-domain instead, and
+// each rung is something you either can or cannot do, checked on the spot with no
+// equipment. Ordered easiest first; the level is how far down you get.
+//
+// Nothing downstream reads what a number MEANS — the score only ranks domains against
+// each other to decide which gets mobility work — so redefining the scale is safe. What
+// it does invalidate is ratings made against the old wording, which is what
+// MOBILITY_SCALE_VERSION is for.
+const MOBILITY_SCALE_VERSION = 2;
+const MOBILITY_DOMAIN_TESTS = {
+  ankles: [
+    'Squat to parallel with both heels staying down',
+    'Half-kneel with toes touching a wall — knee reaches the wall, heel down',
+    'Same, with your toes 5cm back from the wall',
+    'Same, with your toes 10cm back from the wall',
+    'Toes 13cm+ back, and you can sit in a deep squat for a minute'
+  ],
+  knees: [
+    'Kneel and sit back towards your heels, even with a gap',
+    'Sit right down onto your heels, no cushion under you',
+    'Lying face down, pull one heel to your backside without the hip lifting',
+    'Sitting on your heels, lean back onto your elbows',
+    'Sitting on your heels, lie flat back with your lower back on the floor'
+  ],
+  hips: [
+    'Sit cross-legged on the floor without propping on your hands',
+    'Hold a deep squat, feet flat, for 30 seconds',
+    'Half-kneel and push your hips forward without arching your lower back',
+    'Sitting in 90/90, lift the front shin off the floor and hold it',
+    'Switch 90/90 side to side without using your hands'
+  ],
+  hamstrings: [
+    'Standing, straight legs, reach past your knees',
+    'Standing, straight legs, fingertips to your toes',
+    'On your back, raise one straight leg to 70° with the other leg flat',
+    'Same, all the way to vertical',
+    'Hold it at vertical for 10 seconds with no hands'
+  ],
+  adductors: [
+    'Sit with your legs wide and stay upright without your back rounding',
+    'Drop into a side lunge with the straight leg\'s foot flat',
+    'Sitting legs wide, lean forward and put your elbows on the floor',
+    'Sitting legs wide, get your chest to the floor',
+    'Hold a full side split with both hips down'
+  ],
+  spine: [
+    'Sitting tall, turn your shoulders 45° each way without your hips moving',
+    'Lie back over a rolled towel at mid-back without your ribs flaring',
+    'Sitting tall, turn 60° each way',
+    'On all fours, reach one arm to the ceiling and follow it with your eyes',
+    'Push up into a bridge with straight arms, shoulders over your hands'
+  ],
+  shoulders: [
+    'Back to a wall, raise both arms overhead with your elbows bent',
+    'Back flat to the wall, straight arms, backs of the hands touch the wall',
+    'Same, and you can press into the wall without your ribs flaring',
+    'Face down holding a stick, lift it up and past your head',
+    'Hang from a bar, straight arms, relaxed, for 30 seconds'
+  ],
+  scapula: [
+    'Hanging from a bar, shrug your shoulders up towards your ears',
+    'Hanging, pull your shoulders down away from your ears and hold',
+    'Five slow scapular pull-ups with your elbows locked',
+    'Top of a push-up, round and pinch your shoulder blades with a flat back',
+    'Hold a support above a bar or rings for 20 seconds, shoulders pushed down'
+  ],
+  wrists: [
+    'On all fours, palms flat with your fingers pointing forward',
+    'Palms flat, shoulders stacked over your hands',
+    'Backs of the hands on the floor, taking some weight',
+    'Fingers pointing back towards your knees, palms flat, arms straight',
+    'All of those pain-free, and a 30-second front support on your palms'
+  ]
+};
 
 // Built from DOGFOOD_Mobility_Research_Findings.txt section 13 (the five-level
 // progression) — Level 1 examples become ACCESS, Level 2 become CONTROL, Level 3
@@ -9020,7 +9108,7 @@ function assessmentAgeDays(assessment){
 }
 
 async function saveMobilityAssessment(scores){
-  return await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr }));
+  return await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr, scaleVersion: MOBILITY_SCALE_VERSION }));
 }
 
 // Checks this week's actual planned strength sessions for bulletproofing/accessory
