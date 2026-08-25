@@ -412,17 +412,23 @@
      the page that interrupts you, so it borrows exactly that: full-bleed black, the
      verdict set at logo scale in the type's own colour, everything else inverted
      beneath it. */
-  /* The verdict's cap-height is set flush to the band's top edge rather than sitting
-     inside a margin, so the word runs into the page above instead of being placed on a
-     panel — measured, not eyeballed: the caps' ink starts 4px below the line box top at
-     this size and leading, so -4px puts them exactly on the edge. On the Today page the
-     ADD colour is the page's own lime, so there the two genuinely merge. */
-  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:0 -14px 14px; padding:0 14px 18px; overflow:hidden; }
+  /* The verdict straddles the band's top edge — the top half of the caps sits on the page
+     above the card, the bottom half inside it. One word, painted twice and split at the
+     boundary: black where it crosses the lime field so it stays legible there, lime where
+     it crosses the black. Positions are measured, not eyeballed: at this size and leading
+     the caps' ink starts 4px into the line box and stands 28px tall, so its midpoint is
+     18px down — pulling the box up by that much puts the middle of the letters exactly on
+     the card's edge, which is then 50% of the way down the box for the two clips.
+     overflow must stay visible or the escaping half is cut off. */
+  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 14px; padding:0 14px 18px; overflow:visible; }
   .rec-head{ display:block; margin-bottom:12px; }
-  /* Always the Today page's own lime, whatever the verdict — the word already says which
-     it is, and one colour means every card merges into the field above it the same way
-     rather than only the ADD one landing the effect. */
-  .rec-type{ display:block; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; margin-top:-4px; color:var(--block-lime); -webkit-text-stroke:0.6px currentColor; }
+  /* Offset with top, not margin: a negative top margin on the card's first child collapses
+     straight out through the card (which has no top padding or border) and moves the card
+     itself, leaving the word exactly where it started. */
+  .rec-type{ position:relative; display:block; height:36px; top:-18px; margin-bottom:-6px; }
+  .rec-type-ink{ position:absolute; left:0; top:0; font-family:var(--sans); font-size:40px; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; white-space:nowrap; }
+  .rec-type-ink.above{ color:var(--text); -webkit-text-stroke:0.6px var(--text); clip-path:inset(0 0 50% 0); }
+  .rec-type-ink.below{ color:var(--block-lime); -webkit-text-stroke:0.6px var(--block-lime); clip-path:inset(50% 0 0 0); }
   .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
   .rec-body{ padding:0; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
@@ -1701,7 +1707,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.14';
+const APP_VERSION = '2026.08.25.15';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5035,7 +5041,7 @@ function buildRecCard(type, title, signals, confidence, meta){
   card.className = `rec-card ${type}`;
   card.innerHTML = `
     <div class="rec-head">
-      <span class="rec-type">${type}</span>
+      <span class="rec-type"><span class="rec-type-ink above">${type}</span><span class="rec-type-ink below">${type}</span></span>
       ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
     </div>
     <div class="rec-body">
