@@ -328,9 +328,9 @@
   /* Mobility assessment wheel. Vertical list of domains, five visible with opacity
      falling off from the centre, and the 1-5 scale horizontal beneath. Replaces a nine-row
      grid that ran 594px with 45 targets at 28px square. */
-  /* One row height, and the wheel is five of them. The drag's step distance is the same
+  /* One row height, and the wheel is three of them. The drag's step distance is the same
      number — see STEP_PX — so these have to move together. */
-  .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 5); overflow:hidden; display:flex; flex-direction:column;
+  .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .mob-wheel:active{ cursor:grabbing; }
   .mob-wheel-item{ height:var(--mob-row); display:flex; align-items:center; justify-content:space-between;
@@ -350,7 +350,7 @@
      horizontal version it replaces — a twin of the list hangs inside the black and is
      pushed back by exactly what the edge cut off — turned ninety degrees.
      Full bleed: -28px cancels .fields' 14px and main's 14px both. */
-  .mob-stage{ position:relative; margin:6px -28px 0; padding:0 28px 14px; }
+  .mob-stage{ position:relative; margin:4px -28px 0; padding:0 28px 10px; }
   /* Below the ink: the left of each row is painted over and redrawn by the twin. */
   .mob-stage .mob-check{ position:relative; z-index:0; }
   .mob-stage .mob-step-count{ position:relative; z-index:2; }
@@ -364,14 +364,19 @@
   .mob-ink .mob-check{ margin-top:0; }
   .mob-ink .mob-check-num{ color:var(--block-purple); }
   .mob-stage .mob-step-count{ color:var(--dim); }
-  .mob-check{ margin-top:14px; }
+  /* Ten stacked field rows at the shared 10px gap ran 512px — the second-largest thing on
+     the tab after the assessment, for a form of one-line controls. Tightened here rather
+     than in .fields, which every tab shares. */
+  #injuryForm{ gap:7px; }
+  #injuryForm textarea{ min-height:44px; }
+  .mob-check{ margin-top:10px; }
   /* Rows bleed to the edges so a ticked one can be filled edge to edge. 52px minimum: five
      of these is the whole control, and each is its own tap target. */
-  .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:52px; cursor:pointer;
-    margin:0 -28px; padding:9px 28px; -webkit-tap-highlight-color:transparent; }
+  .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:46px; cursor:pointer;
+    margin:0 -28px; padding:6px 28px; -webkit-tap-highlight-color:transparent; }
   .mob-check-row:active{ opacity:0.6; }
-  .mob-check-num{ flex:none; width:38px; align-self:stretch; display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-size:30px; font-weight:var(--fw-bold); color:var(--text); }
+  .mob-check-num{ flex:none; width:34px; align-self:stretch; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--text); }
   .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:var(--dim);
     line-height:1.35; letter-spacing:-0.005em; }
   /* A ticked rung is filled the whole way across, so the black is a staircase: the rungs
@@ -380,7 +385,7 @@
   .mob-check-row.done{ background:var(--reverse-bg); }
   .mob-check-row.done .mob-check-num, .mob-ink .mob-check-row.done .mob-check-num{ color:var(--bg); }
   .mob-check-row.done .mob-check-text{ color:var(--bg); font-weight:var(--fw-medium); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:12px; letter-spacing:0.02em; }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -804,7 +809,7 @@
         <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-        <div class="score-note">Each area has five things to try, easiest first. Tick the last one you can do. Generated mobility work targets your lowest areas rather than rotating evenly.</div>
+        <div class="score-note">Five things per area, easiest first &mdash; your lowest areas get the mobility work.</div>
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note"></div>
@@ -822,9 +827,9 @@
 
 
 
-    <div class="group" style="margin-top:16px;">
+    <div class="group">
       <div class="group-head"><div class="group-title">Log new injury</div><div class="group-sub">add one and the generator starts easing around it</div></div>
-      <div class="fields">
+      <div class="fields" id="injuryForm">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
         <div class="field-row"><span class="field-label">Type</span>
           <select id="injuryType">
@@ -864,7 +869,7 @@
       <div id="injuryList"></div>
     </div>
 
-      <div class="group" style="margin-top:16px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Skill Goals</div><div class="group-sub">mobility & exercise progressions</div></div>
         <div class="fields">
           <details class="mobility-legend">
@@ -877,7 +882,7 @@
       </div>
 
 
-      <div class="group" style="margin-top:24px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Mobility progression</div><div class="group-sub">where each skill sits, and what moves it</div></div>
         <div class="fields" id="mobilityProgressBody"></div>
       </div>
@@ -1858,7 +1863,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.41';
+const APP_VERSION = '2026.08.25.42';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3554,7 +3559,10 @@ async function renderMobilityAssessment(skipCollapse){
   // grid this replaces was 594px — 38% of the Goals tab — with 45 targets at 28px square.
   // Five names visible at once, opacity falling off from the centre, so it still reads as
   // a list you're moving through rather than an isolated card.
-  const WHEEL_VISIBLE = 2;   // items shown either side of the focused one
+  // One neighbour either side rather than two. Five rows cost 190px for context you get
+  // from one — and at either end of the list the missing neighbours are reserved as blank
+  // rows, so two of them meant 76px of nothing above "Ankles".
+  const WHEEL_VISIBLE = 1;   // items shown either side of the focused one
   const wheelItems = [];
   for(let offset = -WHEEL_VISIBLE; offset <= WHEEL_VISIBLE; offset++){
     const i = idx + offset;
