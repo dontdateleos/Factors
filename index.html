@@ -164,18 +164,19 @@
      the outer edge is cut away, --eye-rot how far it tilts. The second eye is the first
      mirrored, so one clip-path and one rotation give a symmetric face. */
   .eyes{ display:flex; align-items:center; height:32px; gap:12px;
-    --eye-h:32px; --eye-rb:7.5px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg); }
+    --eye-h:32px; --eye-rb:7.5px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg);
+    --eye-morph:0.42s; }
   .eyes span{ display:block; width:15px; height:var(--eye-h);
     border-radius:7.5px 7.5px var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
     transform:rotate(var(--eye-rot)); transform-origin:50% 25%;
-    transition:height 0.42s cubic-bezier(0.2,0.7,0.2,1), border-radius 0.42s cubic-bezier(0.2,0.7,0.2,1),
-               clip-path 0.42s cubic-bezier(0.2,0.7,0.2,1), transform 0.42s cubic-bezier(0.2,0.7,0.2,1); }
+    transition:height var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1), border-radius var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1),
+               clip-path var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1), transform var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1); }
   .eyes span:last-child{ transform:scaleX(-1) rotate(var(--eye-rot)); }
   @media (prefers-reduced-motion: reduce){ .eyes span{ transition:none; } }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  .header-brand .header-mark{ position:absolute; left:131px; top:61px; pointer-events:none; z-index:0; transform-origin:left top; }
+  .header-brand .header-mark{ position:absolute; left:123px; top:61px; pointer-events:none; z-index:0; transform-origin:left top; }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -183,7 +184,7 @@
     visibility:hidden; pointer-events:none; }
   /* Flies between the two. Above the tab-wipe overlay (9999) so it stays visible the
      whole way across, and in page coordinates so scrolling mid-flight cannot skew it. */
-  .eye-flyer{ position:absolute; z-index:10000; pointer-events:none; }
+  .eye-flyer{ position:absolute; z-index:10000; pointer-events:none; transform-origin:50% 50%; }
   .header-brand > *{ position:relative; z-index:1; }
   main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; }
@@ -1708,7 +1709,7 @@ const EYE_STATES = [
   { h:'32px', rb:'7.5px', bl:'0%',  rot:'0deg'   }
 ];
 const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
-const EYE_FLIGHT_MS = 560;
+const EYE_FLIGHT_MS = 640;
 
 function eyeStateForScore(score){
   // No score is not a zero score, but it is the same face: nothing to look at yet.
@@ -1727,6 +1728,7 @@ let eyesHome = 'header';   // where they rest when nothing is in flight
 let eyeScore = null;       // the score the expression is drawn from
 let eyeFlyer = null;
 let eyeFlightTimer = null;
+let eyeFlight = null;   // the WAAPI animation carrying the flyer
 
 function eyePagePos(el){
   const r = el.getBoundingClientRect();
@@ -1765,59 +1767,144 @@ function moveEyes(dest, from){
   const score = document.getElementById('scoreEyes');
   if(!header || !score) return;
   const toState = dest === 'score' ? eyeStateForScore(eyeScore) : EYE_NEUTRAL;
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   clearTimeout(eyeFlightTimer);
+  stopBlinking();
   eyesHome = dest;
 
   const land = ()=>{
+    eyeFlightTimer = null;
     applyEyeState(score, eyeStateForScore(eyeScore));
     applyEyeState(header, EYE_NEUTRAL);
     score.style.visibility = dest === 'score' ? 'visible' : 'hidden';
     header.style.visibility = dest === 'header' ? 'visible' : 'hidden';
-    if(eyeFlyer) eyeFlyer.style.display = 'none';
+    if(eyeFlyer){ if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; } eyeFlyer.style.display = 'none'; }
+    scheduleBlink(dest === 'score' ? 900 : 2600);
   };
 
   // Nothing to fly if the eyes were behind the header or below the fold when we left —
   // they were not on screen, so a flight in from off-screen reads as a glitch.
-  if(reduced || (from && from.offscreen)){ land(); return; }
+  if(eyeMotionOff() || (from && from.offscreen)){ land(); return; }
 
   whenHeaderSettled(()=>{
     // Bail if another tab switch overtook this one while we were waiting.
     if(eyesHome !== dest) return;
     // A tab switch during a flight hands off from wherever the eyes actually are, rather
-    // than snapping back to the slot they left.
+    // than snapping back to the slot they left. Read the rect BEFORE cancelling — the
+    // animation holds the current transform, and cancelling drops it.
     const inFlight = eyeFlyer && eyeFlyer.style.display === 'flex';
+    const handoff = inFlight ? eyePagePos(eyeFlyer) : null;
+    if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
     // By now activateTab has scrolled to the top, so a captured viewport position converts
     // to a page position with the scroll offset as it stands right here.
     const fromPage = from ? { x: from.x + window.scrollX, y: from.y + window.scrollY } : null;
-    const start = inFlight ? eyePagePos(eyeFlyer) : (fromPage || eyePagePos(dest === 'score' ? header : score));
+    const start = handoff || fromPage || eyePagePos(dest === 'score' ? header : score);
     const end = eyePagePos(dest === 'score' ? score : header);
     const flyer = getEyeFlyer();
 
     flyer.style.display = 'flex';   // .eyes is a flex row — 'block' stacks the two eyes
-    flyer.style.transition = 'none';
     flyer.style.left = start.x + 'px';
     flyer.style.top = start.y + 'px';
-    flyer.style.transform = 'translate(0, 0)';
+    flyer.style.transform = 'none';
     applyEyeState(flyer, dest === 'score' ? EYE_NEUTRAL : eyeStateForScore(eyeScore));
     header.style.visibility = 'hidden';
     score.style.visibility = 'hidden';
-    void flyer.offsetWidth; // take the start state as current, or the two writes coalesce
 
-    flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
-    flyer.style.transform = `translate(${end.x - start.x}px, ${end.y - start.y}px)`;
+    const dx = end.x - start.x, dy = end.y - start.y;
+    // Gather, fall, land. A straight tween between two points is the one thing that reads
+    // as a sprite being moved rather than as eyes deciding to go and look at something, so
+    // the pair dips against the direction of travel first, stretches along it on the way,
+    // squashes on arrival and settles. `over` carries them a little past the slot; `dip` is
+    // the wind-up, both signed against the direction they are heading.
+    const dir = dy >= 0 ? 1 : -1;
+    const dip = -7 * dir, over = 8 * dir;
+    eyeFlight = flyer.animate([
+      { transform:'translate(0px, 0px) scale(1, 1)', offset:0, easing:'cubic-bezier(0.3,0,0.5,1)' },
+      { transform:`translate(${dx*0.08}px, ${dip}px) scale(0.93, 1.09)`, offset:0.18, easing:'cubic-bezier(0.55,0,0.35,1)' },
+      { transform:`translate(${dx*0.72}px, ${dy*0.72}px) scale(0.96, 1.06)`, offset:0.55, easing:'cubic-bezier(0.4,0,0.3,1)' },
+      { transform:`translate(${dx}px, ${dy + over}px) scale(1.07, 0.9)`, offset:0.78, easing:'cubic-bezier(0.3,0,0.2,1)' },
+      { transform:`translate(${dx}px, ${dy - over*0.3}px) scale(0.98, 1.03)`, offset:0.9, easing:'ease-out' },
+      { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
+    ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
+
     applyEyeState(flyer, toState);   // the expression arrives with the eyes, not after
     eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
   });
 }
 
+/* ---------- BLINKING ----------
+   Wherever they are sitting, the eyes blink now and then, so the mark reads as something
+   looking back rather than as two shapes. Height only: a blink that also moved the tilt or
+   the taper would flicker the expression the score is trying to show. */
+const BLINK_CLOSED = '2px';
+const BLINK_SHUT_MS = 85, BLINK_OPEN_MS = 115;
+let blinkTimer = null;
+let blinkSeq = 0;   // bumped to strand the timers of a blink that has been superseded
+
+function eyeMotionOff(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function eyesDocked(){
+  if(eyeFlightTimer) return null;
+  const el = eyesHome === 'score' ? document.getElementById('scoreEyes') : document.querySelector('.header-mark');
+  return el && getComputedStyle(el).visibility === 'visible' ? el : null;
+}
+function blinkOnce(el, then){
+  const open = el.style.getPropertyValue('--eye-h') || EYE_NEUTRAL.h;
+  // Already shut — the lowest score band IS a closed lid, and blinking it does nothing but
+  // twitch. Let it sit.
+  if(parseFloat(open) <= parseFloat(EYE_STATES[0].h)){ if(then) then(); return; }
+  // A blink reopens to the height it closed from, so a score landing mid-blink would be
+  // undone by a timer set before it. The sequence number strands those timers instead.
+  const seq = ++blinkSeq;
+  el.style.setProperty('--eye-morph', BLINK_SHUT_MS + 'ms');
+  el.style.setProperty('--eye-h', BLINK_CLOSED);
+  setTimeout(()=>{
+    if(seq !== blinkSeq) return;
+    el.style.setProperty('--eye-morph', BLINK_OPEN_MS + 'ms');
+    el.style.setProperty('--eye-h', open);
+    setTimeout(()=>{
+      if(seq !== blinkSeq) return;
+      el.style.removeProperty('--eye-morph');
+      if(then) then();
+    }, BLINK_OPEN_MS + 30);
+  }, BLINK_SHUT_MS + 25);
+}
+function scheduleBlink(delay){
+  clearTimeout(blinkTimer);
+  if(eyeMotionOff()) return;
+  blinkTimer = setTimeout(()=>{
+    const el = eyesDocked();
+    // A hidden tab is not worth blinking at, and the timers there are throttled anyway.
+    if(!el || document.hidden){ scheduleBlink(3000); return; }
+    // A double blink every so often — a metronome reads as a loading spinner.
+    const double = Math.random() < 0.22;
+    blinkOnce(el, ()=>{
+      if(double) setTimeout(()=>{ const again = eyesDocked(); if(again) blinkOnce(again); }, 90);
+      scheduleBlink(3200 + Math.random()*5200);
+    });
+  }, delay);
+}
+function stopBlinking(){
+  clearTimeout(blinkTimer);
+  blinkTimer = null;
+  blinkSeq++;
+  [document.getElementById('scoreEyes'), document.querySelector('.header-mark')].forEach(el=>{
+    if(el) el.style.removeProperty('--eye-morph');
+  });
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) scheduleBlink(1500); });
+
 // Called whenever the score is recomputed. If the eyes are already sitting on the score
 // the expression just changes under them; if they are up in the logo it is waiting for
 // them when they come down.
 function setEyeScore(score){
+  const changed = score !== eyeScore;
   eyeScore = score;
-  if(eyesHome === 'score') applyEyeState(document.getElementById('scoreEyes'), eyeStateForScore(score));
+  if(eyesHome !== 'score') return;
+  if(changed) stopBlinking();
+  applyEyeState(document.getElementById('scoreEyes'), eyeStateForScore(score));
+  if(changed) scheduleBlink(2200);
 }
 
 /* ---------- TAB NAV ---------- */
@@ -2221,7 +2308,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.98';
+const APP_VERSION = '2026.08.26.99';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2943,7 +3030,8 @@ function updateHeaderCollapse(){
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
   // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
-  const MARK_GAP = 5;
+  // Negative: the mark tucks under the tail of the last letter rather than sitting off it.
+  const MARK_GAP = -4;
   // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
   // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
   const MARK_TOP = 61;
