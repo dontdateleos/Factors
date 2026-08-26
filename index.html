@@ -506,76 +506,34 @@
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
-  /* Sized so the band below the cut ends just under the lowest label. It runs to the
-     stage's own bottom edge, so shortening the stage is what pulls the band up — the
-     alternative, stopping it short, puts it back to ending on nothing. */
-  /* The stage takes its height from whichever column is taller. The wheel keeps the fixed
-     height it always had — the arc is a circle of a set radius and centring it in a box
-     that grew with the list would walk it down the page — so a day with five workouts
-     makes the stage taller than the wheel and the list runs its full length. */
-  .week-wheel-stage{ display:flex; align-items:flex-start; }
-  /* Same split as the recommendation card, but the boundary is a box rather than a line —
-     the labels rotate, so clipping each one individually would mean fighting its own
-     transform. Instead the wheel is drawn twice: once in black over the page, and again
-     in cream inside a black panel that clips by overflow. Where the panel is you see
-     cream on black; where a label runs past its edge you see the black copy on orange.
-     The twins were orange, which made the band a shade of the tab rather than a
-     black-and-white object sitting on it — the ground stays the tab's orange, only the
-     text inside the band is white.
-     The panel takes no pointer events, so the drag still lands on the copy underneath. */
-  /* height is written per render — see WHEEL_MIN_CENTER_Y. This is the pre-script value
-     so the column has a size on first paint. */
-  .week-wheel-col{ flex:0 0 48%; height:254px; position:relative; padding-left:6px; overflow:visible; }
-  /* z-index so the panel paints OVER the black copies rather than under them — both
-     layers are positioned, so DOM order alone would leave the black text sitting on top
-     of the black fill and muddying the orange twin beneath it. */
-  /* The panel bleeds past the column's left edge to the page edge, which moves its own
-     origin — so the twins live in an inner box pushed back by exactly that bleed. Without
-     it every cloned label sits one bleed-width left of the copy it is meant to sit on top
-     of, and the two read as a doubled letter either side of the boundary. */
-  /* The cut is horizontal and the black sits ABOVE it — black down from the header, page
-     colour under. #000000, not --reverse-bg: the band runs into the header and the two
-     can't be a shade apart. top, height and right are written per render. */
-  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; height:50%; left:calc(-1 * var(--ink-bleed)); right:0; z-index:1; background:#000000; overflow:hidden; pointer-events:none; }
-  /* The header's hairline rule runs straight across the join and reads as a gap in it.
-     On this tab the band provides the separation instead. */
-  body.tab-training header{ border-bottom-color:transparent; }
-  .wheel-ink-inner{ position:absolute; left:var(--ink-bleed); right:0; }
-  .wheel-ink .wheel-day-item{ color:var(--bg); }
-  .wheel-ink .wheel-hub-label, .wheel-ink .wheel-hub-of{ color:rgba(251,250,246,0.7); }
-  .wheel-ink .wheel-hub-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
-  /* Sits at the exact centre the day labels orbit, so the arc reads as a dial with a
-     hub rather than a list bent into a curve. */
-  .wheel-hub{ position:absolute; transform:translateY(-50%); text-align:left; pointer-events:none; line-height:1; }
-  .wheel-hub-label{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); margin-bottom:3px; }
-  .wheel-hub-num{ display:block; font-family:var(--sans); font-size:34px; font-weight:var(--fw-bold); letter-spacing:-0.05em; color:var(--text); -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; }
-  .wheel-hub-of{ display:block; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.06em; margin-top:2px; }
-  /* Thickened the way the score number is: a stroke on top of the weight, and the tracking
-     pulled in to match. In em so it stays proportional — the labels run 16px to 28px with
-     distance from the active day, and a fixed px stroke reads heavy on the small ones.
-     currentColor, so each copy strokes in its own colour across the cut. */
-  .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.04em; -webkit-text-stroke:0.035em currentColor; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
-  /* Drag only starts on a day label, deliberately — capturing the whole column stole
-     page-scroll gestures from the empty space around the arc. But the labels themselves
-     are small targets, the far ones only 16px tall. This pseudo-element grows the hit
-     area well past the glyphs without affecting layout, the rotation anchor, or the
-     surrounding empty space. Overlap between neighbouring targets is harmless: every
-     item starts the same drag. */
-  .wheel-day-item::before{ content:''; position:absolute; inset:-16px -22px; }
-  /* Starts inside the band and is cut by it, the same way the day labels are: the black
-     paints over its upper part and a white twin inside the band redraws that part, so the
-     text runs white on black into black on orange across one line.
-     No z-index — sitting above the band was what kept it out of the cut. The band takes no
-     pointer events, so taps still reach the cards underneath. */
-  /* No overflow-y. A scrollable pane this size showed two workouts and hid the rest
-     behind a gesture with nothing to indicate it, inside a stage that already takes a
-     drag of its own. */
-  .week-wheel-detail{ flex:1 1 52%; padding:var(--sp-3) 4px var(--sp-3) 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; }
-  .wheel-ink .week-wheel-detail{ pointer-events:none; }
-  .wheel-ink .wheel-detail-day{ color:rgba(251,250,246,0.6); }
-  .wheel-ink .wheel-workout-type, .wheel-ink .wheel-ex-names{ color:var(--bg); }
-  .wheel-ink .wheel-workout-card{ border-bottom-color:rgba(251,250,246,0.25); }
-  .wheel-ink .wheel-add-card{ color:var(--bg); border-color:rgba(251,250,246,0.5); }
+  /* A day picker, built the same way as the mobility one on the Function tab: three rows,
+     the middle one focused, drag or tap to move. It replaces an arc of rotated labels
+     drawn twice — once black over the page and once cream inside a clipping panel — whose
+     boundary had to be solved from glyph metrics on every frame. That was a lot of
+     machinery to pick a day with, and every layout change had to be re-solved against it. */
+  .week-wheel-stage{ display:flex; align-items:flex-start; gap:14px; }
+  .week-day-picker{ --day-row:38px; flex:0 0 40%; position:relative;
+    height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
+    justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+  .week-day-picker:active{ cursor:grabbing; }
+  .week-day-item{ height:var(--day-row); display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--sans); color:var(--text); transition:opacity 0.18s, font-size 0.18s;
+    cursor:pointer; font-size:var(--fs-lg); padding:0 2px; -webkit-tap-highlight-color:transparent; }
+  .week-day-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
+  .week-day-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
+  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(12,13,11,0.55);
+    flex:none; margin-left:8px; }
+  .week-day-item.focused .week-day-mark{ color:var(--text); }
+  .week-day-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+    height:var(--day-row); border-top:1px solid rgba(12,13,11,0.45); border-bottom:1px solid rgba(12,13,11,0.45);
+    pointer-events:none; }
+  /* "Week 2 of 4" was the wheel's hub, sitting at the arc's pivot. With no arc it is a
+     line of type above the picker. */
+  .week-block-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:var(--sp-2); }
+  /* No overflow-y: a scrollable pane this size showed two workouts and hid the rest
+     behind a gesture with nothing to indicate it. */
+  .week-wheel-detail{ flex:1 1 auto; min-width:0; padding:0 4px 0 0; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; }
   .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
@@ -890,8 +848,9 @@
     <div id="weeklyTrainingView" style="display:none;">
       <!-- The wheel leads. Everything that used to sit above it is below it now, so the
            ink panel behind the arc can run to the top of the page on its side. -->
+      <div class="week-block-pos" id="weekBlockPos"></div>
       <div class="week-wheel-stage" id="weekWheelStage">
-        <div class="week-wheel-col" id="weekWheelCol"><div class="wheel-ink"><div class="wheel-ink-inner" id="weekWheelInk"></div></div></div>
+        <div class="week-day-picker" id="weekDayPicker"></div>
         <div class="week-wheel-detail" id="weekWheelDetail"></div>
       </div>
 
@@ -2096,7 +2055,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.73';
+const APP_VERSION = '2026.08.26.75';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3856,7 +3815,7 @@ async function renderMobilityAssessment(skipCollapse){
   if(!mobilityWheelBound){
     mobilityWheelBound = true;
     const host = document.getElementById('mobilityAssessmentRows');
-    let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false;
+    let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
     const STEP_PX = 38;             // sustained finger travel per domain — one row height (--mob-row)
     const FLICK_MIN_PX = 8;         // below this it's a tap, not a swipe
     const FLICK_MIN_VELOCITY = 0.25; // px/ms — separates a flick from a slow short drag
@@ -4062,9 +4021,6 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
 });
 
 let activeWheelDayIndex = null; // set to today's index on first render each session
-// Where the arc sits when the day's first card is short enough not to push it lower.
-// 150 is what 0.52 of the old fixed 289px stage came to, so a quiet day looks unchanged.
-const WHEEL_MIN_CENTER_Y = 150;
 
 function extractBlockNames(block){
   if(!block) return [];
@@ -4081,218 +4037,99 @@ function extractBlockNames(block){
   return [];
 }
 
-// Block position for the wheel hub. renderWheelPositions runs on every drag frame and has
-// to stay synchronous, so the value is cached here and refreshed by renderWeekGrid.
+// Block position, shown above the picker. Cached here and refreshed by renderWeekGrid.
 let wheelBlockPos = null;
-const WHEEL_ANGLE_STEP = 180/6; // degrees per day-step — same total span as the original fixed arc
-const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger movement
 
-// Where a horizontal cut lands so it passes through the middle of the label resting at
-// 0deg. Measured from the glyph at the size it is actually drawn, and from the RESTING
-// position rather than a live element, so the edge holds still while the wheel turns and
-// the labels travel across it — measuring the active label instead made the edge chase it.
-function wheelInkRowBoundary(colEl, centerY){
-  // A hidden copy at the resting size, because the real line box height is what the
-  // baseline maths needs and .wheel-day-item sets no line-height of its own.
-  let probe = wheelInkRowBoundary._probe;
-  if(!probe){
-    probe = document.createElement('div');
-    probe.className = 'wheel-day-item';
-    probe.style.visibility = 'hidden';
-    probe.style.fontSize = '28px';
-    probe.textContent = 'WED';
-    wheelInkRowBoundary._probe = probe;
-  }
-  colEl.appendChild(probe);
-  const lineH = probe.getBoundingClientRect().height || 32;
-  probe.remove();
-  const ctx = wheelInkRowBoundary._ctx
-    || (wheelInkRowBoundary._ctx = document.createElement('canvas').getContext('2d'));
-  const root = getComputedStyle(document.documentElement);
-  const family = root.getPropertyValue('--sans').trim() || 'Helvetica, Arial, sans-serif';
-  ctx.font = `700 28px ${family}`;
-  const m = ctx.measureText('WED');
-  const boxTop = centerY - 14;   // matches el.style.top for the item at 0deg
-  const baseline = boxTop + (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
-    + m.fontBoundingBoxAscent;
-  // The text stroke widens the ink evenly above and below, so it moves the extents but
-  // not their midpoint — no correction needed for it here.
-  return baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
-}
-
-// The day's detail gets a twin too, so the cut runs through it rather than stopping at the
-// wheel. Its own function rather than part of renderWheelPositions, because the two are
-// written at different times: the wheel is redrawn on every drag frame, while the detail's
-// contents are filled in later by renderWeekGrid. Building the twin only inside the wheel
-// render left it holding whatever the pane contained one tick earlier — on first paint,
-// nothing at all.
-function syncWheelDetailTwin(){
-  const ink = document.getElementById('weekWheelInk');
-  const col = document.getElementById('weekWheelCol');
-  const detail = document.getElementById('weekWheelDetail');
-  if(!ink || !col || !detail) return;
-  ink.querySelectorAll('.wheel-detail-twin').forEach(n=>n.remove());
-  const dr = detail.getBoundingClientRect();
-  const colRect = col.getBoundingClientRect();
-  if(!dr.height) return;
-  const twin = detail.cloneNode(true);
-  twin.removeAttribute('id');
-  twin.classList.add('wheel-detail-twin');
-  twin.style.position = 'absolute';
-  twin.style.left = (dr.left - colRect.left) + 'px';
-  twin.style.top = (dr.top - colRect.top) + 'px';
-  twin.style.width = dr.width + 'px';
-  twin.style.height = dr.height + 'px';
-  ink.appendChild(twin);
-}
-
-function renderWheelPositions(dragOffsetDeg){
-  const wheelCol = document.getElementById('weekWheelCol');
-  if(!wheelCol) return;
-  const ink = document.getElementById('weekWheelInk');
+// One row per day, three visible, the middle one focused — the same picker the mobility
+// assessment uses. What it replaces: an arc of seven rotated labels, each drawn twice so a
+// black panel could clip one copy, with the panel's lower edge solved from canvas glyph
+// metrics so it fell through the middle of the resting label's ink. Every layout change on
+// this tab had to be re-solved against that boundary. This is a list.
+const WEEK_PICKER_VISIBLE = 1;   // days shown either side of the focused one
+function renderWeekDayPicker(dayBlocks){
+  const picker = document.getElementById('weekDayPicker');
+  if(!picker) return;
   const dates = getWeekDates();
-  // Clear only the day items — the ink panel itself has to survive, since it is what
-  // makes the black region the labels are read against.
-  wheelCol.querySelectorAll('.wheel-day-item, .wheel-hub').forEach(n=>n.remove());
-  if(ink) ink.innerHTML = '';
-  const colRect = wheelCol.getBoundingClientRect();
-  const colHeight = colRect.height || 460, colWidth = colRect.width || 150;
-  // The arc travels the full circle (see theta below), so a day can sit at any angle
-  // including -180deg. With the old centerX of 14 and a radius of 60 that put the far
-  // day at x = -46, outside this overflow:hidden column — measured on a Friday, Monday
-  // was simply invisible. Size the circle to fit the column instead: leave room for the
-  // widest label at 0deg on the right, and keep the leftmost point inside the box, so
-  // all seven days stay on screen whichever day is active.
-  // The band's lower edge is the active day's ink midline, so the top workout card sits
-  // wholly on black only if the day label sits below the card. A fixed centre cannot do
-  // that: the card grows a line per exercise without bound, so any height chosen for it
-  // is one exercise away from being wrong. Measure the card and put the arc under it.
-  // The floor is what the old fixed geometry came to, so a rest day or a single short
-  // session leaves the wheel where it has always been rather than riding up the page.
-  const firstCard = document.querySelector('#weekWheelDetail .wheel-workout-card, #weekWheelDetail .wheel-add-card');
-  let centerY = WHEEL_MIN_CENTER_Y;
-  if(firstCard){
-    const cardRect = firstCard.getBoundingClientRect();
-    if(cardRect.height) centerY = Math.max(centerY, cardRect.bottom - colRect.top);
+  const rows = [];
+  for(let offset = -WEEK_PICKER_VISIBLE; offset <= WEEK_PICKER_VISIBLE; offset++){
+    const i = activeWheelDayIndex + offset;
+    if(i < 0 || i >= dates.length){
+      rows.push(`<div class="week-day-item" style="opacity:0;"></div>`);
+      continue;
+    }
+    // The marker says what is on that day without opening it — the same job the arc's
+    // size-and-fade did, but readable rather than inferred.
+    const blocks = (dayBlocks && dayBlocks[i] ? dayBlocks[i].blocks : []).filter(b=>b.block);
+    const mark = blocks.map(b=>b.block.type.charAt(0).toUpperCase()).join('');
+    rows.push(`
+      <div class="week-day-item${offset===0?' focused':''}" data-offset="${offset}"
+           style="opacity:${offset===0?1:0.45};">
+        <span class="week-day-name">${WEEK_DAY_LABELS[i]}${dates[i]===todayStr?' •':''}</span>
+        <span class="week-day-mark">${mark}</span>
+      </div>`);
   }
-  // The column has to be tall enough to hold the arc wherever the centre lands — radius
-  // plus a label — or the lowest days fall out of the bottom of it.
-  wheelCol.style.height = Math.round(centerY + 104) + 'px';
-  const centerX = 14;
-  const radius = Math.max(60, colWidth - 115);
-  dates.forEach((date, i) => {
-    // Relative to the active day (not absolute index) — this is what makes the
-    // whole arc actually shift when the active day changes or while dragging,
-    // rather than just restyling labels that never move.
-    const distSigned = (i - activeWheelDayIndex) + (dragOffsetDeg / WHEEL_ANGLE_STEP);
-    const theta = distSigned * WHEEL_ANGLE_STEP; // no clamp — let it travel the full circle so items genuinely exit and re-enter rather than bunching at a boundary
-    const rad = theta * Math.PI/180;
-    const x = centerX + radius * Math.cos(rad);
-    const y = centerY + radius * Math.sin(rad);
-    const el = document.createElement('div');
-    el.className = 'wheel-day-item';
-    el.textContent = WEEK_DAY_LABELS[i] + (date===todayStr ? ' •' : '');
-    const dist = Math.abs(distSigned);
-    el.style.top = (y - 14) + 'px';
-    el.style.left = x + 'px';
-    el.style.transform = `rotate(${theta}deg)`;
-    el.style.opacity = Math.max(0.28, 1 - dist*0.16); // continuous — no discrete active/inactive jump, so it interpolates smoothly mid-drag
-    el.style.fontSize = Math.max(16, 28 - dist*7) + 'px';
-    wheelCol.appendChild(el);
-    // The orange twin, identically placed. Only the copy in the outer layer is
-    // interactive; this one is inside a pointer-events:none panel.
-    if(ink) ink.appendChild(el.cloneNode(true));
-  });
-
-  const inkPanel = ink && ink.parentElement;
-  if(inkPanel){
-    const boundary = wheelInkRowBoundary(wheelCol, centerY);
-    // Bleed off the right edge as well, so the band crosses the whole page. The stage
-    // stops at main's content edge, so the band has to make up that 14px of padding to
-    // reach the screen.
-    const stage = wheelCol.parentElement;
-    const stageRect = stage ? stage.getBoundingClientRect() : colRect;
-    inkPanel.style.right = -((stageRect.right - colRect.right) + 14) + 'px';
-    // Run the band up into the header rather than to main's top edge: main starts below
-    // its own padding, which leaves a strip of page colour above the band. A few pixels
-    // past it rather than exactly to it — layout positions are fractional, so meeting it
-    // precisely leaves a hairline showing through. The header is sticky at z-index 10, so
-    // the overlap is hidden by it.
-    const header = document.querySelector('header');
-    const overshoot = header && colRect.height
-      ? Math.max(0, colRect.top - header.getBoundingClientRect().bottom) + 4
-      : 0;
-    inkPanel.style.top = (-overshoot) + 'px';
-    inkPanel.style.height = (boundary + overshoot) + 'px';
-    // The panel is the twins' offset parent, so its own top-left is their origin. Push
-    // them back by exactly what raising it moved them — the left bleed is handled by
-    // .wheel-ink-inner's own left, this is the vertical half. Without it every orange copy
-    // sits an overshoot above the black one it is meant to coincide with, and the label
-    // reads as doubled rather than split.
-    if(ink) ink.style.top = overshoot + 'px';
-    syncWheelDetailTwin();
-  }
-
-  if(wheelBlockPos){
-    const hub = document.createElement('div');
-    hub.className = 'wheel-hub';
-    // Sits at the arc's pivot height. Anchored a few pixels in from the left rather than
-    // centred on centerX itself — the orbit centre is close enough to the column edge
-    // that a centred hub is half outside the overflow:hidden box.
-    hub.style.left = Math.max(4, centerX - 10) + 'px';
-    hub.style.top = centerY + 'px';
-    hub.innerHTML = `<span class="wheel-hub-label">Week</span>`
-      + `<span class="wheel-hub-num">${wheelBlockPos.weekInBlock}</span>`
-      + `<span class="wheel-hub-of">of ${wheelBlockPos.length}</span>`;
-    wheelCol.appendChild(hub);
-    if(ink) ink.appendChild(hub.cloneNode(true));
-  }
+  picker.innerHTML = rows.join('') + `<div class="week-day-focus-line"></div>`;
+  const pos = document.getElementById('weekBlockPos');
+  if(pos) pos.textContent = wheelBlockPos ? `Week ${wheelBlockPos.weekInBlock} of ${wheelBlockPos.length}` : '';
 }
 
-(function setupWheelDragGesture(){
-  const wheelCol = document.getElementById('weekWheelCol');
-  if(!wheelCol) return;
-  let dragging = false, startY = 0, liveOffsetDeg = 0;
-
-  wheelCol.addEventListener('pointerdown', (e)=>{
-    // Only start a wheel-drag if the touch landed directly on a day label —
-    // most of this column is empty space around the arc, and capturing every
-    // touch here regardless of target was stealing normal page-scroll
-    // gestures whenever a finger happened to land in that empty space.
-    if(!e.target.classList.contains('wheel-day-item')) return;
-    dragging = true;
-    startY = e.clientY;
-    liveOffsetDeg = 0;
-    wheelCol.setPointerCapture(e.pointerId);
+// Drag to move through the days. Bound once to the stage rather than to the picker,
+// because the picker's contents are replaced on every step and a listener on a removed
+// element takes the gesture with it.
+(function setupWeekPickerDrag(){
+  const stage = document.getElementById('weekWheelStage');
+  if(!stage) return;
+  let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
+  const STEP_PX = 38;              // one row height (--day-row)
+  const FLICK_MIN_PX = 8;
+  const FLICK_MIN_VELOCITY = 0.25; // px/ms
+  const clamp = i => Math.max(0, Math.min(getWeekDates().length-1, i));
+  stage.addEventListener('pointerdown', e=>{
+    if(!e.target.closest('#weekDayPicker')) return;
+    dragging = true; startY = e.clientY; accumulated = 0;
+    startTime = e.timeStamp; moved = false;
+    // Which row the finger went down on, so a tap on a neighbour can select it. Capturing
+    // the pointer means the up-event no longer shares a target with the down, so no click
+    // is generated and a listener on the row would never fire.
+    const row = e.target.closest('.week-day-item');
+    downOffset = row ? (parseInt(row.dataset.offset, 10) || 0) : 0;
+    stage.setPointerCapture(e.pointerId);
   });
-
-  wheelCol.addEventListener('pointermove', (e)=>{
+  stage.addEventListener('pointermove', e=>{
     if(!dragging) return;
-    const dates = getWeekDates();
-    const deltaY = e.clientY - startY;
-    let offset = deltaY * WHEEL_DRAG_SENSITIVITY;
-    // Clamp so the wheel can't visually spin past Monday (dragging down) or
-    // Sunday (dragging up) — without this, the live drag would keep rotating
-    // past the actual boundary and only snap back once released, which looks
-    // like an overshoot-and-correct rather than a hard stop.
-    const maxOffset = activeWheelDayIndex * WHEEL_ANGLE_STEP; // most you can drag down before hitting Monday
-    const minOffset = (activeWheelDayIndex - (dates.length-1)) * WHEEL_ANGLE_STEP; // most you can drag up before hitting Sunday
-    offset = Math.max(minOffset, Math.min(maxOffset, offset));
-    liveOffsetDeg = offset;
-    renderWheelPositions(liveOffsetDeg);
+    const steps = Math.trunc((e.clientY - startY - accumulated) / STEP_PX);
+    if(steps === 0) return;
+    accumulated += steps * STEP_PX;
+    moved = true;
+    // Dragging down brings earlier days into view, like a physical wheel.
+    activeWheelDayIndex = clamp(activeWheelDayIndex - steps);
+    renderWeekGrid();
   });
-
-  function endDrag(){
+  const endDrag = e => {
     if(!dragging) return;
     dragging = false;
-    const dates = getWeekDates();
-    const stepsMoved = Math.round(liveOffsetDeg / WHEEL_ANGLE_STEP);
-    activeWheelDayIndex = Math.max(0, Math.min(dates.length-1, activeWheelDayIndex - stepsMoved));
-    liveOffsetDeg = 0;
-    renderWeekGrid(); // full re-render commits the change and refreshes the detail pane
-  }
-  wheelCol.addEventListener('pointerup', endDrag);
-  wheelCol.addEventListener('pointercancel', endDrag);
+    try{ stage.releasePointerCapture(e.pointerId); }catch(_){}
+    if(moved) return;
+    const dy = e.clientY - startY;
+    const dt = Math.max(1, e.timeStamp - startTime);
+    const velocity = Math.abs(dy) / dt;
+    // Barely moved: it was a tap. Select whichever row it landed on.
+    if(Math.abs(dy) < FLICK_MIN_PX){
+      if(downOffset !== 0){
+        activeWheelDayIndex = clamp(activeWheelDayIndex + downOffset);
+        renderWeekGrid();
+      }
+      return;
+    }
+    // A quick flick travels less than a row, so a pure distance threshold ignores it and
+    // the picker feels stuck. Short and fast counts as intent to move.
+    if(velocity < FLICK_MIN_VELOCITY) return;
+    const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+    activeWheelDayIndex = clamp(activeWheelDayIndex + (dy > 0 ? -steps : steps));
+    renderWeekGrid();
+  };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
 })();
 
 async function renderWeekGrid(){
@@ -4306,7 +4143,6 @@ async function renderWeekGrid(){
       const dates = getWeekDates();
       const pos = await getBlockPosition(dates[0]);
       wheelBlockPos = pos;
-      renderWheelPositions(0); // redraw so the hub appears as soon as the position is known
       // Each week reads as a bar whose height is its planned volume, so the wave is
       // legible without reading labels. Session counts sit under each bar so the strip
       // answers "what's coming" rather than only "where am I" — previously the only
@@ -4409,7 +4245,6 @@ async function renderWeekGrid(){
   })();
   const wheelStageEl = document.getElementById('weekWheelStage');
   if(wheelStageEl) wheelStageEl.style.display = '';
-  const wheelCol = document.getElementById('weekWheelCol');
   const detailCol = document.getElementById('weekWheelDetail');
   const dates = getWeekDates();
   if(activeWheelDayIndex==null) activeWheelDayIndex = Math.max(0, dates.indexOf(todayStr));
@@ -4454,10 +4289,7 @@ async function renderWeekGrid(){
     dayBlocks.push({ date, blocks });
   }
 
-  // Wheel positioning is now handled by renderWheelPositions() below, called once
-  // here for the initial/settled state (drag offset 0), and repeatedly with a live
-  // offset during an active drag gesture — see setupWheelDragGesture().
-  renderWheelPositions(0);
+  renderWeekDayPicker(dayBlocks);
 
   // Detail pane: up to two workout cards for the active day, or an add-workout
   // affordance if the day is empty — tapping either reuses the existing editor
@@ -4465,7 +4297,8 @@ async function renderWeekGrid(){
   const activeDate = dates[activeWheelDayIndex];
   const activeDayData = dayBlocks[activeWheelDayIndex];
   const realBlocks = activeDayData.blocks.filter(b => b.block);
-  let detailHtml = `<div class="wheel-detail-day">${WEEK_DAY_LABELS[activeWheelDayIndex]}${activeDate===todayStr?' · today':''}</div>`;
+  // No day label here any more: the picker beside it is showing that name at 26px.
+  let detailHtml = '';
   if(realBlocks.length === 0){
     detailHtml += `<div class="wheel-add-card" data-add-date="${activeDate}">+ Add workout</div>`;
   } else {
@@ -4479,11 +4312,6 @@ async function renderWeekGrid(){
     });
   }
   detailCol.innerHTML = detailHtml;
-  // Re-run the wheel now the card it measures exists. The earlier call positioned it
-  // against the previous day's card, or against nothing at all on first paint.
-  renderWheelPositions(0);
-  // The white copy inside the band has to be rebuilt from the pane's new contents.
-  syncWheelDetailTwin();
   detailCol.querySelectorAll('[data-edit-date]').forEach(card=>{
     card.addEventListener('click', ()=>{
       const { editDate, editSlot } = card.dataset;
