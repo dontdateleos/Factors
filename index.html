@@ -569,12 +569,6 @@
   .mobility-row-info.test{ align-items:flex-start; }
   .mobility-row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
-  /* Each skill is one black band across the page, the same shape the Goals rows use — its
-     controls and its progression in one box, because where a skill sits belongs to the
-     skill. Reading them apart meant matching a name in one list against a name in another.
-     Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px. */
-  #mobilitySkillRows .edit-row, #exerciseSkillRows .edit-row{ display:block; position:relative;
-    margin:0 -28px var(--sp-2); padding:var(--sp-3) 28px; background:var(--reverse-bg); color:var(--bg); }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
      box: they are one section among several on Function and the box is what separates
      them, while this is most of the Goals page and a run of black boxes down it was the
@@ -582,32 +576,38 @@
   /* The strength picker borrows the mobility assessment's geometry and inverts its
      colours: that one is light type on a black panel, this one sits on the tab's own blue,
      so a ticked rung is a DARK band where the other's is a light one. */
-  #strengthSkillPicker .mob-wheel-item{ color:var(--text); }
-  #strengthSkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
-  #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
-  #strengthSkillPicker .mob-wheel-item.is-active .mob-wheel-name::after{ content:'\00a0\2022'; }
-  #strengthSkillPicker .mob-wheel-focus-line{ border-top-color:rgba(12,13,11,0.45); border-bottom-color:rgba(12,13,11,0.45); }
-  #strengthSkillPicker .mob-check-num{ color:var(--text); }
-  #strengthSkillPicker .mob-check-text{ color:rgba(12,13,11,0.75); }
-  #strengthSkillPicker .mob-check-row.done{ background:var(--reverse-bg); }
+  /* The numbered badge for an active skill. A filled disc rather than a bare number: two
+     of these are the only marks on the wheel that mean "you are training this", and a
+     digit on its own would read as another level number. */
+  .skill-rank{ display:inline-flex; align-items:center; justify-content:center;
+    width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
+    font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
+    background:var(--block-yellow); color:var(--text); }
+  /* Function's own lavender is the page here, so the badge takes a deeper cut of it —
+     the tab's purple at a strength that reads on the tab's purple. */
+  #mobilitySkillPicker .skill-rank{ background:#4b3a94; color:var(--bg); }
+  #strengthSkillPicker .mob-wheel-item, #mobilitySkillPicker .mob-wheel-item{ color:var(--text); }
+  #strengthSkillPicker .mob-wheel-score, #mobilitySkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
+  #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score,
+  #mobilitySkillPicker .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
+  #strengthSkillPicker .mob-wheel-focus-line, #mobilitySkillPicker .mob-wheel-focus-line{
+    border-top-color:rgba(12,13,11,0.45); border-bottom-color:rgba(12,13,11,0.45); }
+  #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--text); }
+  #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:rgba(12,13,11,0.75); }
+  #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--reverse-bg); }
   #strengthSkillPicker .mob-check-row.done .mob-check-num,
-  #strengthSkillPicker .mob-check-row.done .mob-check-text{ color:var(--bg); }
-  #strengthSkillPicker .skill-level-target{ font-family:var(--mono); font-size:var(--fs-tag); opacity:0.7; white-space:nowrap; }
+  #strengthSkillPicker .mob-check-row.done .mob-check-text,
+  #mobilitySkillPicker .mob-check-row.done .mob-check-num,
+  #mobilitySkillPicker .mob-check-row.done .mob-check-text{ color:var(--bg); }
+  /* No nowrap: "10-15s x3-5 sets, or 5-7s eccentric x3-5" is a real target string, and
+     holding it on one line pushed the document 140px wider than the screen. */
+  #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
+    font-family:var(--mono); font-size:var(--fs-tag); opacity:0.7; }
   /* Between the wheel and the ladder: what you tick to put the skill in your sessions. */
   .skill-active-row{ display:flex; align-items:center; gap:10px; min-height:44px;
     margin-top:var(--sp-2); font-family:var(--sans); font-size:var(--fs-md);
     font-weight:var(--fw-bold); cursor:pointer; }
   .skill-active-row input{ width:auto; flex:none; }
-  /* Widths and size are set by the .skg-* rules near the top. These selectors are ids, so
-     anything they declare outrank them however the classes are written. */
-  #mobilitySkillRows select, #exerciseSkillRows select{ font-size:var(--fs-control); }
-  #mobilitySkillRows .skg-panel .score-note, #mobilitySkillRows .skg-panel label{ color:rgba(251,250,246,0.75); }
-  #mobilitySkillRows .skg-panel .remove-row{ color:var(--bg); }
-  #mobilitySkillRows .skg-panel .skg-maint{ color:rgba(251,250,246,0.75); }
-  #mobilitySkillRows .skg-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  #mobilitySkillRows .skg-panel .evidence-badge.moderate{ border-color:var(--bg); color:var(--bg); }
-  #mobilitySkillRows .skg-panel .evidence-badge.practical{ border-color:rgba(251,250,246,0.5); color:rgba(251,250,246,0.7); }
-  #mobilitySkillRows .skg-panel .evidence-badge.strong{ background:var(--bg); color:var(--text); }
   /* The progression readout, written for the light ground it sits on. The mobility copy
      below re-states the four colours it needs for the black box. */
   .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--line); }
@@ -617,10 +617,6 @@
   .skg-bar{ height:8px; background:rgba(12,13,11,0.22); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
   .skg-bar-fill{ height:100%; background:var(--reverse-bg); }
-  #mobilitySkillRows .skg-progress:not(:empty){ border-top-color:rgba(251,250,246,0.25); }
-  #mobilitySkillRows .skg-prog-head{ color:rgba(251,250,246,0.6); }
-  #mobilitySkillRows .skg-bar{ background:rgba(251,250,246,0.22); }
-  #mobilitySkillRows .skg-bar-fill{ background:var(--bg); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -972,9 +968,6 @@
             <div class="score-note" id="strengthSkillNote"></div>
             <div class="skg-progress" id="exerciseProgressBody"></div>
           </div>
-          <!-- Strength skills are the picker's state now. The container stays because the
-               concurrency checks and the save walk both skill containers by id. -->
-          <div id="exerciseSkillRows" hidden></div>
         </div>
       </div>
 
@@ -1090,9 +1083,16 @@
             <summary>Where do these progressions come from?</summary>
             <div class="mobility-legend-body">Pike, bridge, front-split and middle-split are independently verified against real studies. Pancake, deep squat and overhead squat are reasonable extensions, not directly sourced &mdash; those are marked with an asterisk.</div>
           </details>
-          <div id="mobilityProgressBody"></div>
-          <div id="mobilitySkillRows"></div>
-          <div class="add-row" id="addMobilitySkillRow">+ add mobility skill</div>
+          <div id="mobilitySkillPicker">
+            <div class="mob-wheel" id="mobilitySkillWheel"></div>
+            <label class="skill-active-row" for="mobilitySkillActive">
+              <input type="checkbox" id="mobilitySkillActive">
+              <span id="mobilitySkillActiveLabel">Working on this</span>
+            </label>
+            <div class="mob-check" id="mobilitySkillLevels"></div>
+            <div class="score-note" id="mobilitySkillNote"></div>
+            <div class="skg-progress" id="mobilityProgressBody"></div>
+          </div>
         </div>
       </div>
 
@@ -2109,7 +2109,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.81';
+const APP_VERSION = '2026.08.26.83';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3607,70 +3607,102 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
   } catch(e){ showToast('Save failed — try again', true); }
 });
 
-/* ---------- STRENGTH SKILL PICKER ----------
-   Built like the mobility assessment it sits opposite: a wheel of skills, and under it
-   the thing you tick. What replaced: a stack of editable rows, one per skill you had
-   added, each with two selects. You had to add a skill before you could see its ladder,
-   so the six progressions the app knows about were invisible until you went looking for
-   them. Here every skill is in the wheel whether you train it or not, its ladder is under
-   the name, and being "active" is a tick rather than a row's existence. */
+/* ---------- SKILL PICKERS ----------
+   One control, two sections: strength skills on Goals, mobility skills on Function. Built
+   like the mobility assessment they sit beside — a wheel of skills, and under it the thing
+   you tick — and coloured for the tab each is on. What they replaced: a stack of editable
+   rows, one per skill you had added, each with two selects. You had to add a skill before
+   you could see its ladder, so every progression the app knows about was invisible until
+   you went looking. Now all of them are in the wheel whether you train them or not, the
+   ladder is under the name, and being "active" is a tick rather than a row's existence. */
+const SKILL_PICKERS = {
+  exercise: { host:'strengthSkillPicker', wheel:'strengthSkillWheel', levels:'strengthSkillLevels',
+              active:'strengthSkillActive', activeLabel:'strengthSkillActiveLabel',
+              note:'strengthSkillNote', progress:'exerciseProgressBody' },
+  mobility: { host:'mobilitySkillPicker', wheel:'mobilitySkillWheel', levels:'mobilitySkillLevels',
+              active:'mobilitySkillActive', activeLabel:'mobilitySkillActiveLabel',
+              note:'mobilitySkillNote', progress:'mobilityProgressBody' }
+};
+// Grease-the-groove's own guidance is 1-2 skills at a time, and the mobility side has the
+// same problem for the same reason: a session padded with thin entries advances none of
+// them. Two either side.
+const SKILL_ACTIVE_CAP = 2;
 // Resolved on first use, not at load: PROGRESSION_TREES is declared with `const` a few
 // thousand lines below this, so reading it here would be a temporal dead zone.
-let _exerciseSkillKeys = null;
-function exerciseSkillKeys(){
-  if(!_exerciseSkillKeys) _exerciseSkillKeys = Object.keys(PROGRESSION_TREES.exercise);
-  return _exerciseSkillKeys;
+const _skillKeyCache = {};
+function skillKeysFor(category){
+  if(!_skillKeyCache[category]) _skillKeyCache[category] = Object.keys(PROGRESSION_TREES[category]);
+  return _skillKeyCache[category];
 }
-const EXERCISE_SKILL_ACTIVE_CAP = 2; // grease-the-groove's own guidance is 1-2 at a time
-// skill -> { active, levelIndex }. Seeded from saved goals, read back by the save.
-let strengthSkillDraft = {};
-let strengthSkillIndex = 0;
-let strengthSkillWheelBound = false;
+// draft: key -> { active, levelIndex, seq }. seq is when it was ticked, which is what
+// numbers the badges and orders the wheel — without it "first" and "second" would be
+// whatever order the trees happen to be declared in.
+const skillPickerState = {
+  exercise: { draft:{}, index:0, bound:false, seq:1 },
+  mobility: { draft:{}, index:0, bound:false, seq:1 }
+};
 
-function seedStrengthSkillDraft(skillGoals){
-  strengthSkillDraft = {};
-  // null, not 0: an untouched ladder has nothing ticked. Defaulting to 0 drew the first
-  // rung filled on every skill in the list, which is a claim about you the app cannot make.
-  exerciseSkillKeys().forEach(k=>{ strengthSkillDraft[k] = { active:false, levelIndex:null }; });
-  (skillGoals || []).filter(sg=>sg.category==='exercise').forEach(sg=>{
-    if(!strengthSkillDraft[sg.skill]) return;
-    strengthSkillDraft[sg.skill] = {
+function seedSkillPicker(category, skillGoals){
+  const st = skillPickerState[category];
+  st.draft = {};
+  st.seq = 1;
+  skillKeysFor(category).forEach(k=>{ st.draft[k] = { active:false, levelIndex:null, seq:0 }; });
+  (skillGoals || []).filter(sg=>sg.category===category).forEach(sg=>{
+    if(!st.draft[sg.skill]) return;
+    st.draft[sg.skill] = {
       active: !sg.isMaintenance,
-      levelIndex: sg.levelIndex == null ? null : Math.max(0, sg.levelIndex)
+      // null, not 0: an untouched ladder has nothing ticked. Defaulting to 0 would draw the
+      // first rung filled on every skill in the list, a claim about you the app cannot make.
+      levelIndex: sg.levelIndex == null ? null : Math.max(0, sg.levelIndex),
+      seq: sg.isMaintenance ? 0 : st.seq++
     };
   });
-  // Open on something you train rather than always on the first skill in the list.
-  const firstActive = exerciseSkillKeys().findIndex(k=>strengthSkillDraft[k].active);
-  strengthSkillIndex = firstActive >= 0 ? firstActive : 0;
+  st.index = 0;   // the order below puts the actives first, so this opens on one of them
 }
 
-function activeStrengthSkillCount(){
-  return exerciseSkillKeys().filter(k=>strengthSkillDraft[k] && strengthSkillDraft[k].active).length;
+// Active first, in the order they were ticked, then everything else as declared.
+function skillPickerOrder(category){
+  const st = skillPickerState[category];
+  const keys = skillKeysFor(category).slice();
+  const actives = keys.filter(k=>st.draft[k] && st.draft[k].active)
+    .sort((a,b)=>(st.draft[a].seq||0) - (st.draft[b].seq||0));
+  return actives.concat(keys.filter(k=>!(st.draft[k] && st.draft[k].active)));
 }
 
-function renderStrengthSkillPicker(){
-  const wheel = document.getElementById('strengthSkillWheel');
-  const levels = document.getElementById('strengthSkillLevels');
-  const activeBox = document.getElementById('strengthSkillActive');
-  const activeLabel = document.getElementById('strengthSkillActiveLabel');
-  const note = document.getElementById('strengthSkillNote');
+function activeSkillCount(category){
+  const st = skillPickerState[category];
+  return skillKeysFor(category).filter(k=>st.draft[k] && st.draft[k].active).length;
+}
+
+function renderSkillPicker(category){
+  const ids = SKILL_PICKERS[category];
+  const st = skillPickerState[category];
+  const wheel = document.getElementById(ids.wheel);
+  const levels = document.getElementById(ids.levels);
+  const activeBox = document.getElementById(ids.active);
+  const activeLabel = document.getElementById(ids.activeLabel);
+  const note = document.getElementById(ids.note);
   if(!wheel || !levels || !activeBox) return;
-  if(!Object.keys(strengthSkillDraft).length) seedStrengthSkillDraft([]);
+  if(!Object.keys(st.draft).length) seedSkillPicker(category, []);
+
+  const order = skillPickerOrder(category);
+  st.index = Math.max(0, Math.min(order.length-1, st.index));
 
   const rows = [];
   for(let offset = -1; offset <= 1; offset++){
-    const i = strengthSkillIndex + offset;
-    const key = exerciseSkillKeys()[i];
+    const i = st.index + offset;
+    const key = order[i];
     if(!key){ rows.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
-    const tree = PROGRESSION_TREES.exercise[key];
-    const d = strengthSkillDraft[key];
-    // The marker carries both things the wheel has to say: whether you train it, and how
-    // far up it you are. A skill you have never touched says nothing rather than "L1",
-    // which would read as a claim about you.
-    const mark = d.levelIndex == null ? '' :
-      (d.active ? `L${d.levelIndex+1}/${tree.levels.length}` : `L${d.levelIndex+1}`);
+    const tree = PROGRESSION_TREES[category][key];
+    const d = st.draft[key];
+    // A numbered badge for the two you are training, so which is first and which is second
+    // is on the face of the wheel. Anything else shows its level if you have set one, and
+    // nothing at all if you have not.
+    const mark = d.active
+      ? `<span class="skill-rank">${order.indexOf(key)+1}</span>`
+      : (d.levelIndex == null ? '' : `L${d.levelIndex+1}`);
     rows.push(`
-      <div class="mob-wheel-item${offset===0?' focused':''}${d.active?' is-active':''}" data-offset="${offset}"
+      <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
            style="opacity:${offset===0?1:0.5};">
         <span class="mob-wheel-name">${tree.label}</span>
         <span class="mob-wheel-score">${mark}</span>
@@ -3678,9 +3710,9 @@ function renderStrengthSkillPicker(){
   }
   wheel.innerHTML = rows.join('') + `<div class="mob-wheel-focus-line"></div>`;
 
-  const key = exerciseSkillKeys()[strengthSkillIndex];
-  const tree = PROGRESSION_TREES.exercise[key];
-  const d = strengthSkillDraft[key];
+  const key = order[st.index];
+  const tree = PROGRESSION_TREES[category][key];
+  const d = st.draft[key];
   activeBox.checked = d.active;
   activeLabel.textContent = d.active ? `Working on ${tree.label}` : `Work on ${tree.label}`;
 
@@ -3695,49 +3727,53 @@ function renderStrengthSkillPicker(){
     </div>`;
   }).join('');
 
-  renderExerciseProgression();
-  const count = activeStrengthSkillCount();
-  note.textContent = `Tick the hardest level you can do · ${count} of ${EXERCISE_SKILL_ACTIVE_CAP} skills active`
-    + (tree.researched === false ? ' · this progression is a reasonable extension, not directly sourced' : '');
+  if(category === 'exercise') renderExerciseProgression(); else renderMobilityProgression();
+  note.textContent = `Tick the hardest level you can do \u00b7 ${activeSkillCount(category)} of ${SKILL_ACTIVE_CAP} skills active`
+    + (tree.researched === false ? ' \u00b7 this progression is a reasonable extension, not directly sourced' : '');
 
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
     row.addEventListener('click', ()=>{
       const lvl = parseInt(row.dataset.level, 10);
       // Ticking the rung you are already on steps back down — and off the bottom rung
       // clears it, so "I have not assessed this" stays reachable.
-      strengthSkillDraft[key].levelIndex = (lvl === d.levelIndex) ? (lvl > 0 ? lvl - 1 : null) : lvl;
-      renderStrengthSkillPicker();
+      st.draft[key].levelIndex = (lvl === d.levelIndex) ? (lvl > 0 ? lvl - 1 : null) : lvl;
+      renderSkillPicker(category);
     });
   });
 
-  if(!strengthSkillWheelBound){
-    strengthSkillWheelBound = true;
+  if(!st.bound){
+    st.bound = true;
     activeBox.addEventListener('change', ()=>{
-      const k = exerciseSkillKeys()[strengthSkillIndex];
-      if(activeBox.checked && activeStrengthSkillCount() >= EXERCISE_SKILL_ACTIVE_CAP){
+      const k = skillPickerOrder(category)[st.index];
+      if(activeBox.checked && activeSkillCount(category) >= SKILL_ACTIVE_CAP){
         // A hard stop rather than a warning: two is the whole point of the cap, and a
         // third that "works but is discouraged" is how you end up with four.
         activeBox.checked = false;
-        showToast(`Two skills at a time — untick one first`, true);
+        showToast('Two skills at a time \u2014 untick one first', true);
         return;
       }
-      strengthSkillDraft[k].active = activeBox.checked;
-      renderStrengthSkillPicker();
+      st.draft[k].active = activeBox.checked;
+      st.draft[k].seq = activeBox.checked ? st.seq++ : 0;
+      // Ticking moves it to the front of the wheel, so follow it there rather than leaving
+      // the focus on whatever slid into this slot.
+      st.index = skillPickerOrder(category).indexOf(k);
+      renderSkillPicker(category);
     });
-    bindStrengthSkillWheelDrag();
+    bindSkillPickerDrag(category);
   }
 }
 
-// Same gesture as the other two wheels, bound to the section rather than the wheel so a
-// re-render cannot take the drag with it.
-function bindStrengthSkillWheelDrag(){
-  const host = document.getElementById('strengthSkillPicker');
+// Same gesture as the week picker and the assessment wheel, bound to the section rather
+// than the wheel so a re-render cannot take the drag with it.
+function bindSkillPickerDrag(category){
+  const st = skillPickerState[category];
+  const host = document.getElementById(SKILL_PICKERS[category].host);
   if(!host) return;
   let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
   const STEP_PX = 38, FLICK_MIN_PX = 8, FLICK_MIN_VELOCITY = 0.25;
-  const clamp = i => Math.max(0, Math.min(exerciseSkillKeys().length-1, i));
+  const clamp = i => Math.max(0, Math.min(skillKeysFor(category).length-1, i));
   host.addEventListener('pointerdown', e=>{
-    if(!e.target.closest('#strengthSkillWheel')) return;
+    if(!e.target.closest('#' + SKILL_PICKERS[category].wheel)) return;
     dragging = true; startY = e.clientY; accumulated = 0;
     startTime = e.timeStamp; moved = false;
     // Which row the finger landed on, so a tap on a neighbour selects it: capturing the
@@ -3753,8 +3789,8 @@ function bindStrengthSkillWheelDrag(){
     if(steps === 0) return;
     accumulated += steps * STEP_PX;
     moved = true;
-    strengthSkillIndex = clamp(strengthSkillIndex - steps);
-    renderStrengthSkillPicker();
+    st.index = clamp(st.index - steps);
+    renderSkillPicker(category);
   });
   const endDrag = e => {
     if(!dragging) return;
@@ -3764,162 +3800,33 @@ function bindStrengthSkillWheelDrag(){
     const dy = e.clientY - startY, dt = Math.max(1, e.timeStamp - startTime);
     const velocity = Math.abs(dy)/dt;
     if(Math.abs(dy) < FLICK_MIN_PX){
-      if(downOffset !== 0){
-        strengthSkillIndex = clamp(strengthSkillIndex + downOffset);
-        renderStrengthSkillPicker();
-      }
+      if(downOffset !== 0){ st.index = clamp(st.index + downOffset); renderSkillPicker(category); }
       return;
     }
     if(velocity < FLICK_MIN_VELOCITY) return;
     const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
-    strengthSkillIndex = clamp(strengthSkillIndex + (dy > 0 ? -steps : steps));
-    renderStrengthSkillPicker();
+    st.index = clamp(st.index + (dy > 0 ? -steps : steps));
+    renderSkillPicker(category);
   };
   host.addEventListener('pointerup', endDrag);
   host.addEventListener('pointercancel', endDrag);
 }
 
-const skillGoalConcurrencyCheckers = [];
-function recheckAllSkillGoalConcurrency(){ skillGoalConcurrencyCheckers.forEach(fn=>fn()); }
-// Mobility skills live on Function beside the assessment that drives them; strength skills
-// live on Goals beside the goals they serve. The concurrency caps still have to see every
-// row wherever it is displayed, and so does saving.
-const SKILL_GOAL_CONTAINERS = { mobility:'mobilitySkillRows', exercise:'exerciseSkillRows' };
-function skillGoalRowEls(){
-  return Object.values(SKILL_GOAL_CONTAINERS).flatMap(id=>{
-    const el = document.getElementById(id);
-    return el ? Array.from(el.querySelectorAll('.edit-row')) : [];
+// What the save writes for one picker.
+function skillPickerGoals(category){
+  const st = skillPickerState[category];
+  const out = [];
+  skillKeysFor(category).forEach(skill=>{
+    const d = st.draft[skill];
+    // Saved when ticked active, or when you have told the app where you are on it — an
+    // untouched ladder is not a goal and should not become one.
+    if(!d || (!d.active && d.levelIndex == null)) return;
+    out.push({ category, skill, levelIndex: d.levelIndex == null ? 0 : d.levelIndex, isMaintenance: !d.active });
   });
+  return out;
 }
-function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGenerated){
-  category = category || 'exercise';
-  const container = document.getElementById(SKILL_GOAL_CONTAINERS[category] || SKILL_GOAL_CONTAINERS.exercise);
-  if(!container) return;
-  const row = document.createElement('div');
-  row.className = 'edit-row skg-panel';
-  row.dataset.category = category;
-  // Mobility goals can appear here without the person ever having added one — the
-  // generator auto-picks one from their weakest assessed mobility domain so the Goals
-  // tab isn't empty. Rendered identically to a manually-added goal, it just looked like
-  // an unexplained item that showed up on its own. This note only shows for that case.
-  const autoNote = autoGenerated
-    ? `<div class="score-note skg-auto-note" style="margin-top:-4px;">Auto-added from your lowest mobility assessment score — remove it, or check Maintenance if you'd rather focus elsewhere.</div>`
-    : '';
-  // Compact: the three selects share one line, the level detail is a single wrapped note
-  // rather than a block, and "Maintenance" is a short label — the long sentence explaining
-  // it was taller than the row it belonged to.
-  row.innerHTML = `
-    <div class="skg-line">
-      <input type="hidden" class="skg-category" value="${category}">
-      <select class="skg-skill"></select>
-      <span class="remove-row">×</span>
-    </div>
-    <select class="skg-level"></select>
-    <div class="score-note skg-detail"></div>
-    ${autoNote}
-    <label class="skg-maint" title="Keep this in rotation without pushing it further while you focus elsewhere"><input type="checkbox" class="skg-maintenance" ${isMaintenance?'checked':''}>Maintenance</label>
-    <div class="score-note skg-warning" style="display:none;"></div>
-    <div class="skg-progress"></div>`;
-  container.appendChild(row);
 
-  const catSelect = row.querySelector('.skg-category');
-  const skillSelect = row.querySelector('.skg-skill');
-  const levelSelect = row.querySelector('.skg-level');
-  const detailEl = row.querySelector('.skg-detail');
-  const maintCheckbox = row.querySelector('.skg-maintenance');
-  const warningEl = row.querySelector('.skg-warning');
 
-  // Concurrent-skill cap, own reasoning rather than a specific study for this exact
-  // number: with MOBILITY_ONLY_MAX_SESSIONS capped at 4/week (fewer still in hybrid
-  // weeks, where mobility only gets companion slots), and each active skill needing a
-  // real dose (2-4 sets) plus periodic readiness testing to progress meaningfully, more
-  // than ~3 concurrent skills starts diluting practice frequency per skill rather than
-  // genuinely advancing any of them — sessions get padded with many thin entries instead
-  // of focused volume on a few. Matches this app's existing "up to 3" precedent for the
-  // main goals list, for the same underlying reason (priority dilutes past a few items).
-  // Scales with session length: a 90-minute session has room to progress three skills at
-  // a real dose; a 45-minute one padded with three thin entries advances none of them.
-  let MOBILITY_CONCURRENT_SKILL_CAP = 3;
-  (async ()=>{
-    try{
-      const _setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
-      const _len = parseInt(_setup.sessionLength, 10) || 45;
-      MOBILITY_CONCURRENT_SKILL_CAP = _len >= 75 ? 3 : (_len >= 60 ? 2 : 1);
-    } catch(e){}
-  })();
-  function checkConcurrencyCap(){
-    warningEl.style.display = 'none';
-    if(maintCheckbox.checked) return;
-    const others = skillGoalRowEls().filter(r=>r!==row);
-    const EXERCISE_SKILL_CONCURRENT_CAP = 2; // grease-the-groove's own standard guidance (including Tsatsouline's original source material) is specifically 1-2 exercises at a time — since skill work here now follows that same low-volume/submaximal approach, this follows its own stated concurrency limit too
-    if(catSelect.value === 'exercise'){
-      const tree = PROGRESSION_TREES.exercise[skillSelect.value];
-      if(!tree) return;
-      const activeOtherSkillCount = others.filter(r=>{
-        const rCat = r.querySelector('.skg-category').value;
-        const rMaint = r.querySelector('.skg-maintenance').checked;
-        return rCat==='exercise' && !rMaint;
-      }).length + 1; // + this row itself
-      if(activeOtherSkillCount > EXERCISE_SKILL_CONCURRENT_CAP){
-        warningEl.textContent = `${activeOtherSkillCount} active exercise skills — grease-the-groove (the low-volume, submaximal approach these sessions now use) specifically recommends sticking to 1-2 exercises at a time. Consider marking one as maintenance.`;
-        warningEl.style.display = 'block';
-      }
-    } else if(catSelect.value === 'mobility'){
-      const activeMobilityCount = others.filter(r=>{
-        const rCat = r.querySelector('.skg-category').value;
-        const rMaint = r.querySelector('.skg-maintenance').checked;
-        return rCat==='mobility' && !rMaint;
-      }).length + 1; // + this row itself
-      if(activeMobilityCount > MOBILITY_CONCURRENT_SKILL_CAP){
-        warningEl.textContent = `${activeMobilityCount} active mobility skills — own reasoning, not a specific study for this exact number, but concurrent flexibility work dilutes practice frequency per skill, and this app's own session budget (up to ${MOBILITY_ONLY_MAX_SESSIONS}/week, fewer in hybrid weeks) realistically supports about ${MOBILITY_CONCURRENT_SKILL_CAP} at a time with real volume each. Consider marking one as maintenance.`;
-        warningEl.style.display = 'block';
-      }
-    }
-  }
-
-  function populateSkills(selectedSkill){
-    const tree = PROGRESSION_TREES[catSelect.value];
-    skillSelect.innerHTML = Object.entries(tree).map(([key,data])=>
-      `<option value="${key}" ${key===selectedSkill?'selected':''}>${data.label}${data.researched?'':' *'}</option>`).join('');
-    populateLevels();
-  }
-  function populateLevels(selectedLevel){
-    const tree = PROGRESSION_TREES[catSelect.value];
-    const skill = tree[skillSelect.value];
-    // The progression renderers find their box by this, and the skill can be changed after
-    // the row is built.
-    row.dataset.skill = skillSelect.value;
-    levelSelect.innerHTML = skill.levels.map((lv,i)=>
-      `<option value="${i}" ${i===selectedLevel?'selected':''}>${i+1}. ${lv}</option>`).join('');
-    updateLevelDetail();
-    recheckAllSkillGoalConcurrency();
-  }
-  function updateLevelDetail(){
-    const tree = PROGRESSION_TREES[catSelect.value];
-    const skill = tree[skillSelect.value];
-    const idx = parseInt(levelSelect.value, 10);
-    const detail = skill.levelDetails && skill.levelDetails[idx];
-    // Target and tier only. What advances the level is spelled out by Mobility progression
-    // further down the same tab, and repeating it here made the row several lines tall.
-    detailEl.innerHTML = detail ? `Target: ${detail.holdOrRepTarget} ${evidenceBadgeHtml(detail.evidence)}` : '';
-  }
-
-  skillSelect.addEventListener('change', ()=>populateLevels());
-  levelSelect.addEventListener('change', updateLevelDetail);
-  maintCheckbox.addEventListener('change', recheckAllSkillGoalConcurrency);
-  row.querySelector('.remove-row').addEventListener('click', ()=>{
-    const idx = skillGoalConcurrencyCheckers.indexOf(checkConcurrencyCap);
-    if(idx>-1) skillGoalConcurrencyCheckers.splice(idx,1);
-    row.remove();
-    recheckAllSkillGoalConcurrency();
-  });
-
-  skillGoalConcurrencyCheckers.push(checkConcurrencyCap);
-  populateSkills(skillKey);
-  if(levelIndex!=null) populateLevels(levelIndex);
-  checkConcurrencyCap();
-}
-document.getElementById('addMobilitySkillRow').addEventListener('click', ()=>addSkillGoalRow('mobility'));
 
 
 async function renderMobilityAssessment(skipCollapse){
@@ -7060,17 +6967,11 @@ async function loadCurrentGoals(){
   } else {
     addGoalRow(); // start with one empty row
   }
-  Object.values(SKILL_GOAL_CONTAINERS).forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.innerHTML = '';
-  });
-  if(goals && goals.skillGoals && goals.skillGoals.length){
-    // Only mobility still renders as rows; strength skills are the picker's own state.
-    goals.skillGoals.filter(sg=>sg.category !== 'exercise')
-      .forEach(sg=>addSkillGoalRow(sg.category, sg.skill, sg.levelIndex, sg.isMaintenance, sg.autoGenerated));
-  }
-  seedStrengthSkillDraft(goals && goals.skillGoals);
-  renderStrengthSkillPicker();
+  // Both skill categories are pickers now — nothing is rendered as an editable row.
+  seedSkillPicker('exercise', goals && goals.skillGoals);
+  seedSkillPicker('mobility', goals && goals.skillGoals);
+  renderSkillPicker('exercise');
+  renderSkillPicker('mobility');
   await refreshGoalDependents();
 }
 
@@ -7273,22 +7174,8 @@ async function saveGoalsFromForm(resultElId){
   if(list.length===0){ showToast('Add detail for at least one goal', true); return; }
 
   const record = { date: todayStr, list };
-  record.skillGoals = [];
-  skillGoalRowEls().forEach(row=>{
-    const category = row.querySelector('.skg-category').value;
-    if(category === 'exercise') return;   // the picker below is the source for those
-    const skill = row.querySelector('.skg-skill').value;
-    const levelIndex = parseInt(row.querySelector('.skg-level').value, 10);
-    const isMaintenance = row.querySelector('.skg-maintenance').checked;
-    record.skillGoals.push({ category, skill, levelIndex, isMaintenance });
-  });
-  // A strength skill is saved when it is ticked active, or when you have told the app
-  // where you are on it — an untouched ladder is not a goal and should not become one.
-  exerciseSkillKeys().forEach(skill=>{
-    const d = strengthSkillDraft[skill];
-    if(!d || (!d.active && d.levelIndex == null)) return;
-    record.skillGoals.push({ category:'exercise', skill, levelIndex:d.levelIndex == null ? 0 : d.levelIndex, isMaintenance:!d.active });
-  });
+  // Both skill sections are pickers now; nothing is collected from rows.
+  record.skillGoals = skillPickerGoals('exercise').concat(skillPickerGoals('mobility'));
   try{
     const res = await window.storage.set(`goals:${todayStr}`, JSON.stringify(record));
     if(!res) throw new Error('save failed');
@@ -10534,16 +10421,20 @@ function bindSkillAdvanceButtons(container, after){
 // Writes each skill's progression into that skill's own box rather than into a separate
 // section below. Where a skill sits and what moves it belong to the skill, and reading
 // them meant matching a name in one list against a name in another.
+// The advance signal for whichever skill the picker is showing: how much is logged at
+// this level and whether that is enough to move up. The ladder above says where you are;
+// this says how the app will decide you have moved.
 async function renderMobilityProgression(){
-  const note = document.getElementById('mobilityProgressBody');
-  const rows = document.getElementById('mobilitySkillRows');
-  if(!note || !rows) return;
-  note.innerHTML = '';
-  rows.querySelectorAll('.skg-progress').forEach(el=> el.innerHTML = '');
+  const target = document.getElementById('mobilityProgressBody');
+  if(!target) return;
+  target.innerHTML = '';
   try{
+    const key = skillPickerOrder('mobility')[skillPickerState.mobility.index];
     const goals = await getCurrentGoals(todayStr);
-    const skills = ((goals && goals.skillGoals) || []).filter(sg => sg.category === 'mobility');
-    if(!skills.length) return;
+    const sg = ((goals && goals.skillGoals) || [])
+      .find(g => g.category === 'mobility' && g.skill === key);
+    if(!sg) return;
+    let deloadNote = '';
     try{
       const _pos = await getBlockPosition(todayStr);
       if(isDeloadPosition(_pos.weekInBlock, _pos.length)){
@@ -10551,29 +10442,26 @@ async function renderMobilityProgression(){
         // show ROM gains largely persist through 2-6 weeks of cessation, so accumulated
         // fatigue isn't the limiter here the way it is for loaded work — and a strength
         // deload week is one of the better weeks to spend time on mobility.
-        note.innerHTML = '<div class="score-note" style="margin-bottom:10px;">Deload week for lifting — mobility carries on as normal. ROM work isn\'t what accumulates the fatigue a deload exists to clear, and the freed-up time is well spent here.</div>';
+        deloadNote = '<div class="score-note" style="margin-bottom:10px;">Deload week for lifting \u2014 mobility carries on as normal. ROM work isn\'t what accumulates the fatigue a deload exists to clear, and the freed-up time is well spent here.</div>';
       }
     } catch(e){}
-    for(const sg of skills){
-      const host = rows.querySelector(`.edit-row[data-skill="${sg.skill}"]`);
-      const target = host && host.querySelector('.skg-progress');
-      if(!target) continue;
-      const s = await suggestMobilityAdvance(sg);
-      if(!s) continue;
-      const tree = PROGRESSION_TREES.mobility[sg.skill];
-      let subBar = null, subNote = '';
-      if(s.progress && s.progress.weeklySeconds){
-        const wk = Math.round(s.progress.weeklySeconds/60);
-        const tgt = Math.round(MOBILITY_WEEKLY_TARGET_SECONDS/60);
-        subBar = (s.progress.weeklySeconds/MOBILITY_WEEKLY_TARGET_SECONDS)*100;
-        subNote = `${wk} of ~${tgt} min/week under stretch${s.progress.weeksAtDose ? ` · ${s.progress.weeksAtDose} week${s.progress.weeksAtDose===1?'':'s'} at target` : ''}.`;
-      }
-      target.innerHTML = skillProgressHtml({ skill: sg.skill, category:'mobility',
-        levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
-        note: s.note, subBar, subNote, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
+    const adv = await suggestMobilityAdvance(sg);
+    if(!adv){ target.innerHTML = deloadNote; return; }
+    const tree = PROGRESSION_TREES.mobility[sg.skill];
+    // The second bar is weekly time under stretch against the target — mobility advances
+    // on accumulated exposure, where the strength side counts practice days.
+    let subBar = null, subNote = '';
+    if(adv.progress && adv.progress.weeklySeconds){
+      const wk = Math.round(adv.progress.weeklySeconds/60);
+      const tgt = Math.round(MOBILITY_WEEKLY_TARGET_SECONDS/60);
+      subBar = (adv.progress.weeklySeconds/MOBILITY_WEEKLY_TARGET_SECONDS)*100;
+      subNote = `${wk} of ~${tgt} min/week under stretch${adv.progress.weeksAtDose ? ` \u00b7 ${adv.progress.weeksAtDose} week${adv.progress.weeksAtDose===1?'':'s'} at target` : ''}.`;
     }
-    bindSkillAdvanceButtons(rows, renderMobilityProgression);
-  } catch(e){ note.innerHTML = '<div class="score-note">Could not load mobility progression.</div>'; }
+    target.innerHTML = deloadNote + skillProgressHtml({ skill: sg.skill, category:'mobility',
+      levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
+      note: adv.note, subBar, subNote, advanceLabel: adv.action === 'advance' ? adv.nextLevel : null });
+    bindSkillAdvanceButtons(target, renderMobilityProgression);
+  } catch(e){}
 }
 
 
@@ -10678,7 +10566,7 @@ async function renderExerciseProgression(){
   if(!target) return;
   target.innerHTML = '';
   try{
-    const key = exerciseSkillKeys()[strengthSkillIndex];
+    const key = skillPickerOrder('exercise')[skillPickerState.exercise.index];
     const goals = await getCurrentGoals(todayStr);
     const sg = ((goals && goals.skillGoals) || [])
       .find(g => g.category === 'exercise' && g.skill === key);
