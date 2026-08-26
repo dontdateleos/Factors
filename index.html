@@ -289,10 +289,14 @@
      row reads as tag-then-content at a glance. Black on cream rather than the yellow of a
      sticky-note annotation: these sit on whatever colour the tab is, and a bright chip on
      lime or yellow disappears — this is the same filled idiom .ss-tag already uses. */
+  /* The one rounded thing in the app. Everything else is square by design, but these are
+     small filled labels sitting inside a line of text rather than panels or controls, and
+     at 11px a hard corner reads as a nick in the line. 3px, so it is a softened tag rather
+     than a pill. .ss-tag takes it too — it is the same idiom on the same rows. */
   .plan-key{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
     color:var(--bg); background:var(--reverse-bg); padding:1px 5px; margin-right:6px;
-    vertical-align:baseline; white-space:nowrap; }
+    border-radius:3px; vertical-align:baseline; white-space:nowrap; }
   .log-entry:hover{ color:var(--text); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
@@ -424,7 +428,7 @@
   .conf-sub{ grid-column:2 / -1; font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); }
   /* Superset slot marker (A1/A2) and drop-set flag. Small and monospaced so a paired
      block is scannable at a glance without competing with the exercise name. */
-  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; color:var(--bg); background:var(--reverse-bg); padding:1px 4px; margin-right:6px; vertical-align:middle; }
+  .ss-tag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; color:var(--bg); background:var(--reverse-bg); padding:1px 4px; margin-right:6px; border-radius:3px; vertical-align:middle; }
   .drop-tag{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--dim); margin-left:6px; }
   .log-entry.ss-row{ padding-top:6px; padding-bottom:6px; }
   .d-badge{ color:var(--text); }
@@ -2064,7 +2068,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.76';
+const APP_VERSION = '2026.08.26.77';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
