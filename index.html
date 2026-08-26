@@ -144,6 +144,15 @@
 
   .header-brand{ display:block; position:relative; }
   .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+  /* Set to match .tab-label, since it is the other thing in this corner of the black. */
+  .header-date{ position:absolute; top:0; right:0; z-index:2; text-align:right;
+    font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
+    text-transform:uppercase; letter-spacing:0.02em; line-height:1.15; }
+  .header-date span{ display:block; }
+  /* The day number is the one part you read at a glance, so it carries the weight; the
+     words either side of it stay quiet enough not to compete with the logo. */
+  .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
+  .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
   h1 .logo-line{ display:block; }
   .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
     .header-dither-row canvas{ display:block; }
@@ -738,6 +747,12 @@
 <div id="toast"></div>
 <header>
   <div class="header-brand">
+    <!-- Which day it is was nowhere on the app. Three rows in the corner rather than one
+         line, so it reads as a date block and takes the width of the tallest word instead
+         of the width of the whole date. -->
+    <div class="header-date" id="headerDate" aria-label="Today's date">
+      <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
+    </div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <div class="header-dither-row"><canvas id="headerSphere1" width="19" height="19"></canvas><canvas id="headerSphere2" width="26" height="26"></canvas><canvas id="headerSphere3" width="30" height="30"></canvas></div>
@@ -812,7 +827,7 @@
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
-        <div class="group-head"><div class="group-title">Stretch down <span class="head-est" id="cooldownEstimate"></span></div></div>
+        <div class="group-head"><div class="group-title">Cooldown <span class="head-est" id="cooldownEstimate"></span></div></div>
         <div class="fields">
           <div id="mobilityCards"></div>
           <details class="glossary">
@@ -1941,6 +1956,22 @@ function localDateStr(date = new Date()){
   return `${y}-${m}-${d}`;
 }
 const todayStr = localDateStr();
+// The app is a home-screen PWA that can sit open across midnight, so the header date is
+// re-read on every wake rather than written once at load. todayStr is not re-derived: a
+// day's data is keyed to the date the session started under, and changing that mid-session
+// would move entries between days underneath whoever is looking at them.
+function renderHeaderDate(){
+  const el = document.getElementById('headerDate');
+  if(!el) return;
+  const now = new Date();
+  const set = (cls, text)=>{ const n = el.querySelector(cls); if(n) n.textContent = text; };
+  set('.hd-dow', now.toLocaleDateString(undefined, { weekday:'long' }));
+  set('.hd-day', String(now.getDate()));
+  set('.hd-mon', now.toLocaleDateString(undefined, { month:'long' }));
+  el.setAttribute('aria-label', now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' }));
+}
+renderHeaderDate();
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderHeaderDate(); });
 dateInput.value = todayStr;
 document.getElementById('injuryDate').value = todayStr;
 
@@ -2026,7 +2057,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.60';
+const APP_VERSION = '2026.08.26.61';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6129,6 +6160,18 @@ function warmupAllowanceMin(sessionLength){
   if(!sessionLength || sessionLength >= 60) return full;
   if(sessionLength >= 45) return Math.round(full * 0.7);
   return Math.round(full * 0.45); // <=30min: brief general prep, ramp sets do the rest
+}
+// The bracket the estimate bundles in but Today shows separately. A strength estimate
+// carries a general warm-up and a cooldown allowance; a run estimate carries a fixed
+// warm-up/cooldown buffer. Today prints the warm-up's minutes and the cooldown's minutes
+// above and below the session, so leaving them inside the session's own number counts
+// them twice. Mobility is exempt: a mobility day suppresses both of those sections, so
+// its warm-up allowance is the only place that time is stated.
+function bracketAllowanceMin(block, sessionLength){
+  if(!block) return 0;
+  if(block.type === 'strength') return warmupAllowanceMin(sessionLength);
+  if(block.type === 'run') return WORKOUT_TIME_ESTIMATE.running.warmupCooldownMin;
+  return 0;
 }
 function estimateSessionDuration(block, personalPace, personalSets, sessionLength){
   if(!block || !block.details) return null;
@@ -12088,7 +12131,13 @@ async function getTodaysBlockForType(type){
     if(!scheduled) return null;
     const mirrored = await getPlannedExercisesToday();
     const exercises = mirrored.length ? mirrored : ((scheduled.block.details && scheduled.block.details.exercises) || []);
-    return exercises.length ? { type:'strength', details:{ exercises } } : null;
+    // The tag is what the day is called ("full_body", "push"). It was dropped here, so
+    // everything downstream could see the exercises but not the name of the session
+    // they make up.
+    const d = scheduled.block.details || {};
+    return exercises.length
+      ? { type:'strength', details:{ exercises, workoutTag: d.workoutTag, plannedFocus: d.plannedFocus } }
+      : null;
   }
   for(const slot of ['am','pm']){
     try{
@@ -12516,6 +12565,34 @@ async function renderPrevWorkoutsForDate(){
   }).join('');
 }
 
+// What the day is actually called. "Today's plan" is a label for a slot; "Full body" is
+// the session, and it is the thing you would say out loud if someone asked what you were
+// training. Falls back to the session type when a block carries no tag — a hand-added
+// session, or one generated before tags existed.
+const RUN_TYPE_LABELS = {
+  easy:'Easy run', tempo:'Tempo run', long:'Long run', interval:'Intervals',
+  sprint:'Sprints', race:'Race', fartlek:'Fartlek', hills:'Hills'
+};
+const WORKOUT_TAG_LABELS = {
+  full_body:'Full body', upper:'Upper body', lower:'Lower body',
+  push:'Push', pull:'Pull', legs:'Legs'
+};
+function sessionTitle(block){
+  if(!block) return "Today's plan";
+  const d = block.details || {};
+  if(block.type === 'strength'){
+    return WORKOUT_TAG_LABELS[d.workoutTag] || 'Strength';
+  }
+  if(block.type === 'run'){
+    if(d.walkRun) return 'Walk-run';
+    // Named rather than derived: "Easy" alone doesn't say what it is, and the ones that
+    // are already a noun ("Fartlek run", "Race run") read wrong with "run" appended.
+    return RUN_TYPE_LABELS[d.runType] || 'Run';
+  }
+  if(block.type === 'mobility') return 'Mobility';
+  return "Today's plan";
+}
+
 async function renderTodayWorkoutSummary(){
   const container = document.getElementById('todayWorkoutSummary');
 
@@ -12554,12 +12631,12 @@ async function renderTodayWorkoutSummary(){
       sessionLength = parseInt(setup.sessionLength, 10) || null;
     } catch(e){}
     let mins = estimateSessionDuration(block, null, null, sessionLength);
-    if(mins != null && block.type === 'strength') mins -= warmupAllowanceMin(sessionLength);
+    if(mins != null) mins -= bracketAllowanceMin(block, sessionLength);
     if(mins != null && mins > 0) planEst = ` <span class="head-est">~${Math.round(mins)} min</span>`;
   } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
-      <div class="group-head"><div class="group-title">Today's plan${planEst}</div></div>
+      <div class="group-head"><div class="group-title">${sessionTitle(block)}${planEst}</div></div>
       <div class="fields">
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
