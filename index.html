@@ -412,6 +412,16 @@
      The -14px escapes main's padding; .group-head bleeds by the same amount on its own, so
      inside a panel that has already escaped it has to stop. */
   .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px 22px; padding-bottom:6px; }
+  /* A form panel that OPENS a tab runs into the header instead of starting below main's
+     padding — two blacks with a strip of page colour between them read as a seam. Four
+     pixels past it rather than exactly to it: layout positions are fractional, so meeting
+     it precisely leaves a hairline showing through. The header is sticky at z-index 10, so
+     the overlap is hidden by it, and the padding puts the contents back where they were.
+     The header's own rule goes with it on these tabs, for the same reason it does on
+     Weekly — it reads as a gap in the join. And #000000 rather than content black, again
+     like the Weekly band: two blacks that touch can't be a shade apart. */
+  .panel > .form-panel:first-child{ margin-top:-20px; padding-top:4px; background:#000000; }
+  body.tab-injuries header, body.tab-settings header{ border-bottom-color:transparent; }
   .form-panel .group-head{ margin-left:0; margin-right:0; border-bottom-color:rgba(251,250,246,0.25); }
   .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
@@ -1893,7 +1903,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.47';
+const APP_VERSION = '2026.08.26.48';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
