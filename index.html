@@ -167,7 +167,7 @@
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:var(--sp-3); }
   input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
 
-  .group{ margin-bottom:var(--sp-4); background:transparent; }
+  .group{ margin-bottom:var(--sp-3); background:transparent; }
   .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:var(--sp-3) 14px var(--sp-2); border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
   .group-title{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em; text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0.15px currentColor; }
@@ -481,8 +481,20 @@
     background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); border-bottom:none; }
   #panel-goals > .group:first-child > .group-head .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   #panel-goals > .group:first-child > .group-head .group-sub{ color:rgba(251,250,246,0.7); }
+  /* The opening runs from the header to the first section without a break: pills, date
+     and the sleep-debt line are all part of choosing what you are entering, so a stripe of
+     yellow between them and the form was the tab's colour appearing once, in the one place
+     it read as an interruption. */
   #panel-data > .session-type:first-child{
-    background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px var(--sp-3); padding:var(--sp-5) 14px var(--sp-3); }
+    background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
+  #recoveryDataView > .date-row,
+  #recoveryDataView > #sleepDebtOut,
+  #recoveryDataView > #morningBanner{
+    background:#000000; color:var(--bg); margin-left:-14px; margin-right:-14px;
+    padding-left:14px; padding-right:14px; }
+  #recoveryDataView > .date-row{ margin-bottom:0; padding-top:var(--sp-2); padding-bottom:var(--sp-2); }
+  #recoveryDataView > #sleepDebtOut{ margin-top:0; padding-bottom:var(--sp-3);
+    color:rgba(251,250,246,0.75); }
   /* A pill is a white box with dark text and inverts to black-on-light when active, which
      on a black band leaves the selected one invisible and the rest shouting. Swap which
      side is filled. */
@@ -497,6 +509,12 @@
   .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
   .form-panel .field-label, .form-panel .head-est{ color:rgba(251,250,246,0.7); }
+  /* Consecutive black sections run together as one field. Data and Settings are almost
+     entirely forms, so one band each made the tab a zebra — black, tab colour, black, tab
+     colour — where every other tab now opens on black once and hands the rest to its own
+     colour. The hairline under each heading already separates the sections; a stripe of
+     yellow between them was doing that job twice and losing the band in the process. */
+  .form-panel:has(+ .form-panel){ margin-bottom:0; }
   .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
   .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
   /* Buttons are black-on-light by default, which is invisible on the panel. */
@@ -613,11 +631,10 @@
   #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
     font-family:var(--mono); font-size:var(--fs-tag); opacity:0.7; }
   /* Between the wheel and the ladder: what you tick to put the skill in your sessions. */
-  /* It lives inside #goalListRows now, one padding deeper than a panel-level section, so
-     it needs both to bleed to the screen edge. */
-  #goalListRows > #runStartPanel{ margin-left:-28px; margin-right:-28px; }
-  #goalListRows > #runStartPanel > .group-head{ margin-left:0; margin-right:0; padding-left:28px; padding-right:28px; }
-  #goalListRows > #runStartPanel > .fields{ padding-left:28px; padding-right:28px; }
+  /* Nested in #goalListRows, which now sits at the page's own content edge like every
+     other column — so this bleeds by one 14, not two. */
+  #goalListRows > #runStartPanel{ margin-left:-14px; margin-right:-14px; }
+  #goalListRows > #runStartPanel > .group-head{ margin-left:0; margin-right:0; padding-left:14px; padding-right:14px; }
   .skill-active-row{ display:flex; align-items:center; gap:10px; min-height:44px;
     margin-top:var(--sp-2); font-family:var(--sans); font-size:var(--fs-md);
     font-weight:var(--fw-bold); cursor:pointer; }
@@ -678,7 +695,9 @@
      since the labels and buttons were written for dark-on-light. */
   /* Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px.
      The matching padding puts the contents back where the rest of the page's rows sit. */
-  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 28px 14px !important; margin:30px -28px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  /* One 14 to bleed, not two: .fields no longer adds a second indent, so #goalListRows
+     sits at the page's own content edge like every other column. */
+  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 14px 14px !important; margin:30px -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
   .goal-row-panel:first-child{ margin-top:24px; }
   .goal-row-panel .edge-word{ --edge-word-colour:var(--block-blue); --edge-word-size:44px; }
   .goal-row-panel .goal-priority-badge{ display:block; flex:1; }
@@ -748,22 +767,23 @@
   .gloss-term{ font-weight:var(--fw-bold); color:var(--text);
     font-size:var(--fs-tag); letter-spacing:0.06em; }
   .gloss-term::after{ content:'\00a0'; }
-  /* One heading size for the whole tab. "Today's plan" set two steps larger than the
-     sections either side of it, which read as three levels of hierarchy where there is
-     only one: these are peers, and the score is the only thing above them. */
-  #panel-insights .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1);
+  /* One heading size for the app. A section title set two steps larger than the sections
+     either side of it reads as a level of hierarchy where there is only one: these are
+     peers. Applied to Today first, and it stayed there — five tabs kept the old size, so
+     "consistent" meant one tab agreeing with itself. */
+  .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1);
     border-bottom-width:1px; border-bottom-color:var(--line); }
-  #panel-insights .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
+  .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
   .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
-  #panel-insights .group{ margin-bottom:var(--sp-3); }
-  /* One left edge for the tab. A group's heading is full-bleed and sits at the page's own
-     content edge; .fields then added a second 14px, so every heading started 14px to the
-     left of the content under it — while the recommendation card, which is full-bleed
-     itself, sat at the heading's edge instead. Two indents for one column. The rule under
-     each heading already separates it from its content; it does not also need a step. */
-  #panel-insights .fields{ padding-left:0; padding-right:0; }
+  /* One left edge. A group's heading is full-bleed and sits at the page's own content
+     edge; .fields then added a second 14px, so every heading started 14px to the left of
+     the content under it. Two indents for one column. The rule under each heading already
+     separates it from its content; it does not also need a step. A form-panel bleeds to
+     the screen edge, so its own fields put that 14px back. */
+  .fields{ padding-left:0; padding-right:0; }
+  .form-panel > .fields{ padding-left:14px; padding-right:14px; }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -1144,7 +1164,7 @@
       </div>
     </div>
     <div class="score-note" style="display:none;">Adaptive compares today against your trailing 7-day average. Target compares against fixed goals (8hr sleep, ≤1 wake event, HRV at rolling baseline). Equal-weighted v1 — placeholder until backtested.</div>
-    <div class="score-note" id="sleepDebtOut" style="margin-top:6px;">Sleep debt: —</div>
+    <div class="score-note" id="sleepDebtOut">Sleep debt: —</div>
 
     <div class="group form-panel">
       <div class="group-head"><div class="group-title">Sleep</div><div class="group-sub">canonical: oura</div></div>
@@ -1197,11 +1217,6 @@
       </div>
     </div>
 
-    <div class="log">
-      <div class="log-title">Recent entries</div>
-      <div id="logListRecovery"></div>
-    </div>
-
     <div class="group form-panel">
       <div class="group-head"><div class="group-title">Body metrics</div><div class="group-sub">fixed until updated</div></div>
       <div class="fields">
@@ -1217,6 +1232,13 @@
     </div>
 
     <div id="trendsDataView" style="display:none;">
+    <!-- A readout, so it follows the forms rather than splitting them: it sat between
+         Readiness and Body metrics and put a stripe of tab colour through the black. -->
+    <div class="log">
+      <div class="log-title">Recent entries</div>
+      <div id="logListRecovery"></div>
+    </div>
+
     <div class="group">
       <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
       <div class="fields">
@@ -1345,14 +1367,6 @@
       </div>
     </div>
 
-    <div class="group">
-      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this copy is running</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
-        <div id="updateCheckResult" class="score-note"></div>
-        <button id="checkUpdateBtn" class="outline">Check for update</button>
-      </div>
-    </div>
 
     <div class="group form-panel">
       <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
@@ -1365,6 +1379,57 @@
         <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <button id="bulkImportBtn">Import</button>
         <div id="bulkImportResult" class="score-note"></div>
+      </div>
+    </div>
+    <div class="group form-panel" style="border-color:var(--bad);">
+      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
+        <div class="score-note">Erases everything permanently. Export a backup first.</div>
+        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
+        <div id="clearAllDataResult" class="score-note"></div>
+      </div>
+    </div>
+    <div style="display:none;">
+    <div class="group" style="border-color:var(--warn);">
+      <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--text);">dev only — clears prior test data first</div></div>
+      <div class="fields">
+        <div class="score-note">Seeds fake history so you can see how the app responds without waiting weeks. Replaces previous test data; never touches real logs.</div>
+        <div class="field-row"><span class="field-label">Scenario</span>
+          <select id="testScenarioSelect">
+            <option value="well_recovered">Well recovered</option>
+            <option value="poor_recovery">Poor recovery</option>
+            <option value="strength_progression">Strength progression</option>
+            <option value="high_leg_fatigue">High leg fatigue</option>
+            <option value="marathon_goal">Marathon-style running load</option>
+            <option value="hypertrophy_goal">Hypertrophy-style strength load</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="clearTestDataBtn" class="outline">Clear test data</button>
+          <button id="seedTestScenarioBtn" class="primary">Seed scenario</button>
+        </div>
+        <div id="testDataResult" class="score-note"></div>
+      </div>
+    </div>
+    <div class="group" style="border-color:var(--bad);">
+      <div class="group-head"><div class="group-title">Engine Regression Suite</div><div class="group-sub" style="color:var(--text);">dev only — wipes ALL data between each scenario</div></div>
+      <div class="fields">
+        <div class="score-note">Runs the real decision engine and reports PASS/FAIL. Wipes all storage — export a backup first.</div>
+        <button id="runScenarioSuiteBtn" class="primary">Run regression suite</button>
+        <div id="scenarioSuiteProgress" class="score-note"></div>
+        <div id="scenarioSuiteResults"></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Readouts, so they sit after the forms rather than between them. Version and Legal
+         are not black, and standing mid-run they cut the settings form into stripes of
+         tab colour the way Recent entries did on Data. -->
+    <div class="group">
+      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this copy is running</div></div>
+      <div class="fields">
+        <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
+        <div id="updateCheckResult" class="score-note"></div>
+        <button id="checkUpdateBtn" class="outline">Check for update</button>
       </div>
     </div>
     <div class="group">
@@ -1542,45 +1607,7 @@
         </details>
       </div>
     </div>
-    <div class="group form-panel" style="border-color:var(--bad);">
-      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
-        <div class="score-note">Erases everything permanently. Export a backup first.</div>
-        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
-        <div id="clearAllDataResult" class="score-note"></div>
-      </div>
-    </div>
-    <div style="display:none;">
-    <div class="group" style="border-color:var(--warn);">
-      <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--text);">dev only — clears prior test data first</div></div>
-      <div class="fields">
-        <div class="score-note">Seeds fake history so you can see how the app responds without waiting weeks. Replaces previous test data; never touches real logs.</div>
-        <div class="field-row"><span class="field-label">Scenario</span>
-          <select id="testScenarioSelect">
-            <option value="well_recovered">Well recovered</option>
-            <option value="poor_recovery">Poor recovery</option>
-            <option value="strength_progression">Strength progression</option>
-            <option value="high_leg_fatigue">High leg fatigue</option>
-            <option value="marathon_goal">Marathon-style running load</option>
-            <option value="hypertrophy_goal">Hypertrophy-style strength load</option>
-          </select>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button id="clearTestDataBtn" class="outline">Clear test data</button>
-          <button id="seedTestScenarioBtn" class="primary">Seed scenario</button>
-        </div>
-        <div id="testDataResult" class="score-note"></div>
-      </div>
-    </div>
-    <div class="group" style="border-color:var(--bad);">
-      <div class="group-head"><div class="group-title">Engine Regression Suite</div><div class="group-sub" style="color:var(--text);">dev only — wipes ALL data between each scenario</div></div>
-      <div class="fields">
-        <div class="score-note">Runs the real decision engine and reports PASS/FAIL. Wipes all storage — export a backup first.</div>
-        <button id="runScenarioSuiteBtn" class="primary">Run regression suite</button>
-        <div id="scenarioSuiteProgress" class="score-note"></div>
-        <div id="scenarioSuiteResults"></div>
-      </div>
-    </div>
-    </div>
+
   </div>
 
 </main>
@@ -2123,7 +2150,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.89';
+const APP_VERSION = '2026.08.26.91';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
