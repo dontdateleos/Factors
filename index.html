@@ -282,7 +282,15 @@
   .ex-flag-btn.accept{ background:var(--on-light); color:var(--block-yellow); }
   .ex-flag-btn:active{ opacity:0.6; }
   .ex-flag-done{ margin:9px 0 1px 20px; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
-  .plan-key{ color:var(--text); font-weight:var(--fw-bold); letter-spacing:0.04em; text-transform:uppercase; }
+  /* Labels sit in a filled box rather than running into the sentence they introduce, so a
+     row reads as tag-then-content at a glance. Black on cream rather than the yellow of a
+     sticky-note annotation: these sit on whatever colour the tab is, and a bright chip on
+     lime or yellow disappears — this is the same filled idiom .ss-tag already uses. */
+  .plan-key, .plan-level{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--bg); background:var(--reverse-bg); padding:1px 5px;
+    vertical-align:baseline; white-space:nowrap; }
+  .plan-key{ margin-right:6px; }
   .log-entry:hover{ color:var(--text); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
@@ -1979,7 +1987,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.56';
+const APP_VERSION = '2026.08.26.57';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12238,9 +12246,11 @@ async function mutateTodayStrengthPlan(fn){
 function planRow(name, dose, lines, opts){
   opts = opts || {};
   const detail = (lines||[]).filter(Boolean).map(l =>
-    `<div class="plan-line">${l.key ? `<span class="plan-key">${l.key}:</span> ` : ''}${l.text}</div>`
+    `<div class="plan-line">${l.key ? `<span class="plan-key">${l.key}</span>` : ''}${l.text}</div>`
   ).join('');
-  const doseHtml = dose ? ` <span class="plan-dose">${dose}</span>` : '';
+  const doseHtml = dose
+    ? (opts.doseChip ? ` <span class="plan-level">${dose}</span>` : ` <span class="plan-dose">${dose}</span>`)
+    : '';
   // No leading arrow. One per row, repeated down the page, it marked every line as
   // going somewhere when none of them do — the rule between rows already separates them.
   return `<div class="plan-item${opts.rowClass ? ' ' + opts.rowClass : ''}">`
@@ -12408,7 +12418,9 @@ async function blockSummaryHtml(block){
             const nextTarget = nextDetail && nextDetail.holdOrRepTarget ? ` · target ${nextDetail.holdOrRepTarget}` : '';
             lines.push({ key:'Test today', text:`${nextName} · ${mobilityDoseLabel(test)}${nextTarget} — clear it and you move up` });
           }
-          return planRow(main.skillLabel, header, lines);
+          // The level marker is the progression, so it reads as a box beside the skill
+          // rather than as more small grey text after it.
+          return planRow(main.skillLabel, header, lines, { doseChip:true });
         });
       } else {
         // Show the actual dose. A mobility block previously listed bare exercise names
