@@ -333,58 +333,45 @@
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .mob-wheel:active{ cursor:grabbing; }
   .mob-wheel-item{ height:var(--mob-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--text); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
+    font-family:var(--sans); color:var(--bg); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
     font-size:var(--fs-lg); padding:0 2px; }
   .mob-wheel-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .mob-wheel-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .mob-wheel-score{ font-family:var(--mono); color:var(--dim); flex:none; margin-left:10px; }
-  .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
+  .mob-wheel-score{ font-family:var(--mono); color:rgba(251,250,246,0.55); flex:none; margin-left:10px; }
+  .mob-wheel-item.focused .mob-wheel-score{ color:var(--bg); }
   /* Marks the selection row so it's clear which name the numbers below apply to. */
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:var(--mob-row); border-top:1px solid var(--line); border-bottom:1px solid var(--line);
-    pointer-events:none; opacity:0.25; }
-  /* The checklist's level numerals run down a column, so the black runs down beside them
-     and the split is vertical: its RIGHT edge is put through the middle of the digits, left
-     halves purple on the black, right halves dark on the page. Same construction as the
-     horizontal version it replaces — a twin of the list hangs inside the black and is
-     pushed back by exactly what the edge cut off — turned ninety degrees.
-     Full bleed: -28px cancels .fields' 14px and main's 14px both. */
-  .mob-stage{ position:relative; margin:4px -28px 0; padding:0 28px 10px; }
-  /* Below the ink: the left of each row is painted over and redrawn by the twin. */
-  .mob-stage .mob-check{ position:relative; z-index:0; }
-  .mob-stage .mob-step-count{ position:relative; z-index:2; }
-  /* right and top are written per render. Nothing here is interactive — the live list
-     underneath takes the taps. */
-  .mob-ink{ position:absolute; left:0; bottom:0; background:#0c0d0b;
-    overflow:hidden; pointer-events:none; z-index:1; }
-  .mob-ink-inner{ position:absolute; top:0; }
-  /* The twin is positioned outright, so the list's own top margin would push it 14px below
-     the copy it is meant to coincide with. */
-  .mob-ink .mob-check{ margin-top:0; }
-  .mob-ink .mob-check-num{ color:var(--block-purple); }
-  .mob-stage .mob-step-count{ color:var(--dim); }
-  /* Ten stacked field rows at the shared 10px gap ran 512px — the second-largest thing on
-     the tab after the assessment, for a form of one-line controls. Tightened here rather
-     than in .fields, which every tab shares. */
+    height:var(--mob-row); border-top:1px solid rgba(251,250,246,0.5); border-bottom:1px solid rgba(251,250,246,0.5);
+    pointer-events:none; }
+  /* The assessment is a form you fill in, so it takes the same black band every other form
+     takes. The black IS the section now, which is why the rail that used to run down the
+     left of the numerals is gone: it was a partial version of this, and the only piece of
+     the app whose black neither started nor ended on anything.
+     Ten stacked field rows at the shared 10px gap ran 512px — the second-largest thing on
+     the tab, for a form of one-line controls. Tightened here rather than in .fields, which
+     every tab shares. */
   #injuryForm{ gap:7px; }
   #injuryForm textarea{ min-height:44px; }
+  .mob-stage{ margin-top:4px; }
   .mob-check{ margin-top:10px; }
-  /* Rows bleed to the edges so a ticked one can be filled edge to edge. 52px minimum: five
-     of these is the whole control, and each is its own tap target. */
+  /* Rows bleed to the panel edge so a ticked one fills it. -14px inside .fields, which is
+     the only padding left between here and the panel's own edge. 46px minimum: five of
+     these is the whole control, and each is its own tap target. */
   .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:46px; cursor:pointer;
-    margin:0 -28px; padding:6px 28px; -webkit-tap-highlight-color:transparent; }
+    margin:0 -14px; padding:6px 14px; -webkit-tap-highlight-color:transparent; }
   .mob-check-row:active{ opacity:0.6; }
   .mob-check-num{ flex:none; width:34px; align-self:stretch; display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--text); }
-  .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:var(--dim);
+    font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--bg); }
+  .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:rgba(251,250,246,0.75);
     line-height:1.35; letter-spacing:-0.005em; }
-  /* A ticked rung is filled the whole way across, so the black is a staircase: the rungs
-     you have are solid bands, the ones you don't are just the column beside a split digit,
-     and how far it has climbed IS your level without reading a number. */
-  .mob-check-row.done{ background:var(--reverse-bg); }
-  .mob-check-row.done .mob-check-num, .mob-ink .mob-check-row.done .mob-check-num{ color:var(--bg); }
-  .mob-check-row.done .mob-check-text{ color:var(--bg); font-weight:var(--fw-medium); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; letter-spacing:0.02em; }
+  /* Inverted, now the ground is dark: a ticked rung is a LIGHT band the whole way across.
+     The staircase reads the same either way — how far the fill has climbed is your level
+     without reading a number — and a filled band says it on its own, which is what the
+     split digit beside the old rail was there to help with. */
+  .mob-check-row.done{ background:var(--bg); }
+  .mob-check-row.done .mob-check-num, .mob-check-row.done .mob-check-text{ color:var(--text); }
+  .mob-check-row.done .mob-check-text{ font-weight:var(--fw-medium); }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.7); text-align:center; margin-top:8px; letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -840,10 +827,10 @@
 
   <!-- INJURIES PANEL -->
   <div class="panel" id="panel-injuries">
-    <div class="group">
+    <div class="group form-panel">
       <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
         <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div></div>
-        <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s;">▾</span>
+        <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:rgba(251,250,246,0.7); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
         <div class="score-note">Five things per area, easiest first &mdash; your lowest areas get the mobility work.</div>
@@ -1895,7 +1882,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.44';
+const APP_VERSION = '2026.08.26.45';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3520,57 +3507,6 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
 document.getElementById('addMobilitySkillRow').addEventListener('click', ()=>addSkillGoalRow('mobility'));
 document.getElementById('addExerciseSkillRow').addEventListener('click', ()=>addSkillGoalRow('exercise'));
 
-// Puts the black column's right edge through the middle of the level numerals, then hangs
-// a twin of the checklist inside it. Left halves of the digits are purple on the black,
-// right halves dark on the page, and a ticked rung's fill merges into the column.
-//
-// The numerals carry the split because they are the one thing on this control that never
-// moves: the statements beside them change length with every domain, and cutting THEM at a
-// fixed x would land mid-word somewhere different each time.
-//
-// The edge is measured from the glyph rather than taken as the middle of the cell — a
-// digit's ink is narrower than the box it is centred in, so the two are only the same by
-// accident.
-function positionMobilityInk(container){
-  const stage = container.querySelector('.mob-stage');
-  const ink = stage && stage.querySelector('.mob-ink');
-  const inner = ink && ink.querySelector('.mob-ink-inner');
-  // Direct child only. The ink panel is the stage's FIRST child and holds a copy of this
-  // same list, so a plain querySelector finds the twin whenever one is already hanging
-  // there — which is every call that isn't preceded by a re-render — and the function
-  // ends up measuring its own output and cloning the clone.
-  const list = stage && stage.querySelector(':scope > .mob-check');
-  const numEl = list && list.querySelector('.mob-check-num');
-  if(!stage || !ink || !inner || !list || !numEl) return;
-  // A hidden section has no layout to measure; the toggle re-renders on open, so skipping
-  // here costs nothing.
-  const numRect = numEl.getBoundingClientRect();
-  if(!numRect.width) return;
-
-  const cs = getComputedStyle(numEl);
-  const ctx = positionMobilityInk._ctx
-    || (positionMobilityInk._ctx = document.createElement('canvas').getContext('2d'));
-  ctx.font = `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
-  const m = ctx.measureText(numEl.textContent || '0');
-  // The digit is centred in its cell, so it starts half the leftover width in; its ink
-  // centre is then the midpoint of the ink either side of that origin.
-  const originX = (numRect.width - m.width) / 2;
-  const centre = originX + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
-  const stageRect = stage.getBoundingClientRect();
-  const boundary = (numRect.left - stageRect.left) + centre;
-
-  ink.style.right = Math.max(0, stageRect.width - boundary) + 'px';
-  ink.style.top = ((list.getBoundingClientRect().top - stageRect.top)) + 'px';
-  inner.innerHTML = '';
-  const twin = list.cloneNode(true);
-  inner.appendChild(twin);
-  // The column is the twin's offset parent, so its own left edge is the twin's origin.
-  // Push the copy back out by exactly that, or it starts at the column's edge instead of
-  // where the real list sits and the digits read as doubled rather than split.
-  inner.style.left = ((list.getBoundingClientRect().left - stageRect.left) - 0) + 'px';
-  inner.style.width = list.getBoundingClientRect().width + 'px';
-}
-
 async function renderMobilityAssessment(skipCollapse){
   const container = document.getElementById('mobilityAssessmentRows');
   const existing = await getMobilityAssessment();
@@ -3630,7 +3566,6 @@ async function renderMobilityAssessment(skipCollapse){
 
   const stepperHtml = `
     <div class="mob-stage">
-      <div class="mob-ink"><div class="mob-ink-inner"></div></div>
       <div class="mob-wheel" id="mobWheel">
         ${wheelItems.join('')}
         <div class="mob-wheel-focus-line"></div>
@@ -3756,10 +3691,7 @@ async function renderMobilityAssessment(skipCollapse){
       : (staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS)
         ? `Last rated ${staleDays} days ago — worth re-testing`
         : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
-  // Placed only once the section's visibility for this render is settled. The boundary is
-  // measured from laid-out text, and a collapsed section has none — running it before the
-  // block below meant the very first render always measured zero and left the ink unplaced.
-  if(skipCollapse){ positionMobilityInk(container); return; }
+  if(skipCollapse) return;
   const body = document.getElementById('mobilityAssessmentBody');
   const chevron = document.getElementById('mobilityAssessmentChevron');
   if(assessedCount === 0 || isStale){
@@ -3767,7 +3699,6 @@ async function renderMobilityAssessment(skipCollapse){
     // assessment is the same problem as no assessment, just less visible.
     body.style.display = 'flex';
     chevron.style.transform = 'rotate(180deg)';
-    positionMobilityInk(container);
   } else {
     body.style.display = 'none';
     chevron.style.transform = 'rotate(0deg)';
@@ -3781,9 +3712,6 @@ document.getElementById('mobilityAssessmentToggleHeader').addEventListener('clic
   chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
   if(isHidden){
     body.classList.remove('snap-reveal'); void body.offsetWidth; body.classList.add('snap-reveal');
-    // The ink boundary is measured from laid-out text, and there is none while the section
-    // is closed — so the first render after an open has to place it again.
-    positionMobilityInk(document.getElementById('mobilityAssessmentRows'));
   }
 });
 document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', async ()=>{
