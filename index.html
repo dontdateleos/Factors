@@ -2080,7 +2080,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.63';
+const APP_VERSION = '2026.08.26.64';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12403,7 +12403,15 @@ async function blockSummaryHtml(block){
       // Skill work carries its own prescription and isn't on a load-progression ladder —
       // showing "3×8-12 @ add weight" beside it was wrong as well as noisy.
       if(ex.isSkillWork){
-        rows.push(planRow(ex.name, ex.prescription || 'easy sets'));
+        // Stored as "<label>: <level>" — the plan writes the skill's name into the
+        // exercise name because that string is what survives into logged history, and
+        // getExerciseSkillProgress counts days by matching it. Display only: the SKILL box
+        // says what kind of row this is, so the label in front of the colon is saying it
+        // a second time. The stored name is untouched.
+        const cut = ex.name.indexOf(': ');
+        const movementName = cut > 0 ? ex.name.slice(cut + 2) : ex.name;
+        rows.push(planRow(movementName, ex.prescription || 'easy sets', null,
+          { lead: '<span class="plan-key">Skill</span>' }));
         continue;
       }
       const arrow = progression.action==='add_weight' ? ' ↑' : '';
