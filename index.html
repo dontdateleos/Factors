@@ -2120,7 +2120,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.84';
+const APP_VERSION = '2026.08.26.86';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9949,12 +9949,16 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
       const emptyDates = await getAvailableEmptyDates(weekDatesOverride);
       const numSessions = Math.min(emptyDates.length, MOBILITY_ONLY_MAX_SESSIONS);
       const genResult = await generateMobilityProgram(numSessions, emptyDates.slice(0, numSessions), sessionType);
-      return { plan: { emphasis: 'mobility-only' }, mobilityPlaced: genResult.placed, mobilityHandled: true };
+      return { plan: { emphasis: 'mobility-only' }, goalsUsed: goals.list.map(g=>g.type),
+        mobilityPlaced: genResult.placed, mobilityHandled: true };
     }
     if(!plan) return { error:'no-lift-or-run-goal' };
     return { error:'nothing-selected' };
   }
-  const result = { plan };
+  // What the plan was actually built from. Generate reads SAVED goals, not the goals form,
+  // so an unsaved edit produces a week that contradicts what is on screen with nothing to
+  // say why — a running goal you added but did not save reads as "strength-only" here.
+  const result = { plan, goalsUsed: goals.list.map(g=>g.type) };
 
   const emptyDates = await getAvailableEmptyDates(weekDatesOverride);
   // Session count alone was choosing the split, ignoring stated session-length preference —
@@ -10025,8 +10029,14 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
     // actually consumed) — using them directly here would incorrectly exclude every
     // available date.
     const remainingDates = await getAvailableEmptyDates(weekDatesOverride);
-    if(remainingDates.length > 0){
-      const genResult = await generateMobilityProgram(Math.min(remainingDates.length, 2), remainingDates.slice(0,2), 'maintenance');
+    // determineHybridPlan holds a day back as rest — "available" is a ceiling, not a
+    // mandate to fill everything. Handing every leftover day to mobility gave that day
+    // straight back, so a full week came out with a session on all seven days. Leave one
+    // empty whenever the week is long enough for the reservation to have been intended.
+    const keepRest = setup.availableDays.length >= 3 ? 1 : 0;
+    const mobilitySlots = Math.min(Math.max(0, remainingDates.length - keepRest), 2);
+    if(mobilitySlots > 0){
+      const genResult = await generateMobilityProgram(mobilitySlots, remainingDates.slice(0, mobilitySlots), 'maintenance');
       result.mobilityPlaced = (result.mobilityPlaced||0) + genResult.placed;
       if(genResult.placed > 0) result.mobilityHandled = true;
     }
@@ -11232,7 +11242,11 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     }
 
     const emphasisLabel = { 'strength-only':'strength-only', 'running-only':'running-only', 'mobility-only':'mobility-only', strength:'strength-focused hybrid', running:'running-focused hybrid', balanced:'balanced hybrid' }[first.result.plan.emphasis];
-    let msg = `${emphasisLabel} — ` + validLines.map(l=>l.text).join(' · ');
+    const usedLabels = (first.result.goalsUsed || []).map(t=>GOAL_TYPE_LABELS[t] || t);
+    // Named rather than implied: "strength-only" is the app telling you it found no
+    // running goal, but only if you already know that is what the phrase means.
+    const fromLine = usedLabels.length ? `Built from your saved goals: ${usedLabels.join(', ')}. ` : '';
+    let msg = fromLine + `${emphasisLabel} — ` + validLines.map(l=>l.text).join(' · ');
     if(first.result.plan.emphasis==='strength' || first.result.plan.emphasis==='running'){
       // Tagged coaching_consensus rather than a stronger tier — the underlying minimum-
       // dose citations (Rønnestad & Mujika 2014; Støren 2008) aren't confirmed here as
@@ -11895,8 +11909,13 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   let skillMobilityPlaced = false;
   if(mobilityGoals.length){
     const remaining = emptyDates.filter(d=>!placedDates.includes(d));
-    const mobDate = remaining[0] || placedDates[placedDates.length-1];
-    const slot = remaining[0] ? 'am' : 'pm';
+    // Spending the LAST empty day on skill mobility consumed the rest day the planner
+    // deliberately held back, so a full week came out with something on all seven days.
+    // Only take an empty day while more than one is left; otherwise ride along on a
+    // training day's pm slot, which is already what happens when there are none.
+    const spendEmpty = remaining.length > 1 ? remaining[0] : null;
+    const mobDate = spendEmpty || placedDates[placedDates.length-1];
+    const slot = spendEmpty ? 'am' : 'pm';
     const loadedROMCoverage = await getRecentLoadedROMCoverage();
     const stretches = mobilityGoals.flatMap(sg => buildMobilitySkillStretches(sg, 0, loadedROMCoverage, 'maintenance'));
     try{
