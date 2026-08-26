@@ -129,7 +129,7 @@
   @media (prefers-reduced-motion: reduce){ .panel.active.panel-enter{ animation:none; } }
 
   @keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
-  .rec-card, .warm-card, .injury-card{ animation: cardIn 0.3s ease; }
+  .rec-card, .injury-card{ animation: cardIn 0.3s ease; }
 
   @keyframes shimmer{ 0%{ background-position:-200px 0; } 100%{ background-position:200px 0; } }
   .skeleton{ height:16px; border-radius:0; margin-bottom:var(--sp-2); background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
@@ -241,13 +241,6 @@
   /* Fixed width so ROLL / DYNAMIC / STATIC line up as a column and the drills beside
      them start at the same x — the sequence is meant to be worked in order, so it should
      read as an ordered list rather than three ragged sentences. */
-  /* min-width alone left no gap when the label was wider than it — DYNAMIC ran straight
-     into its own text while ROLL and STATIC had room. A padding-right guarantees the space
-     whatever the label's length, and the min-width still keeps the three aligned. */
-  .mob-mod{ display:inline-block; min-width:54px; padding-right:8px; font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
-  /* One modality per line — collapsing all three onto a single wrapped line saved space
-     but made them unreadable as a sequence you work through in order. */
-  .mob-line{ padding:var(--sp-1) 0 0; }
   /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
@@ -679,29 +672,33 @@
   .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
-  .warm-card{ border:none; border-radius:0; padding:var(--sp-2) 0; margin-bottom:0; background:transparent; border-bottom:1px solid var(--line); }
-  .warm-card:last-child{ border-bottom:none; }
-  .warm-area{ position:relative; padding-left:14px; }
-  .warm-area::before{ content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--dim); }
-  .warm-card.injury .warm-area::before{ background:var(--bad); }
-  .warm-card.load .warm-area::before{ background:var(--warn); }
-  .warm-card.planned .warm-area::before{ background:var(--accent); }
-  .warm-card .warm-drills{ padding-left:14px; }
-  /* Area and reason share a line, drills get their own — three lines a card become two,
-     with nothing dropped. The area sets in tag type rather than as a heading, since it is
-     no longer holding a line of its own. It keeps its dot: that is the injury/load/planned
-     flag, and it is attached to this element, so hiding the area would take the flag with
-     it. */
-  .warm-area{ display:inline; font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0; -webkit-text-stroke:0; }
-  .warm-reason{ display:inline; font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
-    letter-spacing:0.01em; margin-bottom:0; padding-left:6px; }
-  .warm-reason:not(:empty)::before{ content:'· '; }
-  .warm-reason.injury{ color:var(--text); }
-  .warm-reason.load{ color:var(--text); }
-  /* line-height was 1.9 — 25px for every 13px line, in the two longest sections on the
-     page. 1.5 still reads as a list rather than a paragraph. */
-  .warm-drills{ display:block; font-size:var(--fs-md); line-height:1.5; margin-top:var(--sp-1); }
+  /* The warm-up and the post-session stretching are preparation, not the session. Stacked
+     cards — a heading, a reason, a dosed drill list, a rule under each — gave them the
+     weight of a second workout sitting under the first. They read as one continuous run
+     instead: movements, arrow, next stage, wrapping like a sentence. Nothing is boxed,
+     nothing is ruled, and the whole of either fits in a few lines under the score.
+     The score is the page; these are the footnote to it. */
+  .flow{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.7; letter-spacing:0.005em; color:var(--text); }
+  .flow-seg{ display:inline; }
+  /* An arrow rather than a bullet: this is a sequence you move through in order, and the
+     separator is the only thing left carrying that once the rules came out. */
+  .flow-seg + .flow-seg::before{ content:' → '; color:var(--dim); font-weight:var(--fw-bold); }
+  .flow-area{ font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase;
+    letter-spacing:0.07em; white-space:nowrap; }
+  .flow-area::after{ content:'\00a0'; }
+  /* The card's coloured dot became the colour of the entry it flagged — same signal, no
+     extra element, and no body-part label needed to carry it. */
+  .flow-flag.injury{ color:var(--bad); }
+  .flow-flag.load{ color:var(--warn); }
+  .flow-note{ color:var(--dim); }
+  /* These two sections announced themselves at the same size as the workout they bracket.
+     Quiet the heading so the hierarchy on the page matches what matters on it. */
+  .group.quiet > .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1); border-bottom-width:1px; border-bottom-color:var(--line); }
+  .group.quiet .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
+  .group.quiet .group-sub{ flex-basis:auto; }
+  /* A section that is now five lines tall does not need a section-sized gap under it. */
+  .group.quiet{ margin-bottom:var(--sp-3); }
+  .group.quiet > .fields{ padding-top:var(--sp-2); padding-bottom:0; }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -760,8 +757,8 @@
     </div>
 
     <div id="warmupSection" style="display:none;">
-      <div class="group" style="margin-top:0;">
-        <div class="group-head collapsible" data-collapse="warmup" style="cursor:pointer;"><div class="group-title">Warm-up</div><span class="collapse-chevron" data-collapse="warmup">▾</span></div>
+      <div class="group quiet" style="margin-top:0;">
+        <div class="group-head collapsible" data-collapse="warmup" style="cursor:pointer;"><div class="group-title">Warm-up <span class="group-sub" id="warmupEstimate"></span></div><span class="collapse-chevron" data-collapse="warmup">▾</span></div>
         <div class="fields collapsible-body" data-collapse="warmup">
           <div id="warmupCards"></div>
         </div>
@@ -778,8 +775,8 @@
     </div>
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
-      <div class="group" style="margin-top:0;">
-        <div class="group-head collapsible" data-collapse="cooldown" style="cursor:pointer;"><div class="group-title">Post-exercise stretching</div><span class="collapse-chevron" data-collapse="cooldown">▾</span></div>
+      <div class="group quiet" style="margin-top:0;">
+        <div class="group-head collapsible" data-collapse="cooldown" style="cursor:pointer;"><div class="group-title">Stretch down <span class="group-sub" id="cooldownEstimate"></span></div><span class="collapse-chevron" data-collapse="cooldown">▾</span></div>
         <div class="fields collapsible-body" data-collapse="cooldown">
           <div id="mobilityCards"></div>
         </div>
@@ -1987,7 +1984,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.57';
+const APP_VERSION = '2026.08.26.58';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2092,15 +2089,28 @@ function setCollapsed(key, collapsed){
   if(body) body.style.display = collapsed ? 'none' : '';
   if(chev) chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
 }
-// Closed unless you have opened it. These are reference you consult at the start and end
-// of a session, not something to read past on the way to the plan, so the default is the
-// state most days want and the stored value only records a deliberate change.
+// Open unless you have closed it. These were shut by default while they rendered as
+// stacked cards and cost 800px between the score and the bottom of the page; as a flow
+// they cost a few lines, so the session you are about to do can just be visible. The
+// stored value still only records a deliberate change.
 function isCollapsed(key){
   try{
     const v = localStorage.getItem('collapsed:' + key);
-    return v === null ? true : v === '1';
-  } catch(e){ return true; }
+    return v === null ? false : v === '1';
+  } catch(e){ return false; }
 }
+// These two sections changed from stacked cards to a five-line flow, and the default
+// flipped from closed to open with it. A stored "1" from the card era means "closed
+// because it was 800px of scrolling", which is no longer true of the thing it refers to,
+// so the stored answer is cleared once and the new default gets to apply. A close after
+// this runs is a real preference and is kept.
+const COLLAPSE_DEFAULT_EPOCH = 'flow-v1';
+try{
+  if(localStorage.getItem('collapsed:epoch') !== COLLAPSE_DEFAULT_EPOCH){
+    COLLAPSE_REMEMBERED.forEach(key => localStorage.removeItem('collapsed:' + key));
+    localStorage.setItem('collapsed:epoch', COLLAPSE_DEFAULT_EPOCH);
+  }
+} catch(e){}
 function applyRememberedCollapse(){
   COLLAPSE_REMEMBERED.forEach(key => setCollapsed(key, isCollapsed(key)));
 }
@@ -13541,7 +13551,14 @@ async function generateWarmup(){
 
   // The +5 was Raise plus Potentiate; only Potentiate is left. And the structure is no
   // longer the full RAMP, so it stops claiming to be.
-  container.innerHTML = `<div class="score-note" style="margin-bottom:var(--sp-2);">~${estMinutes+3} min · ${selected.length} focus area${selected.length===1?'':'s'}</div>`;
+  // The estimate sits in the section heading rather than on a line of its own inside it:
+  // it is the one number worth seeing while the section is still closed.
+  const warmEstEl = document.getElementById('warmupEstimate');
+  if(warmEstEl) warmEstEl.textContent = `~${estMinutes+3} min`;
+  const flow = document.createElement('div');
+  flow.className = 'flow';
+  container.innerHTML = '';
+  container.appendChild(flow);
 
   // Raise came off: it was fixed text that never changed and its minutes were already in
   // the header total. Its evidence still holds — RAMP (Jeffreys, 2007) opens with general
@@ -13566,6 +13583,15 @@ async function generateWarmup(){
     if(/side|leg|arm|swing|walk|circle|lunge|rotation|twist/i.test(name)) return `${name}, 8-10 each side`;
     return `${name}, x8-10`;
   }
+  // withDefaultDose writes for a card that had a line to itself. In a flow the same dose
+  // has to sit inside a sentence, so ", 8-10 each side" becomes " \u00d78-10/side" \u2014 the number
+  // survives (a bare drill name was the original complaint) at a third of the width.
+  function shortDose(name){
+    return name
+      .replace(/,\s*/g, ' ')
+      .replace(/\s*\beach side\b/ig, '/side')
+      .replace(/\bx(?=\d)/ig, '\u00d7');
+  }
   function getWarmupDrills(area){
     const staticDrills = (WARMUP_LIBRARY[area] || []).map(withDefaultDose);
     const libraryDrills = Object.values(EXERCISE_LIBRARY)
@@ -13577,35 +13603,26 @@ async function generateWarmup(){
     return [pool[start], pool[(start+1) % pool.length]];
   }
 
+  // No area labels. "CHEST \u00b7 Bench Press" restated the session sitting directly below it,
+  // and once the reason line came off, the label was naming a body part to introduce two
+  // drills that name it themselves. What is left is the drills, in order, as one run \u2014
+  // which is what you actually do. An injured area still colours its own drills, so the
+  // flag survives the label it used to hang on.
+  const drillParts = [];
+  const seen = new Set();
   selected.forEach(area=>{
-    const drills = getWarmupDrills(area);
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag);
-    // Two lines per area, not five. "Planned session prep" plus a separate "Planned:
-    // Overhead Press" line said the same thing twice, and one drill per line turned four
-    // focus areas into twenty lines of scrolling before the actual workout appeared.
-    // Every name carried its own "(secondary)", so three lifts read "Bench Press
-    // (secondary), Overhead Press (secondary), Dips (secondary)" — 62 characters to say one
-    // thing three times, and two lines to hold it. Say it once for the list, and cap the
-    // names so a four-lift area can't set the card's height.
-    const _names = exercisesByArea[area] || [];
-    const _allSecondary = _names.length > 0 && _names.every(n=>/\(secondary\)$/.test(n));
-    const _clean = _names.map(n=>n.replace(/\s*\(secondary\)$/,''));
-    const _shown = _clean.slice(0,2).join(', ') + (_clean.length>2 ? ` +${_clean.length-2}` : '');
-    const plannedFor = _names.length ? (_shown + (_allSecondary ? ' · secondary' : '')) : '';
-    const reasonLine = plannedFor && r.cls==='planned' ? plannedFor : r.text;
-    const card = document.createElement('div');
-    card.className = `warm-card ${r.cls}`;
-    card.innerHTML = `
-      <div class="warm-area">${BODY_AREAS[area]}</div>
-      <div class="warm-reason ${r.reasonCls}">${reasonLine}</div>
-      <div class="warm-drills">${drills.join(' · ')}</div>`;
-    container.appendChild(card);
+    getWarmupDrills(area).map(shortDose).forEach(d=>{
+      const k = d.toLowerCase();
+      if(seen.has(k)) return;   // two areas can draw the same drill from the library
+      seen.add(k);
+      drillParts.push(r.cls==='planned' ? d : `<span class="flow-flag ${r.cls}">${d}</span>`);
+    });
   });
-
-  const potentiateCard = document.createElement('div');
-  potentiateCard.className = 'warm-card planned';
-  potentiateCard.innerHTML = `<div class="warm-area">Potentiate</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">Ramp-up sets toward your first working weight</div>`;
-  container.appendChild(potentiateCard);
+  // Potentiate closes the sequence: it names the ramp-up sets for the specific lift you are
+  // about to do, which no drill in the list covers.
+  flow.innerHTML = `<span class="flow-seg">${drillParts.join(' \u00b7 ')}</span>`
+    + `<span class="flow-seg"><span class="flow-area">Potentiate</span>ramp-up sets toward your first working weight</span>`;
 }
 
 // Auto-generated alongside the warm-up and workout when the Today tab renders — no
@@ -13683,42 +13700,51 @@ async function generateMobility(){
 
   mobilitySection.style.display = 'block';
   applyRememberedCollapse();
-  mobilityContainer.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes} min · ${selected.length} area${selected.length===1?'':'s'}</div>`;
+  const coolEstEl = document.getElementById('cooldownEstimate');
+  if(coolEstEl) coolEstEl.textContent = `~${estMinutes} min`;
+  const coolFlow = document.createElement('div');
+  coolFlow.className = 'flow';
+  mobilityContainer.innerHTML = '';
+  mobilityContainer.appendChild(coolFlow);
+  const trim = (label, text)=> text
+    .replace(new RegExp('^' + label + '[:,]?\\s*', 'i'), '')
+    .replace(/^roll\s+/i, '')          // "Roll the back of the upper arm" -> "the back of..."
+    .replace(/^the\s+/i, '');
+  // Durations that were fine on their own line ("60-90s", "10-12 reps") are the bulk of the
+  // width once three modalities share one. Compact them the same way the warm-up does.
+  const tighten = (text)=> text
+    .replace(/,\s*/g, ' ')
+    .replace(/\s*\beach side\b/ig, '/side')
+    .replace(/\b(\d+(?:-\d+)?)\s*reps\b/ig, '\u00d7$1')
+    .replace(/\bx(?=\d)/ig, '\u00d7');
+  // Grouped by modality, not by area. Per-area segments repeated the word "Roll" once for
+  // every area, so the labels outnumbered the instructions and the same pass through the
+  // tissue was described four times. You roll everything, then move everything, then hold
+  // everything \u2014 so the section says that once, in that order, and the body-part labels
+  // come off with it: each entry already names the tissue it is for.
+  const buckets = { Roll:[], Dyn:[], Hold:[] };
+  const coolSeen = { Roll:new Set(), Dyn:new Set(), Hold:new Set() };
+  const push = (bucket, text, cls)=>{
+    const k = text.toLowerCase();
+    if(!text || coolSeen[bucket].has(k)) return;
+    coolSeen[bucket].add(k);
+    buckets[bucket].push(cls==='planned' ? text : `<span class="flow-flag ${cls}">${text}</span>`);
+  };
   selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
     if(!proto) return;
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
-    let reasonText = r.text;
-    if(r.cls==='planned' && ranToday && ['ankles','calves','hips','hamstrings'].includes(area)){
-      reasonText = 'Worked by today\'s run';
-    }
     const skipNote = stretchingNotesByArea[area];
-    // Each modality description restated its own label ("Foam roll — Foam roll upper
-    // back/lats, 60-90s"), and the PNF protocol is identical boilerplate for every area.
-    // Strip the restatement, label the modality once, and hoist the shared PNF protocol
-    // to a single line at the end of the section instead of repeating it per area.
-    const trim = (label, text)=> text
-      .replace(new RegExp('^' + label + '[:,]?\\s*', 'i'), '')
-      .replace(/^roll\s+/i, '')          // "Roll the back of the upper arm" -> "the back of..."
-      .replace(/^the\s+/i, '');
-    const staticText = skipNote
-      ? `optional — ${skipNote.exerciseName} covered this`
-      : trim('static', proto.static);
-    const card = document.createElement('div');
-    card.className = `warm-card ${r.cls}`;
-    // Only show a reason when it's a real flag. "Planned session prep" under every area
-    // was a line that carried no information the heading didn't already give.
-    const reasonLine = r.cls==='planned' ? '' : `<div class="warm-reason ${r.reasonCls}">${reasonText}</div>`;
-    card.innerHTML = `
-      <div class="warm-area">${BODY_AREAS[area]}</div>
-      ${reasonLine}
-      <div class="warm-drills">
-        <div class="mob-line"><span class="mob-mod">Roll</span>${trim('foam roll', proto.foamRoll)}</div>
-        <div class="mob-line"><span class="mob-mod">Dynamic</span>${trim('dynamic', proto.dynamic)}</div>
-        <div class="mob-line"><span class="mob-mod">Static</span>${staticText}</div>
-      </div>`;
-    mobilityContainer.appendChild(card);
+    push('Roll', tighten(trim('foam roll', proto.foamRoll)), r.cls);
+    push('Dyn', tighten(trim('dynamic', proto.dynamic)), r.cls);
+    // An area whose static work is already covered by a lift you did today drops out of
+    // the hold list rather than adding an "optional" entry to it.
+    if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls);
   });
+  coolFlow.innerHTML = Object.keys(buckets)
+    .filter(b=>buckets[b].length)
+    .map(b=>`<span class="flow-seg"><span class="flow-area">${b}</span>${buckets[b].join(' \u00b7 ')}</span>`)
+    .join('');
 }
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
