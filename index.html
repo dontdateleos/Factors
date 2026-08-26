@@ -539,6 +539,14 @@
   .week-wheel-detail{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3);
     margin-top:var(--sp-3); align-items:start; }
   .week-wheel-detail:empty{ display:none; }
+  /* Sits under the day it builds, inside the same black. The selects keep their light fill
+     — they are inputs, and .form-panel already gives its buttons a light one. */
+  .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
+    flex-wrap:wrap; margin-top:var(--sp-4); padding-top:var(--sp-3);
+    border-top:1px solid rgba(251,250,246,0.25); }
+  .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
+  .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
+    border-color:rgba(251,250,246,0.5); }
 
   /* Side by side, so the separator is a rule between the columns rather than under each
      card. */
@@ -864,27 +872,27 @@
             <div class="week-day-picker" id="weekDayPicker"></div>
             <div class="week-wheel-detail" id="weekWheelDetail"></div>
           </div>
+          <!-- What builds the week belongs with the week, not three sections below it. -->
+          <div class="week-gen-row">
+            <select id="programSplitOverride">
+              <option value="auto">Auto split</option>
+              <option value="full_body">Full Body</option>
+              <option value="upper_lower">Upper / Lower</option>
+              <option value="ppl">Push / Pull / Legs</option>
+            </select>
+            <select id="programWeeksSelect">
+              <option value="1">1 week</option>
+              <option value="4">4 weeks</option>
+              <option value="8">8 weeks</option>
+            </select>
+            <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
+            <button class="small outline" id="clearAllWeekBtn">Clear all</button>
+          </div>
         </div>
       </div>
 
       <div class="score-note" style="margin:12px 0 10px;">Tap a day, tap a workout, change it.</div>
       <div id="weekBlockStrip" style="margin:14px 0 12px;"></div>
-
-      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        <select id="programSplitOverride" style="width:auto; font-size:var(--fs-control); padding:0 6px;">
-          <option value="auto">Auto split</option>
-          <option value="full_body">Full Body</option>
-          <option value="upper_lower">Upper / Lower</option>
-          <option value="ppl">Push / Pull / Legs</option>
-        </select>
-        <select id="programWeeksSelect" style="width:auto; font-size:var(--fs-control); padding:0 6px;">
-          <option value="1">1 week</option>
-          <option value="4">4 weeks</option>
-          <option value="8">8 weeks</option>
-        </select>
-        <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
-        <button class="small outline" id="clearAllWeekBtn">Clear all</button>
-      </div>
 
       <div id="blockEditPanel" style="display:none;"></div>
 
@@ -2068,7 +2076,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.77';
+const APP_VERSION = '2026.08.26.78';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4058,6 +4066,40 @@ let wheelBlockPos = null;
 // black panel could clip one copy, with the panel's lower edge solved from canvas glyph
 // metrics so it fell through the middle of the resting label's ink. Every layout change on
 // this tab had to be re-solved against that boundary. This is a list.
+// One day's two cards. Shared, because the pane's height is set from the tallest day in
+// the week and that means building all seven, not just the one on screen.
+function weekDayDetailHtml(date, realBlocks){
+  if(!realBlocks.length){
+    return `<div class="wheel-add-card" data-add-date="${date}">+ Add workout</div>`;
+  }
+  return realBlocks.map(({slot, block}) => {
+    const names = extractBlockNames(block);
+    const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
+    return `<div class="wheel-workout-card" data-edit-date="${date}" data-edit-slot="${slot}">
+        <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
+        <div class="wheel-ex-names">${names.length ? names.join('<br>') : '<em>No details yet</em>'}</div>
+      </div>`;
+  }).join('');
+}
+// Measured rather than counted: the cards wrap, so a line count would be wrong at exactly
+// the widths where it matters. A hidden copy of the real pane, at the real width, holding
+// each day's real markup in turn.
+function weekDetailTallest(dayBlocks, detailCol){
+  const width = detailCol.getBoundingClientRect().width;
+  if(!width) return 0;
+  const probe = document.createElement('div');
+  probe.className = detailCol.className;
+  probe.style.cssText = `position:absolute; visibility:hidden; pointer-events:none; width:${width}px; min-height:0;`;
+  detailCol.parentElement.appendChild(probe);
+  let tallest = 0;
+  (dayBlocks || []).forEach(({date, blocks})=>{
+    probe.innerHTML = weekDayDetailHtml(date, blocks.filter(b=>b.block));
+    tallest = Math.max(tallest, probe.getBoundingClientRect().height);
+  });
+  probe.remove();
+  return Math.ceil(tallest);
+}
+
 const WEEK_PICKER_VISIBLE = 1;   // days shown either side of the focused one
 function renderWeekDayPicker(dayBlocks){
   const picker = document.getElementById('weekDayPicker');
@@ -4213,12 +4255,13 @@ async function renderWeekGrid(){
           ? Math.max(10, Math.round((realSets / maxSets) * 46))
           : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
         const n = realSets > 0 ? realSets : null;
-        // The current week is the only solid bar; every other week is plain white. Before
-        // this they were all the same black shape at three opacities, so "which week am I
-        // on" was a judgement about grey levels. Filled vs empty is a difference in kind
-        // and survives being glanced at. Past and future no longer read apart — the week
-        // labels underneath carry that, and an outline drawn faintly enough not to compete
-        // with the filled bar was too faint to tell two greys apart anyway.
+        // The current week is solid; every other week is the same dark drawn as an outline.
+        // White bars read as the loudest thing on an orange page, which is the wrong
+        // emphasis for the weeks you are not in. Filled versus outlined keeps the
+        // difference a difference in KIND rather than one of shade — the version before
+        // white was all-dark at three opacities, and "which week am I on" became a
+        // judgement about grey levels. Past and future do not read apart; the week labels
+        // underneath carry that.
         // The bars live in a band of their own rather than sizing the row. The row had a
         // fixed height while a column was a bar plus three lines of text, so the tallest
         // bar pushed its own number up out of the row and into the caption above it.
@@ -4228,7 +4271,9 @@ async function renderWeekGrid(){
         cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
           <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; background:${isNow ? 'var(--reverse-bg)' : '#ffffff'};"></div>
+            <div style="width:100%; height:${h}px; ${isNow
+              ? 'background:var(--reverse-bg);'
+              : 'background:transparent; border:2px solid var(--reverse-bg);'}"></div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
           <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
@@ -4311,20 +4356,12 @@ async function renderWeekGrid(){
   const activeDate = dates[activeWheelDayIndex];
   const activeDayData = dayBlocks[activeWheelDayIndex];
   const realBlocks = activeDayData.blocks.filter(b => b.block);
-  // No day label here any more: the picker beside it is showing that name at 26px.
-  let detailHtml = '';
-  if(realBlocks.length === 0){
-    detailHtml += `<div class="wheel-add-card" data-add-date="${activeDate}">+ Add workout</div>`;
-  } else {
-    realBlocks.forEach(({slot, block}) => {
-      const names = extractBlockNames(block);
-      const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
-      detailHtml += `<div class="wheel-workout-card" data-edit-date="${activeDate}" data-edit-slot="${slot}">
-        <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">›</span></div>
-        <div class="wheel-ex-names">${names.length ? names.join('<br>') : '<em>No details yet</em>'}</div>
-      </div>`;
-    });
-  }
+  const detailHtml = weekDayDetailHtml(activeDate, realBlocks);
+  // Every day is measured, not just this one, and the pane holds the tallest. Otherwise
+  // scrolling from a two-lift day to an eight-lift one moved everything below the panel
+  // down the page under your thumb, which made the load bars and the buttons a moving
+  // target while you were still choosing a day.
+  detailCol.style.minHeight = weekDetailTallest(dayBlocks, detailCol) + 'px';
   detailCol.innerHTML = detailHtml;
   detailCol.querySelectorAll('[data-edit-date]').forEach(card=>{
     card.addEventListener('click', ()=>{
