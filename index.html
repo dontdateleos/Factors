@@ -2090,7 +2090,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.69';
+const APP_VERSION = '2026.08.26.70';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4154,7 +4154,12 @@ function renderWheelPositions(dragOffsetDeg){
   // was simply invisible. Size the circle to fit the column instead: leave room for the
   // widest label at 0deg on the right, and keep the leftmost point inside the box, so
   // all seven days stay on screen whichever day is active.
-  const centerX = 14, centerY = colHeight * 0.38;
+  // 0.38 put the arc in the top third: 18px of black above it and 95px of empty cream
+  // below, and the cut landed in the middle of the hub so "WEEK 1 of 4" was split across
+  // it for no reason. Just past centre balances the two (58 above, 55 below), drops the
+  // cut through the day label and the workout list rather than the hub, and gives the
+  // list a second card's worth of room above the fold.
+  const centerX = 14, centerY = colHeight * 0.52;
   const radius = Math.max(60, colWidth - 115);
   dates.forEach((date, i) => {
     // Relative to the active day (not absolute index) — this is what makes the
