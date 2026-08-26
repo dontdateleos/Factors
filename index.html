@@ -68,6 +68,21 @@
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
     --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
+    /* Vertical rhythm. Nineteen distinct spacing values were in use across the six tabs —
+       1,2,3,4,5,6,7,8,10,11,12,14,16,20,22,24,26,28 — which is why the page read as
+       slightly-off rather than obviously wrong. These five replace them for everything
+       that sets the rhythm down a page: sections, heads, field blocks, bands, rows.
+       The jump from 16 to 40 is the point of the scale, not a gap in it. The space between
+       sections has to be much larger than anything inside them, or the black bands read as
+       stripes rather than as objects. Even steps flatten exactly the hierarchy they are
+       meant to carry.
+       Component-internal nudges (a 2px badge offset, a 3px caption lift) are left alone —
+       they align to their own type, not to the page. */
+    --sp-1:4px;    /* inside a row */
+    --sp-2:8px;    /* between rows */
+    --sp-3:16px;   /* inside a section */
+    --sp-4:40px;   /* between sections */
+    --sp-5:24px;   /* band padding */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; position:relative; -webkit-text-stroke:0.1px currentColor; }
@@ -103,7 +118,7 @@
   .score-ring-track{ fill:none; stroke:var(--text); stroke-opacity:0.16; stroke-width:6; }
   .score-ring-fill{ fill:none; stroke:var(--text); stroke-width:6; stroke-linecap:butt; transition:stroke-dashoffset 500ms ease-out; }
 
-  .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:22px; line-height:1.35; }
+  .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:var(--sp-3); line-height:1.35; }
 
   .panel.active.panel-enter{ animation: panelFadeIn 0.12s ease-out; }
   .snap-reveal{ animation: panelSnap 0.16s steps(4, end); }
@@ -117,7 +132,7 @@
   .rec-card, .warm-card, .injury-card{ animation: cardIn 0.3s ease; }
 
   @keyframes shimmer{ 0%{ background-position:-200px 0; } 100%{ background-position:200px 0; } }
-  .skeleton{ height:16px; border-radius:0; margin-bottom:10px; background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
+  .skeleton{ height:16px; border-radius:0; margin-bottom:var(--sp-2); background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
   .skeleton.short{ width:40%; }
   .skeleton.tall{ height:60px; }
 
@@ -133,23 +148,23 @@
   .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
     .header-dither-row canvas{ display:block; }
   .header-brand > *{ position:relative; z-index:1; }
-  main{ padding:16px 14px 14px; max-width:520px; margin:0 auto; }
+  main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; }
   .panel.active{ display:block; }
 
-  .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:var(--sp-3); }
   input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
 
-  .group{ margin-bottom:22px; background:transparent; }
-  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:12px 14px 8px; border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
+  .group{ margin-bottom:var(--sp-4); background:transparent; }
+  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:var(--sp-3) 14px var(--sp-2); border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
   .group-title{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em; text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0.15px currentColor; }
-  .fields{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; }
+  .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
   .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
-  .mobility-legend{ margin-bottom:10px; }
+  .mobility-legend{ margin-bottom:var(--sp-2); }
   .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
   .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   .evidence-badge{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
@@ -204,7 +219,7 @@
   button.outline:active{ background:var(--reverse-bg); color:var(--bg); opacity:1; }
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
-  .log{ margin-top:24px; }
+  .log{ margin-top:var(--sp-4); }
   .log-title{ font-family:var(--sans); font-size:var(--fs-tag);  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
   .log-entry{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   /* Every .log-entry follows the same shape: name on the left, value on the right. They
@@ -350,15 +365,15 @@
      Ten stacked field rows at the shared 10px gap ran 512px — the second-largest thing on
      the tab, for a form of one-line controls. Tightened here rather than in .fields, which
      every tab shares. */
-  #injuryForm{ gap:7px; }
+  #injuryForm{ gap:var(--sp-2); }
   #injuryForm textarea{ min-height:44px; }
-  .mob-stage{ margin-top:4px; }
-  .mob-check{ margin-top:10px; }
+  .mob-stage{ margin-top:var(--sp-1); }
+  .mob-check{ margin-top:var(--sp-3); }
   /* Rows bleed to the panel edge so a ticked one fills it. -14px inside .fields, which is
      the only padding left between here and the panel's own edge. 46px minimum: five of
      these is the whole control, and each is its own tap target. */
   .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:46px; cursor:pointer;
-    margin:0 -14px; padding:6px 14px; -webkit-tap-highlight-color:transparent; }
+    margin:0 -14px; padding:var(--sp-1) 14px; -webkit-tap-highlight-color:transparent; }
   .mob-check-row:active{ opacity:0.6; }
   .mob-check-num{ flex:none; width:34px; align-self:stretch; display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--bg); }
@@ -371,7 +386,7 @@
   .mob-check-row.done{ background:var(--bg); }
   .mob-check-row.done .mob-check-num, .mob-check-row.done .mob-check-text{ color:var(--text); }
   .mob-check-row.done .mob-check-text{ font-weight:var(--fw-medium); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.7); text-align:center; margin-top:8px; letter-spacing:0.02em; }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.7); text-align:center; margin-top:var(--sp-2); letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -397,21 +412,21 @@
   .log-entry.ss-row{ padding-top:6px; padding-bottom:6px; }
   .d-badge{ color:var(--text); }
 
-  .session-type{ display:flex; gap:8px; margin-bottom:14px; }
+  .session-type{ display:flex; gap:8px; margin-bottom:var(--sp-3); }
   .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:var(--on-light-dim); cursor:pointer; background:var(--panel); }
   .type-btn.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
 
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
   /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
      pseudo-element that a later rule was overriding anyway. */
-  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:14px 8px; border:2px solid var(--border-bold); border-radius:0; }
+  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:var(--sp-3) 8px; border:2px solid var(--border-bold); border-radius:0; }
 
   /* A section you FILL IN is a black band across the page; a section you read is not.
      That is the whole rule — it is what tells a form apart from a readout at a glance, and
      it is why Data and Settings only have some of their sections darkened.
      The -14px escapes main's padding; .group-head bleeds by the same amount on its own, so
      inside a panel that has already escaped it has to stop. */
-  .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px 22px; padding-bottom:6px; }
+  .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-4); padding-bottom:var(--sp-2); }
   /* A form panel that OPENS a tab runs into the header instead of starting below main's
      padding — two blacks with a strip of page colour between them read as a seam. Four
      pixels past it rather than exactly to it: layout positions are fractional, so meeting
@@ -420,7 +435,7 @@
      The header's own rule goes with it on these tabs, for the same reason it does on
      Weekly — it reads as a gap in the join. And #000000 rather than content black, again
      like the Weekly band: two blacks that touch can't be a shade apart. */
-  .panel > .form-panel:first-child{ margin-top:-20px; padding-top:4px; background:#000000; }
+  .panel > .form-panel:first-child{ margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
   /* Same opening band on the two tabs that don't start with a form. What sits in it
      differs — Goals puts its section head there, Data its view switch — but the band is
      the constant, and every tab now begins by continuing the header rather than by
@@ -429,7 +444,7 @@
   /* TODAY — the score is the hero, so the band is the score. One wrapper rather than three
      siblings each painted black: the gaps between them show as hairlines of page colour,
      and an empty baseline line leaves its own margin behind even with nothing in it. */
-  .today-open{ background:#000000; margin:-20px -14px 0; padding:24px 14px 16px; }
+  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-ring-track{ stroke:var(--bg); stroke-opacity:0.3; }
@@ -442,11 +457,11 @@
   .today-open .conf-bar{ background:rgba(251,250,246,0.22); }
   .today-open .conf-row{ border-top-color:rgba(251,250,246,0.25); }
   #panel-goals > .group:first-child > .group-head{
-    background:#000000; margin:-20px -14px 0; padding:26px 14px 12px; border-bottom:none; }
+    background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); border-bottom:none; }
   #panel-goals > .group:first-child > .group-head .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   #panel-goals > .group:first-child > .group-head .group-sub{ color:rgba(251,250,246,0.7); }
   #panel-data > .session-type:first-child{
-    background:#000000; margin:-20px -14px 14px; padding:22px 14px 14px; }
+    background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px var(--sp-3); padding:var(--sp-5) 14px var(--sp-3); }
   /* A pill is a white box with dark text and inverts to black-on-light when active, which
      on a black band leaves the selected one invisible and the rest shouting. Swap which
      side is filled. */
@@ -466,7 +481,7 @@
   /* Buttons are black-on-light by default, which is invisible on the panel. */
   .form-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .form-panel button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
-  .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:14px; margin-bottom:10px; background:transparent; }
+  .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .injury-head{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
   .injury-part{ font-weight:var(--fw-bold); font-size:var(--fs-md); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
   .injury-meta{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
@@ -547,7 +562,7 @@
      skill. Reading them apart meant matching a name in one list against a name in another.
      Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px. */
   #mobilitySkillRows .edit-row, #exerciseSkillRows .edit-row{ display:block; position:relative;
-    margin:0 -28px 12px; padding:14px 28px; background:var(--reverse-bg); color:var(--bg); }
+    margin:0 -28px var(--sp-2); padding:var(--sp-3) 28px; background:var(--reverse-bg); color:var(--bg); }
   /* Widths and size are set by the .skg-* rules near the top. These selectors are ids, so
      anything they declare outrank them however the classes are written. */
   #mobilitySkillRows select, #exerciseSkillRows select{ font-size:var(--fs-control); }
@@ -558,7 +573,7 @@
   .skg-panel .evidence-badge.moderate{ border-color:var(--bg); color:var(--bg); }
   .skg-panel .evidence-badge.practical{ border-color:rgba(251,250,246,0.5); color:rgba(251,250,246,0.7); }
   .skg-panel .evidence-badge.strong{ background:var(--bg); color:var(--text); }
-  .skg-progress:not(:empty){ margin-top:12px; padding-top:12px; border-top:1px solid rgba(251,250,246,0.25); }
+  .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid rgba(251,250,246,0.25); }
   .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin-bottom:5px; }
@@ -566,7 +581,7 @@
   .skg-bar{ height:8px; background:rgba(251,250,246,0.22); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
   .skg-bar-fill{ height:100%; background:var(--bg); }
-  .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
+  .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
   .goal-priority-num{ font-size:var(--fs-num); font-weight:var(--fw-bold); letter-spacing:-0.025em; }
@@ -746,7 +761,7 @@
       <div id="recHistory"></div>
     </div>
 
-    <div class="group" style="margin-top:16px;">
+    <div class="group">
       <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">why today looks like this</div></div>
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:0;"></div>
@@ -804,7 +819,7 @@
       </div>
       <div id="deloadSuggestedNote" class="score-note" style="display:none; margin-bottom:14px;"></div>
 
-      <div class="group" style="margin-top:16px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div></div>
         <div class="fields">
           <div id="generateProgramResult" class="score-note"></div>
@@ -828,7 +843,7 @@
 
 
 
-      <div class="group" style="margin-top:16px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
         <div class="fields">
           <details class="mobility-legend">
@@ -872,12 +887,12 @@
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
 
-      <div class="group" style="margin-top:24px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Progress</div></div>
         <div class="fields" id="goalProgressBody"></div>
       </div>
 
-      <div class="group" style="margin-top:24px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">This block</div><div class="group-sub">what the next few weeks have to deliver</div></div>
         <div class="fields" id="blockTargetBody"></div>
       </div>
@@ -1071,7 +1086,7 @@
     </div>
 
     <div id="trendsDataView" style="display:none;">
-    <div class="group" style="margin-bottom:16px;">
+    <div class="group">
       <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Standard</span>
@@ -1105,7 +1120,7 @@
     <div id="trendFlags"></div>
     <div class="score-note">Full history, no windowing — this is the view for spotting slow multi-month drift that trailing 7-14 day windows elsewhere in the app won't show.</div>
 
-    <div class="group" style="margin-top:24px;">
+    <div class="group">
       <div class="group-head"><div class="group-title">Adaptation Tracking</div><div class="group-sub">per exercise, recent trend</div></div>
       <div class="fields" id="adaptationBody"></div>
     </div>
@@ -1121,7 +1136,7 @@
       <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
       <div id="prevWorkoutsResults"></div>
 
-      <div class="group" style="margin-top:20px;">
+      <div class="group">
         <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
         <div class="fields" id="injuryRetroBody"></div>
       </div>
@@ -1199,7 +1214,7 @@
       </div>
     </div>
 
-    <div class="group" style="margin-top:16px;">
+    <div class="group">
       <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this copy is running</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
@@ -1221,7 +1236,7 @@
         <div id="bulkImportResult" class="score-note"></div>
       </div>
     </div>
-    <div class="group" style="margin-top:16px;">
+    <div class="group">
       <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
         <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
         <details>
@@ -1404,7 +1419,7 @@
       </div>
     </div>
     <div style="display:none;">
-    <div class="group" style="margin-top:16px; border-color:var(--warn);">
+    <div class="group" style="border-color:var(--warn);">
       <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--text);">dev only — clears prior test data first</div></div>
       <div class="fields">
         <div class="score-note">Seeds fake history so you can see how the app responds without waiting weeks. Replaces previous test data; never touches real logs.</div>
@@ -1425,7 +1440,7 @@
         <div id="testDataResult" class="score-note"></div>
       </div>
     </div>
-    <div class="group" style="margin-top:16px; border-color:var(--bad);">
+    <div class="group" style="border-color:var(--bad);">
       <div class="group-head"><div class="group-title">Engine Regression Suite</div><div class="group-sub" style="color:var(--text);">dev only — wipes ALL data between each scenario</div></div>
       <div class="fields">
         <div class="score-note">Runs the real decision engine and reports PASS/FAIL. Wipes all storage — export a backup first.</div>
@@ -1940,7 +1955,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.50';
+const APP_VERSION = '2026.08.26.51';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
