@@ -2124,7 +2124,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.87';
+const APP_VERSION = '2026.08.26.88';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7007,6 +7007,13 @@ function attachRunStartToRunningGoal(){
 
 async function loadCurrentGoals(){
   const goals = await getCurrentGoals(todayStr);
+  // Park the running panel outside the container first. It lives among the goal rows now,
+  // and clearing them with innerHTML destroyed it — this runs on both the Goals and the
+  // Function tab, so the panel survived exactly one visit and then never came back until
+  // a reload. attachRunStartToRunningGoal puts it back where it belongs a few lines down.
+  const runPanel = document.getElementById('runStartPanel');
+  const goalsPanel = document.getElementById('panel-goals');
+  if(runPanel && goalsPanel) goalsPanel.appendChild(runPanel);
   document.getElementById('goalListRows').innerHTML = '';
   if(goals && goals.list && goals.list.length){
     goals.list.forEach(g=>addGoalRow(g));
