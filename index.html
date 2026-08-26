@@ -376,7 +376,10 @@
   .mob-wheel-score{ font-family:var(--mono); color:rgba(251,250,246,0.55); flex:none; margin-left:10px; }
   .mob-wheel-item.focused .mob-wheel-score{ color:var(--bg); }
   /* Marks the selection row so it's clear which name the numbers below apply to. */
-  .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+  /* --mob-focus-row is which of the three rows currently holds the focused name. It is the
+     middle one in the body of the list, but at either end the window clamps rather than
+     reserving a blank row, so the line follows it. */
+  .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:calc(var(--mob-row) * var(--mob-focus-row, 1));
     height:var(--mob-row); border-top:1px solid rgba(251,250,246,0.5); border-bottom:1px solid rgba(251,250,246,0.5);
     pointer-events:none; }
   /* The assessment is a form you fill in, so it takes the same black band every other form
@@ -447,7 +450,10 @@
      it is why Data and Settings only have some of their sections darkened.
      The -14px escapes main's padding; .group-head bleeds by the same amount on its own, so
      inside a panel that has already escaped it has to stop. */
-  .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-4); padding-bottom:var(--sp-2); }
+  /* --sp-3 like every other section, and no padding of its own: .fields already ends with
+     16px, so the extra made a black tail under the last control and a section gap half
+     again as large as the one between sections everywhere else. */
+  .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-3); padding-bottom:0; }
   /* A form panel that OPENS a tab runs into the header instead of starting below main's
      padding — two blacks with a strip of page colour between them read as a seam. Four
      pixels past it rather than exactly to it: layout positions are fractional, so meeting
@@ -697,8 +703,10 @@
      The matching padding puts the contents back where the rest of the page's rows sit. */
   /* One 14 to bleed, not two: .fields no longer adds a second indent, so #goalListRows
      sits at the page's own content edge like every other column. */
-  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 14px 14px !important; margin:30px -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
-  .goal-row-panel:first-child{ margin-top:24px; }
+  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 14px var(--sp-3) !important; margin:var(--sp-4) -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  /* The numeral hangs above the panel, so the first row needs the same clearance as the
+     ones between — 30/24px were off the scale and disagreed with each other. */
+  .goal-row-panel:first-child{ margin-top:var(--sp-4); }
   .goal-row-panel .edge-word{ --edge-word-colour:var(--block-blue); --edge-word-size:44px; }
   .goal-row-panel .goal-priority-badge{ display:block; flex:1; }
   .goal-priority-tag{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); margin-top:2px; }
@@ -984,8 +992,7 @@
       <div class="group">
         <div class="group-head"><div class="group-title">Goals</div><div class="group-sub">up to 3, in the order you actually mean them</div></div>
         <div class="fields">
-          <div class="score-note">Reorder with ↑↓. The top one wins most arguments with the generator.</div>
-          <div class="score-note">Leave targets blank and we'll set one from what you've actually been lifting.</div>
+          <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
           <div id="goalListRows"></div>
           <div class="add-row" id="addGoalRow">+ add goal</div>
         </div>
@@ -1056,7 +1063,6 @@
         <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:rgba(251,250,246,0.7); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-        <div class="score-note">Five things per area, easiest first &mdash; your lowest areas get the mobility work.</div>
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note"></div>
@@ -1066,7 +1072,7 @@
     <div class="group">
       <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, and how much it should change your training</div></div>
       <div class="fields">
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity fades on its own &mdash; the half-life is how long it takes to halve. While it's active the generator eases the sessions that load it, and the warm-up targets it first.</div>
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity fades on its own at a rate the injury type sets. While it's active the generator eases the sessions that load it, and the warm-up targets it first.</div>
       </div>
     </div>
 
@@ -2155,7 +2161,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.92';
+const APP_VERSION = '2026.08.26.93';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3779,9 +3785,14 @@ function renderSkillPicker(category){
   const order = skillPickerOrder(category);
   st.index = Math.max(0, Math.min(order.length-1, st.index));
 
+  // Same clamped three-row window as the assessment wheel: at the top or bottom of the list
+  // the window slides instead of reserving a blank row.
+  const WHEEL_ROWS = 3;
+  const wheelStart = Math.max(0, Math.min(st.index - 1, order.length - WHEEL_ROWS));
+  const wheelFocusRow = st.index - wheelStart;
   const rows = [];
-  for(let offset = -1; offset <= 1; offset++){
-    const i = st.index + offset;
+  for(let i = wheelStart; i < wheelStart + WHEEL_ROWS; i++){
+    const offset = i - st.index;
     const key = order[i];
     if(!key){ rows.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
     const tree = PROGRESSION_TREES[category][key];
@@ -3800,6 +3811,7 @@ function renderSkillPicker(category){
       </div>`);
   }
   wheel.innerHTML = rows.join('') + `<div class="mob-wheel-focus-line"></div>`;
+  wheel.style.setProperty('--mob-focus-row', wheelFocusRow);
 
   const key = order[st.index];
   const tree = PROGRESSION_TREES[category][key];
@@ -3958,10 +3970,15 @@ async function renderMobilityAssessment(skipCollapse){
   // One neighbour either side rather than two. Five rows cost 190px for context you get
   // from one — and at either end of the list the missing neighbours are reserved as blank
   // rows, so two of them meant 76px of nothing above "Ankles".
-  const WHEEL_VISIBLE = 1;   // items shown either side of the focused one
+  // Three rows, and the window CLAMPS to the ends of the list rather than always centring
+  // the focused name. Centring meant that on the first domain the row above it was blank —
+  // 38px of nothing above "Ankles" — and the same again below the last one.
+  const WHEEL_ROWS = 3;
+  const wheelStart = Math.max(0, Math.min(idx - 1, MOBILITY_DOMAINS.length - WHEEL_ROWS));
+  const wheelFocusRow = idx - wheelStart;
   const wheelItems = [];
-  for(let offset = -WHEEL_VISIBLE; offset <= WHEEL_VISIBLE; offset++){
-    const i = idx + offset;
+  for(let i = wheelStart; i < wheelStart + WHEEL_ROWS; i++){
+    const offset = i - idx;
     const d = MOBILITY_DOMAINS[i];
     const dist = Math.abs(offset);
     if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
@@ -3971,7 +3988,7 @@ async function renderMobilityAssessment(skipCollapse){
     const score = mobilityDraftScores[d];
     wheelItems.push(`
       <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
-           style="opacity:${offset===0?1:(dist===1?0.55:0.28)};">
+           style="opacity:${offset===0?1:(dist===1?0.55:0.38)};">
         <span class="mob-wheel-name">${cap(d)}</span>
         <span class="mob-wheel-score">${score!=null?`<span class="skill-rank">${score}</span>`:''}</span>
       </div>`);
@@ -3979,7 +3996,7 @@ async function renderMobilityAssessment(skipCollapse){
 
   const stepperHtml = `
     <div class="mob-stage">
-      <div class="mob-wheel" id="mobWheel">
+      <div class="mob-wheel" id="mobWheel" style="--mob-focus-row:${wheelFocusRow};">
         ${wheelItems.join('')}
         <div class="mob-wheel-focus-line"></div>
       </div>
@@ -4047,6 +4064,11 @@ async function renderMobilityAssessment(skipCollapse){
       if(!e.target.closest('#mobWheel')) return;
       dragging = true; startY = e.clientY; accumulated = 0;
       startTime = e.timeStamp; moved = false;
+      // Which row the finger landed on. Capturing the pointer means the up-event no longer
+      // shares a target with the down, so no click is generated and the per-row click
+      // listener below never fires — the tap has to be resolved here instead.
+      const row = e.target.closest('.mob-wheel-item');
+      downOffset = row ? (parseInt(row.dataset.offset, 10) || 0) : 0;
       host.setPointerCapture(e.pointerId);
     });
     host.addEventListener('pointermove', e=>{
@@ -4072,7 +4094,14 @@ async function renderMobilityAssessment(skipCollapse){
       const dy = e.clientY - startY;
       const dt = Math.max(1, e.timeStamp - startTime);
       const velocity = Math.abs(dy) / dt;               // px per ms
-      if(Math.abs(dy) < FLICK_MIN_PX || velocity < FLICK_MIN_VELOCITY) return;
+      if(Math.abs(dy) < FLICK_MIN_PX){
+        if(downOffset !== 0){
+          mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + downOffset));
+          renderMobilityAssessment(true);
+        }
+        return;
+      }
+      if(velocity < FLICK_MIN_VELOCITY) return;
       const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
       const dir = dy > 0 ? -1 : 1;                       // swipe up = later domains
       mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + dir*steps));
