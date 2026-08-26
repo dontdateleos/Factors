@@ -452,7 +452,7 @@
      The header's own rule goes with it on these tabs, for the same reason it does on
      Weekly — it reads as a gap in the join. And #000000 rather than content black, again
      like the Weekly band: two blacks that touch can't be a shade apart. */
-  .panel > .form-panel:first-child{ margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
+  .panel > .form-panel:first-child, .week-panel{ margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
   /* Same opening band on the two tabs that don't start with a form. What sits in it
      differs — Goals puts its section head there, Data its view switch — but the band is
      the constant, and every tab now begins by continuing the header rather than by
@@ -488,11 +488,11 @@
     background:var(--bg); color:var(--text); border-color:var(--bg); }
   body.tab-injuries header, body.tab-settings header,
   body.tab-goals header, body.tab-data header,
-  body.tab-insights header{ border-bottom-color:transparent; }
+  body.tab-insights header, body.tab-training header{ border-bottom-color:transparent; }
   .form-panel .group-head{ margin-left:0; margin-right:0; border-bottom-color:rgba(251,250,246,0.25); }
   .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
-  .form-panel .field-label{ color:rgba(251,250,246,0.7); }
+  .form-panel .field-label, .form-panel .head-est{ color:rgba(251,250,246,0.7); }
   .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
   .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
   /* Buttons are black-on-light by default, which is invisible on the panel. */
@@ -511,39 +511,44 @@
      drawn twice — once black over the page and once cream inside a clipping panel — whose
      boundary had to be solved from glyph metrics on every frame. That was a lot of
      machinery to pick a day with, and every layout change had to be re-solved against it. */
-  .week-wheel-stage{ display:flex; align-items:flex-start; gap:14px; }
-  .week-day-picker{ --day-row:38px; flex:0 0 40%; position:relative;
+  /* Same shape as the mobility assessment it borrows the picker from: the picker runs the
+     full width at the top of the black, and what you picked sits underneath it. */
+  .week-wheel-stage{ display:block; }
+  .week-day-picker{ --day-row:38px; position:relative;
     height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .week-day-picker:active{ cursor:grabbing; }
   .week-day-item{ height:var(--day-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--text); transition:opacity 0.18s, font-size 0.18s;
+    font-family:var(--sans); color:var(--bg); transition:opacity 0.18s, font-size 0.18s;
     cursor:pointer; font-size:var(--fs-lg); padding:0 2px; -webkit-tap-highlight-color:transparent; }
   .week-day-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .week-day-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
-  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(12,13,11,0.55);
+  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(251,250,246,0.55);
     flex:none; margin-left:8px; }
-  .week-day-item.focused .week-day-mark{ color:var(--text); }
+  .week-day-item.focused .week-day-mark{ color:var(--bg); }
   .week-day-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:var(--day-row); border-top:1px solid rgba(12,13,11,0.45); border-bottom:1px solid rgba(12,13,11,0.45);
+    height:var(--day-row); border-top:1px solid rgba(251,250,246,0.5); border-bottom:1px solid rgba(251,250,246,0.5);
     pointer-events:none; }
-  /* "Week 2 of 4" was the wheel's hub, sitting at the arc's pivot. With no arc it is a
-     line of type above the picker. */
-  .week-block-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em;
-    text-transform:uppercase; color:var(--dim); margin-bottom:var(--sp-2); }
-  /* No overflow-y: a scrollable pane this size showed two workouts and hid the rest
-     behind a gesture with nothing to indicate it. */
-  .week-wheel-detail{ flex:1 1 auto; min-width:0; padding:0 4px 0 0; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; }
-  .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
-  .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
-  .wheel-workout-card:last-child{ border-bottom:none; }
-  .wheel-workout-card:active{ background:rgba(255,255,255,0.35); }
+  /* The day's workouts, one either side of the page. Two is the most a day can hold — the
+     plan has an am slot and a pm slot — so they sit as a pair rather than a stack, and a
+     day with one leaves the other half empty rather than stretching to fill it. */
+  .week-wheel-detail{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3);
+    margin-top:var(--sp-3); align-items:start; }
+  .week-wheel-detail:empty{ display:none; }
+
+  /* Side by side, so the separator is a rule between the columns rather than under each
+     card. */
+  .wheel-workout-card{ padding:0 0 0 0; cursor:pointer; min-width:0; }
+  .week-wheel-detail > .wheel-workout-card + .wheel-workout-card{
+    border-left:1px solid rgba(251,250,246,0.25); padding-left:var(--sp-3); }
+  .wheel-workout-card:active{ background:rgba(251,250,246,0.12); }
   select:active{ background:#f2f2f2; }
   .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
-  .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--text); }
+  .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--bg); }
   .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
-  .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:var(--text); opacity:0.85; }
-  .wheel-add-card{ border:2px solid var(--border-bold); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--text); cursor:pointer; }
+  .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:rgba(251,250,246,0.8); }
+  .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(251,250,246,0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
+  .wheel-add-card:active{ background:rgba(251,250,246,0.12); }
 
   #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
@@ -846,12 +851,16 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
-      <!-- The wheel leads. Everything that used to sit above it is below it now, so the
-           ink panel behind the arc can run to the top of the page on its side. -->
-      <div class="week-block-pos" id="weekBlockPos"></div>
-      <div class="week-wheel-stage" id="weekWheelStage">
-        <div class="week-day-picker" id="weekDayPicker"></div>
-        <div class="week-wheel-detail" id="weekWheelDetail"></div>
+      <!-- The week leads, in the same black band the mobility assessment takes on the
+           Function tab: a picker at the top of it and what you picked underneath. -->
+      <div class="group form-panel week-panel">
+        <div class="group-head"><div class="group-title">Week <span class="head-est" id="weekBlockPos"></span></div></div>
+        <div class="fields">
+          <div class="week-wheel-stage" id="weekWheelStage">
+            <div class="week-day-picker" id="weekDayPicker"></div>
+            <div class="week-wheel-detail" id="weekWheelDetail"></div>
+          </div>
+        </div>
       </div>
 
       <div class="score-note" style="margin:12px 0 10px;">Tap a day, tap a workout, change it.</div>
@@ -2055,7 +2064,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.75';
+const APP_VERSION = '2026.08.26.76';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4070,7 +4079,8 @@ function renderWeekDayPicker(dayBlocks){
   }
   picker.innerHTML = rows.join('') + `<div class="week-day-focus-line"></div>`;
   const pos = document.getElementById('weekBlockPos');
-  if(pos) pos.textContent = wheelBlockPos ? `Week ${wheelBlockPos.weekInBlock} of ${wheelBlockPos.length}` : '';
+  // The heading already says "Week", so this is just the position within the block.
+  if(pos) pos.textContent = wheelBlockPos ? `${wheelBlockPos.weekInBlock} of ${wheelBlockPos.length}` : '';
 }
 
 // Drag to move through the days. Bound once to the stage rather than to the picker,
