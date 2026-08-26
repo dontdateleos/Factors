@@ -574,24 +574,36 @@
      Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px. */
   #mobilitySkillRows .edit-row, #exerciseSkillRows .edit-row{ display:block; position:relative;
     margin:0 -28px var(--sp-2); padding:var(--sp-3) 28px; background:var(--reverse-bg); color:var(--bg); }
+  /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
+     box: they are one section among several on Function and the box is what separates
+     them, while this is most of the Goals page and a run of black boxes down it was the
+     page rather than a part of it. */
+  #exerciseSkillRows .edit-row{ margin:0 0 var(--sp-2); padding:var(--sp-3) 0;
+    background:transparent; color:var(--text); border-bottom:1px solid var(--line); }
+  #exerciseSkillRows .edit-row:last-child{ border-bottom:none; }
   /* Widths and size are set by the .skg-* rules near the top. These selectors are ids, so
      anything they declare outrank them however the classes are written. */
   #mobilitySkillRows select, #exerciseSkillRows select{ font-size:var(--fs-control); }
-  .skg-panel .score-note, .skg-panel label{ color:rgba(251,250,246,0.75); }
-  .skg-panel .remove-row{ color:var(--bg); }
-  .skg-panel .skg-maint{ color:rgba(251,250,246,0.75); }
-  .skg-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  .skg-panel .evidence-badge.moderate{ border-color:var(--bg); color:var(--bg); }
-  .skg-panel .evidence-badge.practical{ border-color:rgba(251,250,246,0.5); color:rgba(251,250,246,0.7); }
-  .skg-panel .evidence-badge.strong{ background:var(--bg); color:var(--text); }
-  .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid rgba(251,250,246,0.25); }
+  #mobilitySkillRows .skg-panel .score-note, #mobilitySkillRows .skg-panel label{ color:rgba(251,250,246,0.75); }
+  #mobilitySkillRows .skg-panel .remove-row{ color:var(--bg); }
+  #mobilitySkillRows .skg-panel .skg-maint{ color:rgba(251,250,246,0.75); }
+  #mobilitySkillRows .skg-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  #mobilitySkillRows .skg-panel .evidence-badge.moderate{ border-color:var(--bg); color:var(--bg); }
+  #mobilitySkillRows .skg-panel .evidence-badge.practical{ border-color:rgba(251,250,246,0.5); color:rgba(251,250,246,0.7); }
+  #mobilitySkillRows .skg-panel .evidence-badge.strong{ background:var(--bg); color:var(--text); }
+  /* The progression readout, written for the light ground it sits on. The mobility copy
+     below re-states the four colours it needs for the black box. */
+  .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--line); }
   .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
-    letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin-bottom:5px; }
-  /* The bar was black-on-faint-black, which is invisible once the box around it went dark. */
-  .skg-bar{ height:8px; background:rgba(251,250,246,0.22); margin-top:2px; }
+    letter-spacing:0.08em; color:var(--dim); margin-bottom:5px; }
+  .skg-bar{ height:8px; background:rgba(12,13,11,0.22); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
-  .skg-bar-fill{ height:100%; background:var(--bg); }
+  .skg-bar-fill{ height:100%; background:var(--reverse-bg); }
+  #mobilitySkillRows .skg-progress:not(:empty){ border-top-color:rgba(251,250,246,0.25); }
+  #mobilitySkillRows .skg-prog-head{ color:rgba(251,250,246,0.6); }
+  #mobilitySkillRows .skg-bar{ background:rgba(251,250,246,0.22); }
+  #mobilitySkillRows .skg-bar-fill{ background:var(--bg); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -970,11 +982,6 @@
 
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
-
-      <div class="group">
-        <div class="group-head"><div class="group-title">Progress</div></div>
-        <div class="fields" id="goalProgressBody"></div>
-      </div>
 
       <div class="group">
         <div class="group-head"><div class="group-title">This block</div><div class="group-sub">what the next few weeks have to deliver</div></div>
@@ -2076,7 +2083,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.78';
+const APP_VERSION = '2026.08.26.79';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6865,7 +6872,7 @@ async function loadCurrentGoals(){
   if(goals && goals.skillGoals && goals.skillGoals.length){
     goals.skillGoals.forEach(sg=>addSkillGoalRow(sg.category, sg.skill, sg.levelIndex, sg.isMaintenance, sg.autoGenerated));
   }
-  await renderGoalProgress();
+  await refreshGoalDependents();
 }
 
 async function renderAthleteLevel(){
@@ -7085,7 +7092,7 @@ async function saveGoalsFromForm(resultElId){
     result.style.color = 'var(--text)';
     showToast('Goals saved');
     flashConfirm(document.getElementById(resultElId === 'saveFunctionResult' ? 'saveFunctionBtn' : 'saveGoalsBtn'));
-    await renderGoalProgress();
+    await refreshGoalDependents();
     await renderMobilityProgression();
     await renderExerciseProgression();
   } catch(e){
@@ -7310,59 +7317,11 @@ async function renderSingleGoalProgress(p){
   return html;
 }
 
-document.getElementById('goalProgressBody').addEventListener('click', async (e)=>{
-  const btn = e.target.closest('.apply-suggested-target');
-  if(!btn) return;
-  const idx = parseInt(btn.dataset.goalIndex, 10);
-  const goalType = btn.dataset.goalType;
-  btn.textContent = 'Applying...'; btn.disabled = true;
-  try{
-    const goals = await getCurrentGoals(todayStr);
-    const suggestion = await benchmarkAndSuggestTarget(goalType);
-    if(!goals || !goals.list || !goals.list[idx] || !suggestion || suggestion.phase!=='suggested'){
-      showToast('Could not apply — try again', true); return;
-    }
-    const g = goals.list[idx];
-    if(suggestion.exerciseName){
-      g.targetExercise = suggestion.exerciseName;
-      g.targetWeight = suggestion.targetWeight;
-    } else {
-      g.targetDistance = suggestion.targetDistance;
-      g.targetTime = suggestion.targetTime;
-    }
-    g.targetDate = suggestion.targetDate;
-    const result = await window.storage.set(`goals:${todayStr}`, JSON.stringify(goals));
-    if(!result) throw new Error('save failed');
-    showToast('Target applied');
-    renderGoalProgress();
-  } catch(err){
-    showToast('Save failed — try again', true);
-    btn.textContent = 'Apply this target'; btn.disabled = false;
-  }
-});
 
-async function renderGoalProgress(){
-  const body = document.getElementById('goalProgressBody');
-  const goals = await getCurrentGoals(todayStr);
-  if(!goals || !goals.list || goals.list.length===0){
-    body.innerHTML = '<div class="log-entry">No goals yet — pick at least one.</div>';
-    return;
-  }
-  let html = '';
-  for(let i=0; i<goals.list.length; i++){
-    const g = goals.list[i];
-    g._index = i;
-    const ringPercent = await computeGoalRingPercent(g);
-    html += `<div style="display:flex; align-items:center; gap:10px; margin-top:${i>0?'16px':'0'};">`;
-    html += renderProgressRing(ringPercent);
-    html += `<div style="flex:1;">`;
-    html += `<div class="log-title" style="margin:0;"><span style="font-weight:700;">P${i+1}</span> ${i===0?'(top) ':''}— ${GOAL_TYPE_LABELS[g.type]}${g.isMaintenance?' · maintenance':''}${ringPercent!=null?` · ${ringPercent}%`:''}</div>`;
-    html += g.detail ? `<div class="score-note" style="margin:2px 0 0;">${g.detail}</div>` : '';
-    html += `</div></div>`;
-    html += await renderSingleGoalProgress(g);
-  }
-  body.innerHTML = html;
-  calibrateEdgeWords(body);
+// The Progress section this used to fill is gone — it restated goal by goal what "This
+// block" says once and what each skill row already carries. These two are what it also
+// drove, and they outlived it.
+async function refreshGoalDependents(){
   await renderBlockTarget();
   await renderMobilityProgression();
 }
