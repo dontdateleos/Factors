@@ -536,10 +536,17 @@
      surrounding empty space. Overlap between neighbouring targets is harmless: every
      item starts the same drag. */
   .wheel-day-item::before{ content:''; position:absolute; inset:-16px -22px; }
-  /* Below the cut, so it reads dark on the page as it always did. padding-top is written
-     per render to hang it directly under the band's bottom edge rather than centring it
-     in the stage, which would leave it straddling the cut. */
-  .week-wheel-detail{ width:52%; padding:0 4px 16px 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; overflow-y:auto; position:relative; z-index:2; }
+  /* Starts inside the band and is cut by it, the same way the day labels are: the black
+     paints over its upper part and a white twin inside the band redraws that part, so the
+     text runs white on black into black on orange across one line.
+     No z-index — sitting above the band was what kept it out of the cut. The band takes no
+     pointer events, so taps still reach the cards underneath. */
+  .week-wheel-detail{ width:52%; padding:var(--sp-3) 4px var(--sp-3) 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; overflow-y:auto; }
+  .wheel-ink .week-wheel-detail{ pointer-events:none; }
+  .wheel-ink .wheel-detail-day{ color:rgba(251,250,246,0.6); }
+  .wheel-ink .wheel-workout-type, .wheel-ink .wheel-ex-names{ color:var(--bg); }
+  .wheel-ink .wheel-workout-card{ border-bottom-color:rgba(251,250,246,0.25); }
+  .wheel-ink .wheel-add-card{ color:var(--bg); border-color:rgba(251,250,246,0.5); }
   .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
@@ -1955,7 +1962,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.51';
+const APP_VERSION = '2026.08.26.52';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3960,6 +3967,32 @@ function wheelInkRowBoundary(colEl, centerY){
   return baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
 }
 
+// The day's detail gets a twin too, so the cut runs through it rather than stopping at the
+// wheel. Its own function rather than part of renderWheelPositions, because the two are
+// written at different times: the wheel is redrawn on every drag frame, while the detail's
+// contents are filled in later by renderWeekGrid. Building the twin only inside the wheel
+// render left it holding whatever the pane contained one tick earlier — on first paint,
+// nothing at all.
+function syncWheelDetailTwin(){
+  const ink = document.getElementById('weekWheelInk');
+  const col = document.getElementById('weekWheelCol');
+  const detail = document.getElementById('weekWheelDetail');
+  if(!ink || !col || !detail) return;
+  ink.querySelectorAll('.wheel-detail-twin').forEach(n=>n.remove());
+  const dr = detail.getBoundingClientRect();
+  const colRect = col.getBoundingClientRect();
+  if(!dr.height) return;
+  const twin = detail.cloneNode(true);
+  twin.removeAttribute('id');
+  twin.classList.add('wheel-detail-twin');
+  twin.style.position = 'absolute';
+  twin.style.left = (dr.left - colRect.left) + 'px';
+  twin.style.top = (dr.top - colRect.top) + 'px';
+  twin.style.width = dr.width + 'px';
+  twin.style.height = dr.height + 'px';
+  ink.appendChild(twin);
+}
+
 function renderWheelPositions(dragOffsetDeg){
   const wheelCol = document.getElementById('weekWheelCol');
   if(!wheelCol) return;
@@ -4027,10 +4060,7 @@ function renderWheelPositions(dragOffsetDeg){
     // sits an overshoot above the black one it is meant to coincide with, and the label
     // reads as doubled rather than split.
     if(ink) ink.style.top = overshoot + 'px';
-    // Hang the day's detail directly under the cut rather than centring it in the stage,
-    // which would leave it straddling the edge.
-    const detail = document.getElementById('weekWheelDetail');
-    if(detail) detail.style.paddingTop = Math.max(0, boundary + 16) + 'px';
+    syncWheelDetailTwin();
   }
 
   if(wheelBlockPos){
@@ -4279,6 +4309,8 @@ async function renderWeekGrid(){
     });
   }
   detailCol.innerHTML = detailHtml;
+  // The white copy inside the band has to be rebuilt from the pane's new contents.
+  syncWheelDetailTwin();
   detailCol.querySelectorAll('[data-edit-date]').forEach(card=>{
     card.addEventListener('click', ()=>{
       const { editDate, editSlot } = card.dataset;
