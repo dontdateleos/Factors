@@ -241,7 +241,10 @@
   /* Fixed width so ROLL / DYNAMIC / STATIC line up as a column and the drills beside
      them start at the same x — the sequence is meant to be worked in order, so it should
      read as an ordered list rather than three ragged sentences. */
-  .mob-mod{ display:inline-block; min-width:54px; font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
+  /* min-width alone left no gap when the label was wider than it — DYNAMIC ran straight
+     into its own text while ROLL and STATIC had room. A padding-right guarantees the space
+     whatever the label's length, and the min-width still keeps the three aligned. */
+  .mob-mod{ display:inline-block; min-width:54px; padding-right:8px; font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
   /* One modality per line — collapsing all three onto a single wrapped line saved space
      but made them unreadable as a sequence you work through in order. */
   .mob-line{ padding:2px 0; }
@@ -664,19 +667,27 @@
   .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
-  .warm-card{ border:none; border-radius:0; padding:12px 0; margin-bottom:0; background:transparent; border-bottom:1px solid var(--line); }
+  .warm-card{ border:none; border-radius:0; padding:var(--sp-2) 0; margin-bottom:0; background:transparent; border-bottom:1px solid var(--line); }
   .warm-card:last-child{ border-bottom:none; }
   .warm-area{ position:relative; padding-left:14px; }
   .warm-area::before{ content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--dim); }
   .warm-card.injury .warm-area::before{ background:var(--bad); }
   .warm-card.load .warm-area::before{ background:var(--warn); }
   .warm-card.planned .warm-area::before{ background:var(--accent); }
-  .warm-card .warm-reason, .warm-card .warm-drills{ padding-left:14px; }
-  .warm-area{ font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:2px; letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
-  .warm-reason{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.06em; margin-bottom:10px; }
+  .warm-card .warm-drills{ padding-left:14px; }
+  /* Area and reason share a line, drills get their own — three lines a card become two,
+     with nothing dropped. The area sets in tag type rather than as a heading, since it is
+     no longer holding a line of its own. It keeps its dot: that is the injury/load/planned
+     flag, and it is attached to this element, so hiding the area would take the flag with
+     it. */
+  .warm-area{ display:inline; font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0; -webkit-text-stroke:0; }
+  .warm-reason{ display:inline; font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
+    letter-spacing:0.01em; margin-bottom:0; padding-left:6px; }
+  .warm-reason:not(:empty)::before{ content:'· '; }
   .warm-reason.injury{ color:var(--text); }
   .warm-reason.load{ color:var(--text); }
-  .warm-drills{ font-size:var(--fs-md); line-height:1.9; }
+  .warm-drills{ display:block; font-size:var(--fs-md); line-height:1.9; margin-top:var(--sp-1); }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -1962,7 +1973,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.52';
+const APP_VERSION = '2026.08.26.53';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -13523,7 +13534,15 @@ async function generateWarmup(){
     // Two lines per area, not five. "Planned session prep" plus a separate "Planned:
     // Overhead Press" line said the same thing twice, and one drill per line turned four
     // focus areas into twenty lines of scrolling before the actual workout appeared.
-    const plannedFor = exercisesByArea[area] ? exercisesByArea[area].join(', ') : '';
+    // Every name carried its own "(secondary)", so three lifts read "Bench Press
+    // (secondary), Overhead Press (secondary), Dips (secondary)" — 62 characters to say one
+    // thing three times, and two lines to hold it. Say it once for the list, and cap the
+    // names so a four-lift area can't set the card's height.
+    const _names = exercisesByArea[area] || [];
+    const _allSecondary = _names.length > 0 && _names.every(n=>/\(secondary\)$/.test(n));
+    const _clean = _names.map(n=>n.replace(/\s*\(secondary\)$/,''));
+    const _shown = _clean.slice(0,2).join(', ') + (_clean.length>2 ? ` +${_clean.length-2}` : '');
+    const plannedFor = _names.length ? (_shown + (_allSecondary ? ' · secondary' : '')) : '';
     const reasonLine = plannedFor && r.cls==='planned' ? plannedFor : r.text;
     const card = document.createElement('div');
     card.className = `warm-card ${r.cls}`;
