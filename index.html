@@ -523,8 +523,9 @@
      black-and-white object sitting on it — the ground stays the tab's orange, only the
      text inside the band is white.
      The panel takes no pointer events, so the drag still lands on the copy underneath. */
-  .week-wheel-col{ flex:0 0 48%; height:34vh; min-height:250px; max-height:300px;
-    position:relative; padding-left:6px; overflow:visible; }
+  /* height is written per render — see WHEEL_MIN_CENTER_Y. This is the pre-script value
+     so the column has a size on first paint. */
+  .week-wheel-col{ flex:0 0 48%; height:254px; position:relative; padding-left:6px; overflow:visible; }
   /* z-index so the panel paints OVER the black copies rather than under them — both
      layers are positioned, so DOM order alone would leave the black text sitting on top
      of the black fill and muddying the orange twin beneath it. */
@@ -2095,7 +2096,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.72';
+const APP_VERSION = '2026.08.26.73';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4061,6 +4062,9 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
 });
 
 let activeWheelDayIndex = null; // set to today's index on first render each session
+// Where the arc sits when the day's first card is short enough not to push it lower.
+// 150 is what 0.52 of the old fixed 289px stage came to, so a quiet day looks unchanged.
+const WHEEL_MIN_CENTER_Y = 150;
 
 function extractBlockNames(block){
   if(!block) return [];
@@ -4159,12 +4163,22 @@ function renderWheelPositions(dragOffsetDeg){
   // was simply invisible. Size the circle to fit the column instead: leave room for the
   // widest label at 0deg on the right, and keep the leftmost point inside the box, so
   // all seven days stay on screen whichever day is active.
-  // 0.38 put the arc in the top third: 18px of black above it and 95px of empty cream
-  // below, and the cut landed in the middle of the hub so "WEEK 1 of 4" was split across
-  // it for no reason. Just past centre balances the two (58 above, 55 below), drops the
-  // cut through the day label and the workout list rather than the hub, and gives the
-  // list a second card's worth of room above the fold.
-  const centerX = 14, centerY = colHeight * 0.52;
+  // The band's lower edge is the active day's ink midline, so the top workout card sits
+  // wholly on black only if the day label sits below the card. A fixed centre cannot do
+  // that: the card grows a line per exercise without bound, so any height chosen for it
+  // is one exercise away from being wrong. Measure the card and put the arc under it.
+  // The floor is what the old fixed geometry came to, so a rest day or a single short
+  // session leaves the wheel where it has always been rather than riding up the page.
+  const firstCard = document.querySelector('#weekWheelDetail .wheel-workout-card, #weekWheelDetail .wheel-add-card');
+  let centerY = WHEEL_MIN_CENTER_Y;
+  if(firstCard){
+    const cardRect = firstCard.getBoundingClientRect();
+    if(cardRect.height) centerY = Math.max(centerY, cardRect.bottom - colRect.top);
+  }
+  // The column has to be tall enough to hold the arc wherever the centre lands — radius
+  // plus a label — or the lowest days fall out of the bottom of it.
+  wheelCol.style.height = Math.round(centerY + 104) + 'px';
+  const centerX = 14;
   const radius = Math.max(60, colWidth - 115);
   dates.forEach((date, i) => {
     // Relative to the active day (not absolute index) — this is what makes the
@@ -4465,6 +4479,9 @@ async function renderWeekGrid(){
     });
   }
   detailCol.innerHTML = detailHtml;
+  // Re-run the wheel now the card it measures exists. The earlier call positioned it
+  // against the previous day's card, or against nothing at all on first paint.
+  renderWheelPositions(0);
   // The white copy inside the band has to be rebuilt from the pane's new contents.
   syncWheelDetailTwin();
   detailCol.querySelectorAll('[data-edit-date]').forEach(card=>{
