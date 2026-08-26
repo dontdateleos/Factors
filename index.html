@@ -777,6 +777,11 @@
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
   .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
+  /* .group-sub takes a whole row, so a chevron written after it in the markup wrapped onto
+     a third line under the subtitle. Order puts it back beside the title without moving it
+     in the DOM, where it belongs for the tap target and for reading order. */
+  .group-head .collapse-chevron{ order:1; }
+  .group-head .group-sub{ order:2; }
   /* One left edge. A group's heading is full-bleed and sits at the page's own content
      edge; .fields then added a second 14px, so every heading started 14px to the left of
      the content under it. Two indents for one column. The rule under each heading already
@@ -1298,8 +1303,8 @@
 
   <div class="panel" id="panel-settings">
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Connect devices</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="devices" style="cursor:pointer;"><div class="group-title">Connect devices <span class="head-est" id="devicesSummary"></span></div><span class="collapse-chevron" data-collapse="devices">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="devices" style="display:none;">
         <div id="deviceConnectRow" style="display:flex; gap:10px;"></div>
         <div id="deviceConnectStatus" class="score-note"></div>
         <!-- Disconnect, Test connection and the last-attempt debug line all live in
@@ -1316,8 +1321,8 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Goal Profile</div><div class="group-sub">shapes every recovery threshold in here</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">Goal Profile <span class="head-est" id="goalProfileSummary"></span></div><div class="group-sub">shapes every recovery threshold in here</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="goalprofile" style="display:none;">
         <select id="goalProfile">
           <option value="perform">Perform</option>
           <option value="balanced">Balanced</option>
@@ -1326,8 +1331,8 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Training Setup</div><div class="group-sub">what the generator builds around</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="trainingsetup" style="cursor:pointer;"><div class="group-title">Training Setup <span class="head-est" id="trainingSetupSummary"></span></div><div class="group-sub">what the generator builds around</div><span class="collapse-chevron" data-collapse="trainingsetup">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="trainingsetup" style="display:none;">
         <div class="score-note">Which days can you train?</div>
         <div id="availableDaysCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
         <div class="field-row"><span class="field-label">Session length</span>
@@ -1425,8 +1430,8 @@
          are not black, and standing mid-run they cut the settings form into stripes of
          tab colour the way Recent entries did on Data. -->
     <div class="group">
-      <div class="group-head"><div class="group-title">Version</div><div class="group-sub">what this copy is running</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <div id="updateCheckResult" class="score-note"></div>
         <button id="checkUpdateBtn" class="outline">Check for update</button>
@@ -2150,7 +2155,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.91';
+const APP_VERSION = '2026.08.26.92';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2798,6 +2803,7 @@ async function loadGoalProfile(){
 }
 profileSelect.addEventListener('change', async ()=>{
   await window.storage.set('settings:goalProfile', profileSelect.value);
+  renderSettingsSummaries();
 });
 async function currentGoalThresholds(){
   const base = GOAL_PROFILES[profileSelect.value] || GOAL_PROFILES.balanced;
@@ -3604,6 +3610,35 @@ async function loadTrainingSetup(){
     document.getElementById('blockLengthSelect').value = String(cfg.length);
   } catch(e){}
   await renderBlockPositionNote();
+  renderSettingsSummaries();
+}
+
+// A settings row should say what it is set to without being opened — a list of section
+// names alone tells you nothing about your own configuration, which is the whole reason
+// you came here. Each header carries its current value; the controls are behind it.
+async function renderSettingsSummaries(){
+  const put = (id, text)=>{ const el = document.getElementById(id); if(el) el.textContent = text || ''; };
+  try{
+    const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
+    const days = (setup.availableDays || []).length;
+    const bits = [
+      days ? `${days} day${days===1?'':'s'}` : 'no days set',
+      setup.sessionLength ? `~${setup.sessionLength} min` : null,
+      setup.bodyweightAll ? 'bodyweight' : null
+    ].filter(Boolean);
+    put('trainingSetupSummary', bits.join(' \u00b7 '));
+  } catch(e){ put('trainingSetupSummary', 'not set up yet'); }
+  try{
+    const sel = document.getElementById('goalProfile');
+    put('goalProfileSummary', sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '');
+  } catch(e){}
+  put('versionSummary', APP_VERSION);
+  // Whether anything is actually connected, rather than how many things could be.
+  try{
+    let connected = false;
+    try{ connected = !!JSON.parse((await window.storage.get('oura:tokens')).value); } catch(e){}
+    put('devicesSummary', connected ? 'Oura connected' : 'none connected');
+  } catch(e){ put('devicesSummary', 'none connected'); }
 }
 
 // Shows where the current week sits in the block — the periodization was invisible
@@ -3659,6 +3694,7 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
     await window.storage.set('settings:blockConfig', JSON.stringify({ length:newLen, anchor:cfg.anchor, blockIndex:cfg.blockIndex }));
     await renderBlockPositionNote();
     showToast('Training setup saved');
+    renderSettingsSummaries();
   } catch(e){ showToast('Save failed — try again', true); }
 });
 
