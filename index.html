@@ -1079,14 +1079,13 @@
             <option value="high">High — flares easily, avoid loading directly</option>
           </select>
         </div>
-        <div class="field-row"><span class="field-label">Half-life (days)</span><input type="number" id="injuryHalfLife" value="14"></div>
-        <div class="score-note" id="injuryHalfLifeNote"></div>
-        <textarea id="injuryNotes" placeholder="Notes..."></textarea>
         <button class="primary" id="addInjuryBtn">Add injury</button>
       </div>
     </div>
 
-    <div class="log">
+    <!-- Hidden entirely when nothing is logged: an empty state saying "no injuries,
+         enjoy it" is a section-sized way of reporting that a section is empty. -->
+    <div class="log" id="injuryListSection" style="display:none;">
       <div class="log-title">Active &amp; recent injuries</div>
       <div id="injuryList"></div>
     </div>
@@ -2124,7 +2123,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.88';
+const APP_VERSION = '2026.08.26.89';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5402,8 +5401,11 @@ async function addInjury(){
   const severity = parseFloat(document.getElementById('injurySeverity').value);
   const movement = document.getElementById('injuryMovement').value;
   const irritability = document.getElementById('injuryIrritability').value;
-  const halfLife = parseFloat(document.getElementById('injuryHalfLife').value) || 14;
-  const notes = document.getElementById('injuryNotes').value;
+  // Half-life is no longer asked for — it is what the injury TYPE already implies, and a
+  // number of days for an injury to halve is not something anyone knows about their own
+  // knee. The decay model still needs it, so it comes from the type.
+  const halfLife = INJURY_TYPE_HALFLIFE_DEFAULT[type] || 14;
+  const notes = '';
   if(!part){ showToast('Enter a body part', true); return; }
   if(isNaN(severity)){ showToast('Enter a severity (1-10)', true); return; }
   const id = Date.now().toString();
@@ -5412,7 +5414,6 @@ async function addInjury(){
     const result = await window.storage.set(`injury:${id}`, JSON.stringify(injury));
     if(!result) throw new Error('save failed');
     document.getElementById('injuryPart').value=''; document.getElementById('injurySeverity').value='';
-    document.getElementById('injuryNotes').value=''; document.getElementById('injuryHalfLife').value='14';
     document.getElementById('injuryType').value='general';
     document.getElementById('injuryMovement').value='';
     document.getElementById('injuryIrritability').value='low';
@@ -5431,22 +5432,20 @@ document.getElementById('addInjuryBtn').addEventListener('click', addInjury);
 // clinical fact, just a more reasonable starting point than one flat number for
 // everything. Stays fully editable — this only sets it, never locks it.
 const INJURY_TYPE_HALFLIFE_DEFAULT = { general: 14, tendinopathy: 25, sprain_strain: 10 };
-document.getElementById('injuryType').addEventListener('change', (e)=>{
-  const suggested = INJURY_TYPE_HALFLIFE_DEFAULT[e.target.value];
-  if(suggested==null) return;
-  document.getElementById('injuryHalfLife').value = suggested;
-  document.getElementById('injuryHalfLifeNote').textContent = `Suggested for ${e.target.options[e.target.selectedIndex].text.toLowerCase()} — tendinopathy typically resolves slower than a strain/sprain. Edit freely.`;
-});
 
 async function refreshInjuries(){
   const list = document.getElementById('injuryList');
+  const section = document.getElementById('injuryListSection');
+  const show = on => { if(section) section.style.display = on ? '' : 'none'; };
   list.innerHTML = '<div class="skeleton tall"></div><div class="skeleton short"></div>';
   try{
     const res = await window.storage.list('injury:');
     if(!res||!res.keys||res.keys.length===0){
-      list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 20h20L12 2z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>No injuries logged. Enjoy it.</span></div>';
+      list.innerHTML='';
+      show(false);
       return;
     }
+    show(true);
     list.innerHTML='';
     const injuries = [];
     for(const k of res.keys){
