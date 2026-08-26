@@ -545,6 +545,14 @@
     border-top:1px solid rgba(251,250,246,0.25); }
   .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
     flex-wrap:wrap; margin-top:var(--sp-3); }
+  .week-gen-split{ justify-content:space-between; }
+  .week-deload{ display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer;
+    font-family:var(--sans); font-size:var(--fs-md); }
+  .week-deload input{ width:auto; flex:none; }
+  /* The badge was black on black once this moved into the panel. */
+  #deloadSuggestedBadge{ display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    background:var(--bg); color:var(--text); padding:3px 6px; }
   .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
   .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
     border-color:rgba(251,250,246,0.5); }
@@ -913,19 +921,22 @@
               <option value="8">8 weeks</option>
             </select>
             <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
+          </div>
+          <!-- Deload belongs with the week it applies to, not in a bordered box three
+               sections below it. The long sentence it carried is what "~50%" says. -->
+          <div class="week-gen-row week-gen-split">
+            <label class="week-deload" for="deloadWeekCheckbox">
+              <input type="checkbox" id="deloadWeekCheckbox">
+              <span>Deload week · ~50%</span>
+              <span id="deloadSuggestedBadge">Suggested</span>
+            </label>
             <button class="small outline" id="clearAllWeekBtn">Clear all</button>
           </div>
+          <div id="deloadSuggestedNote" class="score-note" style="display:none;"></div>
         </div>
       </div>
 
       <div id="blockEditPanel" style="display:none;"></div>
-
-      <div class="field-row" style="margin-top:16px; margin-bottom:0; padding:12px; border:2px solid var(--border-bold); border-radius:0; background:transparent; flex-wrap:wrap;">
-        <input type="checkbox" id="deloadWeekCheckbox" style="width:auto; flex:none;">
-        <label for="deloadWeekCheckbox" style="font-size:var(--fs-md); flex:1;">Deload week — auto-suggest ~50% volume when logging this week</label>
-        <span id="deloadSuggestedBadge" style="display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:var(--reverse-bg); color:var(--bg); padding:3px 6px;">Suggested</span>
-      </div>
-      <div id="deloadSuggestedNote" class="score-note" style="display:none; margin-bottom:14px;"></div>
 
       <div class="group">
         <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div></div>
@@ -2109,7 +2120,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.83';
+const APP_VERSION = '2026.08.26.84';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
