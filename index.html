@@ -429,7 +429,10 @@
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
-  .week-wheel-stage{ display:flex; height:50vh; min-height:340px; max-height:460px; }
+  /* Sized so the band below the cut ends just under the lowest label. It runs to the
+     stage's own bottom edge, so shortening the stage is what pulls the band up — the
+     alternative, stopping it short, puts it back to ending on nothing. */
+  .week-wheel-stage{ display:flex; height:34vh; min-height:250px; max-height:300px; }
   /* Same split as the recommendation card, but the boundary is a box rather than a line —
      the labels rotate, so clipping each one individually would mean fighting its own
      transform. Instead the wheel is drawn twice: once in black over the page, and again
@@ -444,13 +447,11 @@
      origin — so the twins live in an inner box pushed back by exactly that bleed. Without
      it every cloned label sits one bleed-width left of the copy it is meant to sit on top
      of, and the two read as a doubled letter either side of the boundary. */
-  /* #000000, not --reverse-bg: the header is pure black and the panel is meant to read as
-     a continuation of it, so the two greys can't be a shade apart. */
-  .wheel-ink{ --ink-bleed:14px; position:absolute; top:0; bottom:0; left:calc(-1 * var(--ink-bleed)); right:32%; /* replaced per render */ z-index:1; background:#000000; overflow:hidden; pointer-events:none; }
-  /* The header's hairline rule runs straight across the join and reads as a gap in it.
-     On this tab the panel provides the separation instead. */
-  body.tab-training header{ border-bottom-color:transparent; }
-  .wheel-ink-inner{ position:absolute; top:0; bottom:0; left:var(--ink-bleed); right:0; }
+  /* The cut is horizontal and the black hangs BELOW it — page colour above, black under —
+     so the band no longer continues the header and takes content black rather than the
+     header's #000000. top and right are written per render. */
+  .wheel-ink{ --ink-bleed:14px; position:absolute; top:50%; bottom:0; left:calc(-1 * var(--ink-bleed)); right:0; z-index:1; background:var(--reverse-bg); overflow:hidden; pointer-events:none; }
+  .wheel-ink-inner{ position:absolute; left:var(--ink-bleed); right:0; }
   .wheel-ink .wheel-day-item{ color:var(--block-orange); }
   .wheel-ink .wheel-hub-label, .wheel-ink .wheel-hub-of{ color:rgba(255,148,66,0.7); }
   .wheel-ink .wheel-hub-num{ color:var(--block-orange); -webkit-text-stroke-color:var(--block-orange); }
@@ -460,7 +461,11 @@
   .wheel-hub-label{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); margin-bottom:3px; }
   .wheel-hub-num{ display:block; font-family:var(--sans); font-size:34px; font-weight:var(--fw-bold); letter-spacing:-0.05em; color:var(--text); -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; }
   .wheel-hub-of{ display:block; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.06em; margin-top:2px; }
-  .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.01em; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
+  /* Thickened the way the score number is: a stroke on top of the weight, and the tracking
+     pulled in to match. In em so it stays proportional — the labels run 16px to 28px with
+     distance from the active day, and a fixed px stroke reads heavy on the small ones.
+     currentColor, so each copy strokes in its own colour across the cut. */
+  .wheel-day-item{ position:absolute; left:0; font-family:var(--sans); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.04em; -webkit-text-stroke:0.035em currentColor; white-space:nowrap; transform-origin:left center; transition:all 0.28s cubic-bezier(0.2,0.8,0.2,1); cursor:pointer; -webkit-tap-highlight-color:transparent; color:var(--text); touch-action:none; }
   /* Drag only starts on a day label, deliberately — capturing the whole column stole
      page-scroll gestures from the empty space around the arc. But the labels themselves
      are small targets, the far ones only 16px tall. This pseudo-element grows the hit
@@ -468,7 +473,15 @@
      surrounding empty space. Overlap between neighbouring targets is harmless: every
      item starts the same drag. */
   .wheel-day-item::before{ content:''; position:absolute; inset:-16px -22px; }
-  .week-wheel-detail{ width:52%; padding:16px 4px 16px 14px; display:flex; flex-direction:column; justify-content:center; gap:12px; overflow-y:auto; }
+  /* Below the cut, so it reads light on dark. padding-top is written per render to hang
+     it directly under the band's top edge. */
+  .week-wheel-detail{ width:52%; padding:0 4px 16px 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; overflow-y:auto; position:relative; z-index:2; color:var(--bg); }
+  .week-wheel-detail .wheel-detail-day{ color:rgba(251,250,246,0.6); }
+  .week-wheel-detail .wheel-workout-type, .week-wheel-detail .wheel-ex-names{ color:var(--bg); }
+  .week-wheel-detail .wheel-workout-card{ border-bottom-color:rgba(251,250,246,0.25); }
+  .week-wheel-detail .wheel-add-card{ color:var(--bg); border-color:rgba(251,250,246,0.5); }
+  .week-wheel-detail .score-note{ color:rgba(251,250,246,0.75); }
+  .week-wheel-detail button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
@@ -1882,7 +1895,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.45';
+const APP_VERSION = '2026.08.26.46';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3854,25 +3867,37 @@ let wheelBlockPos = null;
 const WHEEL_ANGLE_STEP = 180/6; // degrees per day-step — same total span as the original fixed arc
 const WHEEL_DRAG_SENSITIVITY = 0.22; // degrees of rotation per pixel of finger movement
 
-// Puts the ink panel's right edge through the middle of the active label's SECOND letter,
-// rather than at a fixed fraction of the column that happens to land near it. Measured
-// against the resting position of the day at 0deg — not the live element — so the edge
-// stays put while the wheel is dragged and the labels travel across it, instead of
-// jittering with them.
-function wheelInkBoundary(centerX, radius, label){
-  const ctx = wheelInkBoundary._ctx
-    || (wheelInkBoundary._ctx = document.createElement('canvas').getContext('2d'));
+// Where a horizontal cut lands so it passes through the middle of the label resting at
+// 0deg. Measured from the glyph at the size it is actually drawn, and from the RESTING
+// position rather than a live element, so the edge holds still while the wheel turns and
+// the labels travel across it — measuring the active label instead made the edge chase it.
+function wheelInkRowBoundary(colEl, centerY){
+  // A hidden copy at the resting size, because the real line box height is what the
+  // baseline maths needs and .wheel-day-item sets no line-height of its own.
+  let probe = wheelInkRowBoundary._probe;
+  if(!probe){
+    probe = document.createElement('div');
+    probe.className = 'wheel-day-item';
+    probe.style.visibility = 'hidden';
+    probe.style.fontSize = '28px';
+    probe.textContent = 'WED';
+    wheelInkRowBoundary._probe = probe;
+  }
+  colEl.appendChild(probe);
+  const lineH = probe.getBoundingClientRect().height || 32;
+  probe.remove();
+  const ctx = wheelInkRowBoundary._ctx
+    || (wheelInkRowBoundary._ctx = document.createElement('canvas').getContext('2d'));
   const root = getComputedStyle(document.documentElement);
   const family = root.getPropertyValue('--sans').trim() || 'Helvetica, Arial, sans-serif';
-  const size = 28; // the size a day label takes at dist 0 — see the fontSize line below
-  ctx.font = `700 ${size}px ${family}`;
-  // letter-spacing is added AFTER each character and canvas doesn't apply it, so it
-  // belongs on the first letter's advance only — folding it into the second letter too
-  // carries half a gap into the halving and lands the edge past the centre.
-  const tracking = -0.01 * size; // .wheel-day-item letter-spacing
-  const first = label.length ? ctx.measureText(label[0]).width + tracking : 0;
-  const second = label.length > 1 ? ctx.measureText(label[1]).width : 0;
-  return centerX + radius + first + second / 2;
+  ctx.font = `700 28px ${family}`;
+  const m = ctx.measureText('WED');
+  const boxTop = centerY - 14;   // matches el.style.top for the item at 0deg
+  const baseline = boxTop + (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
+    + m.fontBoundingBoxAscent;
+  // The text stroke widens the ink evenly above and below, so it moves the extents but
+  // not their midpoint — no correction needed for it here.
+  return baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
 }
 
 function renderWheelPositions(dragOffsetDeg){
@@ -3920,26 +3945,22 @@ function renderWheelPositions(dragOffsetDeg){
 
   const inkPanel = ink && ink.parentElement;
   if(inkPanel){
-    // Fixed to Thursday's label, not whichever day happens to be active. The boundary is
-    // a property of the panel rather than of the day on it, and measuring it per day made
-    // the edge shift every time the wheel turned.
-    const boundary = wheelInkBoundary(centerX, radius, WEEK_DAY_LABELS[3]);
-    inkPanel.style.right = Math.max(0, colWidth - boundary) + 'px';
-    // Run the panel up to the header rather than to main's top edge: main starts below
-    // its own padding, which left a thin strip of page colour above the panel.
-    const header = document.querySelector('header');
-    if(header && colRect.height){
-      // A few pixels past the header rather than exactly to it. Layout positions are
-      // fractional, so meeting it precisely left a hairline of page colour showing
-      // through. The header is sticky at z-index 10, so the overlap is hidden by it.
-      const overshoot = Math.max(0, colRect.top - header.getBoundingClientRect().bottom) + 4;
-      inkPanel.style.top = (-overshoot) + 'px';
-      // Push the twins back down by the same amount. The panel is the clones' offset
-      // parent, so raising its top edge moves their origin with it — every orange label
-      // would sit that far above the black one it is meant to coincide with, which reads
-      // as the two copies coming apart. Same correction as the horizontal bleed.
-      if(ink) ink.style.top = overshoot + 'px';
-    }
+    const boundary = wheelInkRowBoundary(wheelCol, centerY);
+    // Bleed off the right edge as well, so the band crosses the whole page.
+    const stage = wheelCol.parentElement;
+    const stageRect = stage ? stage.getBoundingClientRect() : colRect;
+    inkPanel.style.right = -((stageRect.right - colRect.right) + 14) + 'px';
+    inkPanel.style.top = boundary + 'px';
+    // The panel is the twins' offset parent, so its own top-left is their origin. Push
+    // them back by exactly what the edge cut off in each axis — the left bleed is handled
+    // by .wheel-ink-inner's own left, this is the vertical half. Without it every orange
+    // copy sits a band-height below the black one it is meant to coincide with, and the
+    // label reads as doubled rather than split.
+    if(ink) ink.style.top = (-boundary) + 'px';
+    // Hang the day's detail directly under the cut rather than centring it in the stage,
+    // so the pane sits inside the black instead of straddling its edge.
+    const detail = document.getElementById('weekWheelDetail');
+    if(detail) detail.style.paddingTop = Math.max(0, boundary + 16) + 'px';
   }
 
   if(wheelBlockPos){
