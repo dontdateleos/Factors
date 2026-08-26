@@ -89,7 +89,12 @@
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
   h1{ font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
-  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; }
+  /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
+     own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
+     and below it — and the rest hangs the display type off the edge, as display type set
+     this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
+     rather than assuming the margin. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
@@ -2215,7 +2220,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.95';
+const APP_VERSION = '2026.08.26.96';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2902,6 +2907,7 @@ function lerp(a, b, t){ return a + (b-a)*t; }
 
 let headerCollapseEls = null;
 let logoTextWidth = null;
+let logoOriginX = 14;
 
 function updateHeaderCollapse(){
   if(window.headerCollapseSuspended) return;
@@ -2918,6 +2924,8 @@ function updateHeaderCollapse(){
     // content, so the letter span's own rendered position is what reflects real text
     // metrics (which differ slightly between engines) rather than a pixel assumption.
     const h1Rect = headerCollapseEls.h1.getBoundingClientRect();
+    const brandRect = header.querySelector('.header-brand').getBoundingClientRect();
+    logoOriginX = h1Rect.left - brandRect.left;
     logoTextWidth = 0;
     headerCollapseEls.h1.querySelectorAll('.logo-line').forEach(line=>{
       const spans = line.querySelectorAll('span');
@@ -2936,7 +2944,7 @@ function updateHeaderCollapse(){
   // the type so the two stay in the same relationship all the way through the collapse.
   const MARK_GAP = 12;
   mark.style.top = lerp(49, 30, progress) + 'px';
-  mark.style.left = (14 + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
+  mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
   mark.style.transform = `scale(${1-progress})`;
 }
 
