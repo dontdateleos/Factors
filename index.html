@@ -587,13 +587,14 @@
   /* The numbered badge for an active skill. A filled disc rather than a bare number: two
      of these are the only marks on the wheel that mean "you are training this", and a
      digit on its own would read as another level number. */
+  /* The assessment wheel carries the same disc, holding the level you have ticked rather
+     than a rank. Same yellow either side of the app: on this tab it is the only warm mark
+     on a black panel, which is what makes a rated domain findable while scrolling. */
+  .mob-wheel-score .skill-rank{ color:var(--text); }
   .skill-rank{ display:inline-flex; align-items:center; justify-content:center;
     width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
     font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
     background:var(--block-yellow); color:var(--text); }
-  /* Function's own lavender is the page here, so the badge takes a deeper cut of it —
-     the tab's purple at a strength that reads on the tab's purple. */
-  #mobilitySkillPicker .skill-rank{ background:#4b3a94; color:var(--bg); }
   #strengthSkillPicker .mob-wheel-item, #mobilitySkillPicker .mob-wheel-item{ color:var(--text); }
   #strengthSkillPicker .mob-wheel-score, #mobilitySkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
   #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score,
@@ -612,6 +613,11 @@
   #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
     font-family:var(--mono); font-size:var(--fs-tag); opacity:0.7; }
   /* Between the wheel and the ladder: what you tick to put the skill in your sessions. */
+  /* It lives inside #goalListRows now, one padding deeper than a panel-level section, so
+     it needs both to bleed to the screen edge. */
+  #goalListRows > #runStartPanel{ margin-left:-28px; margin-right:-28px; }
+  #goalListRows > #runStartPanel > .group-head{ margin-left:0; margin-right:0; padding-left:28px; padding-right:28px; }
+  #goalListRows > #runStartPanel > .fields{ padding-left:28px; padding-right:28px; }
   .skill-active-row{ display:flex; align-items:center; gap:10px; min-height:44px;
     margin-top:var(--sp-2); font-family:var(--sans); font-size:var(--fs-md);
     font-weight:var(--fw-bold); cursor:pointer; }
@@ -982,7 +988,9 @@
         </div>
       </div>
 
-      <div class="group form-panel">
+      <!-- Moved under the running goal row by loadCurrentGoals, and hidden when there
+           isn't one — it is that goal's own setup, not a section of its own. -->
+      <div class="group form-panel" id="runStartPanel">
         <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
         <div class="fields">
           <div class="field-row"><span class="field-label">Longest run you could do today</span>
@@ -1013,10 +1021,6 @@
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
 
-      <div class="group">
-        <div class="group-head"><div class="group-title">This block</div><div class="group-sub">what the next few weeks have to deliver</div></div>
-        <div class="fields" id="blockTargetBody"></div>
-      </div>
   </div>
 
   <!-- INJURIES PANEL -->
@@ -2120,7 +2124,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.86';
+const APP_VERSION = '2026.08.26.87';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3512,22 +3516,36 @@ function addGoalRow(goal){
   row.querySelector('.goal-target-date').value = goal.targetDate || '';
   row.querySelector('.goal-maintenance').checked = !!goal.isMaintenance;
   updateGoalFieldVisibility(row);
-  row.querySelector('.goal-type').addEventListener('change', ()=>updateGoalFieldVisibility(row));
+  // Switching a row to or from running has to move the running setup with it, or it stays
+  // under a goal that is no longer the running one.
+  row.querySelector('.goal-type').addEventListener('change', ()=>{
+    updateGoalFieldVisibility(row);
+    attachRunStartToRunningGoal();
+  });
 
-  row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateGoalPriorityBadges(); });
+  row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateGoalPriorityBadges(); attachRunStartToRunningGoal(); });
+  // previousElementSibling/nextElementSibling would land on the running setup panel now
+  // that it sits between rows, so a reorder could insert a goal on the wrong side of it or
+  // do nothing at all. Step over anything that is not a goal row, then put the panel back
+  // under whichever row is the running one afterwards.
+  const prevGoalRow = el => { let n = el.previousElementSibling; while(n && !n.classList.contains('goal-row')) n = n.previousElementSibling; return n; };
+  const nextGoalRow = el => { let n = el.nextElementSibling; while(n && !n.classList.contains('goal-row')) n = n.nextElementSibling; return n; };
   row.querySelector('.goal-move-up').addEventListener('click', ()=>{
-    const prev = row.previousElementSibling;
+    const prev = prevGoalRow(row);
     if(prev) container.insertBefore(row, prev);
     updateGoalPriorityBadges();
+    attachRunStartToRunningGoal();
   });
   row.querySelector('.goal-move-down').addEventListener('click', ()=>{
-    const next = row.nextElementSibling;
+    const next = nextGoalRow(row);
     if(next) container.insertBefore(next, row);
     updateGoalPriorityBadges();
+    attachRunStartToRunningGoal();
   });
 
   container.appendChild(row);
   updateGoalPriorityBadges();
+  attachRunStartToRunningGoal();
 }
 document.getElementById('addGoalRow').addEventListener('click', ()=>addGoalRow());
 
@@ -3893,7 +3911,7 @@ async function renderMobilityAssessment(skipCollapse){
       <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
            style="opacity:${offset===0?1:(dist===1?0.55:0.28)};">
         <span class="mob-wheel-name">${cap(d)}</span>
-        <span class="mob-wheel-score">${score!=null?score:'–'}</span>
+        <span class="mob-wheel-score">${score!=null?`<span class="skill-rank">${score}</span>`:''}</span>
       </div>`);
   }
 
@@ -6970,6 +6988,23 @@ async function advanceSkillLevel(skill, category){
   } catch(e){ return false; }
 }
 
+// The running starting point belongs to the running goal, so it sits under that row
+// rather than as a section of its own further down — and disappears entirely when there
+// is no running goal, where before it asked a runner's question of someone who does not run.
+function attachRunStartToRunningGoal(){
+  const panel = document.getElementById('runStartPanel');
+  const rows = document.getElementById('goalListRows');
+  if(!panel || !rows) return;
+  const runRow = Array.from(rows.querySelectorAll('.goal-row'))
+    .find(r => { const sel = r.querySelector('.goal-type'); return sel && sel.value === 'running'; });
+  if(!runRow){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+  runRow.insertAdjacentElement('afterend', panel);
+}
+
 async function loadCurrentGoals(){
   const goals = await getCurrentGoals(todayStr);
   document.getElementById('goalListRows').innerHTML = '';
@@ -6978,6 +7013,7 @@ async function loadCurrentGoals(){
   } else {
     addGoalRow(); // start with one empty row
   }
+  attachRunStartToRunningGoal();
   // Both skill categories are pickers now — nothing is rendered as an editable row.
   seedSkillPicker('exercise', goals && goals.skillGoals);
   seedSkillPicker('mobility', goals && goals.skillGoals);
@@ -7427,7 +7463,6 @@ async function renderSingleGoalProgress(p){
 // block" says once and what each skill row already carries. These two are what it also
 // drove, and they outlived it.
 async function refreshGoalDependents(){
-  await renderBlockTarget();
   await renderMobilityProgression();
 }
 
