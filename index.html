@@ -426,6 +426,21 @@
      the constant, and every tab now begins by continuing the header rather than by
      stacking a colour block under it. Today is deliberately left out: its hero is a
      free-floating gauge, and a band sized to it read as a strip rather than an opening. */
+  /* TODAY — the score is the hero, so the band is the score. One wrapper rather than three
+     siblings each painted black: the gaps between them show as hairlines of page colour,
+     and an empty baseline line leaves its own margin behind even with nothing in it. */
+  .today-open{ background:#000000; margin:-20px -14px 0; padding:24px 14px 16px; }
+  .today-open .gauge-wrap{ margin:0 auto 4px; }
+  .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
+  .today-open .score-ring-track{ stroke:var(--bg); stroke-opacity:0.3; }
+  .today-open .score-ring-fill{ stroke:var(--bg); }
+  .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
+  .today-open .score-note, .today-open .conf-headline,
+  .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:rgba(251,250,246,0.7); }
+  /* The disclosure opens INSIDE the band, so its panel inverts with everything else. */
+  .today-open .conf-name{ color:var(--bg); }
+  .today-open .conf-bar{ background:rgba(251,250,246,0.22); }
+  .today-open .conf-row{ border-top-color:rgba(251,250,246,0.25); }
   #panel-goals > .group:first-child > .group-head{
     background:#000000; margin:-20px -14px 0; padding:26px 14px 12px; border-bottom:none; }
   #panel-goals > .group:first-child > .group-head .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
@@ -440,7 +455,8 @@
   #panel-data > .session-type:first-child .type-btn.active{
     background:var(--bg); color:var(--text); border-color:var(--bg); }
   body.tab-injuries header, body.tab-settings header,
-  body.tab-goals header, body.tab-data header{ border-bottom-color:transparent; }
+  body.tab-goals header, body.tab-data header,
+  body.tab-insights header{ border-bottom-color:transparent; }
   .form-panel .group-head{ margin-left:0; margin-right:0; border-bottom-color:rgba(251,250,246,0.25); }
   .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
@@ -671,6 +687,7 @@
 <main>
   <!-- INSIGHTS PANEL -->
   <div class="panel active" id="panel-insights">
+    <div class="today-open">
     <div class="gauge-wrap">
       <div class="gauge-row">
         <svg class="score-ring" id="overallScoreRing" viewBox="0 0 44 44" aria-hidden="true">
@@ -685,7 +702,8 @@
       </div>
     </div>
     <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
-    <div id="todayBlockContext" class="score-note" style="text-align:center; margin-bottom:4px; font-size:var(--fs-tag);"></div>
+    <div id="todayBlockContext" class="score-note" style="text-align:center; font-size:var(--fs-tag);"></div>
+    </div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
     <div class="session-type" id="todaySessionTypePills">
@@ -1922,7 +1940,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.49';
+const APP_VERSION = '2026.08.26.50';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5060,8 +5078,11 @@ async function renderSystemConfidence(){
   const c = await getSystemConfidence();
   const stageOf = pct => pct >= 80 ? 'personalised' : (pct >= 35 ? 'learning' : 'defaults');
   const overall = stageOf(c.pct);
-  const colour = overall==='personalised' ? 'var(--good)' : overall==='learning' ? 'var(--warn)' : 'var(--dim)';
-  const dotColour = s => s==='personalised' ? 'var(--good)' : s==='learning' ? 'var(--warn)' : 'var(--dim)';
+  // On-dark values. This panel only ever renders inside Today's black band now, and
+  // --good and --dim are both near-black — they vanished there. Written inline, so no
+  // stylesheet rule could have corrected them.
+  const colour = overall==='personalised' ? 'var(--accent)' : overall==='learning' ? 'var(--block-yellow)' : 'rgba(251,250,246,0.65)';
+  const dotColour = s => s==='personalised' ? 'var(--accent)' : s==='learning' ? 'var(--block-yellow)' : 'rgba(251,250,246,0.45)';
 
   // Lead with whatever is furthest behind and still actionable — that's the single most
   // useful thing to tell someone about a system that's still warming up.
