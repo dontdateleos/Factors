@@ -145,7 +145,10 @@
   .header-brand{ display:block; position:relative; }
   .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   /* Set to match .tab-label, since it is the other thing in this corner of the black. */
-  .header-date{ position:absolute; top:0; right:0; z-index:2; text-align:right;
+  /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
+     to lift them over the dither canvases. At equal specificity that rule wins on order,
+     and it was quietly dropping this back into flow as a full-width row. */
+  .header-brand .header-date{ position:absolute; right:14px; z-index:2; text-align:right;
     font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
     text-transform:uppercase; letter-spacing:0.02em; line-height:1.15; }
   .header-date span{ display:block; }
@@ -1960,6 +1963,19 @@ const todayStr = localDateStr();
 // re-read on every wake rather than written once at load. todayStr is not re-derived: a
 // day's data is keyed to the date the session started under, and changing that mid-session
 // would move entries between days underneath whoever is looking at them.
+// Distance from an element's first line box to the cap-top of the ink in it. Line boxes
+// are not where letters start: the logo sets 46px on a 0.92 line-height and the date sets
+// 13px on 1.15, so matching their boxes would leave the two texts visibly out of line.
+function capTopOffset(el){
+  const cs = getComputedStyle(el);
+  const ctx = capTopOffset._ctx || (capTopOffset._ctx = document.createElement('canvas').getContext('2d'));
+  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = ctx.measureText('H');
+  const fontSize = parseFloat(cs.fontSize) || 16;
+  const lineH = parseFloat(cs.lineHeight) || fontSize * 1.2;
+  const baseline = (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+  return baseline - m.actualBoundingBoxAscent;
+}
 function renderHeaderDate(){
   const el = document.getElementById('headerDate');
   if(!el) return;
@@ -1969,6 +1985,14 @@ function renderHeaderDate(){
   set('.hd-day', String(now.getDate()));
   set('.hd-mon', now.toLocaleDateString(undefined, { month:'long' }));
   el.setAttribute('aria-label', now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' }));
+  // The date starts where the logo starts. It sat at the top of the black instead, which
+  // put it on a level of its own above everything else in the header.
+  const h1 = document.querySelector('.header-brand h1');
+  const first = el.querySelector('.hd-dow');
+  if(h1 && first){
+    const top = h1.offsetTop + capTopOffset(h1) - capTopOffset(first);
+    el.style.top = Math.round(top) + 'px';
+  }
 }
 renderHeaderDate();
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderHeaderDate(); });
@@ -2057,7 +2081,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.61';
+const APP_VERSION = '2026.08.26.62';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
