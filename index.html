@@ -421,7 +421,26 @@
      Weekly — it reads as a gap in the join. And #000000 rather than content black, again
      like the Weekly band: two blacks that touch can't be a shade apart. */
   .panel > .form-panel:first-child{ margin-top:-20px; padding-top:4px; background:#000000; }
-  body.tab-injuries header, body.tab-settings header{ border-bottom-color:transparent; }
+  /* Same opening band on the two tabs that don't start with a form. What sits in it
+     differs — Goals puts its section head there, Data its view switch — but the band is
+     the constant, and every tab now begins by continuing the header rather than by
+     stacking a colour block under it. Today is deliberately left out: its hero is a
+     free-floating gauge, and a band sized to it read as a strip rather than an opening. */
+  #panel-goals > .group:first-child > .group-head{
+    background:#000000; margin:-20px -14px 0; padding:26px 14px 12px; border-bottom:none; }
+  #panel-goals > .group:first-child > .group-head .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
+  #panel-goals > .group:first-child > .group-head .group-sub{ color:rgba(251,250,246,0.7); }
+  #panel-data > .session-type:first-child{
+    background:#000000; margin:-20px -14px 14px; padding:22px 14px 14px; }
+  /* A pill is a white box with dark text and inverts to black-on-light when active, which
+     on a black band leaves the selected one invisible and the rest shouting. Swap which
+     side is filled. */
+  #panel-data > .session-type:first-child .type-btn{
+    background:transparent; color:rgba(251,250,246,0.65); border-color:rgba(251,250,246,0.4); }
+  #panel-data > .session-type:first-child .type-btn.active{
+    background:var(--bg); color:var(--text); border-color:var(--bg); }
+  body.tab-injuries header, body.tab-settings header,
+  body.tab-goals header, body.tab-data header{ border-bottom-color:transparent; }
   .form-panel .group-head{ margin-left:0; margin-right:0; border-bottom-color:rgba(251,250,246,0.25); }
   .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
   .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
@@ -1903,7 +1922,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.48';
+const APP_VERSION = '2026.08.26.49';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
