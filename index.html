@@ -263,7 +263,7 @@
   .plan-list{ margin:2px 0; }
   /* 32px of padding around what is usually a single line. The rule between rows already
      separates them; the padding was doing that job a second time. */
-  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:var(--sp-2) 2px; }
+  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:var(--sp-2) 0; }
   .plan-item + .plan-item{ border-top:1px solid var(--line); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
@@ -734,6 +734,12 @@
      or "why today looks like this" ends up flushed to the far right of "Session source". */
   .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
   #panel-insights .group{ margin-bottom:var(--sp-3); }
+  /* One left edge for the tab. A group's heading is full-bleed and sits at the page's own
+     content edge; .fields then added a second 14px, so every heading started 14px to the
+     left of the content under it — while the recommendation card, which is full-bleed
+     itself, sat at the heading's edge instead. Two indents for one column. The rule under
+     each heading already separates it from its content; it does not also need a step. */
+  #panel-insights .fields{ padding-left:0; padding-right:0; }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -2080,7 +2086,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.66';
+const APP_VERSION = '2026.08.26.67';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
