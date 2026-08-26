@@ -291,11 +291,10 @@
      row reads as tag-then-content at a glance. Black on cream rather than the yellow of a
      sticky-note annotation: these sit on whatever colour the tab is, and a bright chip on
      lime or yellow disappears — this is the same filled idiom .ss-tag already uses. */
-  .plan-key, .plan-level{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
+  .plan-key{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
-    color:var(--bg); background:var(--reverse-bg); padding:1px 5px;
+    color:var(--bg); background:var(--reverse-bg); padding:1px 5px; margin-right:6px;
     vertical-align:baseline; white-space:nowrap; }
-  .plan-key{ margin-right:6px; }
   .log-entry:hover{ color:var(--text); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
@@ -2081,7 +2080,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.62';
+const APP_VERSION = '2026.08.26.63';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12357,7 +12356,7 @@ function planRow(name, dose, lines, opts){
     `<div class="plan-line">${l.key ? `<span class="plan-key">${l.key}</span>` : ''}${l.text}</div>`
   ).join('');
   const doseHtml = dose
-    ? (opts.doseChip ? ` <span class="plan-level">${dose}</span>` : ` <span class="plan-dose">${dose}</span>`)
+    ? ` <span class="plan-dose">${dose}</span>`
     : '';
   // No leading arrow. One per row, repeated down the page, it marked every line as
   // going somewhere when none of them do — the rule between rows already separates them.
@@ -12492,9 +12491,6 @@ async function blockSummaryHtml(block){
       if(!items || !items.length) return;
       let itemLines;
       if(cat==='goal'){
-        // Combine a skill's current-level dose and its readiness test (if both present
-        // today) into one "L2 → L3" line, matching how this reads as a single
-        // progression rather than two separate stretch entries.
         const bySkill = {};
         items.forEach(s=>{ (bySkill[s.skill] = bySkill[s.skill]||[]).push(s); });
         itemLines = Object.values(bySkill).map(group=>{
@@ -12504,31 +12500,21 @@ async function blockSummaryHtml(block){
           // schema existed — fall back to the plain stretch name rather than rendering
           // the literal word "undefined" when that happens.
           if(main.skillLabel == null || main.levelIndex == null) return planRow(main.name, mobilityDoseLabel(main));
-          const header = test
-            ? `L${main.levelIndex+1} → L${main.levelIndex+2}`
-            : `L${main.levelIndex+1}`;
-          // The header alone named a skill and a level number and stopped there, so the
-          // one line that actually needed instructions was the only line without any.
-          // Spell out the movement and dose for the level being trained, and what the
-          // next level is waiting on, straight from the progression tree.
-          const tree = PROGRESSION_TREES.mobility[main.skill];
-          const detail = tree && tree.levelDetails && tree.levelDetails[main.levelIndex];
-          const nextDetail = tree && tree.levelDetails && tree.levelDetails[main.levelIndex+1];
-          const lines = [];
-          // main.name is the level's own movement name ("Half split, back knee down").
-          const target = detail && detail.holdOrRepTarget ? ` · target ${detail.holdOrRepTarget}` : '';
-          lines.push({ key:`L${main.levelIndex+1} — do`, text:`${main.name} · ${mobilityDoseLabel(main)}${target}` });
-          if(detail && detail.advancementCriteria){
-            lines.push({ key:`To reach L${main.levelIndex+2}`, text: detail.advancementCriteria });
-          }
+          // A label box and the movement, and that is the row. It used to lead with the
+          // skill's name and a level marker and then spell the movement out underneath,
+          // which named the same session twice and buried the one line you act on. The
+          // skill is what the GOAL group is; the movement is what you do about it today.
+          const rows = [ planRow(main.name, mobilityDoseLabel(main), null,
+            { lead: '<span class="plan-key">Skill</span>' }) ];
+          // The readiness test is separate work you also do today, so it keeps a row —
+          // labelled, because clearing it is what moves the level.
           if(test){
-            const nextName = test.nextLevelLabel || (tree && tree.levels && tree.levels[main.levelIndex+1]) || `L${main.levelIndex+2}`;
-            const nextTarget = nextDetail && nextDetail.holdOrRepTarget ? ` · target ${nextDetail.holdOrRepTarget}` : '';
-            lines.push({ key:'Test today', text:`${nextName} · ${mobilityDoseLabel(test)}${nextTarget} — clear it and you move up` });
+            const tree = PROGRESSION_TREES.mobility[main.skill];
+            const nextName = test.nextLevelLabel || (tree && tree.levels && tree.levels[main.levelIndex+1]) || test.name;
+            rows.push(planRow(nextName, mobilityDoseLabel(test), null,
+              { lead: '<span class="plan-key">Test</span>' }));
           }
-          // The level marker is the progression, so it reads as a box beside the skill
-          // rather than as more small grey text after it.
-          return planRow(main.skillLabel, header, lines, { doseChip:true });
+          return rows.join('');
         });
       } else {
         // Show the actual dose. A mobility block previously listed bare exercise names
