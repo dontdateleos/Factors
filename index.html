@@ -541,9 +541,10 @@
   .week-wheel-detail:empty{ display:none; }
   /* Sits under the day it builds, inside the same black. The selects keep their light fill
      — they are inputs, and .form-panel already gives its buttons a light one. */
-  .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
-    flex-wrap:wrap; margin-top:var(--sp-4); padding-top:var(--sp-3);
+  #weekBlockStrip:not(:empty){ margin-top:var(--sp-4); padding-top:var(--sp-3);
     border-top:1px solid rgba(251,250,246,0.25); }
+  .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
+    flex-wrap:wrap; margin-top:var(--sp-3); }
   .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
   .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
     border-color:rgba(251,250,246,0.5); }
@@ -878,13 +879,15 @@
       <!-- The week leads, in the same black band the mobility assessment takes on the
            Function tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
-        <div class="group-head"><div class="group-title">Week <span class="head-est" id="weekBlockPos"></span></div></div>
+        <div class="group-head"><div class="group-title">Week <span class="head-est" id="weekBlockPos"></span></div><div class="group-sub">tap a day, tap a workout, change it</div></div>
         <div class="fields">
           <div class="week-wheel-stage" id="weekWheelStage">
             <div class="week-day-picker" id="weekDayPicker"></div>
             <div class="week-wheel-detail" id="weekWheelDetail"></div>
           </div>
-          <!-- What builds the week belongs with the week, not three sections below it. -->
+          <!-- The block's shape, then what builds it. Both belong with the week rather than
+               scattered down the page below it. -->
+          <div id="weekBlockStrip"></div>
           <div class="week-gen-row">
             <select id="programSplitOverride">
               <option value="auto">Auto split</option>
@@ -902,9 +905,6 @@
           </div>
         </div>
       </div>
-
-      <div class="score-note" style="margin:12px 0 10px;">Tap a day, tap a workout, change it.</div>
-      <div id="weekBlockStrip" style="margin:14px 0 12px;"></div>
 
       <div id="blockEditPanel" style="display:none;"></div>
 
@@ -2083,7 +2083,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.79';
+const APP_VERSION = '2026.08.26.80';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4262,13 +4262,12 @@ async function renderWeekGrid(){
           ? Math.max(10, Math.round((realSets / maxSets) * 46))
           : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
         const n = realSets > 0 ? realSets : null;
-        // The current week is solid; every other week is the same dark drawn as an outline.
-        // White bars read as the loudest thing on an orange page, which is the wrong
-        // emphasis for the weeks you are not in. Filled versus outlined keeps the
-        // difference a difference in KIND rather than one of shade — the version before
-        // white was all-dark at three opacities, and "which week am I on" became a
-        // judgement about grey levels. Past and future do not read apart; the week labels
-        // underneath carry that.
+        // Inside the black panel now, so the bars are cream and the week you are in is the
+        // tab's own orange — the one place that colour appears below the tab bar, which is
+        // what makes it findable at a glance. A difference in hue rather than one of
+        // shade: an earlier version drew all four in the same ink at three opacities and
+        // "which week am I on" became a judgement about grey levels. Past and future do
+        // not read apart; the week labels underneath carry that.
         // The bars live in a band of their own rather than sizing the row. The row had a
         // fixed height while a column was a bar plus three lines of text, so the tallest
         // bar pushed its own number up out of the row and into the caption above it.
@@ -4278,9 +4277,7 @@ async function renderWeekGrid(){
         cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
           <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; ${isNow
-              ? 'background:var(--reverse-bg);'
-              : 'background:transparent; border:2px solid var(--reverse-bg);'}"></div>
+            <div style="width:100%; height:${h}px; background:${isNow ? 'var(--block-orange)' : 'var(--bg)'};"></div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
           <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
