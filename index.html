@@ -266,7 +266,9 @@
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
   .plan-item.ss-row + .plan-item.ss-row{ border-top:none; }
   .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
-  .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:var(--sp-1) 0 0 20px; letter-spacing:0.01em; line-height:1.5; }
+  /* The 20px indent aligned these under the row's leading arrow. With the arrow gone it
+     drops to the scale — still nested under the name, no longer hanging off nothing. */
+  .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:var(--sp-1) 0 0 var(--sp-3); letter-spacing:0.01em; line-height:1.5; }
   /* A flag on one exercise: what an active injury says should change about it, and the
      two answers. Yellow because it is the one thing in a plan row asking for a decision. */
   .ex-flag{ display:flex; align-items:center; gap:8px; margin:9px 0 1px 20px; background:var(--block-yellow); color:var(--on-light); padding:5px 5px 5px 8px; }
@@ -1977,7 +1979,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.55';
+const APP_VERSION = '2026.08.26.56';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12239,8 +12241,10 @@ function planRow(name, dose, lines, opts){
     `<div class="plan-line">${l.key ? `<span class="plan-key">${l.key}:</span> ` : ''}${l.text}</div>`
   ).join('');
   const doseHtml = dose ? ` <span class="plan-dose">${dose}</span>` : '';
+  // No leading arrow. One per row, repeated down the page, it marked every line as
+  // going somewhere when none of them do — the rule between rows already separates them.
   return `<div class="plan-item${opts.rowClass ? ' ' + opts.rowClass : ''}">`
-    + `→ ${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}${opts.tag || ''}</div>`;
+    + `${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}${opts.tag || ''}</div>`;
 }
 
 async function blockSummaryHtml(block){
@@ -12502,7 +12506,7 @@ async function renderTodayWorkoutSummary(){
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
         ${adjustmentNote}
-        <button class="primary" id="goLogWorkoutBtn">Log this workout →</button>
+        <button class="primary" id="goLogWorkoutBtn">Log this workout</button>
       </div>
     </div>`;
   container.querySelectorAll('.ex-flag').forEach(el=>{
@@ -12565,7 +12569,7 @@ async function generateRecommendations(){
   let entry;
   try{ const r = await window.storage.get(keyFor(todayStr)); entry = JSON.parse(r.value); }
   catch(e){
-    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:var(--fw-bold);">Log today\'s recovery to unlock today\'s recommendations →</div>';
+    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:var(--fw-bold);">Log today\'s recovery to unlock today\'s recommendations</div>';
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
     refreshRecHistory();
     return;
