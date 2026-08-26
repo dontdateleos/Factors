@@ -241,8 +241,6 @@
      exercise first, then read its numbers. */
   .log-entry > span:first-child{ font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.01em; }
   .log-entry > span:last-child{ flex:none; text-align:right; }
-  .mobility-cat-group{ margin-top:26px; }
-  .mobility-cat-group:first-child{ margin-top:0; }
   .mobility-cat-label{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
   .mobility-cat-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:3px 0 3px 10px; }
   /* Same hierarchy as .log-entry: the exercise leads, the dose follows quietly. */
@@ -2086,7 +2084,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.67';
+const APP_VERSION = '2026.08.26.68';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12557,13 +12555,18 @@ async function blockSummaryHtml(block){
     const stretches = block.details.stretches||[];
     if(!stretches.length) return '';
     const categoryOrder = ['access','control','load','integrate','goal'];
-    const categoryLabels = { access:'ACCESS', control:'CONTROL', load:'LOAD', integrate:'INTEGRATE', goal:'GOAL' };
     const grouped = {};
     stretches.forEach(s=>{
       const cat = s.category || 'goal'; // legacy stretches saved before categorization existed
       (grouped[cat] = grouped[cat]||[]).push(s);
     });
-    let html = '';
+    // One flat list, in the same shape as a strength day. The categories stay as the
+    // ORDER of the session — access, then control, then load, then integrate, then the
+    // goal — because that order is the point of them. Their headings do not: ACCESS and
+    // INTEGRATE are internal vocabulary for what is, from the outside, a list of things
+    // to do in the order given, and the two rows that genuinely need naming already carry
+    // a SKILL or TEST box.
+    const allLines = [];
     categoryOrder.forEach(cat=>{
       const items = grouped[cat];
       if(!items || !items.length) return;
@@ -12604,19 +12607,9 @@ async function blockSummaryHtml(block){
           return planRow(s.name, `${mobilityDoseLabel(s)}${range}`, cue ? [{ text: cue }] : []);
         });
       }
-      // GOAL lines read as a bare skill name and a level number, which says nothing about
-      // what the block is for or what the arrow means. One line of plain English under the
-      // header, only where it's needed.
-      const catNote = cat==='goal'
-        ? `<div class="mob-cue" style="padding:2px 0 4px;">Direct practice on your skill goal — the one block that moves level by level.</div>`
-        : '';
-      html += `<div class="mobility-cat-group">
-        <div class="mobility-cat-label">${categoryLabels[cat]}</div>
-        ${catNote}
-        <div class="plan-list">${itemLines.join('')}</div>
-      </div>`;
+      allLines.push(...itemLines);
     });
-    return html;
+    return `<div class="plan-list">${allLines.join('')}</div>`;
   }
   return '';
 }
