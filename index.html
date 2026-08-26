@@ -2080,7 +2080,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.64';
+const APP_VERSION = '2026.08.26.65';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4538,9 +4538,19 @@ function openBlockEditor(date, slot, block){
 
   if(block.type==='strength'){
     const rowsContainer = document.getElementById('weekExerciseRows');
-    function addWeekExRow(name='', area='', secondaryArea='', movement='', skippedForInjury=false, sets=null, repLow=null, repHigh=null){
+    function addWeekExRow(src){
+      const ex = src || {};
+      const name = ex.name || '', area = ex.area || '', secondaryArea = ex.secondaryArea || '';
+      const movement = ex.movement || '', skippedForInjury = !!ex.skippedForInjury;
+      const sets = ex.sets ?? null, repLow = ex.repLow ?? null, repHigh = ex.repHigh ?? null;
       const row = document.createElement('div');
       row.className = 'edit-row';
+      // The form shows five of an exercise's fields; the exercise has more than five.
+      // Saving used to rebuild each row from what the form shows and write that back, so
+      // isSkillWork, the prescription, superset and drop-set markers and the main-lift
+      // flag were all deleted by opening a session and saving it unchanged. Keep the
+      // original here so the save can put back what it never had a way to edit.
+      row._srcExercise = src || null;
       if(skippedForInjury){
         row.innerHTML = `
           <div style="flex:1; font-size:var(--fs-sm); color:var(--dim); font-style:italic; padding:6px 0;">${name}</div>
@@ -4607,7 +4617,7 @@ function openBlockEditor(date, slot, block){
       refreshEvidenceBadge();
       rowsContainer.appendChild(row);
     }
-    (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex.name, ex.area, ex.secondaryArea, ex.movement, ex.skippedForInjury, ex.sets ?? null, ex.repLow ?? null, ex.repHigh ?? null));
+    (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex));
     if((block.details.exercises||[]).length===0) addWeekExRow();
     document.getElementById('addWeekExerciseRow').addEventListener('click', ()=>addWeekExRow());
   }
@@ -4699,7 +4709,12 @@ function openBlockEditor(date, slot, block){
       const exercises = [];
       document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
         const nameEl = row.querySelector('.week-ex-name');
-        if(!nameEl) return; // injury-skip placeholder row — not a real exercise, nothing to collect
+        if(!nameEl){
+          // Injury-skip placeholder — it has no fields to read, but it is part of the
+          // plan and dropping it here deleted the explanation of why a lift is missing.
+          if(row._srcExercise) exercises.push(row._srcExercise);
+          return;
+        }
         const name = nameEl.value.trim();
         let area = row.querySelector('.week-ex-area').value;
         let secondaryArea = row.querySelector('.week-ex-area2').value;
@@ -4711,7 +4726,11 @@ function openBlockEditor(date, slot, block){
           secondaryArea = secondaryArea || guess.secondary || '';
           movement = movement || guess.movement || '';
         }
-        if(name) exercises.push({name, area, secondaryArea, movement, exerciseId});
+        // Carry the untouched fields only while it is still the same exercise. Typing a
+        // different name over a skill row makes it a different exercise, and it should
+        // not inherit that skill's prescription or progression flags.
+        const src = (row._srcExercise && row._srcExercise.name === name) ? row._srcExercise : null;
+        if(name) exercises.push({ ...(src || {}), name, area, secondaryArea, movement, exerciseId });
       });
       details = { exercises };
     } else if(block.type==='run'){
@@ -10483,6 +10502,34 @@ async function renderMobilityProgression(){
 // logging keeps the name but not isSkillWork, so the name is the only thing that survives
 // into history — and it carries the level, which is exactly what has to be counted.
 const EXERCISE_SKILL_SESSIONS_TO_ADVANCE = 6;
+const SKILL_WORK_PRESCRIPTION = '1-2 easy sets, well short of failure';
+// The inverse of the naming rule above: given "Muscle-up: Transition negatives", say which
+// skill and which level it is. getExerciseSkillProgress already trusts that name to carry
+// the level, so the same string can be trusted to carry the fact that it is skill work.
+function skillWorkFromName(name){
+  if(!name || name.indexOf(': ') < 0) return null;
+  for(const key of Object.keys(PROGRESSION_TREES.exercise)){
+    const tree = PROGRESSION_TREES.exercise[key];
+    const prefix = (tree.label || '') + ': ';
+    if(!tree.label || !name.startsWith(prefix)) continue;
+    const levelIndex = (tree.levels || []).indexOf(name.slice(prefix.length));
+    if(levelIndex >= 0) return { skill: key, tree, levelIndex };
+  }
+  return null;
+}
+// A strength block that has been through the week editor comes back with isSkillWork and
+// the prescription stripped: the editor rebuilds each row from the five fields its form
+// shows. That is fixed at the source, but plans saved before the fix are already missing
+// it, and without the flag a skill entry is treated as ordinary load-progression work and
+// told to add weight. The name survived, so the flag can be rebuilt from it.
+function repairSkillWorkFlags(exercises){
+  return (exercises || []).map(ex=>{
+    if(!ex || ex.isSkillWork) return ex;
+    const m = skillWorkFromName(ex.name);
+    if(!m) return ex;
+    return { ...ex, isSkillWork: true, prescription: ex.prescription || SKILL_WORK_PRESCRIPTION };
+  });
+}
 async function getExerciseSkillProgress(skill, levelIndex){
   const tree = PROGRESSION_TREES.exercise[skill];
   if(!tree) return { days: 0, atLevel: 0, lastDate: null };
@@ -11542,7 +11589,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       // focused practice at the current target is what the sources actually describe.
       exercises.push({ name: `${tree.label}: ${tree.levels[idx]}`, area: skillArea, secondaryArea: skillSecondary,
         movement: tree.movement, isSkillWork: true, sets: 2, repLow: null, repHigh: null,
-        prescription: '1-2 easy sets, well short of failure' });
+        prescription: SKILL_WORK_PRESCRIPTION });
     });
 
     let compArea = complementaryArea(tag);
@@ -12159,7 +12206,7 @@ async function getTodaysBlockForType(type){
     // they make up.
     const d = scheduled.block.details || {};
     return exercises.length
-      ? { type:'strength', details:{ exercises, workoutTag: d.workoutTag, plannedFocus: d.plannedFocus } }
+      ? { type:'strength', details:{ exercises: repairSkillWorkFlags(exercises), workoutTag: d.workoutTag, plannedFocus: d.plannedFocus } }
       : null;
   }
   for(const slot of ['am','pm']){
