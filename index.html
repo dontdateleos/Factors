@@ -163,10 +163,10 @@
      --eye-h is how open the eye is, --eye-rb how square its bottom sits, --eye-bl how far
      the outer edge is cut away, --eye-rot how far it tilts. The second eye is the first
      mirrored, so one clip-path and one rotation give a symmetric face. */
-  .eyes{ display:flex; align-items:center; height:44px; gap:17px;
-    --eye-h:44px; --eye-rb:10px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg); }
-  .eyes span{ display:block; width:20px; height:var(--eye-h);
-    border-radius:10px 10px var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
+  .eyes{ display:flex; align-items:center; height:32px; gap:12px;
+    --eye-h:32px; --eye-rb:7.5px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg); }
+  .eyes span{ display:block; width:15px; height:var(--eye-h);
+    border-radius:7.5px 7.5px var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
     transform:rotate(var(--eye-rot)); transform-origin:50% 25%;
     transition:height 0.42s cubic-bezier(0.2,0.7,0.2,1), border-radius 0.42s cubic-bezier(0.2,0.7,0.2,1),
@@ -175,7 +175,7 @@
   @media (prefers-reduced-motion: reduce){ .eyes span{ transition:none; } }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  .header-brand .header-mark{ position:absolute; left:148px; top:49px; pointer-events:none; z-index:0; transform-origin:left top; }
+  .header-brand .header-mark{ position:absolute; left:131px; top:61px; pointer-events:none; z-index:0; transform-origin:left top; }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -498,7 +498,7 @@
      and an empty baseline line leaves its own margin behind even with nothing in it. */
   /* The extra top padding is the eyes' room. They only ever come down on this tab, and
      on this tab they are always down, so the space is theirs permanently. */
-  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 56px) 14px var(--sp-3); }
+  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
@@ -1701,11 +1701,11 @@ if(!window.storage){
    back up. Five bands of twenty, lowest first — 0-20 is a closed lid, 80-100 is the wide
    capsule the logo always wears. */
 const EYE_STATES = [
-  { h:'9px',  rb:'1px',  bl:'0%',  rot:'0deg'   },
-  { h:'21px', rb:'2px',  bl:'22%', rot:'-13deg' },
-  { h:'30px', rb:'4px',  bl:'15%', rot:'-9deg'  },
-  { h:'40px', rb:'9px',  bl:'6%',  rot:'-4deg'  },
-  { h:'44px', rb:'10px', bl:'0%',  rot:'0deg'   }
+  { h:'7px',  rb:'1px',   bl:'0%',  rot:'0deg'   },
+  { h:'15px', rb:'1.5px', bl:'22%', rot:'-13deg' },
+  { h:'22px', rb:'3px',   bl:'15%', rot:'-9deg'  },
+  { h:'29px', rb:'6.5px', bl:'6%',  rot:'-4deg'  },
+  { h:'32px', rb:'7.5px', bl:'0%',  rot:'0deg'   }
 ];
 const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
 const EYE_FLIGHT_MS = 560;
@@ -1755,9 +1755,12 @@ function whenHeaderSettled(fn){
   tick();
 }
 
-// `fromPos` is passed in when the eyes are leaving Today: activateTab has already hidden
-// the panel by the time this runs, so the score slot has no box left to measure.
-function moveEyes(dest, fromPos){
+// `from` is passed in when the eyes are leaving Today: activateTab has already hidden the
+// panel by the time this runs, so the score slot has no box left to measure. It carries
+// VIEWPORT coordinates, not page ones — collapsing the header shortens the document, so a
+// page position taken while scrolled is up to 99px out by the time activateTab has scrolled
+// back to the top and the header has sprung open again.
+function moveEyes(dest, from){
   const header = document.querySelector('.header-mark');
   const score = document.getElementById('scoreEyes');
   if(!header || !score) return;
@@ -1775,7 +1778,9 @@ function moveEyes(dest, fromPos){
     if(eyeFlyer) eyeFlyer.style.display = 'none';
   };
 
-  if(reduced){ land(); return; }
+  // Nothing to fly if the eyes were behind the header or below the fold when we left —
+  // they were not on screen, so a flight in from off-screen reads as a glitch.
+  if(reduced || (from && from.offscreen)){ land(); return; }
 
   whenHeaderSettled(()=>{
     // Bail if another tab switch overtook this one while we were waiting.
@@ -1783,7 +1788,10 @@ function moveEyes(dest, fromPos){
     // A tab switch during a flight hands off from wherever the eyes actually are, rather
     // than snapping back to the slot they left.
     const inFlight = eyeFlyer && eyeFlyer.style.display === 'flex';
-    const start = inFlight ? eyePagePos(eyeFlyer) : (fromPos || eyePagePos(dest === 'score' ? header : score));
+    // By now activateTab has scrolled to the top, so a captured viewport position converts
+    // to a page position with the scroll offset as it stands right here.
+    const fromPage = from ? { x: from.x + window.scrollX, y: from.y + window.scrollY } : null;
+    const start = inFlight ? eyePagePos(eyeFlyer) : (fromPage || eyePagePos(dest === 'score' ? header : score));
     const end = eyePagePos(dest === 'score' ? score : header);
     const flyer = getEyeFlyer();
 
@@ -1832,7 +1840,12 @@ function activateTab(name){
   // Measured before the panel swap below hides it, since a hidden panel has no boxes.
   const wasOnToday = document.getElementById('panel-insights').classList.contains('active');
   const eyesLeaving = wasOnToday && name !== 'insights' && eyesHome === 'score';
-  const eyesFrom = eyesLeaving ? eyePagePos(document.getElementById('scoreEyes')) : null;
+  let eyesFrom = null;
+  if(eyesLeaving){
+    const r = document.getElementById('scoreEyes').getBoundingClientRect();
+    const headerBottom = document.querySelector('header').getBoundingClientRect().bottom;
+    eyesFrom = { x:r.left, y:r.top, offscreen: r.bottom < headerBottom || r.top > window.innerHeight };
+  }
 
   tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.body.className = document.body.className.replace(/\btab-\w+\b/g, '').trim();
@@ -2208,7 +2221,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.97';
+const APP_VERSION = '2026.08.26.98';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2930,8 +2943,11 @@ function updateHeaderCollapse(){
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
   // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
-  const MARK_GAP = 12;
-  mark.style.top = lerp(49, 30, progress) + 'px';
+  const MARK_GAP = 5;
+  // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
+  // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
+  const MARK_TOP = 61;
+  mark.style.top = lerp(MARK_TOP, 30, progress) + 'px';
   mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
   mark.style.transform = `scale(${1-progress})`;
 }
