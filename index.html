@@ -691,14 +691,38 @@
   .flow-flag.injury{ color:var(--bad); }
   .flow-flag.load{ color:var(--warn); }
   .flow-note{ color:var(--dim); }
-  /* These two sections announced themselves at the same size as the workout they bracket.
-     Quiet the heading so the hierarchy on the page matches what matters on it. */
-  .group.quiet > .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1); border-bottom-width:1px; border-bottom-color:var(--line); }
-  .group.quiet .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
-  .group.quiet .group-sub{ flex-basis:auto; }
   /* A section that is now five lines tall does not need a section-sized gap under it. */
-  .group.quiet{ margin-bottom:var(--sp-3); }
   .group.quiet > .fields{ padding-top:var(--sp-2); padding-bottom:0; }
+  /* The chevron here used to hide the section. Hiding it was a workaround for its size,
+     and the size is fixed; what the section actually needed was somewhere to say what
+     "Potentiate" or "Dyn" mean without spending a line on it every day. Same arrow, and
+     now it opens the thing you might not know rather than closing the thing you do. */
+  .glossary{ margin-top:var(--sp-2); }
+  .glossary > summary{ list-style:none; cursor:pointer; display:inline-block;
+    font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--dim); padding:var(--sp-1) 0; }
+  .glossary > summary::-webkit-details-marker{ display:none; }
+  .glossary > summary::before{ content:'\25b8'; display:inline-block; width:1em;
+    transition:transform 0.12s steps(3,end); }
+  @media (prefers-reduced-motion: reduce){ .glossary > summary::before{ transition:none; } }
+  .glossary[open] > summary::before{ transform:rotate(90deg); }
+  .gloss-item{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.6;
+    color:var(--dim); padding:var(--sp-1) 0 0; }
+  /* No text-transform: the stage names are already capitals in the flow, but "30s" and
+     "/side" are notation and "30S" is not the thing the line above it says. */
+  .gloss-term{ font-weight:var(--fw-bold); color:var(--text);
+    font-size:var(--fs-tag); letter-spacing:0.06em; }
+  .gloss-term::after{ content:'\00a0'; }
+  /* One heading size for the whole tab. "Today's plan" set two steps larger than the
+     sections either side of it, which read as three levels of hierarchy where there is
+     only one: these are peers, and the score is the only thing above them. */
+  #panel-insights .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1);
+    border-bottom-width:1px; border-bottom-color:var(--line); }
+  #panel-insights .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
+  /* The estimate rides on the heading's own line; a real group-sub still gets its own,
+     or "why today looks like this" ends up flushed to the far right of "Session source". */
+  .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
+  #panel-insights .group{ margin-bottom:var(--sp-3); }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -770,9 +794,14 @@
 
     <div id="warmupSection" style="display:none;">
       <div class="group quiet" style="margin-top:0;">
-        <div class="group-head collapsible" data-collapse="warmup" style="cursor:pointer;"><div class="group-title">Warm-up <span class="group-sub" id="warmupEstimate"></span></div><span class="collapse-chevron" data-collapse="warmup">▾</span></div>
-        <div class="fields collapsible-body" data-collapse="warmup">
+        <div class="group-head"><div class="group-title">Warm-up <span class="head-est" id="warmupEstimate"></span></div></div>
+        <div class="fields">
           <div id="warmupCards"></div>
+          <details class="glossary">
+            <summary>what the stages mean</summary>
+            <div class="gloss-item"><span class="gloss-term">POTENTIATE</span>Ramp-up sets on the first lift itself — same movement, building toward your working weight, so the nervous system is ready for it.</div>
+            <div class="gloss-item"><span class="gloss-term">×8-10</span>Reps. <span class="gloss-term">30s</span> is a hold. <span class="gloss-term">/side</span> means that each way, not in total.</div>
+          </details>
         </div>
       </div>
     </div>
@@ -783,9 +812,15 @@
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
-        <div class="group-head collapsible" data-collapse="cooldown" style="cursor:pointer;"><div class="group-title">Stretch down <span class="group-sub" id="cooldownEstimate"></span></div><span class="collapse-chevron" data-collapse="cooldown">▾</span></div>
-        <div class="fields collapsible-body" data-collapse="cooldown">
+        <div class="group-head"><div class="group-title">Stretch down <span class="head-est" id="cooldownEstimate"></span></div></div>
+        <div class="fields">
           <div id="mobilityCards"></div>
+          <details class="glossary">
+            <summary>what the stages mean</summary>
+            <div class="gloss-item"><span class="gloss-term">ROLL</span>Foam roller or ball on the tissue — slow, pausing where it is sore. Takes the edge off before you move it.</div>
+            <div class="gloss-item"><span class="gloss-term">DYN</span>Dynamic: move through the range under your own control, no holding. Restores the range the session used up.</div>
+            <div class="gloss-item"><span class="gloss-term">HOLD</span>Static: settle into the stretch and stay there for the time given. This is the one that adds range, and the reason it comes last.</div>
+          </details>
         </div>
       </div>
     </div>
@@ -1991,7 +2026,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.59';
+const APP_VERSION = '2026.08.26.60';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2086,40 +2121,20 @@ async function checkForUpdate(){
 // Progressive disclosure for Settings. Backup, Legal and Start Fresh are reference and
 // destructive actions — things you touch rarely but which occupied 955px of a 2198px
 // panel. Collapsed by default, they stop competing with the settings you actually adjust.
-// Which sections are collapsed, for the ones worth remembering. Warm-up and the cooldown
-// are the case this exists for: Today re-renders on every visit to the tab, so without a
-// stored answer a section you closed would be open again a minute later.
-const COLLAPSE_REMEMBERED = ['warmup', 'cooldown'];
+// Warm-up and the stretch-down used to be here: Today re-renders on every visit to the
+// tab, so a section you closed had to be remembered or it reopened a minute later. Both
+// are a few lines now and neither can be closed, so there is nothing left to remember.
+// The Settings disclosures still collapse; they just do not persist across a visit.
+const COLLAPSE_REMEMBERED = [];
+// One-time cleanup of the keys the Today sections used to write.
+try{
+  ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
+} catch(e){}
 function setCollapsed(key, collapsed){
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
   if(body) body.style.display = collapsed ? 'none' : '';
   if(chev) chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
-}
-// Open unless you have closed it. These were shut by default while they rendered as
-// stacked cards and cost 800px between the score and the bottom of the page; as a flow
-// they cost a few lines, so the session you are about to do can just be visible. The
-// stored value still only records a deliberate change.
-function isCollapsed(key){
-  try{
-    const v = localStorage.getItem('collapsed:' + key);
-    return v === null ? false : v === '1';
-  } catch(e){ return false; }
-}
-// These two sections changed from stacked cards to a five-line flow, and the default
-// flipped from closed to open with it. A stored "1" from the card era means "closed
-// because it was 800px of scrolling", which is no longer true of the thing it refers to,
-// so the stored answer is cleared once and the new default gets to apply. A close after
-// this runs is a real preference and is kept.
-const COLLAPSE_DEFAULT_EPOCH = 'flow-v1';
-try{
-  if(localStorage.getItem('collapsed:epoch') !== COLLAPSE_DEFAULT_EPOCH){
-    COLLAPSE_REMEMBERED.forEach(key => localStorage.removeItem('collapsed:' + key));
-    localStorage.setItem('collapsed:epoch', COLLAPSE_DEFAULT_EPOCH);
-  }
-} catch(e){}
-function applyRememberedCollapse(){
-  COLLAPSE_REMEMBERED.forEach(key => setCollapsed(key, isCollapsed(key)));
 }
 document.querySelectorAll('.group-head.collapsible').forEach(head=>{
   head.addEventListener('click', ()=>{
@@ -2133,7 +2148,6 @@ document.querySelectorAll('.group-head.collapsible').forEach(head=>{
     }
   });
 });
-applyRememberedCollapse();
 
 const OURA_CLIENT_ID = '62367975-4a6e-445d-a195-1936ce98c7af';
 const OURA_TOKEN_WORKER_URL = 'https://dogfoodoura.jordandf1.workers.dev';
@@ -12465,11 +12479,7 @@ async function blockSummaryHtml(block){
         <div class="plan-list">${itemLines.join('')}</div>
       </div>`;
     });
-    const mins = estimateSessionDuration(block);
-    const durationLine = mins != null
-      ? `<div class="score-note" style="margin:0 0 8px;">~${mins} min · ${stretches.length} exercise${stretches.length===1?'':'s'}</div>`
-      : '';
-    return durationLine + html;
+    return html;
   }
   return '';
 }
@@ -12532,9 +12542,24 @@ async function renderTodayWorkoutSummary(){
       adjustmentNote = `<div class="score-note" style="margin-top:-4px;">${leverText} — from an accepted recommendation today</div>`;
     }
   }
+  // The warm-up and the stretch-down each state their own minutes; the session between
+  // them said nothing, so the page gave you two thirds of a number. For strength the
+  // engine's estimate bundles a general warm-up and cooldown allowance into the total —
+  // subtracted here, because those two sections are already counting it themselves.
+  let planEst = '';
+  try{
+    let sessionLength = null;
+    try{
+      const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
+      sessionLength = parseInt(setup.sessionLength, 10) || null;
+    } catch(e){}
+    let mins = estimateSessionDuration(block, null, null, sessionLength);
+    if(mins != null && block.type === 'strength') mins -= warmupAllowanceMin(sessionLength);
+    if(mins != null && mins > 0) planEst = ` <span class="head-est">~${Math.round(mins)} min</span>`;
+  } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
-      <div class="group-head"><div class="group-title">Today's plan</div></div>
+      <div class="group-head"><div class="group-title">Today's plan${planEst}</div></div>
       <div class="fields">
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
@@ -13507,8 +13532,6 @@ async function generateWarmup(){
     return;
   }
   sectionIds.forEach(id => document.getElementById(id).style.display = 'block');
-  // Showing the section must not reopen a body the person closed.
-  applyRememberedCollapse();
 
   // Warm-up scales with the session it precedes. A flat 12-minute cap meant a 30-minute
   // day could be handed 12 minutes of prep before touching a barbell — the warm-up and
@@ -13710,7 +13733,6 @@ async function generateMobility(){
   });
 
   mobilitySection.style.display = 'block';
-  applyRememberedCollapse();
   const coolEstEl = document.getElementById('cooldownEstimate');
   if(coolEstEl) coolEstEl.textContent = `~${estMinutes} min`;
   const coolFlow = document.createElement('div');
