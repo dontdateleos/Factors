@@ -301,7 +301,6 @@
   .skg-line{ display:flex; gap:6px; align-items:center; width:100%; }
   /* Category is narrow — it only ever says Exercise or Mobility — so the skill name gets
      the room. Three selects on one line truncated all three to "Mob… Pike… 2. St…". */
-  .skg-line .skg-category{ flex:0 0 96px; }
   .skg-line .skg-skill{ flex:1 1 auto; min-width:0; }
   .skg-level{ width:100%; margin-top:6px; }
   .skg-line .remove-row{ flex:none; }
@@ -495,10 +494,30 @@
   .mobility-row-info.test{ align-items:flex-start; }
   .mobility-row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
-  #skillGoalRows .edit-row{ display:block; margin-bottom:14px; }
-  /* Widths and size are set by the .skg-* rules near the top. This selector is an id, so
-     anything it declares outranks them however the classes are written. */
-  #skillGoalRows select{ font-size:var(--fs-control); }
+  /* Each skill is one black band across the page, the same shape the Goals rows use — its
+     controls and its progression in one box, because where a skill sits belongs to the
+     skill. Reading them apart meant matching a name in one list against a name in another.
+     Two paddings to escape, not one: main's 14px and the .fields wrapper's own 14px. */
+  #mobilitySkillRows .edit-row, #exerciseSkillRows .edit-row{ display:block; position:relative;
+    margin:0 -28px 12px; padding:14px 28px; background:var(--reverse-bg); color:var(--bg); }
+  /* Widths and size are set by the .skg-* rules near the top. These selectors are ids, so
+     anything they declare outrank them however the classes are written. */
+  #mobilitySkillRows select, #exerciseSkillRows select{ font-size:var(--fs-control); }
+  .skg-panel .score-note, .skg-panel label{ color:rgba(251,250,246,0.75); }
+  .skg-panel .remove-row{ color:var(--bg); }
+  .skg-panel .skg-maint{ color:rgba(251,250,246,0.75); }
+  .skg-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .skg-panel .evidence-badge.moderate{ border-color:var(--bg); color:var(--bg); }
+  .skg-panel .evidence-badge.practical{ border-color:rgba(251,250,246,0.5); color:rgba(251,250,246,0.7); }
+  .skg-panel .evidence-badge.strong{ background:var(--bg); color:var(--text); }
+  .skg-progress:not(:empty){ margin-top:12px; padding-top:12px; border-top:1px solid rgba(251,250,246,0.25); }
+  .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
+    letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin-bottom:5px; }
+  /* The bar was black-on-faint-black, which is invisible once the box around it went dark. */
+  .skg-bar{ height:8px; background:rgba(251,250,246,0.22); margin-top:2px; }
+  .skg-bar.thin{ height:5px; margin-top:6px; }
+  .skg-bar-fill{ height:100%; background:var(--bg); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:12px; margin-bottom:10px; background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -760,6 +779,19 @@
 
 
       <div class="group" style="margin-top:16px;">
+        <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
+        <div class="fields">
+          <details class="mobility-legend">
+            <summary>Where do these progressions come from?</summary>
+            <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand progressions come from coaching consensus. Muscle-up is a reasonable extension, not directly sourced &mdash; marked with an asterisk.</div>
+          </details>
+          <div id="exerciseProgressBody"></div>
+          <div id="exerciseSkillRows"></div>
+          <div class="add-row" id="addExerciseSkillRow">+ add strength skill</div>
+        </div>
+      </div>
+
+      <div class="group" style="margin-top:16px;">
         <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
         <div class="fields">
           <div class="field-row"><span class="field-label">Longest run you could do today</span>
@@ -870,21 +902,16 @@
     </div>
 
       <div class="group">
-        <div class="group-head"><div class="group-title">Skill Goals</div><div class="group-sub">mobility & exercise progressions</div></div>
+        <div class="group-head"><div class="group-title">Mobility Skills</div><div class="group-sub">what you're chasing, and where each one sits</div></div>
         <div class="fields">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
-            <div class="mobility-legend-body">Exercise progressions from coaching consensus (pull-up/push-up/pistol/dip/handstand — see the research). Pike/bridge/front-split/middle-split are independently verified against real studies (marked with an asterisk); pancake/deep-squat/overhead-squat and muscle-up are reasonable extensions, not directly sourced.</div>
+            <div class="mobility-legend-body">Pike, bridge, front-split and middle-split are independently verified against real studies. Pancake, deep squat and overhead squat are reasonable extensions, not directly sourced &mdash; those are marked with an asterisk.</div>
           </details>
-          <div id="skillGoalRows"></div>
-          <div class="add-row" id="addSkillGoalRow">+ add skill goal</div>
+          <div id="mobilityProgressBody"></div>
+          <div id="mobilitySkillRows"></div>
+          <div class="add-row" id="addMobilitySkillRow">+ add mobility skill</div>
         </div>
-      </div>
-
-
-      <div class="group">
-        <div class="group-head"><div class="group-title">Mobility progression</div><div class="group-sub">where each skill sits, and what moves it</div></div>
-        <div class="fields" id="mobilityProgressBody"></div>
       </div>
 
       <button class="primary" id="saveFunctionBtn">Save skill goals &amp; assessment</button>
@@ -1547,7 +1574,7 @@ function activateTab(name){
   // Skill goals, the assessment and the progression live on Function now. loadCurrentGoals
   // fills both tabs' rows — the queries don't care which panel is showing — so it runs for
   // either, and each tab renders what it actually displays.
-  if(name==='goals'){ loadCurrentGoals(); }
+  if(name==='goals'){ loadCurrentGoals(); renderExerciseProgression(); }
   if(name==='injuries'){
     initHeaderPanels(); loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
     refreshInjuries();
@@ -1863,7 +1890,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.25.42';
+const APP_VERSION = '2026.08.25.43';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3347,12 +3374,23 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
 
 const skillGoalConcurrencyCheckers = [];
 function recheckAllSkillGoalConcurrency(){ skillGoalConcurrencyCheckers.forEach(fn=>fn()); }
+// Mobility skills live on Function beside the assessment that drives them; strength skills
+// live on Goals beside the goals they serve. The concurrency caps still have to see every
+// row wherever it is displayed, and so does saving.
+const SKILL_GOAL_CONTAINERS = { mobility:'mobilitySkillRows', exercise:'exerciseSkillRows' };
+function skillGoalRowEls(){
+  return Object.values(SKILL_GOAL_CONTAINERS).flatMap(id=>{
+    const el = document.getElementById(id);
+    return el ? Array.from(el.querySelectorAll('.edit-row')) : [];
+  });
+}
 function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGenerated){
   category = category || 'exercise';
-  const container = document.getElementById('skillGoalRows');
+  const container = document.getElementById(SKILL_GOAL_CONTAINERS[category] || SKILL_GOAL_CONTAINERS.exercise);
+  if(!container) return;
   const row = document.createElement('div');
-  row.className = 'edit-row';
-  const catOptions = `<option value="exercise" ${category==='exercise'?'selected':''}>Exercise</option><option value="mobility" ${category==='mobility'?'selected':''}>Mobility</option>`;
+  row.className = 'edit-row skg-panel';
+  row.dataset.category = category;
   // Mobility goals can appear here without the person ever having added one — the
   // generator auto-picks one from their weakest assessed mobility domain so the Goals
   // tab isn't empty. Rendered identically to a manually-added goal, it just looked like
@@ -3365,7 +3403,7 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
   // it was taller than the row it belonged to.
   row.innerHTML = `
     <div class="skg-line">
-      <select class="skg-category">${catOptions}</select>
+      <input type="hidden" class="skg-category" value="${category}">
       <select class="skg-skill"></select>
       <span class="remove-row">×</span>
     </div>
@@ -3373,7 +3411,8 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
     <div class="score-note skg-detail"></div>
     ${autoNote}
     <label class="skg-maint" title="Keep this in rotation without pushing it further while you focus elsewhere"><input type="checkbox" class="skg-maintenance" ${isMaintenance?'checked':''}>Maintenance</label>
-    <div class="score-note skg-warning" style="color:var(--text); display:none;"></div>`;
+    <div class="score-note skg-warning" style="display:none;"></div>
+    <div class="skg-progress"></div>`;
   container.appendChild(row);
 
   const catSelect = row.querySelector('.skg-category');
@@ -3404,7 +3443,7 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
   function checkConcurrencyCap(){
     warningEl.style.display = 'none';
     if(maintCheckbox.checked) return;
-    const others = Array.from(document.querySelectorAll('#skillGoalRows .edit-row')).filter(r=>r!==row);
+    const others = skillGoalRowEls().filter(r=>r!==row);
     const EXERCISE_SKILL_CONCURRENT_CAP = 2; // grease-the-groove's own standard guidance (including Tsatsouline's original source material) is specifically 1-2 exercises at a time — since skill work here now follows that same low-volume/submaximal approach, this follows its own stated concurrency limit too
     if(catSelect.value === 'exercise'){
       const tree = PROGRESSION_TREES.exercise[skillSelect.value];
@@ -3440,6 +3479,9 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
   function populateLevels(selectedLevel){
     const tree = PROGRESSION_TREES[catSelect.value];
     const skill = tree[skillSelect.value];
+    // The progression renderers find their box by this, and the skill can be changed after
+    // the row is built.
+    row.dataset.skill = skillSelect.value;
     levelSelect.innerHTML = skill.levels.map((lv,i)=>
       `<option value="${i}" ${i===selectedLevel?'selected':''}>${i+1}. ${lv}</option>`).join('');
     updateLevelDetail();
@@ -3455,7 +3497,6 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
     detailEl.innerHTML = detail ? `Target: ${detail.holdOrRepTarget} ${evidenceBadgeHtml(detail.evidence)}` : '';
   }
 
-  catSelect.addEventListener('change', ()=>{ populateSkills(); recheckAllSkillGoalConcurrency(); });
   skillSelect.addEventListener('change', ()=>populateLevels());
   levelSelect.addEventListener('change', updateLevelDetail);
   maintCheckbox.addEventListener('change', recheckAllSkillGoalConcurrency);
@@ -3471,7 +3512,8 @@ function addSkillGoalRow(category, skillKey, levelIndex, isMaintenance, autoGene
   if(levelIndex!=null) populateLevels(levelIndex);
   checkConcurrencyCap();
 }
-document.getElementById('addSkillGoalRow').addEventListener('click', ()=>addSkillGoalRow());
+document.getElementById('addMobilitySkillRow').addEventListener('click', ()=>addSkillGoalRow('mobility'));
+document.getElementById('addExerciseSkillRow').addEventListener('click', ()=>addSkillGoalRow('exercise'));
 
 // Puts the black column's right edge through the middle of the level numerals, then hangs
 // a twin of the checklist inside it. Left halves of the digits are purple on the black,
@@ -6654,7 +6696,8 @@ async function getCurrentGoals(asOfDate){
 // deliberately does NOT write a new record keyed to today, since getCurrentGoals resolves
 // to whichever dated record is most recent as-of today, which may be an earlier date.
 // Writing to the wrong key would silently create a duplicate/conflicting goals record.
-async function advanceSkillLevel(skill){
+async function advanceSkillLevel(skill, category){
+  category = category || 'mobility';
   const res = await window.storage.list('goals:');
   if(!res || !res.keys || res.keys.length===0) return false;
   const dates = res.keys.map(k=>k.replace('goals:','')).filter(d=>d<=todayStr).sort().reverse();
@@ -6663,7 +6706,7 @@ async function advanceSkillLevel(skill){
   try{
     const r = await window.storage.get(key);
     const record = JSON.parse(r.value);
-    const sg = (record.skillGoals||[]).find(s=>s.category==='mobility' && s.skill===skill);
+    const sg = (record.skillGoals||[]).find(s=>s.category===category && s.skill===skill);
     if(!sg) return false;
     sg.levelIndex = sg.levelIndex + 1;
     const result = await window.storage.set(key, JSON.stringify(record));
@@ -6679,7 +6722,10 @@ async function loadCurrentGoals(){
   } else {
     addGoalRow(); // start with one empty row
   }
-  document.getElementById('skillGoalRows').innerHTML = '';
+  Object.values(SKILL_GOAL_CONTAINERS).forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '';
+  });
   if(goals && goals.skillGoals && goals.skillGoals.length){
     goals.skillGoals.forEach(sg=>addSkillGoalRow(sg.category, sg.skill, sg.levelIndex, sg.isMaintenance, sg.autoGenerated));
   }
@@ -6886,7 +6932,7 @@ async function saveGoalsFromForm(resultElId){
 
   const record = { date: todayStr, list };
   record.skillGoals = [];
-  document.querySelectorAll('#skillGoalRows .edit-row').forEach(row=>{
+  skillGoalRowEls().forEach(row=>{
     const category = row.querySelector('.skg-category').value;
     const skill = row.querySelector('.skg-skill').value;
     const levelIndex = parseInt(row.querySelector('.skg-level').value, 10);
@@ -6905,6 +6951,7 @@ async function saveGoalsFromForm(resultElId){
     flashConfirm(document.getElementById(resultElId === 'saveFunctionResult' ? 'saveFunctionBtn' : 'saveGoalsBtn'));
     await renderGoalProgress();
     await renderMobilityProgression();
+    await renderExerciseProgression();
   } catch(e){
     result.textContent = 'Save failed — try again.'; result.style.color = 'var(--text)';
   }
@@ -10150,17 +10197,51 @@ async function suggestMobilityAdvance(sg){
     note: `${p.sessions} sessions logged, next level held ${p.testsPassed} time${p.testsPassed===1?'':'s'}. Two clean holds moves you up.` };
 }
 
+// One shape for both kinds of skill: where the level sits in its ladder, what the level
+// actually is, what the app makes of it, and — when there is one — the button that moves
+// it. Drawn light-on-dark, since it renders inside the skill's own black box.
+function skillProgressHtml(o){
+  const pct = Math.round(((o.levelIndex+1) / o.levelCount) * 100);
+  let html = `<div class="skg-prog-head"><span>Progress</span><span>L${o.levelIndex+1}/${o.levelCount}</span></div>`
+    + `<div class="skg-bar"><div class="skg-bar-fill" style="width:${pct}%;"></div></div>`
+    + `<div class="score-note" style="margin-top:4px;">${o.levelText}</div>`
+    + `<div class="score-note" style="margin-top:3px;">${o.note}</div>`;
+  if(o.subBar != null){
+    html += `<div class="skg-bar thin"><div class="skg-bar-fill" style="width:${Math.min(100, Math.round(o.subBar))}%;"></div></div>`;
+  }
+  if(o.subNote) html += `<div class="score-note" style="margin-top:2px;">${o.subNote}</div>`;
+  if(o.advanceLabel){
+    html += `<button class="small skg-advance-btn" data-skill="${o.skill}" data-category="${o.category}" style="margin-top:8px;">Advance to ${o.advanceLabel}</button>`;
+  }
+  return html;
+}
+
+// Binds the advance buttons for whichever boxes were just filled. Bound per render rather
+// than delegated, because the boxes are rebuilt by loadCurrentGoals and a delegated
+// listener would have to live on a container that survives that.
+function bindSkillAdvanceButtons(container, after){
+  container.querySelectorAll('.skg-advance-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const ok = await advanceSkillLevel(btn.dataset.skill, btn.dataset.category);
+      showToast(ok ? 'Level advanced' : 'Could not update — try again');
+      if(ok){ await loadCurrentGoals(); after(); }
+    });
+  });
+}
+
+// Writes each skill's progression into that skill's own box rather than into a separate
+// section below. Where a skill sits and what moves it belong to the skill, and reading
+// them meant matching a name in one list against a name in another.
 async function renderMobilityProgression(){
-  const el = document.getElementById('mobilityProgressBody');
-  if(!el) return;
+  const note = document.getElementById('mobilityProgressBody');
+  const rows = document.getElementById('mobilitySkillRows');
+  if(!note || !rows) return;
+  note.innerHTML = '';
+  rows.querySelectorAll('.skg-progress').forEach(el=> el.innerHTML = '');
   try{
     const goals = await getCurrentGoals(todayStr);
     const skills = ((goals && goals.skillGoals) || []).filter(sg => sg.category === 'mobility');
-    if(!skills.length){
-      el.innerHTML = '<div class="score-note">No mobility skill goals yet. Add one under Skill Goals and its progression is tracked here.</div>';
-      return;
-    }
-    let html = '';
+    if(!skills.length) return;
     try{
       const _pos = await getBlockPosition(todayStr);
       if(isDeloadPosition(_pos.weekInBlock, _pos.length)){
@@ -10168,47 +10249,112 @@ async function renderMobilityProgression(){
         // show ROM gains largely persist through 2-6 weeks of cessation, so accumulated
         // fatigue isn't the limiter here the way it is for loaded work — and a strength
         // deload week is one of the better weeks to spend time on mobility.
-        html += '<div class="score-note" style="margin-bottom:10px;">Deload week for lifting — mobility carries on as normal. ROM work isn\'t what accumulates the fatigue a deload exists to clear, and the freed-up time is well spent here.</div>';
+        note.innerHTML = '<div class="score-note" style="margin-bottom:10px;">Deload week for lifting — mobility carries on as normal. ROM work isn\'t what accumulates the fatigue a deload exists to clear, and the freed-up time is well spent here.</div>';
       }
     } catch(e){}
     for(const sg of skills){
+      const host = rows.querySelector(`.edit-row[data-skill="${sg.skill}"]`);
+      const target = host && host.querySelector('.skg-progress');
+      if(!target) continue;
       const s = await suggestMobilityAdvance(sg);
       if(!s) continue;
       const tree = PROGRESSION_TREES.mobility[sg.skill];
-      const pct = Math.round(((sg.levelIndex+1) / tree.levels.length) * 100);
-      html += `<div style="margin-bottom:14px;">
-        <div class="log-entry" style="border:none; padding:0 0 4px;">
-          <span style="font-weight:700;">${s.label}${sg.isMaintenance ? ' · maintenance' : ''}</span>
-          <span>L${sg.levelIndex+1}/${tree.levels.length}</span>
-        </div>
-        <div style="height:8px; background:var(--border-bold); opacity:0.2;">
-          <div style="height:100%; width:${pct}%; background:var(--reverse-bg);"></div>
-        </div>
-        <div class="score-note" style="margin-top:3px;">${tree.levels[sg.levelIndex]}</div>
-        <div class="score-note" style="margin-top:3px;">${s.note}</div>`;
+      let subBar = null, subNote = '';
       if(s.progress && s.progress.weeklySeconds){
         const wk = Math.round(s.progress.weeklySeconds/60);
         const tgt = Math.round(MOBILITY_WEEKLY_TARGET_SECONDS/60);
-        const bar = Math.min(100, Math.round((s.progress.weeklySeconds/MOBILITY_WEEKLY_TARGET_SECONDS)*100));
-        html += `<div style="height:5px; background:var(--border-bold); opacity:0.2; margin-top:5px;">
-            <div style="height:100%; width:${bar}%; background:var(--reverse-bg);"></div>
-          </div>
-          <div class="score-note" style="margin-top:2px;">${wk} of ~${tgt} min/week under stretch${s.progress.weeksAtDose ? ` · ${s.progress.weeksAtDose} week${s.progress.weeksAtDose===1?'':'s'} at target` : ''}.</div>`;
+        subBar = (s.progress.weeklySeconds/MOBILITY_WEEKLY_TARGET_SECONDS)*100;
+        subNote = `${wk} of ~${tgt} min/week under stretch${s.progress.weeksAtDose ? ` · ${s.progress.weeksAtDose} week${s.progress.weeksAtDose===1?'':'s'} at target` : ''}.`;
       }
-      if(s.action === 'advance'){
-        html += `<button class="small mob-advance-btn" data-skill="${sg.skill}" style="margin-top:6px;">Advance to ${s.nextLevel}</button>`;
-      }
-      html += '</div>';
+      target.innerHTML = skillProgressHtml({ skill: sg.skill, category:'mobility',
+        levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
+        note: s.note, subBar, subNote, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
     }
-    el.innerHTML = html;
-    el.querySelectorAll('.mob-advance-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const ok = await advanceSkillLevel(btn.dataset.skill);
-        showToast(ok ? 'Level advanced' : 'Could not update — try again');
-        if(ok) renderMobilityProgression();
-      });
-    });
-  } catch(e){ el.innerHTML = '<div class="score-note">Could not load mobility progression.</div>'; }
+    bindSkillAdvanceButtons(rows, renderMobilityProgression);
+  } catch(e){ note.innerHTML = '<div class="score-note">Could not load mobility progression.</div>'; }
+}
+
+
+// Strength skills advance on practice, not on a stretch clock. Grease-the-groove — which
+// is what these sessions actually run — is frequency-driven, so the signal is how many
+// separate days have logged this skill AT ITS CURRENT LEVEL, not how hard any one of them
+// was. Six is two weeks at the 3-a-week cap the generator places.
+//
+// Matched by name rather than a flag: the plan writes each entry as "<label>: <level>" and
+// logging keeps the name but not isSkillWork, so the name is the only thing that survives
+// into history — and it carries the level, which is exactly what has to be counted.
+const EXERCISE_SKILL_SESSIONS_TO_ADVANCE = 6;
+async function getExerciseSkillProgress(skill, levelIndex){
+  const tree = PROGRESSION_TREES.exercise[skill];
+  if(!tree) return { days: 0, atLevel: 0, lastDate: null };
+  const prefix = `${tree.label}: `;
+  const target = prefix + tree.levels[levelIndex];
+  const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'strength' && s.date);
+  // Distinct days, because two sessions in one day is one day's practice frequency.
+  const anyDays = new Set(), levelDays = new Set();
+  let lastDate = null;
+  sessions.forEach(s => {
+    const names = (s.exercises || []).map(e => e.name || '');
+    if(names.some(n => n.startsWith(prefix))) anyDays.add(s.date);
+    if(names.some(n => n === target)){
+      levelDays.add(s.date);
+      if(!lastDate || s.date > lastDate) lastDate = s.date;
+    }
+  });
+  return { days: anyDays.size, atLevel: levelDays.size, lastDate };
+}
+
+async function suggestExerciseAdvance(sg){
+  const tree = PROGRESSION_TREES.exercise[sg.skill];
+  if(!tree) return null;
+  const label = tree.label;
+  const p = await getExerciseSkillProgress(sg.skill, sg.levelIndex);
+  if(sg.levelIndex >= tree.levels.length - 1){
+    return { skill: sg.skill, label, action:'top', progress: p,
+      note: `Level ${sg.levelIndex+1} of ${tree.levels.length} — top of this progression. Keep it in rotation rather than chasing further.` };
+  }
+  if(sg.isMaintenance){
+    return { skill: sg.skill, label, action:'hold', progress: p,
+      note: `On maintenance — held at level ${sg.levelIndex+1} while you focus elsewhere.` };
+  }
+  if(p.atLevel === 0){
+    return { skill: sg.skill, label, action:'hold', progress: p,
+      note: 'Nothing logged at this level yet. It gets placed in strength sessions up to 3\u00d7 a week — log those and the level moves on the evidence.' };
+  }
+  if(p.atLevel < EXERCISE_SKILL_SESSIONS_TO_ADVANCE){
+    return { skill: sg.skill, label, action:'hold', progress: p,
+      note: `${p.atLevel} of ${EXERCISE_SKILL_SESSIONS_TO_ADVANCE} sessions logged at level ${sg.levelIndex+1}. Skill work is frequency-driven, so repeated easy practice is what moves it, not one hard session.` };
+  }
+  return { skill: sg.skill, label, action:'advance', progress: p, nextLevel: tree.levels[sg.levelIndex+1],
+    note: `${p.atLevel} sessions logged at level ${sg.levelIndex+1}. Ready for ${tree.levels[sg.levelIndex+1]}.` };
+}
+
+async function renderExerciseProgression(){
+  const note = document.getElementById('exerciseProgressBody');
+  const rows = document.getElementById('exerciseSkillRows');
+  if(!note || !rows) return;
+  note.innerHTML = '';
+  rows.querySelectorAll('.skg-progress').forEach(el=> el.innerHTML = '');
+  try{
+    const goals = await getCurrentGoals(todayStr);
+    const skills = ((goals && goals.skillGoals) || []).filter(sg => sg.category === 'exercise');
+    if(!skills.length) return;
+    for(const sg of skills){
+      const host = rows.querySelector(`.edit-row[data-skill="${sg.skill}"]`);
+      const target = host && host.querySelector('.skg-progress');
+      if(!target) continue;
+      const s = await suggestExerciseAdvance(sg);
+      if(!s) continue;
+      const tree = PROGRESSION_TREES.exercise[sg.skill];
+      const subBar = (s.action !== 'top' && s.progress && s.progress.atLevel)
+        ? (s.progress.atLevel / EXERCISE_SKILL_SESSIONS_TO_ADVANCE) * 100
+        : null;
+      target.innerHTML = skillProgressHtml({ skill: sg.skill, category:'exercise',
+        levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
+        note: s.note, subBar, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
+    }
+    bindSkillAdvanceButtons(rows, renderExerciseProgression);
+  } catch(e){ note.innerHTML = '<div class="score-note">Could not load strength progression.</div>'; }
 }
 
 
