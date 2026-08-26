@@ -1977,7 +1977,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.54';
+const APP_VERSION = '2026.08.26.55';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2082,8 +2082,14 @@ function setCollapsed(key, collapsed){
   if(body) body.style.display = collapsed ? 'none' : '';
   if(chev) chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
 }
+// Closed unless you have opened it. These are reference you consult at the start and end
+// of a session, not something to read past on the way to the plan, so the default is the
+// state most days want and the stored value only records a deliberate change.
 function isCollapsed(key){
-  try{ return localStorage.getItem('collapsed:' + key) === '1'; } catch(e){ return false; }
+  try{
+    const v = localStorage.getItem('collapsed:' + key);
+    return v === null ? true : v === '1';
+  } catch(e){ return true; }
 }
 function applyRememberedCollapse(){
   COLLAPSE_REMEMBERED.forEach(key => setCollapsed(key, isCollapsed(key)));
@@ -5571,8 +5577,10 @@ function showNextCard(){
   const counter = document.getElementById('cardStackCounter');
   container.innerHTML = '';
   if(cardQueueIndex >= cardQueue.length){
+    // Nothing left to decide, so the section says nothing rather than spending an
+    // empty-state block on it. The counter above it is already blank, so an absent stack
+    // reads as "done" without a card telling you so.
     counter.textContent = '';
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>All caught up — no more cards today</span></div>';
     return;
   }
   counter.textContent = `${cardQueueIndex+1} of ${cardQueue.length}`;
