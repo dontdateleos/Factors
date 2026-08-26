@@ -157,10 +157,32 @@
   .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
   h1 .logo-line{ display:block; }
+  /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
+     same rule serves the logo, the score card and the element that flies between them.
+     --eye-h is how open the eye is, --eye-rb how square its bottom sits, --eye-bl how far
+     the outer edge is cut away, --eye-rot how far it tilts. The second eye is the first
+     mirrored, so one clip-path and one rotation give a symmetric face. */
+  .eyes{ display:flex; align-items:center; height:44px; gap:17px;
+    --eye-h:44px; --eye-rb:10px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg); }
+  .eyes span{ display:block; width:20px; height:var(--eye-h);
+    border-radius:10px 10px var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
+    clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
+    transform:rotate(var(--eye-rot)); transform-origin:50% 25%;
+    transition:height 0.42s cubic-bezier(0.2,0.7,0.2,1), border-radius 0.42s cubic-bezier(0.2,0.7,0.2,1),
+               clip-path 0.42s cubic-bezier(0.2,0.7,0.2,1), transform 0.42s cubic-bezier(0.2,0.7,0.2,1); }
+  .eyes span:last-child{ transform:scaleX(-1) rotate(var(--eye-rot)); }
+  @media (prefers-reduced-motion: reduce){ .eyes span{ transition:none; } }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  .header-brand .header-mark{ position:absolute; left:148px; top:49px; display:flex; gap:17px; align-items:flex-start; pointer-events:none; z-index:0; transform-origin:left top; }
-  .header-mark span{ display:block; width:20px; height:44px; border-radius:10px; background:var(--bg); }
+  .header-brand .header-mark{ position:absolute; left:148px; top:49px; pointer-events:none; z-index:0; transform-origin:left top; }
+  /* Above the score, centred on the number rather than on the number-and-ring pair.
+     Absolute, so the expression can change height without moving anything on the page. */
+  .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
+  .score-eyes{ position:absolute; left:50%; bottom:calc(100% + 12px); transform:translateX(-50%);
+    visibility:hidden; pointer-events:none; }
+  /* Flies between the two. Above the tab-wipe overlay (9999) so it stays visible the
+     whole way across, and in page coordinates so scrolling mid-flight cannot skew it. */
+  .eye-flyer{ position:absolute; z-index:10000; pointer-events:none; }
   .header-brand > *{ position:relative; z-index:1; }
   main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; }
@@ -473,7 +495,9 @@
   /* TODAY — the score is the hero, so the band is the score. One wrapper rather than three
      siblings each painted black: the gaps between them show as hairlines of page colour,
      and an empty baseline line leaves its own margin behind even with nothing in it. */
-  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
+  /* The extra top padding is the eyes' room. They only ever come down on this tab, and
+     on this tab they are always down, so the space is theirs permanently. */
+  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 56px) 14px var(--sp-3); }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-ring-track{ stroke:var(--bg); stroke-opacity:0.3; }
@@ -823,7 +847,7 @@
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
-    <div class="header-mark" aria-hidden="true"><span></span><span></span></div>
+    <div class="header-mark eyes" aria-hidden="true"><span></span><span></span></div>
   </div>
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
@@ -845,7 +869,10 @@
           <circle class="score-ring-track" cx="22" cy="22" r="18"/>
           <circle class="score-ring-fill" id="overallScoreRingFill" cx="22" cy="22" r="18"/>
         </svg>
-      <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
+      <div class="score-stack">
+        <div class="score-eyes eyes" id="scoreEyes" aria-hidden="true"><span></span><span></span></div>
+        <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
+      </div>
       </div>
       <div class="score-label-row" id="scoreToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="baselineStatus">
         <div class="score-label" id="overallScoreLabel">Overall</div>
@@ -1674,6 +1701,124 @@ if(!window.storage){
   console.info('FACTORS: running standalone — using browser localStorage instead of Claude artifact storage.');
 }
 
+/* ---------- THE EYES ----------
+   The two capsules in the wordmark are the app's only mark, so rather than draw a second
+   pair on the score they are the same pair: on Today they leave the logo, cross the page
+   and settle over the number wearing one of five expressions; on any other tab they go
+   back up. Five bands of twenty, lowest first — 0-20 is a closed lid, 80-100 is the wide
+   capsule the logo always wears. */
+const EYE_STATES = [
+  { h:'9px',  rb:'1px',  bl:'0%',  rot:'0deg'   },
+  { h:'21px', rb:'2px',  bl:'22%', rot:'-13deg' },
+  { h:'30px', rb:'4px',  bl:'15%', rot:'-9deg'  },
+  { h:'40px', rb:'9px',  bl:'6%',  rot:'-4deg'  },
+  { h:'44px', rb:'10px', bl:'0%',  rot:'0deg'   }
+];
+const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
+const EYE_FLIGHT_MS = 560;
+
+function eyeStateForScore(score){
+  // No score is not a zero score, but it is the same face: nothing to look at yet.
+  if(score == null) return EYE_STATES[0];
+  return EYE_STATES[Math.max(0, Math.min(EYE_STATES.length-1, Math.floor(score/20)))];
+}
+function applyEyeState(el, st){
+  if(!el) return;
+  el.style.setProperty('--eye-h', st.h);
+  el.style.setProperty('--eye-rb', st.rb);
+  el.style.setProperty('--eye-bl', st.bl);
+  el.style.setProperty('--eye-rot', st.rot);
+}
+
+let eyesHome = 'header';   // where they rest when nothing is in flight
+let eyeScore = null;       // the score the expression is drawn from
+let eyeFlyer = null;
+let eyeFlightTimer = null;
+
+function eyePagePos(el){
+  const r = el.getBoundingClientRect();
+  return { x: r.left + window.scrollX, y: r.top + window.scrollY };
+}
+function getEyeFlyer(){
+  if(eyeFlyer) return eyeFlyer;
+  eyeFlyer = document.createElement('div');
+  eyeFlyer.className = 'eye-flyer eyes';
+  eyeFlyer.setAttribute('aria-hidden', 'true');
+  eyeFlyer.innerHTML = '<span></span><span></span>';
+  document.body.appendChild(eyeFlyer);
+  return eyeFlyer;
+}
+
+// The header collapse is frozen for the length of the tab wipe, which leaves the logo's
+// mark holding whatever scaled-down inline position it had when the wipe started. Landing
+// eyes on that would put them somewhere the logo isn't, so the flight waits for the
+// header to be its own size again before it measures anything.
+function whenHeaderSettled(fn){
+  let frames = 0;
+  const tick = ()=>{
+    if(!window.headerCollapseSuspended || ++frames > 60){ updateHeaderCollapse(); fn(); return; }
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+// `fromPos` is passed in when the eyes are leaving Today: activateTab has already hidden
+// the panel by the time this runs, so the score slot has no box left to measure.
+function moveEyes(dest, fromPos){
+  const header = document.querySelector('.header-mark');
+  const score = document.getElementById('scoreEyes');
+  if(!header || !score) return;
+  const toState = dest === 'score' ? eyeStateForScore(eyeScore) : EYE_NEUTRAL;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  clearTimeout(eyeFlightTimer);
+  eyesHome = dest;
+
+  const land = ()=>{
+    applyEyeState(score, eyeStateForScore(eyeScore));
+    applyEyeState(header, EYE_NEUTRAL);
+    score.style.visibility = dest === 'score' ? 'visible' : 'hidden';
+    header.style.visibility = dest === 'header' ? 'visible' : 'hidden';
+    if(eyeFlyer) eyeFlyer.style.display = 'none';
+  };
+
+  if(reduced){ land(); return; }
+
+  whenHeaderSettled(()=>{
+    // Bail if another tab switch overtook this one while we were waiting.
+    if(eyesHome !== dest) return;
+    // A tab switch during a flight hands off from wherever the eyes actually are, rather
+    // than snapping back to the slot they left.
+    const inFlight = eyeFlyer && eyeFlyer.style.display === 'flex';
+    const start = inFlight ? eyePagePos(eyeFlyer) : (fromPos || eyePagePos(dest === 'score' ? header : score));
+    const end = eyePagePos(dest === 'score' ? score : header);
+    const flyer = getEyeFlyer();
+
+    flyer.style.display = 'flex';   // .eyes is a flex row — 'block' stacks the two eyes
+    flyer.style.transition = 'none';
+    flyer.style.left = start.x + 'px';
+    flyer.style.top = start.y + 'px';
+    flyer.style.transform = 'translate(0, 0)';
+    applyEyeState(flyer, dest === 'score' ? EYE_NEUTRAL : eyeStateForScore(eyeScore));
+    header.style.visibility = 'hidden';
+    score.style.visibility = 'hidden';
+    void flyer.offsetWidth; // take the start state as current, or the two writes coalesce
+
+    flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
+    flyer.style.transform = `translate(${end.x - start.x}px, ${end.y - start.y}px)`;
+    applyEyeState(flyer, toState);   // the expression arrives with the eyes, not after
+    eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
+  });
+}
+
+// Called whenever the score is recomputed. If the eyes are already sitting on the score
+// the expression just changes under them; if they are up in the logo it is waiting for
+// them when they come down.
+function setEyeScore(score){
+  eyeScore = score;
+  if(eyesHome === 'score') applyEyeState(document.getElementById('scoreEyes'), eyeStateForScore(score));
+}
+
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
@@ -1691,6 +1836,11 @@ const TAB_BACKDROP_COLOR = {
   injuries:'var(--block-purple)', data:'var(--block-yellow)', settings:'var(--block-red)'
 };
 function activateTab(name){
+  // Measured before the panel swap below hides it, since a hidden panel has no boxes.
+  const wasOnToday = document.getElementById('panel-insights').classList.contains('active');
+  const eyesLeaving = wasOnToday && name !== 'insights' && eyesHome === 'score';
+  const eyesFrom = eyesLeaving ? eyePagePos(document.getElementById('scoreEyes')) : null;
+
   tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
   document.body.className = document.body.className.replace(/\btab-\w+\b/g, '').trim();
   document.body.classList.add('tab-'+name);
@@ -1725,6 +1875,9 @@ function activateTab(name){
   const tabButton = document.querySelector(`.tab[data-tab="${name}"]`);
   if(tabButton) document.getElementById('currentTabLabel').textContent = tabButton.textContent;
   window.scrollTo(0, 0);
+
+  if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
+  else if(eyesLeaving) moveEyes('header', eyesFrom);
 }
 
 function activateTrainingSubView(view){
@@ -2062,7 +2215,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.94';
+const APP_VERSION = '2026.08.26.95';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5933,6 +6086,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
     animateNumber(out, prev, capacityResult.score, 500);
     setScoreRing(capacityResult.score, true);
+    setEyeScore(capacityResult.score);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
     return;
@@ -5942,6 +6096,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   if(parts.length === 0){
     out.innerHTML=SCORE_PLACEHOLDER_SVG;
     setScoreRing(null);
+    setEyeScore(null);
     // Say WHY there is no number. A bare placeholder labelled "Overall" is
     // indistinguishable from a broken score — it reads as the app failing rather than as
     // the app waiting for something. The score needs sleep duration, wake time, or HRV
@@ -5960,6 +6115,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   const prev = isNaN(prevNum) ? overall : prevNum;
   animateNumber(out, prev, overall, 500);
   setScoreRing(overall, true);
+  setEyeScore(overall);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
   else { label.textContent='Typical'; }
