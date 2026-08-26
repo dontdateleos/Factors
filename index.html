@@ -1822,6 +1822,7 @@ function moveEyes(dest, from){
   eyesHome = dest;
 
   const land = ()=>{
+    clearTimeout(eyeFlightTimer);
     eyeFlightTimer = null;
     applyEyeForm(score, 'score');
     applyEyeForm(header, 'header');
@@ -1832,6 +1833,7 @@ function moveEyes(dest, from){
       eyeFlyer.style.display = 'none';
       eyeFlyer.style.removeProperty('--eye-morph');
       eyeFlyer.style.removeProperty('--eye-plate-delay');
+      eyeFlyer.style.transition = '';
     }
     scheduleBlink(dest === 'score' ? 900 : 2600);
   };
@@ -1880,18 +1882,49 @@ function moveEyes(dest, from){
     // the wind-up, both signed against the direction they are heading.
     const dir = dy >= 0 ? 1 : -1;
     const dip = -7 * dir, over = 8 * dir;
-    eyeFlight = flyer.animate([
-      { transform:'translate(0px, 0px) scale(1, 1)', offset:0, easing:'cubic-bezier(0.3,0,0.5,1)' },
-      { transform:`translate(${dx*0.08}px, ${dip}px) scale(0.93, 1.09)`, offset:0.18, easing:'cubic-bezier(0.55,0,0.35,1)' },
-      { transform:`translate(${dx*0.72}px, ${dy*0.72}px) scale(0.96, 1.06)`, offset:0.55, easing:'cubic-bezier(0.4,0,0.3,1)' },
-      { transform:`translate(${dx}px, ${dy + over}px) scale(1.07, 0.9)`, offset:0.78, easing:'cubic-bezier(0.3,0,0.2,1)' },
-      { transform:`translate(${dx}px, ${dy - over*0.3}px) scale(0.98, 1.03)`, offset:0.9, easing:'ease-out' },
-      { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
-    ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
 
-    applyEyeForm(flyer, dest);   // the form and expression arrive with the eyes, not after
+    // The landing is booked BEFORE anything below runs. Both slots are hidden by now, and
+    // the flyer is the only copy on screen — so anything that throws in here (an engine
+    // without Element.animate, a keyframe it will not take) would leave the mark invisible
+    // on every tab with nothing left to bring it back.
     eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
+    try{
+      eyeFlight = flyer.animate([
+        { transform:'translate(0px, 0px) scale(1, 1)', offset:0, easing:'cubic-bezier(0.3,0,0.5,1)' },
+        { transform:`translate(${dx*0.08}px, ${dip}px) scale(0.93, 1.09)`, offset:0.18, easing:'cubic-bezier(0.55,0,0.35,1)' },
+        { transform:`translate(${dx*0.72}px, ${dy*0.72}px) scale(0.96, 1.06)`, offset:0.55, easing:'cubic-bezier(0.4,0,0.3,1)' },
+        { transform:`translate(${dx}px, ${dy + over}px) scale(1.07, 0.9)`, offset:0.78, easing:'cubic-bezier(0.3,0,0.2,1)' },
+        { transform:`translate(${dx}px, ${dy - over*0.3}px) scale(0.98, 1.03)`, offset:0.9, easing:'ease-out' },
+        { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
+      ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
+    }catch(e){
+      // No arc, but the eyes still get where they are going.
+      eyeFlight = null;
+      flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
+      flyer.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+    applyEyeForm(flyer, dest);   // the form and expression arrive with the eyes, not after
   });
+}
+
+// Belt and braces. Both slots are hidden while the mark is in the air, so any path that
+// hides them without landing takes the mark off every tab at once, with nothing left to
+// bring it back. This runs after every tab switch and puts it back where it belongs — the
+// active panel decides, not any state we have been keeping.
+let eyeSettleTimer = null;
+function settleEyes(){
+  if(eyeFlightTimer) return;   // one is in the air; its own landing does this properly
+  const header = document.querySelector('.header-mark');
+  const score = document.getElementById('scoreEyes');
+  const today = document.getElementById('panel-insights');
+  if(!header || !score || !today) return;
+  const onToday = today.classList.contains('active');
+  eyesHome = onToday ? 'score' : 'header';
+  applyEyeForm(score, 'score');
+  applyEyeForm(header, 'header');
+  score.style.visibility = onToday ? 'visible' : 'hidden';
+  header.style.visibility = onToday ? 'hidden' : 'visible';
+  if(eyeFlyer) eyeFlyer.style.display = 'none';
 }
 
 /* ---------- BLINKING ----------
@@ -2034,6 +2067,8 @@ function activateTab(name){
 
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
   else if(eyesLeaving) moveEyes('header', eyesFrom);
+  clearTimeout(eyeSettleTimer);
+  eyeSettleTimer = setTimeout(settleEyes, EYE_FLIGHT_MS + 500);
 }
 
 function activateTrainingSubView(view){
@@ -2371,7 +2406,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.1';
+const APP_VERSION = '2026.08.27.2';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
