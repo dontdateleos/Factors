@@ -163,20 +163,45 @@
      --eye-h is how open the eye is, --eye-rb how square its bottom sits, --eye-bl how far
      the outer edge is cut away, --eye-rot how far it tilts. The second eye is the first
      mirrored, so one clip-path and one rotation give a symmetric face. */
-  .eyes{ display:flex; align-items:center; height:32px; gap:12px;
-    --eye-h:32px; --eye-rb:7.5px; --eye-bl:0%; --eye-rot:0deg; --eye-ink:var(--bg);
-    --eye-morph:0.42s; }
-  .eyes span{ display:block; width:15px; height:var(--eye-h);
-    border-radius:7.5px 7.5px var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
+  /* Every value is a custom property because the mark wears two forms and morphs between
+     them: a lime plate with two small dark eyes when it is up in the wordmark, and the bare
+     cream eyes when it is down on the score. Both forms are the same element, so the flight
+     is a transition of ordinary animatable properties — width, height, gap, background,
+     radius — rather than a swap. See EYE_SITES for the two sets of values. */
+  .eyes{ display:flex; align-items:center; justify-content:center;
+    width:var(--eye-box-w); height:var(--eye-box-h); gap:var(--eye-gap);
+    background-color:var(--eye-plate); border-radius:var(--eye-plate-r);
+    --eye-box-w:42px; --eye-box-h:32px; --eye-gap:12px; --eye-plate:transparent; --eye-plate-r:0px;
+    --eye-w:15px; --eye-h:32px; --eye-r:7.5px; --eye-rb:7.5px; --eye-bl:0%; --eye-rot:0deg;
+    --eye-ink:var(--bg); --eye-morph:0.42s; --eye-ease:cubic-bezier(0.2,0.7,0.2,1);
+    /* The plate changes faster than the eyes do, and waits its turn depending on which way
+       the mark is going: on the way down it clears off first so the eyes are never large and
+       cream inside a lime square, and on the way up it closes around them last, once they
+       have shrunk and gone dark. Half-faded lime on black is murky, so it is worth keeping
+       that phase short and out of step with the rest. */
+    --eye-plate-delay:0ms;
+    transition:width var(--eye-morph) var(--eye-ease), height var(--eye-morph) var(--eye-ease),
+               gap var(--eye-morph) var(--eye-ease),
+               background-color calc(var(--eye-morph) * 0.42) var(--eye-ease) var(--eye-plate-delay),
+               border-radius calc(var(--eye-morph) * 0.42) var(--eye-ease) var(--eye-plate-delay); }
+  .eyes span{ display:block; width:var(--eye-w); height:var(--eye-h);
+    border-radius:var(--eye-r) var(--eye-r) var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
     transform:rotate(var(--eye-rot)); transform-origin:50% 25%;
-    transition:height var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1), border-radius var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1),
-               clip-path var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1), transform var(--eye-morph) cubic-bezier(0.2,0.7,0.2,1); }
+    transition:width var(--eye-morph) var(--eye-ease), height var(--eye-morph) var(--eye-ease),
+               border-radius var(--eye-morph) var(--eye-ease), background-color var(--eye-morph) var(--eye-ease),
+               clip-path var(--eye-morph) var(--eye-ease), transform var(--eye-morph) var(--eye-ease); }
   .eyes span:last-child{ transform:scaleX(-1) rotate(var(--eye-rot)); }
-  @media (prefers-reduced-motion: reduce){ .eyes span{ transition:none; } }
+  @media (prefers-reduced-motion: reduce){ .eyes, .eyes span{ transition:none; } }
+  /* Held on the flyer for one frame while it is dressed in the form it is LEAVING, so the
+     browser takes that as the current style. Without it the two writes coalesce and the
+     flyer is already wearing the destination form before it has moved. */
+  .eyes.no-morph, .eyes.no-morph span{ transition:none; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  .header-brand .header-mark{ position:absolute; left:123px; top:61px; pointer-events:none; z-index:0; transform-origin:left top; }
+  .header-brand .header-mark{ position:absolute; left:117px; top:57px; pointer-events:none; z-index:1; transform-origin:left top;
+    --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
+    --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -186,6 +211,8 @@
      whole way across, and in page coordinates so scrolling mid-flight cannot skew it. */
   .eye-flyer{ position:absolute; z-index:10000; pointer-events:none; transform-origin:50% 50%; }
   .header-brand > *{ position:relative; z-index:1; }
+  /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
+  .header-brand .header-mark{ z-index:2; }
   main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; }
   .panel.active{ display:block; }
@@ -1724,6 +1751,28 @@ function applyEyeState(el, st){
   el.style.setProperty('--eye-rot', st.rot);
 }
 
+// The two forms the mark wears. Up in the wordmark it is a lime plate with a pair of small
+// dark eyes; down on the score it is the bare cream pair, wearing whichever expression the
+// score band calls for. The flyer is given one set and then the other, so the plate closes
+// around the eyes on the way up and opens off them on the way down.
+const EYE_SITES = {
+  header: { '--eye-box-w':'40px', '--eye-box-h':'40px', '--eye-gap':'10px',
+            '--eye-plate':'var(--block-lime)', '--eye-plate-r':'12px',
+            '--eye-w':'6px', '--eye-h':'18px', '--eye-r':'3px', '--eye-rb':'3px',
+            '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--text)' },
+  score:  { '--eye-box-w':'42px', '--eye-box-h':'32px', '--eye-gap':'12px',
+            '--eye-plate':'transparent', '--eye-plate-r':'0px',
+            '--eye-w':'15px', '--eye-h':'32px', '--eye-r':'7.5px', '--eye-rb':'7.5px',
+            '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--bg)' }
+};
+// Dresses an element as one site, and for the score overlays the expression on top.
+function applyEyeForm(el, site){
+  if(!el) return;
+  const vars = EYE_SITES[site];
+  for(const k in vars) el.style.setProperty(k, vars[k]);
+  if(site === 'score') applyEyeState(el, eyeStateForScore(eyeScore));
+}
+
 let eyesHome = 'header';   // where they rest when nothing is in flight
 let eyeScore = null;       // the score the expression is drawn from
 let eyeFlyer = null;
@@ -1774,11 +1823,16 @@ function moveEyes(dest, from){
 
   const land = ()=>{
     eyeFlightTimer = null;
-    applyEyeState(score, eyeStateForScore(eyeScore));
-    applyEyeState(header, EYE_NEUTRAL);
+    applyEyeForm(score, 'score');
+    applyEyeForm(header, 'header');
     score.style.visibility = dest === 'score' ? 'visible' : 'hidden';
     header.style.visibility = dest === 'header' ? 'visible' : 'hidden';
-    if(eyeFlyer){ if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; } eyeFlyer.style.display = 'none'; }
+    if(eyeFlyer){
+      if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
+      eyeFlyer.style.display = 'none';
+      eyeFlyer.style.removeProperty('--eye-morph');
+      eyeFlyer.style.removeProperty('--eye-plate-delay');
+    }
     scheduleBlink(dest === 'score' ? 900 : 2600);
   };
 
@@ -1806,7 +1860,15 @@ function moveEyes(dest, from){
     flyer.style.left = start.x + 'px';
     flyer.style.top = start.y + 'px';
     flyer.style.transform = 'none';
-    applyEyeState(flyer, dest === 'score' ? EYE_NEUTRAL : eyeStateForScore(eyeScore));
+    // Dress it in the form it is leaving with transitions off, and make the browser take
+    // that as current, or the morph to the destination form has nothing to start from.
+    flyer.classList.add('no-morph');
+    applyEyeForm(flyer, dest === 'score' ? 'header' : 'score');
+    void flyer.offsetWidth;
+    flyer.classList.remove('no-morph');
+    // The change of form should read through most of the fall, not be over before it lands.
+    flyer.style.setProperty('--eye-morph', Math.round(EYE_FLIGHT_MS * 0.78) + 'ms');
+    flyer.style.setProperty('--eye-plate-delay', dest === 'score' ? '0ms' : 'calc(var(--eye-morph) * 0.5)');
     header.style.visibility = 'hidden';
     score.style.visibility = 'hidden';
 
@@ -1827,7 +1889,7 @@ function moveEyes(dest, from){
       { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
     ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
 
-    applyEyeState(flyer, toState);   // the expression arrives with the eyes, not after
+    applyEyeForm(flyer, dest);   // the form and expression arrive with the eyes, not after
     eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
   });
 }
@@ -1850,10 +1912,10 @@ function eyesDocked(){
   return el && getComputedStyle(el).visibility === 'visible' ? el : null;
 }
 function blinkOnce(el, then){
-  const open = el.style.getPropertyValue('--eye-h') || EYE_NEUTRAL.h;
+  const open = (el.style.getPropertyValue('--eye-h') || getComputedStyle(el).getPropertyValue('--eye-h')).trim();
   // Already shut — the lowest score band IS a closed lid, and blinking it does nothing but
-  // twitch. Let it sit.
-  if(parseFloat(open) <= parseFloat(EYE_STATES[0].h)){ if(then) then(); return; }
+  // twitch. Let it sit. The plate's eyes are 18px, well clear of this.
+  if(!open || parseFloat(open) <= parseFloat(EYE_STATES[0].h)){ if(then) then(); return; }
   // A blink reopens to the height it closed from, so a score landing mid-blink would be
   // undone by a timer set before it. The sequence number strands those timers instead.
   const seq = ++blinkSeq;
@@ -1905,6 +1967,7 @@ function setEyeScore(score){
   if(changed) stopBlinking();
   applyEyeState(document.getElementById('scoreEyes'), eyeStateForScore(score));
   if(changed) scheduleBlink(2200);
+
 }
 
 /* ---------- TAB NAV ---------- */
@@ -2308,7 +2371,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.99';
+const APP_VERSION = '2026.08.27.1';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3031,10 +3094,10 @@ function updateHeaderCollapse(){
   // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
   // Negative: the mark tucks under the tail of the last letter rather than sitting off it.
-  const MARK_GAP = -4;
+  const MARK_GAP = -10;
   // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
   // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
-  const MARK_TOP = 61;
+  const MARK_TOP = 57;
   mark.style.top = lerp(MARK_TOP, 30, progress) + 'px';
   mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
   mark.style.transform = `scale(${1-progress})`;
