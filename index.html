@@ -509,17 +509,15 @@
   /* Sized so the band below the cut ends just under the lowest label. It runs to the
      stage's own bottom edge, so shortening the stage is what pulls the band up — the
      alternative, stopping it short, puts it back to ending on nothing. */
-  /* The carousel is its own black-and-white object now, not two halves of the tab's
-     orange. Cream under the whole stage, full-bleed like the band above it, so the cut is
-     black-to-white rather than black-to-orange — the tab colour stays the tab's, and the
-     wheel stops competing with it. */
-  .week-wheel-stage{ display:flex; height:34vh; min-height:250px; max-height:300px;
-    background:var(--bg); margin:0 -14px; padding:0 14px; }
+  .week-wheel-stage{ display:flex; height:34vh; min-height:250px; max-height:300px; }
   /* Same split as the recommendation card, but the boundary is a box rather than a line —
      the labels rotate, so clipping each one individually would mean fighting its own
-     transform. Instead the wheel is drawn twice: once in black over the cream, and again
+     transform. Instead the wheel is drawn twice: once in black over the page, and again
      in cream inside a black panel that clips by overflow. Where the panel is you see
-     cream on black; where a label runs past its edge you see the black copy on cream.
+     cream on black; where a label runs past its edge you see the black copy on orange.
+     The twins were orange, which made the band a shade of the tab rather than a
+     black-and-white object sitting on it — the ground stays the tab's orange, only the
+     text inside the band is white.
      The panel takes no pointer events, so the drag still lands on the copy underneath. */
   .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:visible; }
   /* z-index so the panel paints OVER the black copies rather than under them — both
@@ -572,8 +570,7 @@
   .wheel-detail-day{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); margin-bottom:2px; }
   .wheel-workout-card{ padding:8px 0; cursor:pointer; border-bottom:1px solid var(--line); }
   .wheel-workout-card:last-child{ border-bottom:none; }
-  /* Was a white wash, which showed on orange and shows nothing on cream. */
-  .wheel-workout-card:active{ background:rgba(12,13,11,0.08); }
+  .wheel-workout-card:active{ background:rgba(255,255,255,0.35); }
   select:active{ background:#f2f2f2; }
   .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
   .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--text); }
@@ -2090,7 +2087,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.70';
+const APP_VERSION = '2026.08.26.71';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4188,13 +4185,12 @@ function renderWheelPositions(dragOffsetDeg){
   const inkPanel = ink && ink.parentElement;
   if(inkPanel){
     const boundary = wheelInkRowBoundary(wheelCol, centerY);
-    // Bleed off the right edge as well, so the band crosses the whole page. The stage is
-    // full-bleed now and its own box already reaches the screen edge, so this measures to
-    // that edge and stops — the +14 that used to make up main's padding would overshoot
-    // it and widen the document.
+    // Bleed off the right edge as well, so the band crosses the whole page. The stage
+    // stops at main's content edge, so the band has to make up that 14px of padding to
+    // reach the screen.
     const stage = wheelCol.parentElement;
     const stageRect = stage ? stage.getBoundingClientRect() : colRect;
-    inkPanel.style.right = -(stageRect.right - colRect.right) + 'px';
+    inkPanel.style.right = -((stageRect.right - colRect.right) + 14) + 'px';
     // Run the band up into the header rather than to main's top edge: main starts below
     // its own padding, which leaves a strip of page colour above the band. A few pixels
     // past it rather than exactly to it — layout positions are fractional, so meeting it
