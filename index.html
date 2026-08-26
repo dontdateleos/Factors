@@ -146,7 +146,7 @@
   .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   /* Set to match .tab-label, since it is the other thing in this corner of the black. */
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
-     to lift them over the dither canvases. At equal specificity that rule wins on order,
+     to lift them over the mark. At equal specificity that rule wins on order,
      and it was quietly dropping this back into flow as a full-width row. */
   .header-brand .header-date{ position:absolute; right:14px; z-index:2; text-align:right;
     font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
@@ -157,8 +157,10 @@
   .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
   h1 .logo-line{ display:block; }
-  .header-brand .header-dither-row{ position:absolute; left:110px; top:46px; display:flex; gap:16px; align-items:flex-end; pointer-events:none; z-index:0; transform-origin:left top; }
-    .header-dither-row canvas{ display:block; }
+  /* Absolutely positioned and transform-origin'd at its top left because the header
+     collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
+  .header-brand .header-mark{ position:absolute; left:148px; top:49px; display:flex; gap:17px; align-items:flex-start; pointer-events:none; z-index:0; transform-origin:left top; }
+  .header-mark span{ display:block; width:20px; height:44px; border-radius:10px; background:var(--bg); }
   .header-brand > *{ position:relative; z-index:1; }
   main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; }
@@ -820,7 +822,8 @@
     </div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
-    <div class="header-dither-row"><canvas id="headerSphere1" width="19" height="19"></canvas><canvas id="headerSphere2" width="26" height="26"></canvas><canvas id="headerSphere3" width="30" height="30"></canvas></div>
+    <!-- The mark: two capsules set beside the wordmark. -->
+    <div class="header-mark" aria-hidden="true"><span></span><span></span></div>
   </div>
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
@@ -1630,108 +1633,6 @@
 
 <script>
 
-// Header dither spheres — the three header dot-shapes rendered as a rotating 3D
-// form instead of a static image. Uses the SAME actual dither dot positions as the
-// static shapes (not a generic evenly-spaced sphere), projected onto an assumed
-// sphere surface (z = sqrt(R^2 - r^2)) and rotated around the Y axis. Backface-culled
-// (far-side dots simply aren't drawn) rather than faded, so it reads as solid/opaque,
-// not translucent. Spin speed eases toward the scroll state: spinning while scrolled
-// away from the top, easing to a stop — and easing the angle itself toward the
-// nearest full rotation — once back at the top, so it settles into the same
-// front-facing orientation the static version always showed, not a random angle.
-(function(){
-  const DOTS_A = [{"x": -12.5, "y": -24.5, "size": 3}, {"x": -0.5, "y": -24.5, "size": 3}, {"x": 11.5, "y": -24.5, "size": 3}, {"x": -18.5, "y": -18.5, "size": 3}, {"x": -12.5, "y": -18.5, "size": 3}, {"x": -6.5, "y": -18.5, "size": 3}, {"x": -0.5, "y": -18.5, "size": 3}, {"x": 5.5, "y": -18.5, "size": 3}, {"x": 11.5, "y": -18.5, "size": 3}, {"x": 17.5, "y": -18.5, "size": 3}, {"x": -3.5, "y": -15.5, "size": 3}, {"x": 2.5, "y": -15.5, "size": 3}, {"x": 8.5, "y": -15.5, "size": 3}, {"x": -24.5, "y": -12.5, "size": 3}, {"x": -18.5, "y": -12.5, "size": 3}, {"x": -12.5, "y": -12.5, "size": 3}, {"x": -6.5, "y": -12.5, "size": 3}, {"x": -0.5, "y": -12.5, "size": 3}, {"x": 2.5, "y": -12.5, "size": 3}, {"x": 5.5, "y": -12.5, "size": 3}, {"x": 11.5, "y": -12.5, "size": 3}, {"x": 17.5, "y": -12.5, "size": 3}, {"x": 23.5, "y": -12.5, "size": 3}, {"x": -9.5, "y": -9.5, "size": 3}, {"x": -3.5, "y": -9.5, "size": 3}, {"x": 2.5, "y": -9.5, "size": 3}, {"x": 8.5, "y": -9.5, "size": 3}, {"x": 14.5, "y": -9.5, "size": 3}, {"x": -18.5, "y": -6.5, "size": 3}, {"x": -12.5, "y": -6.5, "size": 3}, {"x": -6.5, "y": -6.5, "size": 3}, {"x": -3.5, "y": -6.5, "size": 3}, {"x": -0.5, "y": -6.5, "size": 3}, {"x": 2.5, "y": -6.5, "size": 3}, {"x": 5.5, "y": -6.5, "size": 3}, {"x": 8.5, "y": -6.5, "size": 3}, {"x": 11.5, "y": -6.5, "size": 3}, {"x": 17.5, "y": -6.5, "size": 3}, {"x": -15.5, "y": -3.5, "size": 3}, {"x": -9.5, "y": -3.5, "size": 3}, {"x": -3.5, "y": -3.5, "size": 3}, {"x": 2.5, "y": -3.5, "size": 3}, {"x": 8.5, "y": -3.5, "size": 3}, {"x": 14.5, "y": -3.5, "size": 3}, {"x": -24.5, "y": -0.5, "size": 3}, {"x": -18.5, "y": -0.5, "size": 3}, {"x": -12.5, "y": -0.5, "size": 3}, {"x": -9.5, "y": -0.5, "size": 3}, {"x": -6.5, "y": -0.5, "size": 3}, {"x": -3.5, "y": -0.5, "size": 3}, {"x": -0.5, "y": -0.5, "size": 3}, {"x": 2.5, "y": -0.5, "size": 3}, {"x": 5.5, "y": -0.5, "size": 3}, {"x": 8.5, "y": -0.5, "size": 3}, {"x": 11.5, "y": -0.5, "size": 3}, {"x": 17.5, "y": -0.5, "size": 3}, {"x": 23.5, "y": -0.5, "size": 3}, {"x": -15.5, "y": 2.5, "size": 3}, {"x": -9.5, "y": 2.5, "size": 3}, {"x": -3.5, "y": 2.5, "size": 3}, {"x": -0.5, "y": 2.5, "size": 3}, {"x": 2.5, "y": 2.5, "size": 3}, {"x": 8.5, "y": 2.5, "size": 3}, {"x": 14.5, "y": 2.5, "size": 3}, {"x": -18.5, "y": 5.5, "size": 3}, {"x": -12.5, "y": 5.5, "size": 3}, {"x": -6.5, "y": 5.5, "size": 3}, {"x": -3.5, "y": 5.5, "size": 3}, {"x": -0.5, "y": 5.5, "size": 3}, {"x": 2.5, "y": 5.5, "size": 3}, {"x": 5.5, "y": 5.5, "size": 3}, {"x": 8.5, "y": 5.5, "size": 3}, {"x": 11.5, "y": 5.5, "size": 3}, {"x": 17.5, "y": 5.5, "size": 3}, {"x": -15.5, "y": 8.5, "size": 3}, {"x": -9.5, "y": 8.5, "size": 3}, {"x": -3.5, "y": 8.5, "size": 3}, {"x": 2.5, "y": 8.5, "size": 3}, {"x": 8.5, "y": 8.5, "size": 3}, {"x": -24.5, "y": 11.5, "size": 3}, {"x": -18.5, "y": 11.5, "size": 3}, {"x": -12.5, "y": 11.5, "size": 3}, {"x": -6.5, "y": 11.5, "size": 3}, {"x": -0.5, "y": 11.5, "size": 3}, {"x": 2.5, "y": 11.5, "size": 3}, {"x": 5.5, "y": 11.5, "size": 3}, {"x": 11.5, "y": 11.5, "size": 3}, {"x": 17.5, "y": 11.5, "size": 3}, {"x": 23.5, "y": 11.5, "size": 3}, {"x": -9.5, "y": 14.5, "size": 3}, {"x": -3.5, "y": 14.5, "size": 3}, {"x": 2.5, "y": 14.5, "size": 3}, {"x": 8.5, "y": 14.5, "size": 3}, {"x": 14.5, "y": 14.5, "size": 3}, {"x": -18.5, "y": 17.5, "size": 3}, {"x": -12.5, "y": 17.5, "size": 3}, {"x": -6.5, "y": 17.5, "size": 3}, {"x": -0.5, "y": 17.5, "size": 3}, {"x": 5.5, "y": 17.5, "size": 3}, {"x": 11.5, "y": 17.5, "size": 3}, {"x": 17.5, "y": 17.5, "size": 3}, {"x": -12.5, "y": 23.5, "size": 3}, {"x": -6.5, "y": 23.5, "size": 3}, {"x": -0.5, "y": 23.5, "size": 3}, {"x": 5.5, "y": 23.5, "size": 3}, {"x": 11.5, "y": 23.5, "size": 3}];
-  const DOTS_B = [{"x": -8.5, "y": -32.5, "size": 3}, {"x": 3.5, "y": -32.5, "size": 3}, {"x": -14.5, "y": -26.5, "size": 3}, {"x": -8.5, "y": -26.5, "size": 3}, {"x": -2.5, "y": -26.5, "size": 3}, {"x": 3.5, "y": -26.5, "size": 3}, {"x": 9.5, "y": -26.5, "size": 3}, {"x": -20.5, "y": -20.5, "size": 3}, {"x": -14.5, "y": -20.5, "size": 3}, {"x": -8.5, "y": -20.5, "size": 3}, {"x": -2.5, "y": -20.5, "size": 3}, {"x": 3.5, "y": -20.5, "size": 3}, {"x": 9.5, "y": -20.5, "size": 3}, {"x": 15.5, "y": -20.5, "size": 3}, {"x": 21.5, "y": -20.5, "size": 3}, {"x": 27.5, "y": -20.5, "size": 3}, {"x": -17.5, "y": -17.5, "size": 3}, {"x": -11.5, "y": -17.5, "size": 3}, {"x": -5.5, "y": -17.5, "size": 3}, {"x": 0.5, "y": -17.5, "size": 3}, {"x": 6.5, "y": -17.5, "size": 3}, {"x": 18.5, "y": -17.5, "size": 3}, {"x": -26.5, "y": -14.5, "size": 3}, {"x": -20.5, "y": -14.5, "size": 3}, {"x": -14.5, "y": -14.5, "size": 3}, {"x": -8.5, "y": -14.5, "size": 3}, {"x": -2.5, "y": -14.5, "size": 3}, {"x": 3.5, "y": -14.5, "size": 3}, {"x": 9.5, "y": -14.5, "size": 3}, {"x": 15.5, "y": -14.5, "size": 3}, {"x": 21.5, "y": -14.5, "size": 3}, {"x": -11.5, "y": -11.5, "size": 3}, {"x": -5.5, "y": -11.5, "size": 3}, {"x": 0.5, "y": -11.5, "size": 3}, {"x": 6.5, "y": -11.5, "size": 3}, {"x": 12.5, "y": -11.5, "size": 3}, {"x": -32.5, "y": -8.5, "size": 3}, {"x": -26.5, "y": -8.5, "size": 3}, {"x": -20.5, "y": -8.5, "size": 3}, {"x": -14.5, "y": -8.5, "size": 3}, {"x": -8.5, "y": -8.5, "size": 3}, {"x": -5.5, "y": -8.5, "size": 3}, {"x": -2.5, "y": -8.5, "size": 3}, {"x": 0.5, "y": -8.5, "size": 3}, {"x": 3.5, "y": -8.5, "size": 3}, {"x": 6.5, "y": -8.5, "size": 3}, {"x": 9.5, "y": -8.5, "size": 3}, {"x": 15.5, "y": -8.5, "size": 3}, {"x": 21.5, "y": -8.5, "size": 3}, {"x": 27.5, "y": -8.5, "size": 3}, {"x": -17.5, "y": -5.5, "size": 3}, {"x": -11.5, "y": -5.5, "size": 3}, {"x": -5.5, "y": -5.5, "size": 3}, {"x": 0.5, "y": -5.5, "size": 3}, {"x": 6.5, "y": -5.5, "size": 3}, {"x": 12.5, "y": -5.5, "size": 3}, {"x": 18.5, "y": -5.5, "size": 3}, {"x": -26.5, "y": -2.5, "size": 3}, {"x": -20.5, "y": -2.5, "size": 3}, {"x": -14.5, "y": -2.5, "size": 3}, {"x": -11.5, "y": -2.5, "size": 3}, {"x": -8.5, "y": -2.5, "size": 3}, {"x": -5.5, "y": -2.5, "size": 3}, {"x": -2.5, "y": -2.5, "size": 3}, {"x": 0.5, "y": -2.5, "size": 3}, {"x": 3.5, "y": -2.5, "size": 3}, {"x": 6.5, "y": -2.5, "size": 3}, {"x": 9.5, "y": -2.5, "size": 3}, {"x": 12.5, "y": -2.5, "size": 3}, {"x": 15.5, "y": -2.5, "size": 3}, {"x": 21.5, "y": -2.5, "size": 3}, {"x": 27.5, "y": -2.5, "size": 3}, {"x": -17.5, "y": 0.5, "size": 3}, {"x": -11.5, "y": 0.5, "size": 3}, {"x": -5.5, "y": 0.5, "size": 3}, {"x": -2.5, "y": 0.5, "size": 3}, {"x": 0.5, "y": 0.5, "size": 3}, {"x": 6.5, "y": 0.5, "size": 3}, {"x": 12.5, "y": 0.5, "size": 3}, {"x": -32.5, "y": 3.5, "size": 3}, {"x": -26.5, "y": 3.5, "size": 3}, {"x": -20.5, "y": 3.5, "size": 3}, {"x": -14.5, "y": 3.5, "size": 3}, {"x": -8.5, "y": 3.5, "size": 3}, {"x": -5.5, "y": 3.5, "size": 3}, {"x": -2.5, "y": 3.5, "size": 3}, {"x": 0.5, "y": 3.5, "size": 3}, {"x": 3.5, "y": 3.5, "size": 3}, {"x": 6.5, "y": 3.5, "size": 3}, {"x": 9.5, "y": 3.5, "size": 3}, {"x": 15.5, "y": 3.5, "size": 3}, {"x": 21.5, "y": 3.5, "size": 3}, {"x": 27.5, "y": 3.5, "size": 3}, {"x": -17.5, "y": 6.5, "size": 3}, {"x": -11.5, "y": 6.5, "size": 3}, {"x": -5.5, "y": 6.5, "size": 3}, {"x": 0.5, "y": 6.5, "size": 3}, {"x": 6.5, "y": 6.5, "size": 3}, {"x": 12.5, "y": 6.5, "size": 3}, {"x": 18.5, "y": 6.5, "size": 3}, {"x": -26.5, "y": 9.5, "size": 3}, {"x": -20.5, "y": 9.5, "size": 3}, {"x": -14.5, "y": 9.5, "size": 3}, {"x": -8.5, "y": 9.5, "size": 3}, {"x": -2.5, "y": 9.5, "size": 3}, {"x": 0.5, "y": 9.5, "size": 3}, {"x": 3.5, "y": 9.5, "size": 3}, {"x": 9.5, "y": 9.5, "size": 3}, {"x": 15.5, "y": 9.5, "size": 3}, {"x": 21.5, "y": 9.5, "size": 3}, {"x": -11.5, "y": 12.5, "size": 3}, {"x": -5.5, "y": 12.5, "size": 3}, {"x": 0.5, "y": 12.5, "size": 3}, {"x": 6.5, "y": 12.5, "size": 3}, {"x": 12.5, "y": 12.5, "size": 3}, {"x": -26.5, "y": 15.5, "size": 3}, {"x": -20.5, "y": 15.5, "size": 3}, {"x": -14.5, "y": 15.5, "size": 3}, {"x": -8.5, "y": 15.5, "size": 3}, {"x": -2.5, "y": 15.5, "size": 3}, {"x": 3.5, "y": 15.5, "size": 3}, {"x": 9.5, "y": 15.5, "size": 3}, {"x": 15.5, "y": 15.5, "size": 3}, {"x": 21.5, "y": 15.5, "size": 3}, {"x": 27.5, "y": 15.5, "size": 3}, {"x": -17.5, "y": 18.5, "size": 3}, {"x": -5.5, "y": 18.5, "size": 3}, {"x": 0.5, "y": 18.5, "size": 3}, {"x": 6.5, "y": 18.5, "size": 3}, {"x": -14.5, "y": 21.5, "size": 3}, {"x": -8.5, "y": 21.5, "size": 3}, {"x": -2.5, "y": 21.5, "size": 3}, {"x": 3.5, "y": 21.5, "size": 3}, {"x": 9.5, "y": 21.5, "size": 3}, {"x": 15.5, "y": 21.5, "size": 3}, {"x": 21.5, "y": 21.5, "size": 3}, {"x": -20.5, "y": 27.5, "size": 3}, {"x": -8.5, "y": 27.5, "size": 3}, {"x": -2.5, "y": 27.5, "size": 3}, {"x": 3.5, "y": 27.5, "size": 3}, {"x": 9.5, "y": 27.5, "size": 3}, {"x": 15.5, "y": 27.5, "size": 3}];
-  const DOTS_C = [{"x": -14.5, "y": -38.5, "size": 3}, {"x": -2.5, "y": -38.5, "size": 3}, {"x": 9.5, "y": -38.5, "size": 3}, {"x": -20.5, "y": -32.5, "size": 3}, {"x": -8.5, "y": -32.5, "size": 3}, {"x": 3.5, "y": -32.5, "size": 3}, {"x": 15.5, "y": -32.5, "size": 3}, {"x": -26.5, "y": -26.5, "size": 3}, {"x": -20.5, "y": -26.5, "size": 3}, {"x": -14.5, "y": -26.5, "size": 3}, {"x": -8.5, "y": -26.5, "size": 3}, {"x": -2.5, "y": -26.5, "size": 3}, {"x": 3.5, "y": -26.5, "size": 3}, {"x": 9.5, "y": -26.5, "size": 3}, {"x": 15.5, "y": -26.5, "size": 3}, {"x": 21.5, "y": -26.5, "size": 3}, {"x": -11.5, "y": -23.5, "size": 3}, {"x": 0.5, "y": -23.5, "size": 3}, {"x": 12.5, "y": -23.5, "size": 3}, {"x": -32.5, "y": -20.5, "size": 3}, {"x": -20.5, "y": -20.5, "size": 3}, {"x": -14.5, "y": -20.5, "size": 3}, {"x": -8.5, "y": -20.5, "size": 3}, {"x": -2.5, "y": -20.5, "size": 3}, {"x": 3.5, "y": -20.5, "size": 3}, {"x": 9.5, "y": -20.5, "size": 3}, {"x": 15.5, "y": -20.5, "size": 3}, {"x": 21.5, "y": -20.5, "size": 3}, {"x": 27.5, "y": -20.5, "size": 3}, {"x": -5.5, "y": -17.5, "size": 3}, {"x": 6.5, "y": -17.5, "size": 3}, {"x": -38.5, "y": -14.5, "size": 3}, {"x": -26.5, "y": -14.5, "size": 3}, {"x": -20.5, "y": -14.5, "size": 3}, {"x": -14.5, "y": -14.5, "size": 3}, {"x": -8.5, "y": -14.5, "size": 3}, {"x": -2.5, "y": -14.5, "size": 3}, {"x": 3.5, "y": -14.5, "size": 3}, {"x": 9.5, "y": -14.5, "size": 3}, {"x": 15.5, "y": -14.5, "size": 3}, {"x": 21.5, "y": -14.5, "size": 3}, {"x": 27.5, "y": -14.5, "size": 3}, {"x": 33.5, "y": -14.5, "size": 3}, {"x": -23.5, "y": -11.5, "size": 3}, {"x": -17.5, "y": -11.5, "size": 3}, {"x": -11.5, "y": -11.5, "size": 3}, {"x": -5.5, "y": -11.5, "size": 3}, {"x": 0.5, "y": -11.5, "size": 3}, {"x": 6.5, "y": -11.5, "size": 3}, {"x": 12.5, "y": -11.5, "size": 3}, {"x": 24.5, "y": -11.5, "size": 3}, {"x": -32.5, "y": -8.5, "size": 3}, {"x": -26.5, "y": -8.5, "size": 3}, {"x": -20.5, "y": -8.5, "size": 3}, {"x": -14.5, "y": -8.5, "size": 3}, {"x": -8.5, "y": -8.5, "size": 3}, {"x": -5.5, "y": -8.5, "size": 3}, {"x": -2.5, "y": -8.5, "size": 3}, {"x": 3.5, "y": -8.5, "size": 3}, {"x": 9.5, "y": -8.5, "size": 3}, {"x": 15.5, "y": -8.5, "size": 3}, {"x": 21.5, "y": -8.5, "size": 3}, {"x": 27.5, "y": -8.5, "size": 3}, {"x": -17.5, "y": -5.5, "size": 3}, {"x": -11.5, "y": -5.5, "size": 3}, {"x": -5.5, "y": -5.5, "size": 3}, {"x": 0.5, "y": -5.5, "size": 3}, {"x": 6.5, "y": -5.5, "size": 3}, {"x": 12.5, "y": -5.5, "size": 3}, {"x": 18.5, "y": -5.5, "size": 3}, {"x": -38.5, "y": -2.5, "size": 3}, {"x": -32.5, "y": -2.5, "size": 3}, {"x": -26.5, "y": -2.5, "size": 3}, {"x": -20.5, "y": -2.5, "size": 3}, {"x": -14.5, "y": -2.5, "size": 3}, {"x": -11.5, "y": -2.5, "size": 3}, {"x": -8.5, "y": -2.5, "size": 3}, {"x": -5.5, "y": -2.5, "size": 3}, {"x": -2.5, "y": -2.5, "size": 3}, {"x": 0.5, "y": -2.5, "size": 3}, {"x": 3.5, "y": -2.5, "size": 3}, {"x": 6.5, "y": -2.5, "size": 3}, {"x": 9.5, "y": -2.5, "size": 3}, {"x": 12.5, "y": -2.5, "size": 3}, {"x": 15.5, "y": -2.5, "size": 3}, {"x": 21.5, "y": -2.5, "size": 3}, {"x": 27.5, "y": -2.5, "size": 3}, {"x": 33.5, "y": -2.5, "size": 3}, {"x": -23.5, "y": 0.5, "size": 3}, {"x": -17.5, "y": 0.5, "size": 3}, {"x": -11.5, "y": 0.5, "size": 3}, {"x": -5.5, "y": 0.5, "size": 3}, {"x": 0.5, "y": 0.5, "size": 3}, {"x": 6.5, "y": 0.5, "size": 3}, {"x": 12.5, "y": 0.5, "size": 3}, {"x": 18.5, "y": 0.5, "size": 3}, {"x": 24.5, "y": 0.5, "size": 3}, {"x": -32.5, "y": 3.5, "size": 3}, {"x": -26.5, "y": 3.5, "size": 3}, {"x": -20.5, "y": 3.5, "size": 3}, {"x": -14.5, "y": 3.5, "size": 3}, {"x": -8.5, "y": 3.5, "size": 3}, {"x": -5.5, "y": 3.5, "size": 3}, {"x": -2.5, "y": 3.5, "size": 3}, {"x": 3.5, "y": 3.5, "size": 3}, {"x": 6.5, "y": 3.5, "size": 3}, {"x": 9.5, "y": 3.5, "size": 3}, {"x": 15.5, "y": 3.5, "size": 3}, {"x": 21.5, "y": 3.5, "size": 3}, {"x": 27.5, "y": 3.5, "size": 3}, {"x": -17.5, "y": 6.5, "size": 3}, {"x": -11.5, "y": 6.5, "size": 3}, {"x": -5.5, "y": 6.5, "size": 3}, {"x": 0.5, "y": 6.5, "size": 3}, {"x": 6.5, "y": 6.5, "size": 3}, {"x": 12.5, "y": 6.5, "size": 3}, {"x": 18.5, "y": 6.5, "size": 3}, {"x": -38.5, "y": 9.5, "size": 3}, {"x": -32.5, "y": 9.5, "size": 3}, {"x": -26.5, "y": 9.5, "size": 3}, {"x": -20.5, "y": 9.5, "size": 3}, {"x": -14.5, "y": 9.5, "size": 3}, {"x": -8.5, "y": 9.5, "size": 3}, {"x": -2.5, "y": 9.5, "size": 3}, {"x": 0.5, "y": 9.5, "size": 3}, {"x": 3.5, "y": 9.5, "size": 3}, {"x": 9.5, "y": 9.5, "size": 3}, {"x": 15.5, "y": 9.5, "size": 3}, {"x": 21.5, "y": 9.5, "size": 3}, {"x": 27.5, "y": 9.5, "size": 3}, {"x": 33.5, "y": 9.5, "size": 3}, {"x": -23.5, "y": 12.5, "size": 3}, {"x": -11.5, "y": 12.5, "size": 3}, {"x": -5.5, "y": 12.5, "size": 3}, {"x": 0.5, "y": 12.5, "size": 3}, {"x": 6.5, "y": 12.5, "size": 3}, {"x": 12.5, "y": 12.5, "size": 3}, {"x": 24.5, "y": 12.5, "size": 3}, {"x": -32.5, "y": 15.5, "size": 3}, {"x": -26.5, "y": 15.5, "size": 3}, {"x": -20.5, "y": 15.5, "size": 3}, {"x": -14.5, "y": 15.5, "size": 3}, {"x": -8.5, "y": 15.5, "size": 3}, {"x": -2.5, "y": 15.5, "size": 3}, {"x": 3.5, "y": 15.5, "size": 3}, {"x": 9.5, "y": 15.5, "size": 3}, {"x": 15.5, "y": 15.5, "size": 3}, {"x": 21.5, "y": 15.5, "size": 3}, {"x": 27.5, "y": 15.5, "size": 3}, {"x": -5.5, "y": 18.5, "size": 3}, {"x": 6.5, "y": 18.5, "size": 3}, {"x": -26.5, "y": 21.5, "size": 3}, {"x": -20.5, "y": 21.5, "size": 3}, {"x": -14.5, "y": 21.5, "size": 3}, {"x": -8.5, "y": 21.5, "size": 3}, {"x": -2.5, "y": 21.5, "size": 3}, {"x": 3.5, "y": 21.5, "size": 3}, {"x": 9.5, "y": 21.5, "size": 3}, {"x": 15.5, "y": 21.5, "size": 3}, {"x": 21.5, "y": 21.5, "size": 3}, {"x": 27.5, "y": 21.5, "size": 3}, {"x": 33.5, "y": 21.5, "size": 3}, {"x": -11.5, "y": 24.5, "size": 3}, {"x": 0.5, "y": 24.5, "size": 3}, {"x": 12.5, "y": 24.5, "size": 3}, {"x": -20.5, "y": 27.5, "size": 3}, {"x": -14.5, "y": 27.5, "size": 3}, {"x": -8.5, "y": 27.5, "size": 3}, {"x": -2.5, "y": 27.5, "size": 3}, {"x": 3.5, "y": 27.5, "size": 3}, {"x": 9.5, "y": 27.5, "size": 3}, {"x": 15.5, "y": 27.5, "size": 3}, {"x": -14.5, "y": 33.5, "size": 3}, {"x": -8.5, "y": 33.5, "size": 3}, {"x": -2.5, "y": 33.5, "size": 3}, {"x": 3.5, "y": 33.5, "size": 3}, {"x": 9.5, "y": 33.5, "size": 3}, {"x": 21.5, "y": 33.5, "size": 3}];
-
-  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Tracks active scrolling, not just "scrolled away from top" — spheres spin only
-  // while genuinely mid-scroll, easing back to resting orientation as soon as scrolling
-  // stops (whether that's because the user paused to read, or scrolled back to the
-  // top), rather than spinning continuously the whole time the page is scrolled down.
-  let isScrolling = false;
-  let scrollStopTimer = null;
-  window.addEventListener('scroll', () => {
-    isScrolling = true;
-    clearTimeout(scrollStopTimer);
-    scrollStopTimer = setTimeout(() => { isScrolling = false; }, 150);
-  }, { passive: true });
-
-  function makeDitherSphere(canvasId, dots, opts){
-    const canvas = document.getElementById(canvasId);
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    const cx = W/2, cy = H/2;
-    const scale = opts.scale;
-    const baseSpeed = opts.speed;
-
-    let maxR = 0;
-    dots.forEach(d => { const r = Math.hypot(d.x, d.y); if (r > maxR) maxR = r; });
-    const R = maxR * 1.02;
-
-    const points = dots.map(d => {
-      const r = Math.hypot(d.x, d.y);
-      const zSq = R*R - r*r;
-      const z = zSq > 0 ? Math.sqrt(zSq) : 0;
-      return { x: d.x, y: d.y, z, size: d.size };
-    });
-
-    let angle = Math.PI/2; // start a quarter-turn away from resting, not already locked in
-    let currentSpeed = 0;
-    const introEndsAt = Date.now() + 1400 + (opts.staggerMs || 0);
-
-    function draw(){
-      ctx.clearRect(0, 0, W, H);
-      const cosA = Math.cos(angle), sinA = Math.sin(angle);
-
-      const projected = points.map(p => {
-        const rx = p.x * cosA - p.z * sinA;
-        const rz = p.x * sinA + p.z * cosA;
-        return { x: rx, y: p.y, z: rz, size: p.size };
-      }).filter(p => p.z >= 0);
-
-      projected.sort((a, b) => a.z - b.z);
-      ctx.fillStyle = '#fbfaf6';
-      projected.forEach(p => {
-        const px = cx + p.x * scale;
-        const py = cy + p.y * scale;
-        const s = Math.max(1, p.size * scale);
-        ctx.fillRect(px - s/2, py - s/2, s, s);
-      });
-    }
-
-    if(reducedMotion){ angle = 0; draw(); return; } // static, resting orientation, no animation loop at all
-
-    function frame(){
-      if(Date.now() < introEndsAt){
-        // Intro: ease directly from the quarter-turn offset toward resting (0) — no
-        // separate spin-up phase, so there's no ambiguity about which direction is
-        // "nearest" once it stops, unlike a continuously-forward-spinning approach.
-        angle += (0 - angle) * 0.045;
-      } else {
-        // Spin only while actively scrolling; ease back to resting orientation the
-        // moment scrolling stops, regardless of scroll position.
-        const targetSpeed = isScrolling ? baseSpeed : 0;
-        currentSpeed += (targetSpeed - currentSpeed) * 0.04;
-        if(!isScrolling){
-          const nearestRest = Math.round(angle / (Math.PI*2)) * Math.PI*2;
-          angle += (nearestRest - angle) * 0.05;
-        }
-        angle += currentSpeed;
-      }
-
-      draw();
-      requestAnimationFrame(frame);
-    }
-    frame();
-  }
-
-  makeDitherSphere('headerSphere1', DOTS_A, { scale: 19/55.01*0.94, speed: 0.02, staggerMs: 0 });
-  makeDitherSphere('headerSphere2', DOTS_B, { scale: 26/68.60*0.94, speed: 0.016, staggerMs: 180 });
-  makeDitherSphere('headerSphere3', DOTS_C, { scale: 30/82.28*0.94, speed: 0.024, staggerMs: 360 });
-})();
 /* ---------- STORAGE FALLBACK ----------
    window.storage only exists inside a Claude artifact. If this file is opened
    anywhere else (self-hosted, GitHub Pages, opened locally), that API won't
@@ -2161,7 +2062,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.93';
+const APP_VERSION = '2026.08.26.94';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2847,39 +2748,43 @@ function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t){ return a + (b-a)*t; }
 
 let headerCollapseEls = null;
-let dogTextWidth = null;
+let logoTextWidth = null;
 
 function updateHeaderCollapse(){
   if(window.headerCollapseSuspended) return;
   if(!headerCollapseEls){
     const header = document.querySelector('header');
-    const dogLine = header.querySelector('.logo-line');
-    const spans = dogLine.querySelectorAll('span');
     headerCollapseEls = {
       h1: header.querySelector('h1'),
-      ditherRow: document.querySelector('.header-dither-row'),
-      lastLetter: spans[spans.length-1]
+      mark: document.querySelector('.header-mark')
     };
-    // Measure where "Dog" actually ends (the last letter's right edge, relative to h1's
-    // own left edge) once, before any inline style override is applied — .logo-line
-    // itself is display:block and stretches to fill its container regardless of text
-    // content, so the letter span's own rendered position is what actually reflects
-    // real text metrics (which can differ slightly between browser engines/font
-    // rendering) rather than a hardcoded pixel assumption.
+    // Measure where the wordmark actually ends — the widest of the two lines, since the
+    // mark has to clear "food" as well as "Dog". Taken from the last letter's right edge
+    // relative to h1's own left edge, once, before any inline style override is applied:
+    // .logo-line is display:block and stretches to fill its container regardless of text
+    // content, so the letter span's own rendered position is what reflects real text
+    // metrics (which differ slightly between engines) rather than a pixel assumption.
     const h1Rect = headerCollapseEls.h1.getBoundingClientRect();
-    const letterRect = headerCollapseEls.lastLetter.getBoundingClientRect();
-    dogTextWidth = letterRect.right - h1Rect.left;
+    logoTextWidth = 0;
+    headerCollapseEls.h1.querySelectorAll('.logo-line').forEach(line=>{
+      const spans = line.querySelectorAll('span');
+      const last = spans[spans.length-1];
+      if(last) logoTextWidth = Math.max(logoTextWidth, last.getBoundingClientRect().right - h1Rect.left);
+    });
   }
-  const { h1, ditherRow } = headerCollapseEls;
+  const { h1, mark } = headerCollapseEls;
 
   const progress = Math.max(0, Math.min(1, window.scrollY / 100));
   const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
-  ditherRow.style.top = lerp(58, 30, progress) + 'px';
-  ditherRow.style.left = (14 + dogTextWidth * 0.86 * (fontSize/46)) + 'px';
-  ditherRow.style.transform = `scale(${1-progress})`;
+  // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
+  // the type so the two stay in the same relationship all the way through the collapse.
+  const MARK_GAP = 12;
+  mark.style.top = lerp(49, 30, progress) + 'px';
+  mark.style.left = (14 + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
+  mark.style.transform = `scale(${1-progress})`;
 }
 
 let headerScrollTicking = false;
