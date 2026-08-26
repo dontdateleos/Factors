@@ -509,7 +509,11 @@
   /* Sized so the band below the cut ends just under the lowest label. It runs to the
      stage's own bottom edge, so shortening the stage is what pulls the band up — the
      alternative, stopping it short, puts it back to ending on nothing. */
-  .week-wheel-stage{ display:flex; height:34vh; min-height:250px; max-height:300px; }
+  /* The stage takes its height from whichever column is taller. The wheel keeps the fixed
+     height it always had — the arc is a circle of a set radius and centring it in a box
+     that grew with the list would walk it down the page — so a day with five workouts
+     makes the stage taller than the wheel and the list runs its full length. */
+  .week-wheel-stage{ display:flex; align-items:flex-start; }
   /* Same split as the recommendation card, but the boundary is a box rather than a line —
      the labels rotate, so clipping each one individually would mean fighting its own
      transform. Instead the wheel is drawn twice: once in black over the page, and again
@@ -519,7 +523,8 @@
      black-and-white object sitting on it — the ground stays the tab's orange, only the
      text inside the band is white.
      The panel takes no pointer events, so the drag still lands on the copy underneath. */
-  .week-wheel-col{ width:48%; position:relative; padding-left:6px; overflow:visible; }
+  .week-wheel-col{ flex:0 0 48%; height:34vh; min-height:250px; max-height:300px;
+    position:relative; padding-left:6px; overflow:visible; }
   /* z-index so the panel paints OVER the black copies rather than under them — both
      layers are positioned, so DOM order alone would leave the black text sitting on top
      of the black fill and muddying the orange twin beneath it. */
@@ -561,7 +566,10 @@
      text runs white on black into black on orange across one line.
      No z-index — sitting above the band was what kept it out of the cut. The band takes no
      pointer events, so taps still reach the cards underneath. */
-  .week-wheel-detail{ width:52%; padding:var(--sp-3) 4px var(--sp-3) 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; overflow-y:auto; }
+  /* No overflow-y. A scrollable pane this size showed two workouts and hid the rest
+     behind a gesture with nothing to indicate it, inside a stage that already takes a
+     drag of its own. */
+  .week-wheel-detail{ flex:1 1 52%; padding:var(--sp-3) 4px var(--sp-3) 14px; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; }
   .wheel-ink .week-wheel-detail{ pointer-events:none; }
   .wheel-ink .wheel-detail-day{ color:rgba(251,250,246,0.6); }
   .wheel-ink .wheel-workout-type, .wheel-ink .wheel-ex-names{ color:var(--bg); }
@@ -2087,7 +2095,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.71';
+const APP_VERSION = '2026.08.26.72';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
