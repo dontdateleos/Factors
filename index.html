@@ -2080,7 +2080,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.65';
+const APP_VERSION = '2026.08.26.66';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -10512,8 +10512,17 @@ function skillWorkFromName(name){
     const tree = PROGRESSION_TREES.exercise[key];
     const prefix = (tree.label || '') + ': ';
     if(!tree.label || !name.startsWith(prefix)) continue;
-    const levelIndex = (tree.levels || []).indexOf(name.slice(prefix.length));
-    if(levelIndex >= 0) return { skill: key, tree, levelIndex };
+    const rest = name.slice(prefix.length).trim();
+    if(!rest) continue;
+    // The label prefix is what identifies this as skill work. The level is resolved
+    // best-effort and is allowed to fail: the dose used to be appended to the name as a
+    // parenthetical, and level wording has changed since some saved plans were written,
+    // so requiring the remainder to equal a current level exactly meant real skill rows
+    // written months ago went unrecognised.
+    const levels = tree.levels || [];
+    let levelIndex = levels.indexOf(rest);
+    if(levelIndex < 0) levelIndex = levels.findIndex(l => l && (rest.startsWith(l) || l.startsWith(rest)));
+    return { skill: key, tree, levelIndex: levelIndex >= 0 ? levelIndex : null, level: rest };
   }
   return null;
 }
@@ -10533,16 +10542,18 @@ function repairSkillWorkFlags(exercises){
 async function getExerciseSkillProgress(skill, levelIndex){
   const tree = PROGRESSION_TREES.exercise[skill];
   if(!tree) return { days: 0, atLevel: 0, lastDate: null };
-  const prefix = `${tree.label}: `;
-  const target = prefix + tree.levels[levelIndex];
   const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'strength' && s.date);
   // Distinct days, because two sessions in one day is one day's practice frequency.
   const anyDays = new Set(), levelDays = new Set();
   let lastDate = null;
+  // Resolved through skillWorkFromName rather than compared against the current level
+  // string. A session logged when the level was worded differently, or when the dose was
+  // still appended to the name, is the same practice — matching the string exactly meant
+  // those days counted for nothing and the skill could never advance past them.
   sessions.forEach(s => {
-    const names = (s.exercises || []).map(e => e.name || '');
-    if(names.some(n => n.startsWith(prefix))) anyDays.add(s.date);
-    if(names.some(n => n === target)){
+    const matches = (s.exercises || []).map(e => skillWorkFromName(e.name || ''));
+    if(matches.some(m => m && m.skill === skill)) anyDays.add(s.date);
+    if(matches.some(m => m && m.skill === skill && m.levelIndex === levelIndex)){
       levelDays.add(s.date);
       if(!lastDate || s.date > lastDate) lastDate = s.date;
     }
@@ -12455,8 +12466,14 @@ async function blockSummaryHtml(block){
         // getExerciseSkillProgress counts days by matching it. Display only: the SKILL box
         // says what kind of row this is, so the label in front of the colon is saying it
         // a second time. The stored name is untouched.
+        // Prefer the tree's own wording for the level when it could be identified: a name
+        // carrying an old appended dose would otherwise put that whole parenthetical in
+        // the row.
+        const m = skillWorkFromName(ex.name);
         const cut = ex.name.indexOf(': ');
-        const movementName = cut > 0 ? ex.name.slice(cut + 2) : ex.name;
+        const movementName = m
+          ? (m.levelIndex != null ? m.tree.levels[m.levelIndex] : m.level)
+          : (cut > 0 ? ex.name.slice(cut + 2) : ex.name);
         rows.push(planRow(movementName, ex.prescription || 'easy sets', null,
           { lead: '<span class="plan-key">Skill</span>' }));
         continue;
