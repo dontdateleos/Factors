@@ -247,7 +247,7 @@
   .mob-mod{ display:inline-block; min-width:54px; padding-right:8px; font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase; color:var(--dim); }
   /* One modality per line — collapsing all three onto a single wrapped line saved space
      but made them unreadable as a sequence you work through in order. */
-  .mob-line{ padding:2px 0; }
+  .mob-line{ padding:var(--sp-1) 0 0; }
   /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
      easy to skip past when you do. */
   .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
@@ -256,7 +256,9 @@
      Each block type used to invent its own layout, and the two-column rows in particular
      pushed prescriptions to the right edge where they wrapped badly on a phone. */
   .plan-list{ margin:2px 0; }
-  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:16px 2px; }
+  /* 32px of padding around what is usually a single line. The rule between rows already
+     separates them; the padding was doing that job a second time. */
+  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:var(--sp-2) 2px; }
   .plan-item + .plan-item{ border-top:1px solid var(--line); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
@@ -264,7 +266,7 @@
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
   .plan-item.ss-row + .plan-item.ss-row{ border-top:none; }
   .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
-  .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:8px 0 0 20px; letter-spacing:0.01em; line-height:1.6; }
+  .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:var(--sp-1) 0 0 20px; letter-spacing:0.01em; line-height:1.5; }
   /* A flag on one exercise: what an active injury says should change about it, and the
      two answers. Yellow because it is the one thing in a plan row asking for a decision. */
   .ex-flag{ display:flex; align-items:center; gap:8px; margin:9px 0 1px 20px; background:var(--block-yellow); color:var(--on-light); padding:5px 5px 5px 8px; }
@@ -687,7 +689,9 @@
   .warm-reason:not(:empty)::before{ content:'· '; }
   .warm-reason.injury{ color:var(--text); }
   .warm-reason.load{ color:var(--text); }
-  .warm-drills{ display:block; font-size:var(--fs-md); line-height:1.9; margin-top:var(--sp-1); }
+  /* line-height was 1.9 — 25px for every 13px line, in the two longest sections on the
+     page. 1.5 still reads as a list rather than a paragraph. */
+  .warm-drills{ display:block; font-size:var(--fs-md); line-height:1.5; margin-top:var(--sp-1); }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -747,8 +751,8 @@
 
     <div id="warmupSection" style="display:none;">
       <div class="group" style="margin-top:0;">
-        <div class="group-head"><div class="group-title">Warm-up</div></div>
-        <div class="fields">
+        <div class="group-head collapsible" data-collapse="warmup" style="cursor:pointer;"><div class="group-title">Warm-up</div><span class="collapse-chevron" data-collapse="warmup">▾</span></div>
+        <div class="fields collapsible-body" data-collapse="warmup">
           <div id="warmupCards"></div>
         </div>
       </div>
@@ -765,8 +769,8 @@
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group" style="margin-top:0;">
-        <div class="group-head"><div class="group-title">Post-exercise stretching</div></div>
-        <div class="fields">
+        <div class="group-head collapsible" data-collapse="cooldown" style="cursor:pointer;"><div class="group-title">Post-exercise stretching</div><span class="collapse-chevron" data-collapse="cooldown">▾</span></div>
+        <div class="fields collapsible-body" data-collapse="cooldown">
           <div id="mobilityCards"></div>
         </div>
       </div>
@@ -1973,7 +1977,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.53';
+const APP_VERSION = '2026.08.26.54';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -2068,17 +2072,35 @@ async function checkForUpdate(){
 // Progressive disclosure for Settings. Backup, Legal and Start Fresh are reference and
 // destructive actions — things you touch rarely but which occupied 955px of a 2198px
 // panel. Collapsed by default, they stop competing with the settings you actually adjust.
+// Which sections are collapsed, for the ones worth remembering. Warm-up and the cooldown
+// are the case this exists for: Today re-renders on every visit to the tab, so without a
+// stored answer a section you closed would be open again a minute later.
+const COLLAPSE_REMEMBERED = ['warmup', 'cooldown'];
+function setCollapsed(key, collapsed){
+  const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
+  const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
+  if(body) body.style.display = collapsed ? 'none' : '';
+  if(chev) chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+function isCollapsed(key){
+  try{ return localStorage.getItem('collapsed:' + key) === '1'; } catch(e){ return false; }
+}
+function applyRememberedCollapse(){
+  COLLAPSE_REMEMBERED.forEach(key => setCollapsed(key, isCollapsed(key)));
+}
 document.querySelectorAll('.group-head.collapsible').forEach(head=>{
   head.addEventListener('click', ()=>{
     const key = head.dataset.collapse;
     const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
-    const chev = head.querySelector('.collapse-chevron');
     if(!body) return;
-    const open = body.style.display !== 'none';
-    body.style.display = open ? 'none' : '';
-    if(chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+    const nowCollapsed = body.style.display !== 'none';
+    setCollapsed(key, nowCollapsed);
+    if(COLLAPSE_REMEMBERED.includes(key)){
+      try{ localStorage.setItem('collapsed:' + key, nowCollapsed ? '1' : '0'); } catch(e){}
+    }
   });
 });
+applyRememberedCollapse();
 
 const OURA_CLIENT_ID = '62367975-4a6e-445d-a195-1936ce98c7af';
 const OURA_TOKEN_WORKER_URL = 'https://dogfoodoura.jordandf1.workers.dev';
@@ -13440,6 +13462,8 @@ async function generateWarmup(){
     return;
   }
   sectionIds.forEach(id => document.getElementById(id).style.display = 'block');
+  // Showing the section must not reopen a body the person closed.
+  applyRememberedCollapse();
 
   // Warm-up scales with the session it precedes. A flat 12-minute cap meant a 30-minute
   // day could be handed 12 minutes of prep before touching a barbell — the warm-up and
@@ -13491,14 +13515,15 @@ async function generateWarmup(){
   selected.forEach(a => { warmupSecondsByArea[a] = WARMUP_STATIC_SHARE_PER_AREA * 60; });
   try{ await window.storage.set(`warmupLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: selected, secondsByArea: warmupSecondsByArea })); } catch(e){}
 
-  container.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes+5} min (RAMP structure) · ${selected.length} focus area${selected.length===1?'':'s'}</div>`;
+  // The +5 was Raise plus Potentiate; only Potentiate is left. And the structure is no
+  // longer the full RAMP, so it stops claiming to be.
+  container.innerHTML = `<div class="score-note" style="margin-bottom:var(--sp-2);">~${estMinutes+3} min · ${selected.length} focus area${selected.length===1?'':'s'}</div>`;
 
-  // RAMP framework (Jeffreys, 2007) — the area cards below cover Activate + Mobilize;
-  // bookending with Raise and Potentiate matches the full evidence-supported structure.
-  const raiseCard = document.createElement('div');
-  raiseCard.className = 'warm-card planned';
-  raiseCard.innerHTML = `<div class="warm-area">Raise</div><div class="warm-reason">~2-3 min</div><div class="warm-drills">Easy cardio — bike, jog or skip</div>`;
-  container.appendChild(raiseCard);
+  // Raise came off: it was fixed text that never changed and its minutes were already in
+  // the header total. Its evidence still holds — RAMP (Jeffreys, 2007) opens with general
+  // cardio — but a line that says the same thing every day stops being read. The area
+  // cards cover Activate and Mobilise; Potentiate stays because it names the ramp-up sets
+  // for the specific lift you are about to do.
 
   // Per F.2 of the exercise intelligence report: supplement the static two-drill picks
   // with warmupSuitable exercises from EXERCISE_LIBRARY for the same area, and rotate
@@ -13633,6 +13658,7 @@ async function generateMobility(){
   });
 
   mobilitySection.style.display = 'block';
+  applyRememberedCollapse();
   mobilityContainer.innerHTML = `<div class="score-note" style="margin-bottom:12px;">~${estMinutes} min · ${selected.length} area${selected.length===1?'':'s'}</div>`;
   selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
