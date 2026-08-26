@@ -750,6 +750,18 @@
     </div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
+    <!-- The recommendation stack sits directly under the score it is reasoning about.
+         It used to sit below the warm-up, three sections down, so the one thing on the
+         page asking you to change today's session appeared after the page had already
+         told you what today's session was. -->
+    <div id="todayCardStack">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
+        <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
+      </div>
+      <div id="recommendationCards"></div>
+    </div>
+
     <div class="session-type" id="todaySessionTypePills">
       <div class="type-btn active" data-type="strength">Strength</div>
       <div class="type-btn" data-type="run">Run</div>
@@ -766,11 +778,6 @@
     </div>
 
     <div id="todayWorkoutArea" style="margin-top:14px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
-        <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
-      </div>
-      <div id="recommendationCards"></div>
       <div id="todayWorkoutSummary"></div>
     </div>
 
@@ -1984,7 +1991,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.58';
+const APP_VERSION = '2026.08.26.59';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5595,14 +5602,18 @@ function buildRecCard(type, title, signals, confidence, meta){
 function showNextCard(){
   const container = document.getElementById('recommendationCards');
   const counter = document.getElementById('cardStackCounter');
+  const stack = document.getElementById('todayCardStack');
   container.innerHTML = '';
   if(cardQueueIndex >= cardQueue.length){
     // Nothing left to decide, so the section says nothing rather than spending an
-    // empty-state block on it. The counter above it is already blank, so an absent stack
-    // reads as "done" without a card telling you so.
+    // empty-state block on it. The whole stack goes, not just its contents: sitting
+    // directly under the score, an empty one would push the session down the page for
+    // no reason.
     counter.textContent = '';
+    if(stack) stack.style.display = 'none';
     return;
   }
+  if(stack) stack.style.display = '';
   counter.textContent = `${cardQueueIndex+1} of ${cardQueue.length}`;
   const item = cardQueue[cardQueueIndex];
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
