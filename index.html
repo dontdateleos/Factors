@@ -118,10 +118,6 @@
   .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
   /* Ring beside the number, filling to score/100. Butt caps and a heavy even stroke so it
      reads as a drawn dial rather than a progress widget. */
-  .gauge-row{ display:flex; align-items:center; justify-content:center; gap:16px; }
-  .score-ring{ flex:none; width:calc(var(--fs-score) * 0.82); height:calc(var(--fs-score) * 0.82); transform:rotate(-90deg); }
-  .score-ring-track{ fill:none; stroke:var(--text); stroke-opacity:0.16; stroke-width:6; }
-  .score-ring-fill{ fill:none; stroke:var(--text); stroke-width:6; stroke-linecap:butt; transition:stroke-dashoffset 500ms ease-out; }
 
   .morning-banner{ background:transparent; color:var(--text); padding:0; font-size:var(--fs-md); font-weight:var(--fw-bold); margin-bottom:var(--sp-3); line-height:1.35; }
 
@@ -505,8 +501,6 @@
   .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 56px) 14px var(--sp-3); }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
-  .today-open .score-ring-track{ stroke:var(--bg); stroke-opacity:0.3; }
-  .today-open .score-ring-fill{ stroke:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
   .today-open .score-note, .today-open .conf-headline,
   .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:rgba(251,250,246,0.7); }
@@ -869,15 +863,9 @@
   <div class="panel active" id="panel-insights">
     <div class="today-open">
     <div class="gauge-wrap">
-      <div class="gauge-row">
-        <svg class="score-ring" id="overallScoreRing" viewBox="0 0 44 44" aria-hidden="true">
-          <circle class="score-ring-track" cx="22" cy="22" r="18"/>
-          <circle class="score-ring-fill" id="overallScoreRingFill" cx="22" cy="22" r="18"/>
-        </svg>
       <div class="score-stack">
         <div class="score-eyes eyes" id="scoreEyes" aria-hidden="true"><span></span><span></span></div>
         <div class="score-num" id="overallScoreOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg></div>
-      </div>
       </div>
       <div class="score-label-row" id="scoreToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="baselineStatus">
         <div class="score-label" id="overallScoreLabel">Overall</div>
@@ -2220,7 +2208,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.26.96';
+const APP_VERSION = '2026.08.26.97';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6057,30 +6045,6 @@ async function checkReturnToRunRule(){
   return null;
 }
 
-// Drives the ring beside the score. Hidden entirely when there is no number — an empty
-// ring next to a placeholder reads as a score of zero.
-function setScoreRing(value, animate){
-  const ring = document.getElementById('overallScoreRing');
-  const fill = document.getElementById('overallScoreRingFill');
-  if(!ring || !fill) return;
-  if(value == null){ ring.style.visibility = 'hidden'; return; }
-  ring.style.visibility = 'visible';
-  const circumference = 2 * Math.PI * 18; // r=18 in the viewBox above
-  const pct = Math.max(0, Math.min(100, value)) / 100;
-  fill.style.strokeDasharray = String(circumference);
-  // Snap back to empty with the transition off, force the browser to take that as the
-  // current state, then let the CSS transition carry it round. Without the reflow the two
-  // assignments coalesce into no visible change — and on a revisit the offset is already
-  // correct, so nothing would animate at all.
-  if(animate){
-    fill.style.transition = 'none';
-    fill.style.strokeDashoffset = String(circumference);
-    void fill.getBoundingClientRect();
-    fill.style.transition = '';
-  }
-  fill.style.strokeDashoffset = String(circumference * (1 - pct));
-}
-
 function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
@@ -6093,7 +6057,6 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     const prevNum = parseInt(out.textContent);
     const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
     animateNumber(out, prev, capacityResult.score, 500);
-    setScoreRing(capacityResult.score, true);
     setEyeScore(capacityResult.score);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
@@ -6103,7 +6066,6 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
   if(parts.length === 0){
     out.innerHTML=SCORE_PLACEHOLDER_SVG;
-    setScoreRing(null);
     setEyeScore(null);
     // Say WHY there is no number. A bare placeholder labelled "Overall" is
     // indistinguishable from a broken score — it reads as the app failing rather than as
@@ -6122,7 +6084,6 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   const prevNum = parseInt(out.textContent);
   const prev = isNaN(prevNum) ? overall : prevNum;
   animateNumber(out, prev, overall, 500);
-  setScoreRing(overall, true);
   setEyeScore(overall);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
