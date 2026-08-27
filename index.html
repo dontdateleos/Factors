@@ -3517,7 +3517,8 @@ const UI_ANIM = {
   bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
-  tabBloom:     { on:true, note:'A wobbly blob of the new tab’s colour covers the swap', ms:370 }
+  tabInk:       { on:true, note:'The new tab’s colour bleeds across the page like ink into paper',
+                  ms:700, soak:0.46, settle:0.2 }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3951,16 +3952,23 @@ function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, bia
   return pts.join(', ');
 }
 
-/* The tab transition. A wobbly blob in the new tab's colour expands from roughly the middle
-   of the content area outward, the content swaps once the shape covers enough of it to hide
-   the swap, and by the time the blob finishes expanding it is the same colour as the new
-   tab's own background — so removing it afterward is invisible.
+/* The tab transition. The new tab's colour bleeds across the page the way ink finds the
+   grain of paper: it opens ragged and reaches much further in some directions than others,
+   then evens out as it fills, so the edge is at its most irregular halfway through rather
+   than at the end. Three keyframes, not two — the middle one is the wet stage, and it is the
+   whole difference between ink soaking outward and a balloon inflating.
 
-   Randomised per transition: origin offset, wobble pattern, wobble strength and duration all
-   vary within a range, so repeated switches feel hand-drawn rather than mechanically
-   identical. The header is deliberately outside the overlay — fixed, with top set to the
-   header's measured height — so it stays visible and untouched throughout. */
-function transitionToTab(name, buttonEl){
+   The content swaps at 86%, under cover, and by then the overlay is the same colour as the
+   new tab's own background, so removing it is invisible. Every transition gets fresh seeds
+   and a nudged origin, so no two are identical. The header is deliberately outside the
+   overlay — fixed, with top set to the header's measured height — so it stays visible and
+   untouched throughout.
+
+   The bleed ignores which tab you pressed. The blob this replaced leaned toward it, because
+   an expanding shape reads as something you pushed; ink is a material doing what it does,
+   and pulling it toward your thumb makes it look aimed. */
+const TAB_INK_POINTS = 34;   // more than the blob's 28 — the ragged stage needs the resolution
+function transitionToTab(name){
   const color = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
   const headerEl = document.querySelector('header');
   const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
@@ -3969,7 +3977,7 @@ function transitionToTab(name, buttonEl){
   // caller has the panel on screen, and that is this one.
   slidePanelIn(null, name, 'skip');
 
-  if(!uiAnim('tabBloom')){
+  if(!uiAnim('tabInk')){
     activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-' + name);
     if(panel) slidePanelIn(panel, name, true);
@@ -3986,45 +3994,52 @@ function transitionToTab(name, buttonEl){
 
   const areaWidth = window.innerWidth;
   const areaHeight = window.innerHeight - headerHeight;
-  const maxRadius = Math.ceil(Math.sqrt(Math.pow(areaWidth/2, 2) + Math.pow(areaHeight/2, 2)) * 1.15) + 20;
-
-  // Origin offset from dead-centre — up to ~8% of the content area's smaller dimension, so it
-  // still reads as "roughly the middle" but isn't pixel-identical every time.
-  const offsetRange = Math.min(areaWidth, areaHeight) * 0.08;
-  const cx = areaWidth/2 + (Math.random()*2-1) * offsetRange;
-  const cy = areaHeight/2 + (Math.random()*2-1) * offsetRange;
+  // Above and left of centre, nudged. Dead centre reads as a target; this reads as a place
+  // the ink happened to land.
+  const cx = areaWidth * (0.42 + (Math.random()*2-1) * 0.06);
+  const cy = areaHeight * (0.46 + (Math.random()*2-1) * 0.06);
   const seeds = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
-  const wobbleAmount = 0.14 + Math.random()*0.10;
-  const duration = UI_ANIM.tabBloom.ms + Math.random()*70;
-  const numPoints = 28;
+  // 0.78 of the diagonal is the size this was drawn at and looks right at, but a fraction of
+  // the diagonal is a guess about aspect ratio, and on a short wide viewport the guess runs
+  // out: wobblyPolygonPoints puts its shallowest lobe at r*(1-wobble), and that lobe was
+  // clearing the far corner by a single pixel at the worst draw. So the needed radius is
+  // worked out from the corner it actually has to reach, and the drawn size is used only
+  // where it is already more than that.
+  const farCorner = Math.max(...[[0,0],[areaWidth,0],[0,areaHeight],[areaWidth,areaHeight]]
+    .map(c => Math.hypot(c[0] - cx, c[1] - cy)));
+  const maxRadius = Math.max(
+    Math.sqrt(areaWidth*areaWidth + areaHeight*areaHeight) * 0.78,
+    (farCorner + 12) / (1 - UI_ANIM.tabInk.settle)
+  );
+  const duration = UI_ANIM.tabInk.ms;
+  const shape = (r, wobble)=> `polygon(${wobblyPolygonPoints(cx, cy, r, wobble, seeds, TAB_INK_POINTS, null, 0)})`;
 
-  // Biased toward whichever button was actually tapped — the edge nearest it reaches further
-  // and faster, the opposite side lags, so the shape reads as spreading from the point of the
-  // tap rather than expanding evenly in every direction.
-  let biasAngle = null;
-  const biasStrength = 0.22;
-  if(buttonEl){
-    const br = buttonEl.getBoundingClientRect();
-    biasAngle = Math.atan2((br.top + br.height/2 - headerHeight) - cy, (br.left + br.width/2) - cx);
-  }
-
-  const startShape = wobblyPolygonPoints(cx, cy, 2, 0, seeds, numPoints, biasAngle, biasStrength);
-  const endShape = wobblyPolygonPoints(cx, cy, maxRadius, wobbleAmount, seeds, numPoints, biasAngle, biasStrength);
+  const frames = [
+    { clipPath: shape(3, 0), easing:'cubic-bezier(0.2,0.7,0.4,1)' },
+    // The wet stage: half grown, and by far the most ragged it ever gets.
+    { clipPath: shape(maxRadius * 0.55, UI_ANIM.tabInk.soak), offset:0.5, easing:'cubic-bezier(0.3,0,0.3,1)' },
+    { clipPath: shape(maxRadius, UI_ANIM.tabInk.settle) }
+  ];
 
   overlay.style.transition = 'none';
-  overlay.style.clipPath = `polygon(${startShape})`;
-  void overlay.offsetWidth; // force reflow so the transition below actually animates
-  overlay.style.transition = `clip-path ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-  overlay.style.clipPath = `polygon(${endShape})`;
+  overlay.style.clipPath = frames[0].clipPath;
+  const ink = uiPlay(overlay, frames, { duration, easing:'linear', fill:'forwards' });
+  if(!ink){
+    // A browser that refused the keyframe list still gets a cover, just a plainer one — two
+    // states is all a CSS transition can carry.
+    void overlay.offsetWidth;
+    overlay.style.transition = `clip-path ${duration}ms cubic-bezier(0.3,0,0.2,1)`;
+    overlay.style.clipPath = frames[frames.length - 1].clipPath;
+  }
 
-  // The panel starts arriving while the blob still covers it, so what the reveal shows is
-  // one already most of the way home — a hair of settle rather than a jump from rest to the
+  // The panel starts arriving while the ink still covers it, so what the reveal shows is one
+  // already most of the way home — a hair of settle rather than a jump from rest to the
   // slide's first frame in full view, which is what made the switch look like it shook.
   setTimeout(()=>{
     activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-'+name);
     if(panel) slidePanelIn(panel, name, true);
-  }, Math.round(duration * 0.82));
+  }, Math.round(duration * 0.86));
   setTimeout(()=>{
     overlay.remove();
     window.headerCollapseSuspended = false;
@@ -4096,7 +4111,7 @@ function activateTabViaUi(t){
   document.getElementById('currentTabLabel').textContent = t.textContent;
   moveTabIndicator(t.dataset.tab, true);
   noteTabTap(t);
-  transitionToTab(t.dataset.tab, t);
+  transitionToTab(t.dataset.tab);
 }
 tabs.forEach(t=>{
   t.addEventListener('click', ()=>activateTabViaUi(t));
@@ -4249,7 +4264,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.17';
+const APP_VERSION = '2026.08.27.18';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
