@@ -1576,14 +1576,14 @@
     <!-- Readouts, so they sit after the forms rather than between them. Version and Legal
          are not black, and standing mid-run they cut the settings form into stripes of
          tab colour the way Recent entries did on Data. -->
-    <div class="group form-panel">
+    <div class="group form-panel dev-only" id="eyesDevGroup">
       <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
         <label class="week-deload" for="eyeCalmToggle" style="margin-bottom:10px;">
           <input type="checkbox" id="eyeCalmToggle">
           <span>Calm mode — keep the useful ones, drop the character</span>
         </label>
-        <div class="score-note" style="margin-bottom:10px;">Tap any row to see it. Untick to switch it off; it takes effect straight away and is remembered.</div>
+        <div class="score-note" style="margin-bottom:10px;">Dev only. Tap any row to see it. Untick to switch it off; it takes effect straight away and is remembered.</div>
         <div id="eyeAnimList"></div>
       </div>
     </div>
@@ -3509,7 +3509,7 @@ function activateTab(name){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
     activateDataSubView(activeView);
   }
-  if(name==='settings'){ loadTrainingSetup(); renderAppVersion(); renderEyeAnimList(); }
+  if(name==='settings'){ loadTrainingSetup(); renderAppVersion(); applyDevMode(); if(devMode) renderEyeAnimList(); }
   updateFooterVisibility();
   const backdropEl = document.getElementById('scrollBackdrop');
   backdropEl.style.backgroundColor = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
@@ -3869,7 +3869,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.13';
+const APP_VERSION = '2026.08.27.14';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -16373,6 +16373,37 @@ function renderAppVersion(){
   const el = document.getElementById('appVersionOut');
   if(el) el.textContent = APP_VERSION;
 }
+/* ---------- DEV MODE ----------
+   The mark's forty-three switches are a workbench, not a setting, so they are not in the
+   app unless you have asked for them. Seven taps on the version number, which is the one
+   place someone poking at the app would already be looking, and it sticks. */
+const DEV_TAPS_NEEDED = 7;
+let devMode = false;
+try{ devMode = localStorage.getItem('dev') === '1'; }catch(e){}
+function applyDevMode(){
+  document.querySelectorAll('.dev-only').forEach(el=>{ el.style.display = devMode ? '' : 'none'; });
+}
+function setDevMode(on){
+  devMode = !!on;
+  try{ localStorage.setItem('dev', devMode ? '1' : '0'); }catch(e){}
+  applyDevMode();
+  if(devMode) renderEyeAnimList();
+  showToast(devMode ? 'Dev mode on' : 'Dev mode off');
+}
+applyDevMode();
+(function bindDevTap(){
+  const v = document.getElementById('appVersionOut');
+  if(!v) return;
+  let taps = 0, last = 0;
+  v.style.cursor = 'default';
+  v.addEventListener('click', ()=>{
+    const now = Date.now();
+    taps = (now - last < 600) ? taps + 1 : 1;
+    last = now;
+    if(taps >= DEV_TAPS_NEEDED){ taps = 0; setDevMode(!devMode); }
+  });
+})();
+
 const eyeCalmToggleEl = document.getElementById('eyeCalmToggle');
 if(eyeCalmToggleEl){
   eyeCalmToggleEl.checked = eyeCalm;
