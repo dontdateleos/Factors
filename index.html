@@ -89,7 +89,16 @@
     --sp-5:24px;   /* band padding */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; padding-bottom:90px; position:relative; -webkit-text-stroke:0.1px currentColor; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
+  /* The 90px the body used to carry lives here now: it is the last element on every tab,
+     so it can hold the clearance for the fixed footer itself and close the page in black
+     while it does it. */
+  .app-colophon{ background:#000000; padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
+  .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 14px;
+    font-family:var(--sans); font-size:12px; line-height:1.5; letter-spacing:0.01em;
+    color:rgba(251,250,246,0.62); }
+  .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
+  .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
   h1{ font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
@@ -1766,6 +1775,10 @@
   </div>
 
 </main>
+
+<!-- The app opens and closes in black. Outside main so it runs the full width, with its
+     text on main's own measure and left edge. -->
+<div class="app-colophon"><div class="app-colophon-inner"><b>dogfood</b> <i>(v.)</i> — to use the thing you built on yourself.</div></div>
 
 <footer id="footerRecovery">
   <button id="clearBtnRecovery" class="outline">Clear</button>
@@ -3856,7 +3869,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.12';
+const APP_VERSION = '2026.08.27.13';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
