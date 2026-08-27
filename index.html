@@ -795,7 +795,9 @@
      the card's edge, which is then 50% of the way down the box for the two clips.
      overflow must stay visible or the escaping half is cut off. */
   .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 14px; padding:0 14px 18px; overflow:visible; }
-  .rec-head{ display:block; margin-bottom:12px; }
+  /* The type used to straddle the card's top edge, so the card had no top padding to give.
+     A chip sits inside it and needs the air. */
+  .rec-head{ display:block; padding-top:14px; margin-bottom:10px; }
   /* Offset with top, not margin: a negative top margin on the card's first child collapses
      straight out through the card (which has no top padding or border) and moves the card
      itself, leaving the word exactly where it started. */
@@ -826,11 +828,13 @@
   /* One character has to carry what a whole word did, so it is set much larger. The
      shrink-to-fit in calibrateEdgeWords leaves it alone — a single glyph is never wider
      than the card. */
-  /* 120px, and the reserved height comes down with it. A word filled that 0.9em line box
-     with letters; one glyph does not, so keeping it would leave a hole between the symbol
-     and the confidence line. 0.52em is what the tallest of the five needs below the edge. */
-  .edge-symbol{ --edge-word-size:calc(120px * var(--edge-symbol-scale, 1)); letter-spacing:0;
-    height:0.52em; margin-bottom:-0.06em; }
+  /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
+     mark read as the same family — and a symbol on a solid ground is legible in a way a
+     bare minus at display size is not. */
+  .rec-symbol{ display:inline-flex; align-items:center; justify-content:center;
+    width:46px; height:46px; border-radius:13px; background:var(--block-lime); color:var(--text);
+    font-family:var(--sans); font-weight:var(--fw-bold); font-size:30px; line-height:1;
+    letter-spacing:0; padding-bottom:2px; }
   .goal-row-panel .goal-priority-badge{ display:block; flex:1; }
   .goal-priority-tag{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); margin-top:2px; }
   .goal-row-panel .field-label{ color:rgba(251,250,246,0.7); }
@@ -3640,7 +3644,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.9';
+const APP_VERSION = '2026.08.27.10';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7267,31 +7271,28 @@ async function clearTodayAdjustment(){
 
 // One word painted twice and clipped at the panel's edge — black above it, the panel's
 // accent below. Shared so the cards and the goals split identically.
-function edgeWordHtml(text, opts){
-  const o = opts || {};
-  // A symbol says the same thing in one character, but only to someone looking at it, so
-  // the word it replaced goes on as the label.
-  const attrs = o.label ? ` role="img" aria-label="${o.label}"` : '';
-  const cls = 'edge-word' + (o.symbol ? ' edge-symbol' : '');
-  const style = o.scale ? ` style="--edge-symbol-scale:${o.scale};"` : '';
-  return `<span class="${cls}"${attrs}${style}><span class="edge-word-ink above" aria-hidden="true">${text}</span>`
+function edgeWordHtml(text){
+  return `<span class="edge-word"><span class="edge-word-ink above" aria-hidden="true">${text}</span>`
        + `<span class="edge-word-ink below" aria-hidden="true">${text}</span></span>`;
 }
 
-/* What each card is asking for, as one character rather than a word. All five straddle the
-   card's top edge the way the words did, and all five have ink either side of their own
-   vertical centre — which is what the split needs. A glyph that is only a bar, like the
-   minus, comes out as a two-tone rule, which is the same idea reading correctly rather
-   than a failure of it. */
+/* What each card is asking for, as one character rather than a word. Set in a filled chip
+   rather than straddling the card's edge in two colours: a bare minus at display size is
+   indistinguishable from a rule, and the whole point of a symbol here is that it reads at
+   a glance. The chip also gives the five a shared footprint, which a bar and an arrow do
+   not have on their own. */
 const REC_TYPE_SYMBOL = {
   add:            { glyph:'+',      label:'Add' },
-  // A minus is one thin bar with no upright to carry it, so at a shared size it reads as
-  // half the mark the others are. Its own scale puts the same weight of ink on the page.
-  reduce:         { glyph:'\u2212', label:'Reduce', scale:1.5 },   // a real minus, not a hyphen
+  reduce:         { glyph:'\u2212', label:'Reduce' },   // a real minus, not a hyphen
   hold:           { glyph:'=',      label:'Hold' },
   modify:         { glyph:'\u00b1', label:'Modify' },   // adjust either way, around something
   deload_suggest: { glyph:'\u2193', label:'Deload' }    // a reduce that lasts a week
 };
+function recSymbolHtml(type){
+  const sym = REC_TYPE_SYMBOL[type];
+  if(!sym) return edgeWordHtml(type);
+  return `<span class="rec-symbol" role="img" aria-label="${sym.label}">${sym.glyph}</span>`;
+}
 
 // Puts the edge on the vertical centre of one specific character's ink rather than at the
 // midpoint of the line box. For a word of capitals the two coincide, because caps share a
@@ -7337,15 +7338,6 @@ function calibrateEdgeWords(root){
       + m.fontBoundingBoxAscent;
     const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
     const pct = Math.max(0, Math.min(100, (centre / lineH) * 100));
-    // A word fills its line box, so an em of reserved height under it is about right. One
-    // glyph does not, and the five symbols differ wildly in how far their ink reaches below
-    // the split — a minus barely at all, a down arrow most of its length. Reserve what this
-    // glyph actually needs rather than a share of a size it does not fill, or scaling a
-    // symbol up scales the hole under it too.
-    if(wrap.classList.contains('edge-symbol')){
-      const belowInk = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 2;
-      wrap.style.height = Math.max(0, Math.round(belowInk)) + 10 + 'px';
-    }
     wrap.style.top = (-centre) + 'px';
     above.style.clipPath = `inset(0 0 ${100 - pct}% 0)`;
     below.style.clipPath = `inset(${pct}% 0 0 0)`;
@@ -7359,7 +7351,7 @@ function buildRecCard(type, title, signals, confidence, meta){
   card.className = `rec-card ${type}`;
   card.innerHTML = `
     <div class="rec-head">
-      ${(sym => sym ? edgeWordHtml(sym.glyph, { symbol:true, label:sym.label, scale:sym.scale }) : edgeWordHtml(type))(REC_TYPE_SYMBOL[type])}
+      ${recSymbolHtml(type)}
       ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
     </div>
     <div class="rec-body">
