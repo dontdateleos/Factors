@@ -208,7 +208,7 @@
   .eyes.no-morph, .eyes.no-morph span, .eyes.no-morph .eye-gaze, .eyes.no-morph .eye-motion{ transition:none; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top;
+  .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
     --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
     --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
@@ -219,6 +219,19 @@
   /* Flies between the two. Above the tab-wipe overlay (9999) so it stays visible the
      whole way across, and in page coordinates so scrolling mid-flight cannot skew it. */
   .eye-flyer{ position:absolute; z-index:10000; pointer-events:none; transform-origin:50% 50%; }
+  /* The same pair at toast scale, in place of a tick or a cross. Its own sizing rather
+     than a site, since it never moves and never wears an expression — only the nod or the
+     shake, which are CSS here because the toast is rebuilt on every message. */
+  .toast-eyes{ --eye-box-w:16px; --eye-box-h:14px; --eye-gap:4px; --eye-plate:transparent;
+    --eye-plate-r:0px; --eye-w:5px; --eye-h:14px; --eye-r:2.5px; --eye-rb:2.5px;
+    --eye-ink:var(--bg); vertical-align:middle; margin-right:7px; flex:none; }
+  #toast.error .toast-eyes{ --eye-ink:var(--bg); }
+  .toast-eyes .eye-motion{ animation-duration:0.44s; animation-timing-function:cubic-bezier(0.34,1.4,0.5,1); }
+  .toast-eyes.nod .eye-motion{ animation-name:toastNod; }
+  .toast-eyes.shake .eye-motion{ animation-name:toastShake; }
+  @keyframes toastNod{ 0%{transform:translateY(0)} 40%{transform:translateY(3px)} 70%{transform:translateY(-1.5px)} 100%{transform:translateY(0)} }
+  @keyframes toastShake{ 0%{transform:translateX(0)} 25%{transform:translateX(-2.5px)} 55%{transform:translateX(2.5px)} 80%{transform:translateX(-1.5px)} 100%{transform:translateX(0)} }
+  @media (prefers-reduced-motion: reduce){ .toast-eyes .eye-motion{ animation:none; } }
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
@@ -883,7 +896,7 @@
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
-    <div class="header-mark eyes" aria-hidden="true"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
+    <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
@@ -1775,7 +1788,24 @@ const EYE_ANIM = {
   popOnArrival:   { on:true, note:'A pop as the plate closes around it up top' },
   busyOnGenerate: { on:true, note:'Scans side to side while the week is being built' },
   firstOpenOfDay: { on:true, note:'Opens from shut, once, the first time you look each day' },
-  dizzySpin:      { on:true, note:'Spins if you hammer the tabs', taps:5, withinMs:2600 }
+  dizzySpin:      { on:true, note:'Spins if you hammer the tabs', taps:5, withinMs:2600 },
+
+  // — Second batch.
+  idleSleep:      { on:true, note:'Nods off if you leave the app open and untouched, and wakes on your next touch', afterMs:150000, lid:0.16 },
+  plateIsHome:    { on:true, note:'Off Today, tapping the plate takes you back to it' },
+  busyEverywhere: { on:true, note:'The scan shows for anything slow, not just Generate' },
+  toastEyes:      { on:true, note:'The toast leads with the pair, nodding or shaking, instead of a tick or a cross' },
+  dragGaze:       { on:true, note:'The gaze leans the way you are dragging any of the wheels', px:5 },
+  glanceAtDay:    { on:true, note:'Looks at the day you land on in the week picker' },
+  attentionOnCard:{ on:true, note:'A brief look straight at you when a recommendation lands' },
+  doubleTake:     { on:true, note:'A double blink when today jumps a long way from the last score it saw', delta:18 },
+  streakPerk:     { on:true, note:'Blinks livelier once you have a run of logged days going', days:4, factor:0.72 },
+  blearyReturn:   { on:true, note:'A slower, heavier open if it has been a while since you looked', afterDays:5 },
+  timeOfDayGaze:  { on:true, note:'Rides fractionally high in the morning, low at night', px:2 },
+  flinch:         { on:true, note:'A recoil before anything irreversible' },
+  sideEye:        { on:true, note:'A look, after three dismissals in a row', after:3, px:5 },
+  rareBeat:       { on:true, note:'One open in a few hundred it does something you have not seen', chance:0.004 },
+  flightTrail:    { on:true, note:'The eyes lag the plate through the flight and catch up on landing', px:5 }
 };
 window.EYE_ANIM = EYE_ANIM;
 // One gate for everything: off if the behaviour is off, and off entirely under
@@ -1846,13 +1876,15 @@ function applyEyeForm(el, site){
 
    None of them goes below about half. The five expressions are the mark's actual job, and
    a multiplier deep enough to shut the eyes makes every score band look identical. */
-const eyeCtx = { restDay:false, deloadDay:0 };
+const eyeCtx = { restDay:false, deloadDay:0, asleep:false, streak:0 };
 function eyeIsNight(){
   const c = EYE_ANIM.sleepAtNight, h = new Date().getHours();
   return c.fromHour > c.toHour ? (h >= c.fromHour || h < c.toHour) : (h >= c.fromHour && h < c.toHour);
 }
 function eyeLidScale(){
   let k = 1;
+  // Actually asleep is the one that IS allowed past half: you are not there to read it.
+  if(anim('idleSleep') && eyeCtx.asleep) k = Math.min(k, EYE_ANIM.idleSleep.lid);
   if(anim('sleepAtNight') && eyeIsNight()) k = Math.min(k, EYE_ANIM.sleepAtNight.lid);
   if(anim('restDayFace') && eyeCtx.restDay) k = Math.min(k, EYE_ANIM.restDayFace.lid);
   if(anim('deloadFatigue') && eyeCtx.deloadDay > 0){
@@ -1881,6 +1913,7 @@ async function refreshEyeContext(){
     eyeCtx.deloadDay = inDeload ? dow : 0;
   }catch(e){ eyeCtx.deloadDay = 0; }
   try{ eyeCtx.restDay = !(await isRestDayComing(0)); }catch(e){ eyeCtx.restDay = false; }
+  await refreshEyeHistory();
   const docked = eyesDocked();
   if(docked) applyEyeForm(docked, eyesHome);
 }
@@ -1924,7 +1957,9 @@ function eyeGaze(x, y, ms, holdMs){
   if(!el || eyeMotionOff()) return;
   el.style.setProperty('--eye-gaze-ms', (ms || 260) + 'ms');
   el.style.setProperty('--eye-gaze-x', (x || 0) + 'px');
-  el.style.setProperty('--eye-gaze-y', (y || 0) + 'px');
+  // Every gaze is measured from the resting bias, so letting go returns to it rather than
+  // to dead centre and timeOfDayGaze needs no call sites of its own.
+  el.style.setProperty('--eye-gaze-y', ((y || 0) + eyeRestY()) + 'px');
   clearTimeout(eyeGazeTimer);
   if(holdMs != null) eyeGazeTimer = setTimeout(()=>eyeGaze(0, 0, Math.round((ms || 260) * 1.5)), holdMs);
 }
@@ -2034,9 +2069,12 @@ const BLINK_BY_BAND = [
   { gap:2700, span:4200, shut:80,  open:105 }
 ];
 function blinkTiming(){
-  if(!anim('blinkByScore')) return { gap:3200, span:5200, shut:85, open:115 };
-  const band = eyeScore == null ? 0 : Math.max(0, Math.min(4, Math.floor(eyeScore/20)));
-  return BLINK_BY_BAND[band];
+  const base = anim('blinkByScore')
+    ? BLINK_BY_BAND[eyeScore == null ? 0 : Math.max(0, Math.min(4, Math.floor(eyeScore/20)))]
+    : { gap:3200, span:5200, shut:85, open:115 };
+  const perk = eyePerkFactor();
+  return perk === 1 ? base
+    : { gap: base.gap*perk, span: base.span*perk, shut: base.shut, open: base.open };
 }
 // `oneEye` makes it a wink: the lid goes on the span itself rather than on the shared
 // custom property, so only one of the pair moves.
@@ -2159,10 +2197,12 @@ function moveEyes(dest, from){
       eyeFlyer.style.transition = '';
     }
     startEyeIdle();
+    eyeNoteActivity();
     if(dest === 'header' && anim('popOnArrival')) eyePop();
     // A look down at the number it just landed above, so the arrival has a point.
     if(dest === 'score' && anim('glanceAtNumber')) setTimeout(()=>eyeGaze(0, 5, 240, 620), 160);
     firstOpenOfDay();
+    eyeRareBeat();
     scheduleIdle(dest === 'score' ? 1100 : 2600);
   };
 
@@ -2231,6 +2271,20 @@ function moveEyes(dest, from){
       flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
       flyer.style.transform = `translate(${dx}px, ${dy}px)`;
     }
+    // The pair lags the plate slightly and catches up as it lands, so the mark reads as
+    // something carrying its eyes rather than one rigid object being slid across the page.
+    if(anim('flightTrail')){
+      const inner = flyer.querySelector('.eye-motion');
+      const t = EYE_ANIM.flightTrail.px * (dy >= 0 ? 1 : -1);
+      if(inner){
+        try{ inner.animate([
+          { transform:`translateY(${-t}px)` },
+          { transform:`translateY(${-t * 0.8}px)`, offset:0.45 },
+          { transform:`translateY(${t * 0.5}px)`, offset:0.82 },
+          { transform:'translateY(0px)' }
+        ], { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.3,0,0.3,1)' }); }catch(e){}
+      }
+    }
     applyEyeForm(flyer, dest);   // the form and expression arrive with the eyes, not after
   });
 }
@@ -2275,12 +2329,12 @@ function setEyeScore(score){
     setTimeout(()=>{
       el.style.setProperty('--eye-morph', '420ms');
       applyEyeForm(el, 'score');
-      setTimeout(()=>{ el.style.removeProperty('--eye-morph'); scheduleIdle(900); }, 460);
+      setTimeout(()=>{ el.style.removeProperty('--eye-morph'); eyeDoubleTake(score); scheduleIdle(900); }, 460);
     }, 380);
     return;
   }
   applyEyeForm(el, 'score');
-  if(changed) scheduleIdle(2200);
+  if(changed){ eyeDoubleTake(score); scheduleIdle(2200); }
 }
 
 /* ---------- THE REST OF THE LIST ----------
@@ -2292,6 +2346,10 @@ function firstOpenOfDay(){
   let last = null;
   try{ last = localStorage.getItem('eyes:lastOpen'); }catch(e){ return; }
   if(last === todayStr) return;
+  // A week away earns a slower, heavier open than a normal morning.
+  const away = eyeDaysSinceLastOpen();
+  const bleary = anim('blearyReturn') && away >= EYE_ANIM.blearyReturn.afterDays;
+  const shut = bleary ? 900 : 260, rise = bleary ? 1100 : 520;
   try{ localStorage.setItem('eyes:lastOpen', todayStr); }catch(e){}
   const el = eyeSiteEl();
   if(!el) return;
@@ -2302,10 +2360,10 @@ function firstOpenOfDay(){
   el.style.setProperty('--eye-h', BLINK_CLOSED);
   setTimeout(()=>{
     if(seq !== blinkSeq) return;
-    el.style.setProperty('--eye-morph', '520ms');
+    el.style.setProperty('--eye-morph', rise + 'ms');
     el.style.setProperty('--eye-h', open);
-    setTimeout(()=>{ if(seq === blinkSeq) el.style.removeProperty('--eye-morph'); }, 560);
-  }, 260);
+    setTimeout(()=>{ if(seq === blinkSeq) el.style.removeProperty('--eye-morph'); }, rise + 40);
+  }, shut);
 }
 
 // Scans while something slow is running, and stops when it is told to. Returns the stopper
@@ -2332,12 +2390,14 @@ function bindEyeTap(){
     const el = id ? document.getElementById(id) : document.querySelector('.header-mark');
     if(!el || el.dataset.tapBound) return;
     el.dataset.tapBound = '1';
-    el.addEventListener('pointerdown', ()=>{
-      if(!anim('winkOnTap')) return;
-      const docked = eyesDocked();
-      if(!docked) return;
-      stopIdle();
-      blinkOnce(docked, ()=>scheduleIdle(), true);
+    const which = id ? 'score' : 'header';
+    el.addEventListener('pointerdown', ()=>eyeMarkTapped(which));
+    // It carries role="button" off Today, so Enter and Space have to reach the same place
+    // a tap does — a div with only a pointer handler is invisible to a keyboard.
+    el.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      eyeMarkTapped(which);
     });
   });
 }
@@ -2360,6 +2420,10 @@ function eyeGlanceAtEl(target, px){
 // whole behaviour lives with the rest of the list.
 const eyeTapTimes = [];
 function noteTabTap(buttonEl){
+  // Focusing a tab makes the browser scroll the document to reveal it — measured at 60 to
+  // 15px, 9ms after the tap, well before activateTab gets its own mute up. A look prompted
+  // by that is motion the user did not ask for, on top of the glance they did.
+  eyeScrollMuteUntil = Date.now() + 1400;
   if(anim('glanceAtTab')) eyeGlanceAtEl(buttonEl, 4);
   if(!anim('dizzySpin')) return;
   const c = EYE_ANIM.dizzySpin, now = Date.now();
@@ -2369,9 +2433,14 @@ function noteTabTap(buttonEl){
 }
 
 // Looks the way the page is moving. Decays back a beat after you stop.
-let eyeScrollTimer = null, eyeLastScrollY = 0;
+let eyeScrollTimer = null, eyeLastScrollY = 0, eyeScrollMuteUntil = 0;
 window.addEventListener('scroll', ()=>{
-  if(!anim('scrollLook') || eyeFlightTimer) return;
+  // activateTab scrolls to the top on every switch, and a look prompted by a scroll the
+  // user did not make fights the glance at the tab they just tapped.
+  if(!anim('scrollLook') || eyeFlightTimer || Date.now() < eyeScrollMuteUntil){
+    eyeLastScrollY = window.scrollY;
+    return;
+  }
   const y = window.scrollY, d = y - eyeLastScrollY;
   eyeLastScrollY = y;
   if(Math.abs(d) < 2) return;
@@ -2414,6 +2483,197 @@ async function eyeNotePRFrom(session){
   try{ if(await eyeCheckPR(session)) eyeWiden(); }catch(e){}
 }
 
+
+/* ---------- THE SECOND BATCH ----------
+   Fifteen more, same rules: everything is a row in EYE_ANIM, and everything is built out
+   of eyeGaze / eyeGesture / eyeLidPulse rather than reaching for the DOM itself. */
+
+// Where the gaze sits when nothing is pulling at it. Not quite centre: it rides fractionally
+// up in the morning and drifts down late, which is felt rather than seen.
+function eyeRestY(){
+  if(!anim('timeOfDayGaze')) return 0;
+  const h = new Date().getHours(), px = EYE_ANIM.timeOfDayGaze.px;
+  if(h >= 5 && h < 11) return -px;
+  if(h >= 19 || h < 5) return px;
+  return 0;
+}
+
+/* ---------- IDLE SLEEP ----------
+   Leave the app open and untouched and the mark nods off. This is about you being away,
+   where sleepAtNight is about the clock — they stack into the same lid multiplier. */
+let eyeAwakeTimer = null;
+function eyeNoteActivity(){
+  if(eyeCtx.asleep){
+    eyeCtx.asleep = false;
+    const el = eyesDocked();
+    if(el){ applyEyeForm(el, eyesHome); if(anim('idleSleep')) eyePop(); }
+    scheduleIdle(600);
+  }
+  clearTimeout(eyeAwakeTimer);
+  if(!anim('idleSleep')) return;
+  eyeAwakeTimer = setTimeout(()=>{
+    if(document.hidden) return;
+    eyeCtx.asleep = true;
+    const el = eyesDocked();
+    if(el) applyEyeForm(el, eyesHome);
+  }, EYE_ANIM.idleSleep.afterMs);
+}
+['pointerdown','keydown','scroll','touchstart'].forEach(ev=>{
+  window.addEventListener(ev, eyeNoteActivity, { passive:true });
+});
+
+/* ---------- WHAT THE DAYS HAVE BEEN LIKE ----------
+   A streak makes it perkier and a long absence makes the first look bleary. Both read the
+   same key list, so they are one pass. */
+async function refreshEyeHistory(){
+  if(!anim('streakPerk')){ eyeCtx.streak = 0; return; }
+  try{
+    const res = await window.storage.list('entry:');
+    const days = new Set((res && res.keys ? res.keys : []).map(k=>k.slice('entry:'.length)));
+    let n = 0;
+    const d = new Date(todayStr);
+    // Today not being logged yet does not break a streak — it is not over until tomorrow.
+    if(!days.has(todayStr)) d.setDate(d.getDate() - 1);
+    for(;;){
+      const key = d.toISOString().slice(0,10);
+      if(!days.has(key)) break;
+      n++; d.setDate(d.getDate() - 1);
+      if(n > 400) break;
+    }
+    eyeCtx.streak = n;
+  }catch(e){ eyeCtx.streak = 0; }
+}
+// A run of logged days shortens the gap between blinks. Multiplies whatever the score band
+// already decided rather than replacing it, so the two read together.
+function eyePerkFactor(){
+  if(!anim('streakPerk') || !eyeCtx.streak) return 1;
+  const c = EYE_ANIM.streakPerk;
+  return eyeCtx.streak >= c.days ? c.factor : 1;
+}
+
+// How long since the last time the app was opened, in days. Also the thing that decides
+// whether today counts as the first open — one read, two behaviours.
+function eyeDaysSinceLastOpen(){
+  let last = null;
+  try{ last = localStorage.getItem('eyes:lastOpen'); }catch(e){ return 0; }
+  if(!last) return 0;
+  const ms = new Date(todayStr) - new Date(last);
+  return Math.max(0, Math.round(ms / 86400000));
+}
+
+/* ---------- REACTING TO A CHANGE, NOT A LEVEL ----------
+   The expression already says where the score sits. This says that it MOVED. */
+function eyeDoubleTake(score){
+  if(!anim('doubleTake') || score == null) return;
+  let prev = null;
+  try{ prev = JSON.parse(localStorage.getItem('eyes:lastScore') || 'null'); }catch(e){}
+  try{ localStorage.setItem('eyes:lastScore', JSON.stringify({ date: todayStr, score })); }catch(e){}
+  if(!prev || prev.date === todayStr || prev.score == null) return;
+  if(Math.abs(score - prev.score) < EYE_ANIM.doubleTake.delta) return;
+  const el = eyesDocked();
+  if(!el) return;
+  stopIdle();
+  blinkOnce(el, ()=>{
+    const again = eyesDocked();
+    if(again) blinkOnce(again, ()=>{ eyePop(); scheduleIdle(1200); });
+  });
+}
+
+/* ---------- WATCHING THE INTERFACE ----------
+   Every wheel in the app is the same gesture, so they all call the same thing: the gaze
+   leans the way the finger is going and lets go a beat after it stops. */
+let eyeDragTimer = null;
+function eyeDragGaze(dy){
+  if(!anim('dragGaze')) return;
+  const px = EYE_ANIM.dragGaze.px;
+  eyeGaze(0, Math.max(-px, Math.min(px, dy * 0.35)), 120);
+  clearTimeout(eyeDragTimer);
+  eyeDragTimer = setTimeout(()=>eyeGaze(0, 0, 320), 320);
+}
+
+// A brief look straight at you when a card lands, then it lets go. Sustained attention
+// would hold the lids open over the score band indefinitely, and the band is the job.
+function eyeAttendTo(el){
+  if(!anim('attentionOnCard')) return;
+  eyeGaze(0, 0, 200);
+  eyeLidPulse(eyeFullOpen(eyesHome), 160, 900);
+}
+
+// Three dismissals in a row earns a look. Reset by an accept, or by there being nothing
+// left to dismiss.
+let eyeDismissRun = 0;
+function eyeNoteDecision(decision){
+  if(decision === 'dismissed') eyeDismissRun++; else eyeDismissRun = 0;
+  if(!anim('sideEye') || eyeDismissRun < EYE_ANIM.sideEye.after) return;
+  eyeDismissRun = 0;
+  eyeGaze(-EYE_ANIM.sideEye.px, 0, 260, 1500);
+}
+
+// A recoil before anything irreversible. Bound by delegation because these controls are
+// spread across five tabs and half of them are built at runtime.
+const EYE_FLINCH_SELECTOR = '#clearAllWeekBtn, #clearAllDataBtn, .remove-row, .rec-actions .dismiss-btn';
+document.addEventListener('pointerdown', e=>{
+  if(!anim('flinch')) return;
+  // A pointerdown can land on the document or a text node, neither of which has closest().
+  const t = e.target;
+  if(!t || typeof t.closest !== 'function' || !t.closest(EYE_FLINCH_SELECTOR)) return;
+  eyeGesture([{transform:'translateX(0) scale(1)'},{transform:'translateX(2px) scale(0.9)'},
+              {transform:'translateX(0) scale(1)'}], 260, { easing:'ease-out' });
+}, true);
+
+/* ---------- ONE IN A FEW HUNDRED ----------
+   A mark you see every day needs something you have not seen before still in it a year
+   from now. Rare enough that finding it feels like finding it. */
+function eyeRareBeat(){
+  if(!anim('rareBeat') || Math.random() > EYE_ANIM.rareBeat.chance) return;
+  const el = eyesDocked();
+  if(!el) return;
+  stopIdle();
+  if(Math.random() < 0.5){
+    // A very long, very slow blink. Nothing else in the app moves this slowly.
+    eyeLidPulse(2, 900, 1500, ()=>scheduleIdle(1500));
+  } else {
+    // A long look into the corner at something that isn't there.
+    eyeGaze(5, -4, 900, 2400);
+    scheduleIdle(3600);
+  }
+}
+
+/* ---------- BUSY ----------
+   The scan was wired to Generate alone. Anything the app makes you wait for should say so
+   with the mark rather than with a separate spinner. */
+function withEyesBusy(promise){
+  if(!anim('busyEverywhere') || !promise || typeof promise.then !== 'function') return promise;
+  const done = eyesBusy();
+  return promise.then(v=>{ done(); return v; }, err=>{ done(); throw err; });
+}
+
+/* ---------- THE TOAST ----------
+   The same pair, at toast scale, nodding or shaking in place of a tick or a cross. Its own
+   sizing rather than a site, since it never moves and never wears an expression. */
+function toastEyesHtml(isError){
+  if(!anim('toastEyes')) return null;
+  return `<span class="toast-eyes eyes ${isError ? 'shake' : 'nod'}" aria-hidden="true">`
+       + `<span class="eye-gaze"><span class="eye-motion"><span></span><span></span></span></span></span>`;
+}
+
+/* ---------- HOME ----------
+   Off Today the plate is the way back to it. On Today it has nowhere to send you, so it
+   winks instead. Either way, tapping the thing that is looking at you does something. */
+function eyeMarkTapped(which){
+  eyeNoteActivity();
+  const onToday = document.getElementById('panel-insights').classList.contains('active');
+  if(which === 'header' && !onToday && anim('plateIsHome')){
+    const tab = document.querySelector('.tab[data-tab="insights"]');
+    if(tab){ activateTabViaUi(tab); return; }
+  }
+  if(!anim('winkOnTap')) return;
+  const docked = eyesDocked();
+  if(!docked) return;
+  stopIdle();
+  blinkOnce(docked, ()=>scheduleIdle(), true);
+}
+
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
@@ -2451,7 +2711,7 @@ function activateTab(name){
   });
   // generateWarmup writes warmupLog:<date>, which generateMobility reads to skip areas
   // already covered — so these must run in order, not fire-and-forget in parallel.
-  if(name==='insights'){ refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab(); generateWarmup().then(()=>generateMobility()); }
+  if(name==='insights'){ refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab(); withEyesBusy(generateWarmup().then(()=>generateMobility())); }
   if(name==='training'){
     activateTrainingSubView('weekly');
     restorePlanSummary();
@@ -2474,6 +2734,8 @@ function activateTab(name){
   backdropEl.style.backgroundColor = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
   const tabButton = document.querySelector(`.tab[data-tab="${name}"]`);
   if(tabButton) document.getElementById('currentTabLabel').textContent = tabButton.textContent;
+  // Ahead of the scroll it is meant to cover, not after it.
+  eyeScrollMuteUntil = Date.now() + 900;
   window.scrollTo(0, 0);
 
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
@@ -2486,7 +2748,7 @@ function activateTab(name){
 function activateTrainingSubView(view){
   document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
-  if(view==='weekly'){ renderWeekGrid(); }
+  if(view==='weekly'){ withEyesBusy(Promise.resolve(renderWeekGrid())); }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -2819,7 +3081,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.3';
+const APP_VERSION = '2026.08.27.4';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3581,9 +3843,9 @@ function animateNumber(el, from, to, duration, suffix){
 let toastTimer = null;
 function showToast(message, isError){
   const t = document.getElementById('toast');
-  const icon = isError
+  const icon = toastEyesHtml(isError) || (isError
     ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-    : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');
   t.innerHTML = icon + message;
   t.className = isError ? 'error show' : 'show';
   // Every save, every failure, comes through here — so this is the one place the mark
@@ -4568,6 +4830,7 @@ function bindSkillPickerDrag(category){
     if(steps === 0) return;
     accumulated += steps * STEP_PX;
     moved = true;
+    eyeDragGaze(steps);
     st.index = clamp(st.index - steps);
     renderSkillPicker(category);
   });
@@ -4754,6 +5017,7 @@ async function renderMobilityAssessment(skipCollapse){
       if(steps !== 0){
         accumulated += steps * STEP_PX;
         moved = true;
+        eyeDragGaze(steps);
         // Dragging down brings earlier items into view, like a physical wheel.
         mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex - steps));
         renderMobilityAssessment(true);
@@ -5065,9 +5329,11 @@ function renderWeekDayPicker(dayBlocks){
     if(steps === 0) return;
     accumulated += steps * STEP_PX;
     moved = true;
+    eyeDragGaze(steps);
     // Dragging down brings earlier days into view, like a physical wheel.
     activeWheelDayIndex = clamp(activeWheelDayIndex - steps);
     renderWeekGrid();
+    if(anim('glanceAtDay')) eyeGlanceAtEl(document.querySelector('.week-day-item.focused'), 4);
   });
   const endDrag = e => {
     if(!dragging) return;
@@ -6533,10 +6799,12 @@ function showNextCard(){
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
   container.appendChild(card);
   calibrateEdgeWords(card);
+  eyeAttendTo(card);
 }
 
 async function logRecDecision(type, meta, decision, card){
   if(anim('lookAtCard')) eyeGlanceAtEl(card, 5);
+  eyeNoteDecision(decision);
   const id = Date.now().toString();
   try{
     const key = `rec:${todayStr}:${id}`;
