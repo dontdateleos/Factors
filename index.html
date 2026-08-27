@@ -198,16 +198,18 @@
     transition:transform var(--eye-gaze-ms, 0.26s) cubic-bezier(0.34,1.32,0.5,1); }
   .eye-motion{ display:flex; align-items:center; gap:var(--eye-gap);
     transition:gap var(--eye-morph) var(--eye-ease); }
+  /* --eye-converge turns the two eyes toward each other. Opposite signs, applied outside
+     the mirror on the second one, so both move inward rather than both moving right. */
   .eyes span{ display:block; width:calc(var(--eye-w) + var(--eye-squish, 0px)); height:var(--eye-h);
     border-radius:var(--eye-r) var(--eye-r) var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
-    transform:rotate(var(--eye-rot)); transform-origin:50% 25%;
+    transform:translateX(var(--eye-converge, 0px)) rotate(var(--eye-rot)); transform-origin:50% 25%;
     transition:width var(--eye-morph) var(--eye-ease), height var(--eye-morph) var(--eye-ease),
                border-radius var(--eye-morph) var(--eye-ease), background-color var(--eye-morph) var(--eye-ease),
                clip-path var(--eye-morph) var(--eye-ease), transform var(--eye-morph) var(--eye-ease); }
   /* One lid trails the other by --eye-lag. Negative flips which one leads, which is the
      whole point: a pair moving in perfect lockstep reads as a mechanism. */
-  .eyes span:last-child{ transform:scaleX(-1) rotate(var(--eye-rot));
+  .eyes span:last-child{ transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1) rotate(var(--eye-rot));
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
@@ -223,7 +225,9 @@
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
-  .score-eyes{ position:absolute; left:50%; bottom:calc(100% + 12px); transform:translateX(-50%);
+  /* --eye-sag drops the whole box on a low score, so it reads as weight rather than as
+     lids that happen to be lower. */
+  .score-eyes{ position:absolute; left:50%; bottom:calc(100% + 12px - var(--eye-sag, 0px)); transform:translateX(-50%);
     visibility:hidden; }
   /* Flies between the two. Above the tab-wipe overlay (9999) so it stays visible the
      whole way across, and in page coordinates so scrolling mid-flight cannot skew it. */
@@ -321,6 +325,13 @@
   /* Sits in the block it is waiting on, centred, so the section says it is thinking
      rather than the header saying something somewhere is. */
   .section-busy{ margin:18px auto; }
+  /* A section's disclosure is the same idea as an eye opening, so it is one. Shut when the
+     section is shut; the chevron's own colour carries through as the ink. */
+  .chevron-eyes{ --eye-box-w:15px; --eye-box-h:11px; --eye-gap:4px; --eye-plate:transparent;
+    --eye-plate-r:0px; --eye-w:4px; --eye-h:11px; --eye-r:2px; --eye-rb:2px;
+    --eye-ink:currentColor; display:inline-flex; vertical-align:middle; }
+  .group-head.collapsed .chevron-eyes, .collapse-chevron.collapsed .chevron-eyes{ --eye-h:2px; }
+  .collapse-chevron{ display:inline-flex; align-items:center; }
   .empty-eyes{ --eye-box-w:26px; --eye-box-h:20px; --eye-gap:7px; --eye-plate:transparent;
     --eye-plate-r:0px; --eye-w:8px; --eye-h:20px; --eye-r:4px; --eye-rb:4px;
     --eye-ink:currentColor; opacity:0.55; flex:none; }
@@ -1853,7 +1864,19 @@ const EYE_ANIM = {
   lookBeforeLeaving:{ on:true, note:'Glances where it is about to go before the flight starts' },
   emptyStateEyes: { on:true, note:'Empty blocks get the pair, looking at whatever fills them' },
   sectionBusy:    { on:true, note:'A pair scans where a section is about to fill in, so you can see which part is thinking' },
-  gestureSmear:   { on:true, note:'The quick gestures stretch along the way they are moving, like the flight already does', amt:0.16 }
+  gestureSmear:   { on:true, note:'The quick gestures stretch along the way they are moving, like the flight already does', amt:0.16 },
+
+  // — Fourth batch: mostly about having a body rather than a bigger repertoire.
+  focusGaze:      { on:true, note:'Looks at the field you are typing in' },
+  converge:       { on:true, note:'The two eyes turn very slightly toward each other for something close', px:1.6, far:220 },
+  plateSag:       { on:true, note:'The whole plate sits lower on a bad score, not just the lids', px:3 },
+  blinkOnReturn:  { on:true, note:'A blink when you come back to the app after a look away', afterMs:20000 },
+  impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
+  anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
+  chevronEyes:    { on:true, note:'The collapse chevrons are the mark, shut when the section is' },
+  sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.62 },
+  sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
+  holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -1960,7 +1983,7 @@ function applyEyeForm(el, site){
 
    None of them goes below about half. The five expressions are the mark's actual job, and
    a multiplier deep enough to shut the eyes makes every score band look identical. */
-const eyeCtx = { restDay:false, deloadDay:0, asleep:false, streak:0 };
+const eyeCtx = { restDay:false, deloadDay:0, asleep:false, streak:0, trainedMin:0 };
 function eyeIsNight(){
   const c = EYE_ANIM.sleepAtNight, h = new Date().getHours();
   return c.fromHour > c.toHour ? (h >= c.fromHour || h < c.toHour) : (h >= c.fromHour && h < c.toHour);
@@ -1971,6 +1994,9 @@ function eyeLidScale(){
   if(anim('idleSleep') && eyeCtx.asleep) k = Math.min(k, EYE_ANIM.idleSleep.lid);
   if(anim('sleepAtNight') && eyeIsNight()) k = Math.min(k, EYE_ANIM.sleepAtNight.lid);
   if(anim('restDayFace') && eyeCtx.restDay) k = Math.min(k, EYE_ANIM.restDayFace.lid);
+  if(anim('sessionHeaviness') && eyeCtx.trainedMin >= EYE_ANIM.sessionHeaviness.afterMin){
+    k = Math.min(k, EYE_ANIM.sessionHeaviness.lid);
+  }
   if(anim('deloadFatigue') && eyeCtx.deloadDay > 0){
     const c = EYE_ANIM.deloadFatigue;
     k = Math.min(k, Math.max(c.floor, 1 - c.perDay * eyeCtx.deloadDay));
@@ -1998,6 +2024,8 @@ async function refreshEyeContext(){
   }catch(e){ eyeCtx.deloadDay = 0; }
   try{ eyeCtx.restDay = !(await isRestDayComing(0)); }catch(e){ eyeCtx.restDay = false; }
   await refreshEyeHistory();
+  await refreshEyeTraining();
+  applyEyeSag();
   const docked = eyesDocked();
   if(docked) applyEyeForm(docked, eyesHome);
 }
@@ -2189,9 +2217,9 @@ function blinkTiming(){
   const base = anim('blinkByScore')
     ? BLINK_BY_BAND[eyeScore == null ? 0 : Math.max(0, Math.min(4, Math.floor(eyeScore/20)))]
     : { gap:3200, span:5200, shut:70, open:200 };
-  const perk = eyePerkFactor();
-  return perk === 1 ? base
-    : { gap: base.gap*perk, span: base.span*perk, shut: base.shut, open: base.open };
+  const k = eyePerkFactor() * eyeSittingFactor();
+  return k === 1 ? base
+    : { gap: base.gap*k, span: base.span*k, shut: base.shut, open: base.open };
 }
 // Both lids, always. A one-eyed blink reads as a wink whether or not it was meant as one,
 // and a wink is a thing you do AT someone — too pointed for a mark that blinks all day.
@@ -2330,7 +2358,7 @@ function moveEyes(dest, from){
     eyeNoteActivity();
     if(dest === 'header' && anim('popOnArrival')) eyePop();
     // A look down at the number it just landed above, so the arrival has a point.
-    if(dest === 'score' && anim('glanceAtNumber')) setTimeout(()=>eyeGaze(0, 5, 240, 620), 160);
+    if(dest === 'score' && anim('glanceAtNumber')) setTimeout(()=>{ eyeGaze(0, 5, 240, 620); eyeConvergeFor(40); }, 160);
     firstOpenOfDay();
     eyeRareBeat();
     scheduleIdle(dest === 'score' ? 1100 : 2600);
@@ -2464,6 +2492,7 @@ function setEyeScore(score){
     return;
   }
   applyEyeForm(el, 'score');
+  applyEyeSag();
   if(changed){ eyeDoubleTake(score); scheduleIdle(2200); }
 }
 
@@ -2501,12 +2530,12 @@ function firstOpenOfDay(){
 function eyesBusy(){
   if(!anim('busyOnGenerate')) return ()=>{};
   let side = 1, alive = true;
-  const px = 4;
+  const px = 4, since = Date.now();
   const tick = ()=>{
     if(!alive) return;
     eyeGaze(side * px, 0, 240);
     side = -side;
-    busyTimer = setTimeout(tick, 300);
+    busyTimer = setTimeout(tick, eyeScanInterval(Date.now() - since));
   };
   tick();
   return ()=>{ alive = false; clearTimeout(busyTimer); eyeGaze(0, 0, 300); scheduleIdle(600); };
@@ -2526,11 +2555,12 @@ function eyesBusyIn(host){
   host.appendChild(mark);
   const gaze = mark.querySelector('.eye-gaze');
   let side = 1, timer = null;
+  const since = Date.now();
   const tick = ()=>{
     gaze.style.setProperty('--eye-gaze-ms', '240ms');
     gaze.style.setProperty('--eye-gaze-x', (side * 3.5) + 'px');
     side = -side;
-    timer = setTimeout(tick, 300);
+    timer = setTimeout(tick, eyeScanInterval(Date.now() - since));
   };
   tick();
   return ()=>{ clearTimeout(timer); mark.remove(); };
@@ -2551,13 +2581,31 @@ function bindEyeTap(){
     if(!el || el.dataset.tapBound) return;
     el.dataset.tapBound = '1';
     const which = id ? 'score' : 'header';
-    el.addEventListener('pointerdown', ()=>eyeMarkTapped(which));
+    // The press starts on the mark but ends wherever your finger happens to be: a release
+    // bound to the element itself is missed the moment you slide off it, which would leave
+    // a stare running with nothing to end it.
+    el.addEventListener('pointerdown', ()=>{
+      eyeMarkPressStart(which);
+      const end = ()=>{
+        window.removeEventListener('pointerup', end);
+        window.removeEventListener('pointercancel', cancel);
+        eyeMarkPressEnd(which);
+      };
+      const cancel = ()=>{
+        window.removeEventListener('pointerup', end);
+        window.removeEventListener('pointercancel', cancel);
+        clearTimeout(eyeHoldTimer);
+        if(eyeHolding){ eyeHolding = false; const el2 = eyesDocked(); if(el2){ el2.style.removeProperty('--eye-morph'); applyEyeForm(el2, eyesHome); scheduleIdle(600); } }
+      };
+      window.addEventListener('pointerup', end);
+      window.addEventListener('pointercancel', cancel);
+    });
     // It carries role="button" off Today, so Enter and Space have to reach the same place
     // a tap does — a div with only a pointer handler is invisible to a keyboard.
     el.addEventListener('keydown', e=>{
       if(e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      eyeMarkTapped(which);
+      eyeMarkPressEnd(which);
     });
   });
 }
@@ -2574,6 +2622,7 @@ function eyeGlanceAtEl(target, px){
   const len = Math.hypot(dx, dy) || 1;
   const reach = px || 4;
   eyeGaze(dx/len*reach, dy/len*reach, 200, 620);
+  eyeConvergeFor(len);
 }
 
 // Hammering the tabs earns a spin. Counted here rather than in the tab handler so the
@@ -2866,19 +2915,6 @@ function aimEmptyStates(root){
 /* ---------- HOME ----------
    Off Today the plate is the way back to it. On Today it has nowhere to send you, so it
    winks instead. Either way, tapping the thing that is looking at you does something. */
-function eyeMarkTapped(which){
-  eyeNoteActivity();
-  const onToday = document.getElementById('panel-insights').classList.contains('active');
-  if(which === 'header' && !onToday && anim('plateIsHome')){
-    const tab = document.querySelector('.tab[data-tab="insights"]');
-    if(tab){ activateTabViaUi(tab); return; }
-  }
-  if(!anim('blinkOnTap')) return;
-  const docked = eyesDocked();
-  if(!docked) return;
-  stopIdle();
-  blinkOnce(docked, ()=>scheduleIdle());
-}
 
 
 /* ---------- THE PREVIEW PANEL ----------
@@ -2984,6 +3020,198 @@ function renderEyeAnimList(){
   });
 }
 
+
+/* ---------- THE FOURTH BATCH ----------
+   Mostly about the mark having a body rather than a bigger repertoire: where it sits, how
+   its two halves relate, how it tires over a sitting. */
+
+// 1 — It looks at whatever you are typing in. The recovery form is the app's most-used
+// input and the mark had nothing to say about it.
+document.addEventListener('focusin', e=>{
+  if(!anim('focusGaze')) return;
+  const t = e.target;
+  if(!t || !t.matches || !t.matches('input, select, textarea')) return;
+  if(t.closest('.eye-anim-row')) return;   // the preview panel's own switches do not count
+  eyeGlanceAtEl(t, 4);
+}, true);
+
+// 2 — Convergence. Two independently placed eyes can turn very slightly toward each other
+// when the thing they are looking at is close. Anything further than `far` gets none of it,
+// so it only shows for something genuinely under the mark's nose.
+function eyeConvergeFor(distancePx){
+  if(!anim('converge')) return;
+  const c = EYE_ANIM.converge;
+  const k = Math.max(0, 1 - distancePx / c.far);
+  const el = eyeSiteEl();
+  if(!el) return;
+  el.style.setProperty('--eye-converge', (k * c.px).toFixed(2) + 'px');
+  clearTimeout(eyeConvergeTimer);
+  eyeConvergeTimer = setTimeout(()=>{ el.style.setProperty('--eye-converge', '0px'); }, 900);
+}
+let eyeConvergeTimer = null;
+
+// 3 — Weight. On a bad score the whole plate sits lower in its box, not just the lids —
+// the difference between something tired and something merely half shut.
+function eyeSagPx(){
+  if(!anim('plateSag') || eyeScore == null) return 0;
+  const c = EYE_ANIM.plateSag;
+  const band = Math.max(0, Math.min(4, Math.floor(eyeScore/20)));
+  return +(c.px * (1 - band/4)).toFixed(1);
+}
+function applyEyeSag(){
+  const sag = eyeSagPx();
+  const score = document.getElementById('scoreEyes');
+  if(score) score.style.setProperty('--eye-sag', sag + 'px');
+  const mark = document.querySelector('.header-mark');
+  if(mark) mark.style.setProperty('--eye-sag', sag + 'px');
+  if(typeof updateHeaderCollapse === 'function') updateHeaderCollapse();
+}
+
+// 4 — Coming back to the app. Not a new day, just a look away and back.
+let eyeAwaySince = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ eyeAwaySince = Date.now(); return; }
+  if(!anim('blinkOnReturn') || !eyeAwaySince) return;
+  const away = Date.now() - eyeAwaySince;
+  eyeAwaySince = 0;
+  if(away < EYE_ANIM.blinkOnReturn.afterMs) return;
+  const el = eyesDocked();
+  if(!el) return;
+  stopIdle();
+  setTimeout(()=>{ const again = eyesDocked(); if(again) blinkOnce(again, ()=>scheduleIdle(900)); }, 260);
+});
+
+/* 5 — Impatience. The app knows roughly how long its own operations take; when one runs
+   long, the scan tightens. Kept as a factor on the interval rather than a second timer, so
+   there is still only one thing driving the scan. */
+function eyeScanInterval(elapsed){
+  const base = 300;
+  if(!anim('impatience')) return base;
+  const c = EYE_ANIM.impatience;
+  if(elapsed < c.afterMs) return base;
+  const over = Math.min(1, (elapsed - c.afterMs) / c.afterMs);
+  return Math.round(base - (base - c.floorMs) * over);
+}
+
+/* 6 — Anticipation. Which tab you go to from which is a habit, and after enough of them
+   the mark starts looking at the one you are probably about to tap. Stored as a small
+   matrix of counts; it only acts once one destination is clearly the usual one. */
+let eyeLastTab = null;
+function eyeNoteTabPath(name){
+  if(eyeLastTab && eyeLastTab !== name){
+    let m = {};
+    try{ m = JSON.parse(localStorage.getItem('eyes:paths') || '{}'); }catch(e){}
+    m[eyeLastTab] = m[eyeLastTab] || {};
+    m[eyeLastTab][name] = (m[eyeLastTab][name] || 0) + 1;
+    try{ localStorage.setItem('eyes:paths', JSON.stringify(m)); }catch(e){}
+  }
+  eyeLastTab = name;
+  if(!anim('anticipate')) return;
+  const c = EYE_ANIM.anticipate;
+  let m = {};
+  try{ m = JSON.parse(localStorage.getItem('eyes:paths') || '{}'); }catch(e){}
+  const from = m[name];
+  if(!from) return;
+  const total = Object.values(from).reduce((a,b)=>a+b, 0);
+  if(total < c.minVisits) return;
+  const [best, n] = Object.entries(from).sort((a,b)=>b[1]-a[1])[0];
+  if(n / total < c.minShare) return;
+  // Well after the flight has landed, so it reads as the mark thinking rather than as part
+  // of the arrival.
+  setTimeout(()=>{
+    const tab = document.querySelector(`.tab[data-tab="${best}"]`);
+    if(tab && !eyeFlightTimer) eyeGlanceAtEl(tab, 4);
+  }, EYE_FLIGHT_MS + 1400);
+}
+
+// 7 — The collapse chevrons become the mark. A section's own disclosure is the same idea as
+// an eye opening, so it may as well be one.
+function decorateChevrons(root){
+  if(!anim('chevronEyes')) return;
+  (root || document).querySelectorAll('.collapse-chevron:not([data-eyed])').forEach(ch=>{
+    ch.dataset.eyed = '1';
+    ch.textContent = '';
+    // Whatever state the section is already in when the eyes arrive.
+    const body = document.querySelector(`.collapsible-body[data-collapse="${ch.dataset.collapse}"]`);
+    if(body) ch.classList.toggle('collapsed', body.style.display === 'none');
+    const mark = document.createElement('span');
+    mark.className = 'chevron-eyes eyes';
+    mark.innerHTML = EYE_INNER_HTML;
+    ch.appendChild(mark);
+  });
+}
+
+/* 8 — What you did today. The score is what your body reported this morning; this is what
+   you have since done to it. Runs carry their own minutes; a strength session is counted at
+   roughly four minutes an exercise, which is close enough for a lid. */
+async function refreshEyeTraining(){
+  eyeCtx.trainedMin = 0;
+  if(!anim('sessionHeaviness')) return;
+  try{
+    const sessions = await getAllTrainingSessions();
+    eyeCtx.trainedMin = sessions
+      .filter(s => s && s.date === todayStr)
+      .reduce((sum, s)=> sum + (s.type === 'run' ? (s.durationMin || 0)
+                                                 : (s.exercises ? s.exercises.length * 4 : 0)), 0);
+  }catch(e){ eyeCtx.trainedMin = 0; }
+}
+
+// 9 — A long sitting settles. Not asleep, just slower — the difference between someone who
+// has just walked in and someone who has been here twenty minutes.
+let eyeSittingSince = Date.now();
+function eyeSittingFactor(){
+  if(!anim('sittingSettles')) return 1;
+  const c = EYE_ANIM.sittingSettles;
+  const mins = (Date.now() - eyeSittingSince) / 60000;
+  return 1 + Math.min(c.maxExtra, (mins / c.overMin) * c.maxExtra);
+}
+
+/* 10 — Hold to hold its gaze. Which means the tap has to become a press and a release: a
+   short press is the tap it always was, a long one is a stare, and the stare must not also
+   navigate you somewhere on the way out. */
+let eyeHoldTimer = null, eyeHolding = false, eyeHoldFrom = 0;
+function eyeMarkPressStart(which){
+  eyeNoteActivity();
+  eyeHolding = false;
+  eyeHoldFrom = Date.now();
+  clearTimeout(eyeHoldTimer);
+  if(!anim('holdGaze')) return;
+  eyeHoldTimer = setTimeout(()=>{
+    const el = eyesDocked();
+    if(!el) return;
+    eyeHolding = true;
+    stopIdle();
+    eyeGaze(0, 0, 240);
+    eyeConvergeFor(0);
+    el.style.setProperty('--eye-morph', '240ms');
+    el.style.setProperty('--eye-h', eyeFullOpen(eyesHome) + 'px');
+  }, EYE_ANIM.holdGaze.afterMs);
+}
+function eyeMarkPressEnd(which){
+  clearTimeout(eyeHoldTimer);
+  const held = eyeHolding;
+  eyeHolding = false;
+  const el = eyesDocked();
+  if(held){
+    // Let go of a stare with a blink, and go nowhere — you were looking at it, not
+    // asking it for the Today tab.
+    if(el){
+      el.style.removeProperty('--eye-morph');
+      applyEyeForm(el, eyesHome);
+      blinkOnce(el, ()=>scheduleIdle());
+    }
+    return;
+  }
+  const onToday = document.getElementById('panel-insights').classList.contains('active');
+  if(which === 'header' && !onToday && anim('plateIsHome')){
+    const tab = document.querySelector('.tab[data-tab="insights"]');
+    if(tab){ activateTabViaUi(tab); return; }
+  }
+  if(!anim('blinkOnTap') || !el) return;
+  stopIdle();
+  blinkOnce(el, ()=>scheduleIdle());
+}
+
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
@@ -3059,6 +3287,8 @@ function activateTab(name){
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
   else if(eyesLeaving) moveEyes('header', eyesFrom);
   bindEyeTap();
+  decorateChevrons(document);
+  eyeNoteTabPath(name);
   requestAnimationFrame(()=>aimEmptyStates(document));
   clearTimeout(eyeSettleTimer);
   eyeSettleTimer = setTimeout(settleEyes, EYE_FLIGHT_MS + 500);
@@ -3229,6 +3459,7 @@ new MutationObserver((mutations)=>{
       if(node.matches && node.matches('.field-row')) applyA11yFieldLabels(node.parentElement||document.body);
       else if(node.querySelectorAll) applyA11yFieldLabels(node);
       if(node.querySelectorAll || (node.matches && node.matches('.empty-state'))) decorateEmptyStates(node.parentElement || document.body);
+      if(node.querySelectorAll) decorateChevrons(node.parentElement || document.body);
     }
   }
 }).observe(document.body, { childList:true, subtree:true });
@@ -3401,7 +3632,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.7';
+const APP_VERSION = '2026.08.27.8';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3509,7 +3740,12 @@ function setCollapsed(key, collapsed){
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
   if(body) body.style.display = collapsed ? 'none' : '';
-  if(chev) chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
+  // The class is what closes the chevron when it is a pair of eyes; the rotation is what
+  // turns the caret when it is not. Both are set, and each is inert in the other's case.
+  if(chev){
+    chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
+    chev.classList.toggle('collapsed', !!collapsed);
+  }
 }
 document.querySelectorAll('.group-head.collapsible').forEach(head=>{
   head.addEventListener('click', ()=>{
@@ -4128,7 +4364,9 @@ function updateHeaderCollapse(){
   // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
   // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
   const MARK_TOP = 57;
-  mark.style.top = lerp(MARK_TOP, 30, progress) + 'px';
+  // The header mark's top is written from here, so the sag has to be added in rather than
+  // read off the custom property the way the score slot does it.
+  mark.style.top = (lerp(MARK_TOP, 30, progress) + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
   mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
   // Widening a touch as it shrinks reads as the mark being squeezed out of the way,
   // where an even scale just reads as it being turned off. The bulge peaks mid-collapse
