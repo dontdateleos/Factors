@@ -1802,7 +1802,6 @@ const EYE_ANIM = {
   // — Idle. No trigger; just signs of life. All of it comes off one scheduler so the
   //   behaviours take turns rather than talking over each other.
   blinkByScore:   { on:true, note:'Blink rate and weight follow the score band — quick and frequent when fresh, slow and heavy when wrecked' },
-  wink:           { on:true, note:'One eye only, now and then, in place of a blink', chance:0.14 },
   sway:           { on:true, note:'The pair rocks a degree or so, endlessly', deg:1.5, ms:7400 },
   breathe:        { on:true, note:'…and swells a percent on the same loop', scale:0.022 },
   lookAround:     { on:true, note:'Glances off to one side and back, as if scanning', px:3.5 },
@@ -1817,7 +1816,7 @@ const EYE_ANIM = {
   restDayFace:    { on:true, note:'Lids sit lower on a rest day', lid:0.5 },
 
   // — Reacting to you.
-  winkOnTap:      { on:true, note:'Tap the mark and it winks back' },
+  blinkOnTap:     { on:true, note:'Tap the mark and it blinks back' },
   glanceAtTab:    { on:true, note:'Looks toward the tab you just tapped, before the wipe' },
   scrollLook:     { on:true, note:'Looks down as you scroll down, up as you scroll up', px:3 },
   glanceAtNumber: { on:true, note:'One look down at the score after landing, then back up' },
@@ -1849,7 +1848,7 @@ const EYE_ANIM = {
   flightTrail:    { on:true, note:'The eyes lag the plate through the flight and catch up on landing', px:5 },
 
   // — Third batch: craft on everything above, rather than new triggers.
-  perEyeLag:      { on:true, note:'The two lids move a frame or two apart, and not always the same one first', minMs:25, maxMs:60 },
+  perEyeLag:      { on:true, note:'The two lids move a hair apart, and not always the same one first', minFrac:0.08, maxFrac:0.16 },
   lidVolume:      { on:true, note:'The eye bulges a little as it squeezes shut, like something with substance in it', px:1.4 },
   lookBeforeLeaving:{ on:true, note:'Glances where it is about to go before the flight starts' },
   emptyStateEyes: { on:true, note:'Empty blocks get the pair, looking at whatever fills them' },
@@ -2194,9 +2193,9 @@ function blinkTiming(){
   return perk === 1 ? base
     : { gap: base.gap*perk, span: base.span*perk, shut: base.shut, open: base.open };
 }
-// `oneEye` makes it a wink: the lid goes on the span itself rather than on the shared
-// custom property, so only one of the pair moves.
-function blinkOnce(el, then, oneEye){
+// Both lids, always. A one-eyed blink reads as a wink whether or not it was meant as one,
+// and a wink is a thing you do AT someone — too pointed for a mark that blinks all day.
+function blinkOnce(el, then){
   const open = (el.style.getPropertyValue('--eye-h') || getComputedStyle(el).getPropertyValue('--eye-h')).trim();
   // Already shut — the lowest score band IS a closed lid, and blinking it does nothing but
   // twitch. Let it sit.
@@ -2205,20 +2204,22 @@ function blinkOnce(el, then, oneEye){
   // A blink reopens to the height it closed from, so a score landing mid-blink would be
   // undone by a timer set before it. The sequence number strands those timers instead.
   const seq = ++blinkSeq;
-  const spans = el.querySelectorAll('span');
-  const lid = oneEye && spans.length === 2 ? spans[Math.random() < 0.5 ? 0 : 1] : null;
-  // The two lids are a frame or two apart, and which one leads is not always the same. A
-  // pair moving in perfect lockstep is the other thing that reads mechanical.
-  if(!lid && anim('perEyeLag')){
+  // The two lids are a hair apart, and which one leads is not always the same, because a
+  // pair in perfect lockstep reads mechanical. A FRACTION of the closing time rather than
+  // a fixed delay: a flat 38ms against a 58ms shut left one lid nearly closed while the
+  // other had barely started, which is a wink whether or not it was meant as one. Measured
+  // at 15px apart on an 18px eye; a tenth of the shut keeps it under 3.
+  if(anim('perEyeLag')){
     const c = EYE_ANIM.perEyeLag;
-    el.style.setProperty('--eye-lag', Math.round((c.minMs + Math.random()*(c.maxMs - c.minMs)) * (Math.random() < 0.5 ? -1 : 1)) + 'ms');
+    const frac = c.minFrac + Math.random() * (c.maxFrac - c.minFrac);
+    el.style.setProperty('--eye-lag', Math.round(t.shut * frac) * (Math.random() < 0.5 ? -1 : 1) + 'ms');
   }
   // Something with substance in it bulges a little as it squeezes shut.
   const squish = anim('lidVolume') ? EYE_ANIM.lidVolume.px + 'px' : '0px';
   const set = (h, ms, closing)=>{
     el.style.setProperty('--eye-squish', closing ? squish : '0px');
-    if(lid){ lid.style.transition = `height ${ms}ms cubic-bezier(0.2,0.7,0.2,1)`; lid.style.height = h; }
-    else { el.style.setProperty('--eye-morph', ms + 'ms'); el.style.setProperty('--eye-h', h); }
+    el.style.setProperty('--eye-morph', ms + 'ms');
+    el.style.setProperty('--eye-h', h);
   };
   set(BLINK_CLOSED, t.shut, true);
   setTimeout(()=>{
@@ -2226,8 +2227,7 @@ function blinkOnce(el, then, oneEye){
     set(open, t.open, false);
     setTimeout(()=>{
       if(seq !== blinkSeq) return;
-      if(lid){ lid.style.transition = ''; lid.style.height = ''; }
-      else el.style.removeProperty('--eye-morph');
+      el.style.removeProperty('--eye-morph');
       el.style.removeProperty('--eye-lag');
       if(then) then();
     }, t.open + 30);
@@ -2258,14 +2258,13 @@ function idleBeat(el){
     eyeGaze((Math.random() < 0.5 ? -1 : 1) * EYE_ANIM.lookAround.px, 0, 280, 950);
     scheduleIdle(); return;
   }
-  const oneEye = anim('wink') && Math.random() < EYE_ANIM.wink.chance;
   blinkOnce(el, ()=>{
     // A double blink every so often — a metronome reads as a loading spinner.
-    if(!oneEye && Math.random() < 0.2){
+    if(Math.random() < 0.2){
       setTimeout(()=>{ const again = eyesDocked(); if(again) blinkOnce(again); }, 100);
     }
     scheduleIdle();
-  }, oneEye);
+  });
 }
 function stopIdle(){
   clearTimeout(blinkTimer);
@@ -2874,11 +2873,11 @@ function eyeMarkTapped(which){
     const tab = document.querySelector('.tab[data-tab="insights"]');
     if(tab){ activateTabViaUi(tab); return; }
   }
-  if(!anim('winkOnTap')) return;
+  if(!anim('blinkOnTap')) return;
   const docked = eyesDocked();
   if(!docked) return;
   stopIdle();
-  blinkOnce(docked, ()=>scheduleIdle(), true);
+  blinkOnce(docked, ()=>scheduleIdle());
 }
 
 
@@ -2913,7 +2912,6 @@ function eyePreviewAction(key){
   const el = eyePreviewTarget;
   const full = parseFloat(getComputedStyle(el).getPropertyValue('--eye-h')) || 20;
   switch(key){
-    case 'wink':            return blinkOnce(el, null, true);
     case 'sway': case 'breathe': return eyeGesture([
         { transform:'rotate(-4deg) scale(1)' }, { transform:'rotate(4deg) scale(1.06)' },
         { transform:'rotate(-4deg) scale(1)' }], 2400, { easing:'ease-in-out' });
@@ -2924,7 +2922,7 @@ function eyePreviewAction(key){
     case 'wakeOnScore':     return eyeLidPulse(2, 90, 500);
     case 'widenOnPR':       return eyeWiden();
     case 'wince':           return eyeWince();
-    case 'winkOnTap':       return blinkOnce(el, null, true);
+    case 'blinkOnTap':      return blinkOnce(el, null);
     case 'glanceAtTab': case 'lookAtCard': case 'glanceAtDay':
       return eyeGaze(5, -2, 200, 700);
     case 'scrollLook':      return eyeGaze(0, 4, 180, 700);
@@ -3403,7 +3401,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.6';
+const APP_VERSION = '2026.08.27.7';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
