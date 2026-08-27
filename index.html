@@ -808,10 +808,6 @@
      every size. Offset with top rather than margin: a negative top margin on a panel's
      first child collapses out through a panel that has no top padding or border and
      moves the panel itself. */
-  .edge-word{ --edge-word-colour:var(--block-lime); --edge-word-size:40px; position:relative; display:block; font-size:var(--edge-word-size); height:0.9em; top:-0.45em; margin-bottom:-0.15em; }
-  .edge-word-ink{ position:absolute; left:0; top:0; font-family:var(--sans); font-size:inherit; font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:-0.045em; line-height:0.9; white-space:nowrap; }
-  .edge-word-ink.above{ color:var(--text); -webkit-text-stroke:0.6px var(--text); clip-path:inset(0 0 50% 0); }
-  .edge-word-ink.below{ color:var(--edge-word-colour); -webkit-text-stroke:0.6px var(--edge-word-colour); clip-path:inset(50% 0 0 0); }
 
   /* The priority boxes on the Goals tab are the black panels — each one carries its own
      01 / 02 / 03 across its top edge in the tab's blue. Everything inside inverts,
@@ -820,14 +816,17 @@
      The matching padding puts the contents back where the rest of the page's rows sit. */
   /* One 14 to bleed, not two: .fields no longer adds a second indent, so #goalListRows
      sits at the page's own content edge like every other column. */
-  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:0 14px var(--sp-3) !important; margin:var(--sp-4) -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
-  /* The numeral hangs above the panel, so the first row needs the same clearance as the
-     ones between — 30/24px were off the scale and disagreed with each other. */
-  .goal-row-panel:first-child{ margin-top:var(--sp-4); }
-  .goal-row-panel .edge-word{ --edge-word-colour:var(--block-blue); --edge-word-size:44px; }
-  /* One character has to carry what a whole word did, so it is set much larger. The
-     shrink-to-fit in calibrateEdgeWords leaves it alone — a single glyph is never wider
-     than the card. */
+  /* The rank used to hang above the panel, which is why there was no top padding and why
+     the gap between rows had to be large enough to hold it. The chip sits inside, so the
+     panel gets its padding back and the rows can close up. */
+  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:14px 14px var(--sp-3) !important; margin:var(--sp-3) -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  .goal-row-panel:first-child{ margin-top:var(--sp-3); }
+  /* A goal's place in the order, as the same chip a card's type wears — in the tab's own
+     blue rather than the lime, since that is the page it sits on. */
+  .rank-chip{ display:inline-flex; align-items:center; justify-content:center;
+    width:46px; height:46px; border-radius:13px; background:var(--block-blue); color:var(--text);
+    font-family:var(--sans); font-weight:var(--fw-bold); font-size:26px; line-height:1;
+    letter-spacing:0; flex:none; }
   /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
      mark read as the same family — and a symbol on a solid ground is legible in a way a
      bare minus at display size is not. */
@@ -835,8 +834,10 @@
     width:46px; height:46px; border-radius:13px; background:var(--block-lime); color:var(--text);
     font-family:var(--sans); font-weight:var(--fw-bold); font-size:30px; line-height:1;
     letter-spacing:0; padding-bottom:2px; }
-  .goal-row-panel .goal-priority-badge{ display:block; flex:1; }
-  .goal-priority-tag{ display:block; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); margin-top:2px; }
+  /* Chip and tag side by side rather than stacked: the number no longer needs a whole
+     line to itself, and the row is shorter for it. */
+  .goal-row-panel .goal-priority-badge{ display:flex; align-items:center; gap:10px; flex:1; }
+  .goal-priority-tag{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); }
   .goal-row-panel .field-label{ color:rgba(251,250,246,0.7); }
   .goal-row-panel label{ color:rgba(251,250,246,0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
@@ -3644,7 +3645,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.10';
+const APP_VERSION = '2026.08.27.11';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5002,11 +5003,8 @@ const SESSION_FOCUS_INFO = {
 
 function updateGoalPriorityBadges(){
   document.querySelectorAll('#goalListRows .goal-row .goal-priority-badge').forEach((badge,i)=>{
-    const num = String(i+1).padStart(2,'0');
-    badge.innerHTML = edgeWordHtml(num)
+    badge.innerHTML = `<span class="rank-chip">${i+1}</span>`
       + (i===0 ? '<span class="goal-priority-tag">Top priority</span>' : '');
-    // Re-runs on every reorder, which is exactly when the number changes.
-    calibrateEdgeWords(badge);
   });
   const rows = document.querySelectorAll('#goalListRows .goal-row');
   document.getElementById('addGoalRow').style.display = rows.length >= 3 ? 'none' : 'block';
@@ -7271,11 +7269,6 @@ async function clearTodayAdjustment(){
 
 // One word painted twice and clipped at the panel's edge — black above it, the panel's
 // accent below. Shared so the cards and the goals split identically.
-function edgeWordHtml(text){
-  return `<span class="edge-word"><span class="edge-word-ink above" aria-hidden="true">${text}</span>`
-       + `<span class="edge-word-ink below" aria-hidden="true">${text}</span></span>`;
-}
-
 /* What each card is asking for, as one character rather than a word. Set in a filled chip
    rather than straddling the card's edge in two colours: a bare minus at display size is
    indistinguishable from a rule, and the whole point of a symbol here is that it reads at
@@ -7290,58 +7283,8 @@ const REC_TYPE_SYMBOL = {
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
-  if(!sym) return edgeWordHtml(type);
+  if(!sym) return `<span class="rec-symbol">${String(type).slice(0,2).toUpperCase()}</span>`;
   return `<span class="rec-symbol" role="img" aria-label="${sym.label}">${sym.glyph}</span>`;
-}
-
-// Puts the edge on the vertical centre of one specific character's ink rather than at the
-// midpoint of the line box. For a word of capitals the two coincide, because caps share a
-// height — but "P1 STRENGTH" mixes a capital with a digit, and lining figures sit a little
-// shorter than caps, so the centre that matters has to be measured from the character
-// itself. Runs after insertion: a detached element has no resolved font to measure.
-const EDGE_WORD_SPLIT_CHAR = 1; // the second character
-function calibrateEdgeWords(root){
-  (root || document).querySelectorAll('.edge-word').forEach(wrap=>{
-    const above = wrap.querySelector('.edge-word-ink.above');
-    const below = wrap.querySelector('.edge-word-ink.below');
-    if(!above || !below) return;
-    const cs = getComputedStyle(above);
-    // text-transform changes what is drawn but not what textContent says. The card's type
-    // arrives lowercase and is uppercased in CSS, so measuring the raw string sizes a 'd'
-    // — an ascender, taller than the 'D' actually on screen — and puts the edge a pixel
-    // high. Measure what the reader sees.
-    let text = above.textContent || '';
-    if(cs.textTransform === 'uppercase') text = text.toUpperCase();
-    else if(cs.textTransform === 'lowercase') text = text.toLowerCase();
-    const ch = text[EDGE_WORD_SPLIT_CHAR] || text[0];
-    if(!ch) return;
-    const ctx = calibrateEdgeWords._ctx
-      || (calibrateEdgeWords._ctx = document.createElement('canvas').getContext('2d'));
-    // Shrink to fit first, since the split has to be measured at the size finally used.
-    // An injury's body part is free text — the ink never wraps, so a long one would run
-    // straight off the side of the panel.
-    let size = parseFloat(cs.fontSize);
-    const avail = wrap.getBoundingClientRect().width;
-    if(size && avail > 0){
-      ctx.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
-      const tracking = (parseFloat(cs.letterSpacing) || 0) * Math.max(0, text.length - 1);
-      const drawn = ctx.measureText(text).width + tracking;
-      if(drawn > avail) size = Math.max(16, size * (avail / drawn));
-      wrap.style.fontSize = size + 'px';
-    }
-    const lineH = size * 0.9; // .edge-word-ink line-height
-    if(!size || !lineH) return;
-    ctx.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
-    const m = ctx.measureText(ch);
-    // Where the baseline sits in the line box, then the ink's own midpoint around it.
-    const baseline = (lineH - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
-      + m.fontBoundingBoxAscent;
-    const centre = baseline - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
-    const pct = Math.max(0, Math.min(100, (centre / lineH) * 100));
-    wrap.style.top = (-centre) + 'px';
-    above.style.clipPath = `inset(0 0 ${100 - pct}% 0)`;
-    below.style.clipPath = `inset(${pct}% 0 0 0)`;
-  });
 }
 
 function buildRecCard(type, title, signals, confidence, meta){
@@ -7386,7 +7329,6 @@ function showNextCard(){
   const item = cardQueue[cardQueueIndex];
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
   container.appendChild(card);
-  calibrateEdgeWords(card);
   eyeAttendTo(card);
 }
 
