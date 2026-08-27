@@ -135,7 +135,13 @@
      put and untouched the way it does in every other transition here. Each is a positioned
      element with a z-index, so it makes its own stacking context and the sticky headings
      inside a panel cannot climb out of it and land on top of the card. */
-  main.tab-dealing{ position:relative; }
+  /* Clipped on the one axis: a card that comes in from the side starts a full page-width out,
+     and on anything wider than main that would put it in the margin beside the column, in
+     plain view. `clip` rather than `hidden` because the two axes have to disagree — the
+     outgoing page is pinned with a negative top to hold the scroll position it had, and that
+     part of it has to go on painting behind the header. `hidden` on one axis forces the other
+     to `auto`; `clip` is the pair that is allowed to stay `visible`. */
+  main.tab-dealing{ position:relative; overflow-x:clip; overflow-y:visible; }
   .panel.tab-ghost{ display:block; position:absolute; z-index:1; pointer-events:none; }
   .panel.tab-card{ position:relative; z-index:3; }
   /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
@@ -3536,8 +3542,8 @@ const UI_ANIM = {
   bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
-  tabLift:      { on:true, note:'The new page is dealt up over the old one from the bottom edge',
-                  ms:460, recede:90 }
+  tabLift:      { on:true, note:'The new page is dealt in over the old one from the side you are heading toward',
+                  axis:'X', ms:460, recede:90 }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3997,8 +4003,12 @@ function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, bia
    is either near-black or a bright block colour, so an ink rule disappears against the dark
    pages and a light one disappears against the light ones. Light over dark always leaves one
    of the two showing, whatever the card happens to be arriving over. */
-const LIFT_EDGE = '0 -2px 0 rgba(251,250,246,1), 0 -5px 0 rgba(12,13,11,0.92)';
-const LIFT_EDGE_GONE = '0 -2px 0 rgba(251,250,246,0), 0 -5px 0 rgba(12,13,11,0)';
+// Laid on the side the card is coming from, so it is always the leading edge and never a
+// trailing one. `a` is the alpha, which is taken off as the card lands.
+function liftEdge(axis, dir, a){
+  const o = n => axis === 'X' ? `${dir > 0 ? -n : n}px 0` : `0 ${dir > 0 ? -n : n}px`;
+  return `${o(2)} 0 rgba(251,250,246,${a}), ${o(5)} 0 rgba(12,13,11,${a * 0.92})`;
+}
 let tabLiftCleanup = null;
 function transitionToTab(name){
   const main = document.querySelector('main');
@@ -4007,8 +4017,11 @@ function transitionToTab(name){
   // A second tap during a deal: put the last one straight rather than leaving a panel pinned.
   if(tabLiftCleanup) tabLiftCleanup();
 
+  // Works out which way along the tab row this is, and plays nothing. Both paths need it —
+  // the deal takes its direction from it, and the fallback plays the slide it sets up.
+  slidePanelIn(null, name, 'skip');
+
   if(!uiAnim('tabLift') || !ghost || !main){
-    slidePanelIn(null, name, 'skip');
     activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-' + name);
     if(panel) slidePanelIn(panel, name, true);
@@ -4050,32 +4063,58 @@ function transitionToTab(name){
   ghost.style.paddingRight = (mainAt.right - wasAt.right) + 'px';
   ghost.style.backgroundColor = wasColor;
 
-  // From the bottom edge of the screen, not from the bottom of its own box — a short page
-  // would otherwise start halfway up and look like it was already arriving.
-  const travel = Math.max(0, window.innerHeight - mainAt.top);
-  // A page shorter than the screen would otherwise leave a strip of the new tab below it
-  // while the card is still on its way up.
-  // Plus the recede, so the ground it gives up as it moves is never open. The card outruns
+  // Down to the bottom edge of the screen whichever way the card travels: a page shorter than
+  // the screen would otherwise leave a strip of the new tab showing under it. Plus the recede
+  // on the vertical, so the ground it gives up as it moves is never open — the card outruns
   // that gap at every point of both curves anyway, but only by arithmetic.
-  ghost.style.minHeight = Math.max(0, travel - (wasAt.top - mainAt.top) + UI_ANIM.tabLift.recede) + 'px';
+  const axis = UI_ANIM.tabLift.axis === 'X' ? 'X' : 'Y';
+  const fill = Math.max(0, window.innerHeight - mainAt.top);
+  ghost.style.minHeight = Math.max(0, fill - (wasAt.top - mainAt.top)
+    + (axis === 'Y' ? UI_ANIM.tabLift.recede : 0)) + 'px';
+
+  // The card starts one whole page clear of where it lands. Horizontally that is main's own
+  // width rather than the screen's — on anything wider than main, main is a centred column
+  // with page either side of it, and a card that started at the screen edge would be sitting
+  // out in that margin in plain sight before it moved. main clips its own overflow while the
+  // deal runs, so what starts outside the column stays outside it.
+  const travel = axis === 'X' ? mainAt.width : fill;
+  // Which way along the tab row you just went. The card arrives from the side you are heading
+  // toward and the page underneath gives way the other way, so the whole switch agrees with
+  // the tab bar instead of ignoring it.
+  const dir = axis === 'X' ? uiLastTabDir : 1;
   const ms = UI_ANIM.tabLift.ms;
+  const T = px => `translate${axis}(${px}px)`;
 
   card.classList.add('tab-card');
+  // A panel's box is narrower than the panel: its full-bleed blocks escape the column with
+  // negative margins, so it paints fourteen pixels past its own border box on each side. A
+  // leading edge drawn on that box therefore lands inside the page it is meant to edge, with
+  // the escaping blocks painted over the top of it — invisible. So the box is stretched to
+  // main's padding box, measured rather than assumed, with the difference put back as padding
+  // so the column inside it does not move. Only sideways: the top edge of a panel is already
+  // the top of what it paints.
+  if(axis === 'X'){
+    const cardAt = card.getBoundingClientRect();
+    const padL = cardAt.left - mainAt.left, padR = mainAt.right - cardAt.right;
+    card.style.marginLeft = -padL + 'px';
+    card.style.marginRight = -padR + 'px';
+    card.style.paddingLeft = padL + 'px';
+    card.style.paddingRight = padR + 'px';
+  }
   // Ninety pixels, not sixteen. Depth is read as a difference in speed, and sixteen against
   // the card's five hundred and sixty is not a difference — it left a wash to carry the whole
   // job on its own, which is the job a wash is worst at. There is no wash now.
-  const a = uiPlay(ghost, [{ transform:'translateY(0)' },
-                           { transform:`translateY(-${UI_ANIM.tabLift.recede}px)` }],
+  const a = uiPlay(ghost, [{ transform: T(0) }, { transform: T(-dir * UI_ANIM.tabLift.recede) }],
     { duration: ms, easing:'cubic-bezier(0.3,0,0.2,1)', fill:'forwards' });
   const c = uiPlay(card, [
     // A dealt card starts fast and stops — an ease-out is right — but the curve this was
-    // drawn with put it 95% of the way home in half the time, which over 565px of real screen
-    // is a snap followed by two hundred milliseconds of nothing. Softened so the motion fills
-    // the window it is given. The edge is held until the card has all but landed and taken
-    // off over the last of it, so it is gone before it would sit under the header at rest.
-    { transform:`translateY(${travel}px)`, boxShadow: LIFT_EDGE },
-    { transform:`translateY(${(travel * 0.03).toFixed(1)}px)`, boxShadow: LIFT_EDGE, offset:0.82 },
-    { transform:'translateY(0)', boxShadow: LIFT_EDGE_GONE }
+    // drawn with put it 95% of the way home in half the time, which over a real page's worth
+    // of screen is a snap followed by two hundred milliseconds of nothing. Softened so the
+    // motion fills the window it is given. The edge is held until the card has all but landed
+    // and taken off over the last of it, so nothing is left drawn on at rest.
+    { transform: T(dir * travel), boxShadow: liftEdge(axis, dir, 1) },
+    { transform: T(dir * travel * 0.03), boxShadow: liftEdge(axis, dir, 1), offset:0.82 },
+    { transform: T(0), boxShadow: liftEdge(axis, dir, 0) }
   ], { duration: ms, easing:'cubic-bezier(0.28,0.72,0.3,1)' });
 
   let done = false;
@@ -4096,6 +4135,10 @@ function transitionToTab(name){
     ghost.style.removeProperty('min-height');
     ghost.style.removeProperty('background-color');
     card.classList.remove('tab-card');
+    card.style.removeProperty('margin-left');
+    card.style.removeProperty('margin-right');
+    card.style.removeProperty('padding-left');
+    card.style.removeProperty('padding-right');
     main.classList.remove('tab-dealing');
   };
   const timer = setTimeout(tabLiftCleanup, ms + 20);
@@ -4319,7 +4362,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.21';
+const APP_VERSION = '2026.08.27.22';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
