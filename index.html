@@ -131,14 +131,12 @@
   .tab[data-tab="data"].active{ background:var(--block-yellow); }
   .tab[data-tab="settings"].active{ background:var(--block-red); }
   #scrollBackdrop{ position:absolute; inset:0; z-index:-1; background-repeat:repeat; }
-  /* The deal. Three layers inside main, all of them under the header's z-index 10 so the
-     header stays put and untouched the way it does in every other transition here. Each one
-     is a positioned element with a z-index, so it makes its own stacking context and the
-     sticky headings inside a panel cannot climb out of it and land on top of the card. */
+  /* The deal. Two layers inside main, both under the header's z-index 10 so the header stays
+     put and untouched the way it does in every other transition here. Each is a positioned
+     element with a z-index, so it makes its own stacking context and the sticky headings
+     inside a panel cannot climb out of it and land on top of the card. */
   main.tab-dealing{ position:relative; }
   .panel.tab-ghost{ display:block; position:absolute; z-index:1; pointer-events:none; }
-  .tab-scrim{ position:absolute; left:0; right:0; top:0; z-index:2; pointer-events:none;
-    background:var(--reverse-bg); opacity:0; }
   .panel.tab-card{ position:relative; z-index:3; }
   /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
      the top of the screen while the rest of it is still travelling, which tears it. */
@@ -3539,7 +3537,7 @@ const UI_ANIM = {
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
   tabLift:      { on:true, note:'The new page is dealt up over the old one from the bottom edge',
-                  ms:420, recede:16, dim:0.32 }
+                  ms:460, recede:90 }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3990,6 +3988,17 @@ function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, bia
 
    The horizontal panel slide sits this one out: it writes the same transform the card does,
    so the two cannot both play, and the card already is the panel arriving. */
+/* The card's leading edge. Two hard rules rather than one blurred one: every edge and shadow
+   in this app is unblurred — 4px 4px 0, on buttons, chips and cards alike — and a 26px blur
+   was the only soft thing in it, which is why the card had no edge to speak of and why it
+   looked like it came from a different app.
+
+   Two rules, because one colour cannot separate the card from what is behind it. A page here
+   is either near-black or a bright block colour, so an ink rule disappears against the dark
+   pages and a light one disappears against the light ones. Light over dark always leaves one
+   of the two showing, whatever the card happens to be arriving over. */
+const LIFT_EDGE = '0 -2px 0 rgba(251,250,246,1), 0 -5px 0 rgba(12,13,11,0.92)';
+const LIFT_EDGE_GONE = '0 -2px 0 rgba(251,250,246,0), 0 -5px 0 rgba(12,13,11,0)';
 let tabLiftCleanup = null;
 function transitionToTab(name){
   const main = document.querySelector('main');
@@ -4046,28 +4055,27 @@ function transitionToTab(name){
   const travel = Math.max(0, window.innerHeight - mainAt.top);
   // A page shorter than the screen would otherwise leave a strip of the new tab below it
   // while the card is still on its way up.
-  ghost.style.minHeight = Math.max(0, travel - (wasAt.top - mainAt.top)) + 'px';
+  // Plus the recede, so the ground it gives up as it moves is never open. The card outruns
+  // that gap at every point of both curves anyway, but only by arithmetic.
+  ghost.style.minHeight = Math.max(0, travel - (wasAt.top - mainAt.top) + UI_ANIM.tabLift.recede) + 'px';
   const ms = UI_ANIM.tabLift.ms;
 
-  const scrim = document.createElement('div');
-  scrim.className = 'tab-scrim';
-  scrim.setAttribute('aria-hidden', 'true');
-  scrim.style.height = travel + 'px';
-  main.appendChild(scrim);
-
   card.classList.add('tab-card');
+  // Ninety pixels, not sixteen. Depth is read as a difference in speed, and sixteen against
+  // the card's five hundred and sixty is not a difference — it left a wash to carry the whole
+  // job on its own, which is the job a wash is worst at. There is no wash now.
   const a = uiPlay(ghost, [{ transform:'translateY(0)' },
                            { transform:`translateY(-${UI_ANIM.tabLift.recede}px)` }],
     { duration: ms, easing:'cubic-bezier(0.3,0,0.2,1)', fill:'forwards' });
-  const b = uiPlay(scrim, [{ opacity:0 }, { opacity: UI_ANIM.tabLift.dim }],
-    { duration: ms, easing:'cubic-bezier(0.3,0,0.2,1)', fill:'forwards' });
   const c = uiPlay(card, [
-    { transform:`translateY(${travel}px)`, boxShadow:'0 -14px 26px rgba(12,13,11,0.38)' },
-    { transform:'translateY(0)', boxShadow:'0 -14px 26px rgba(12,13,11,0)' }
     // A dealt card starts fast and stops — an ease-out is right — but the curve this was
     // drawn with put it 95% of the way home in half the time, which over 565px of real screen
     // is a snap followed by two hundred milliseconds of nothing. Softened so the motion fills
-    // the window it is given.
+    // the window it is given. The edge is held until the card has all but landed and taken
+    // off over the last of it, so it is gone before it would sit under the header at rest.
+    { transform:`translateY(${travel}px)`, boxShadow: LIFT_EDGE },
+    { transform:`translateY(${(travel * 0.03).toFixed(1)}px)`, boxShadow: LIFT_EDGE, offset:0.82 },
+    { transform:'translateY(0)', boxShadow: LIFT_EDGE_GONE }
   ], { duration: ms, easing:'cubic-bezier(0.28,0.72,0.3,1)' });
 
   let done = false;
@@ -4078,7 +4086,7 @@ function transitionToTab(name){
     clearTimeout(timer);
     // Cancel before unpinning: a filled animation goes on holding its transform, and a panel
     // that keeps it is a panel sitting 16px high the next time you open it.
-    [a, b, c].forEach(x=>{ if(x) try{ x.cancel(); }catch(e){} });
+    [a, c].forEach(x=>{ if(x) try{ x.cancel(); }catch(e){} });
     ghost.classList.remove('tab-ghost');
     ghost.style.removeProperty('top');
     ghost.style.removeProperty('left');
@@ -4089,7 +4097,6 @@ function transitionToTab(name){
     ghost.style.removeProperty('background-color');
     card.classList.remove('tab-card');
     main.classList.remove('tab-dealing');
-    scrim.remove();
   };
   const timer = setTimeout(tabLiftCleanup, ms + 20);
   if(!a && !c) tabLiftCleanup();   // no keyframes accepted: it is already a plain swap
@@ -4312,7 +4319,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.20';
+const APP_VERSION = '2026.08.27.21';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
