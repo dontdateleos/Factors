@@ -1016,9 +1016,18 @@
   /* 10 — A section's heading stays with you while you read the section. --hdr-h is written
      by updateHeaderCollapse, so the heading tucks under the header at whatever height the
      collapse has left it. */
-  .ui-stickyHeads .group-head{ position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; background:var(--bg); }
-  .ui-stickyHeads .form-panel .group-head{ background:var(--reverse-bg); }
+  .ui-stickyHeads .group-head{ position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; }
   .ui-stickyHeads #panel-goals > .group:first-child > .group-head{ z-index:2; }
+  /* Sticking a heading means giving it a background, and the page's own cream reads as a
+     stripe of nothing once one is parked over a coloured section. Ink instead: the form
+     panels and the Goals opening were already black bands, so this is every other heading
+     agreeing with them rather than a new treatment. --reverse-bg, not #000000 — these are
+     content, and the pure black is the chrome's. */
+  .ui-stickyHeads .group-head{ background:var(--reverse-bg); border-bottom-color:rgba(251,250,246,0.22); }
+  .ui-stickyHeads .group-head .group-title{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
+  .ui-stickyHeads .group-head .group-sub,
+  .ui-stickyHeads .group-head .head-est,
+  .ui-stickyHeads .group-head .collapse-chevron{ color:rgba(251,250,246,0.7); }
 
   @media (prefers-reduced-motion: reduce){
     .tab-indicator{ transition:none; }
@@ -4264,7 +4273,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.18';
+const APP_VERSION = '2026.08.27.19';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
