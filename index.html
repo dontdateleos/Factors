@@ -318,6 +318,9 @@
   .eye-anim-note{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.65); line-height:1.35; }
   .eye-anim-play{ flex:none; cursor:pointer; padding:4px 2px; }
   .eye-anim-play .empty-eyes{ --eye-ink:var(--bg); opacity:1; }
+  /* Sits in the block it is waiting on, centred, so the section says it is thinking
+     rather than the header saying something somewhere is. */
+  .section-busy{ margin:18px auto; }
   .empty-eyes{ --eye-box-w:26px; --eye-box-h:20px; --eye-gap:7px; --eye-plate:transparent;
     --eye-plate-r:0px; --eye-w:8px; --eye-h:20px; --eye-r:4px; --eye-rb:4px;
     --eye-ink:currentColor; opacity:0.55; flex:none; }
@@ -1849,7 +1852,9 @@ const EYE_ANIM = {
   perEyeLag:      { on:true, note:'The two lids move a frame or two apart, and not always the same one first', minMs:25, maxMs:60 },
   lidVolume:      { on:true, note:'The eye bulges a little as it squeezes shut, like something with substance in it', px:1.4 },
   lookBeforeLeaving:{ on:true, note:'Glances where it is about to go before the flight starts' },
-  emptyStateEyes: { on:true, note:'Empty blocks get the pair, looking at whatever fills them' }
+  emptyStateEyes: { on:true, note:'Empty blocks get the pair, looking at whatever fills them' },
+  sectionBusy:    { on:true, note:'A pair scans where a section is about to fill in, so you can see which part is thinking' },
+  gestureSmear:   { on:true, note:'The quick gestures stretch along the way they are moving, like the flight already does', amt:0.16 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -1860,6 +1865,21 @@ const EYE_CALM_KEEP = ['plateIsHome','toastEyes','nodOnSave','busyEverywhere','w
                        'blinkByScore','wince','widenOnPR'];
 let eyeCalm = false;
 try{ eyeCalm = localStorage.getItem('eyes:calm') === '1'; }catch(e){}
+/* Only the rows you have actually changed are stored, as a sparse map of key -> false.
+   Storing all forty-two would freeze the defaults: a behaviour added later would arrive
+   switched to whatever the file said the day you last touched this panel. */
+function loadEyeAnimPrefs(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem('eyes:anim') || 'null'); }catch(e){}
+  if(!saved) return;
+  for(const k in saved) if(EYE_ANIM[k]) EYE_ANIM[k].on = !!saved[k];
+}
+function saveEyeAnimPrefs(){
+  const diff = {};
+  for(const k in EYE_ANIM) if(!EYE_ANIM[k].on) diff[k] = false;
+  try{ localStorage.setItem('eyes:anim', JSON.stringify(diff)); }catch(e){}
+}
+loadEyeAnimPrefs();
 function setEyeCalm(on){
   eyeCalm = !!on;
   try{ localStorage.setItem('eyes:calm', eyeCalm ? '1' : '0'); }catch(e){}
@@ -2072,9 +2092,36 @@ function eyeLidPulse(toPx, ms, holdMs, then){
 }
 
 /* ---------- THE GESTURES ---------- */
-function eyeNod(){ eyeGesture([{transform:'translateY(0)'},{transform:'translateY(5px)'},{transform:'translateY(-2px)'},{transform:'translateY(0)'}], 440); }
-function eyeShake(){ eyeGesture([{transform:'translateX(0)'},{transform:'translateX(-3.5px)'},{transform:'translateX(3.5px)'},{transform:'translateX(-2px)'},{transform:'translateX(0)'}], 400, { easing:'ease-out' }); }
-function eyeSpin(){ eyeGesture([{transform:'rotate(0)'},{transform:'rotate(360deg)'}], 680, { easing:'cubic-bezier(0.5,0,0.2,1)' }); }
+// Smear. The flight already stretches along its direction of travel; the quick gestures did
+// not, which is what made them look like the shape was teleporting between frames rather
+// than moving through them. `k` is 0 with the behaviour off, so the keyframes stay one set.
+function smear(){ return anim('gestureSmear') ? EYE_ANIM.gestureSmear.amt : 0; }
+function eyeNod(){
+  const k = smear();
+  eyeGesture([
+    { transform:'translateY(0) scale(1,1)' },
+    { transform:`translateY(3px) scale(${1-k*0.5},${1+k})`, offset:0.35 },
+    { transform:`translateY(5px) scale(${1+k*0.6},${1-k*0.7})`, offset:0.6 },
+    { transform:'translateY(-2px) scale(1,1)', offset:0.82 },
+    { transform:'translateY(0) scale(1,1)' }], 440);
+}
+function eyeShake(){
+  const k = smear();
+  eyeGesture([
+    { transform:'translateX(0) scale(1,1)' },
+    { transform:`translateX(-3.5px) scale(${1+k},${1-k*0.6})`, offset:0.25 },
+    { transform:`translateX(3.5px) scale(${1+k},${1-k*0.6})`, offset:0.55 },
+    { transform:'translateX(-2px) scale(1,1)', offset:0.8 },
+    { transform:'translateX(0) scale(1,1)' }], 400, { easing:'ease-out' });
+}
+function eyeSpin(){
+  const k = smear();
+  eyeGesture([
+    { transform:'rotate(0) scale(1,1)' },
+    { transform:`rotate(140deg) scale(${1+k*1.3},${1-k*0.8})`, offset:0.4 },
+    { transform:`rotate(280deg) scale(${1+k*0.6},${1-k*0.4})`, offset:0.78 },
+    { transform:'rotate(360deg) scale(1,1)' }], 680, { easing:'cubic-bezier(0.5,0,0.2,1)' });
+}
 function eyePop(){ eyeGesture([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(0.94)'},{transform:'scale(1)'}], 400); }
 function eyeWiden(){
   const el = eyeSiteEl(); if(!el) return;
@@ -2467,6 +2514,36 @@ function eyesBusy(){
 }
 let busyTimer = null;
 
+/* A pair sitting where a section's content will be, rather than the whole mark taking over
+   for anything slow. Says WHICH part of the page is thinking, which the mark up in the
+   header cannot. Scans on its own timer, so several sections can be busy at once. */
+function eyesBusyIn(host){
+  if(!host || !anim('sectionBusy')) return ()=>{};
+  if(host.querySelector(':scope > .section-busy')) return ()=>{};
+  const mark = document.createElement('div');
+  mark.className = 'section-busy empty-eyes eyes';
+  mark.setAttribute('aria-hidden', 'true');
+  mark.innerHTML = EYE_INNER_HTML;
+  host.appendChild(mark);
+  const gaze = mark.querySelector('.eye-gaze');
+  let side = 1, timer = null;
+  const tick = ()=>{
+    gaze.style.setProperty('--eye-gaze-ms', '240ms');
+    gaze.style.setProperty('--eye-gaze-x', (side * 3.5) + 'px');
+    side = -side;
+    timer = setTimeout(tick, 300);
+  };
+  tick();
+  return ()=>{ clearTimeout(timer); mark.remove(); };
+}
+// One promise, one place to say so. With a host it is that section's own pair; without one
+// it is the mark in the header, as before.
+function withEyesBusy(promise, host){
+  if(!promise || typeof promise.then !== 'function') return promise;
+  const done = host ? eyesBusyIn(host) : (anim('busyEverywhere') ? eyesBusy() : ()=>{});
+  return promise.then(v=>{ done(); return v; }, err=>{ done(); throw err; });
+}
+
 // A tap on the mark itself. The plate sits over the wordmark, which does nothing else when
 // tapped, so claiming the pointer here costs nothing.
 function bindEyeTap(){
@@ -2723,15 +2800,6 @@ function eyeRareBeat(){
   }
 }
 
-/* ---------- BUSY ----------
-   The scan was wired to Generate alone. Anything the app makes you wait for should say so
-   with the mark rather than with a separate spinner. */
-function withEyesBusy(promise){
-  if(!anim('busyEverywhere') || !promise || typeof promise.then !== 'function') return promise;
-  const done = eyesBusy();
-  return promise.then(v=>{ done(); return v; }, err=>{ done(); throw err; });
-}
-
 /* ---------- THE TOAST ----------
    The same pair, at toast scale, nodding or shaking in place of a tick or a cross. Its own
    sizing rather than a site, since it never moves and never wears an expression. */
@@ -2905,7 +2973,13 @@ function renderEyeAnimList(){
       + `<div class="eye-anim-note">${EYE_ANIM[key].note}</div></div>`
       + `<div class="eye-anim-play"><div class="empty-eyes eyes" aria-hidden="true">${EYE_INNER_HTML}</div></div>`;
     const box = row.querySelector('.eye-anim-on');
-    box.addEventListener('change', ()=>{ EYE_ANIM[key].on = box.checked; renderEyeAnimList(); });
+    box.addEventListener('change', ()=>{
+      EYE_ANIM[key].on = box.checked;
+      saveEyeAnimPrefs();
+      // Switching the idle loop off has to actually stop it, not wait for the next landing.
+      stopEyeIdle(); startEyeIdle();
+      renderEyeAnimList();
+    });
     const mark = row.querySelector('.empty-eyes');
     row.querySelector('.eye-anim-play').addEventListener('click', ()=>playEyePreview(key, mark));
     host.appendChild(row);
@@ -2949,7 +3023,15 @@ function activateTab(name){
   });
   // generateWarmup writes warmupLog:<date>, which generateMobility reads to skip areas
   // already covered — so these must run in order, not fire-and-forget in parallel.
-  if(name==='insights'){ refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab(); withEyesBusy(generateWarmup().then(()=>generateMobility())); }
+  if(name==='insights'){
+    refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
+    // Each section waits on its own generator, so the page shows which half is still
+    // thinking rather than one scan standing in for both.
+    withEyesBusy(
+      withEyesBusy(generateWarmup(), document.getElementById('warmupCards'))
+        .then(()=>withEyesBusy(generateMobility(), document.getElementById('mobilityCards')))
+    );
+  }
   if(name==='training'){
     activateTrainingSubView('weekly');
     restorePlanSummary();
@@ -2987,7 +3069,7 @@ function activateTab(name){
 function activateTrainingSubView(view){
   document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
-  if(view==='weekly'){ withEyesBusy(Promise.resolve(renderWeekGrid())); }
+  if(view==='weekly'){ withEyesBusy(Promise.resolve(renderWeekGrid()), document.getElementById('weekDayPicker')); }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -3321,7 +3403,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.5';
+const APP_VERSION = '2026.08.27.6';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
