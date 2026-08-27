@@ -3517,8 +3517,7 @@ const UI_ANIM = {
   bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
-  tabWipe:      { on:true, note:'A torn band of the new tab’s colour travels across the swap',
-                  style:'sweep', ms:460, tear:14, lead:26 }
+  tabBloom:     { on:true, note:'A wobbly blob of the new tab’s colour covers the swap', ms:370 }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3952,58 +3951,25 @@ function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, bia
   return pts.join(', ');
 }
 
-/* The tab transition. A band of the new tab's colour, with a torn edge on both sides,
-   travels across the content area: on over the first half, off over the second. The swap
-   happens at the halfway point, under full cover, so what the trailing edge uncovers is
-   already the new tab.
+/* The tab transition. A wobbly blob in the new tab's colour expands from roughly the middle
+   of the content area outward, the content swaps once the shape covers enough of it to hide
+   the swap, and by the time the blob finishes expanding it is the same colour as the new
+   tab's own background — so removing it afterward is invisible.
 
-   It travels the way you travelled — left to right if you moved right along the tab row —
-   which is the same direction the tab's block slides and the same direction the panel
-   arrives from. Three motions agreeing read as one gesture; the blob this replaced expanded
-   from the middle regardless, so it agreed with neither.
-
-   The header is deliberately outside the overlay — fixed, with top set to the header's
-   measured height — so it stays visible and untouched throughout.
-
-   `bloom` is the centre-out blob this replaced, kept because it is one switch away. */
-const TAB_WIPE_POINTS = 20;
-// One torn vertical edge, top to bottom (or bottom to top). Three sine waves at different
-// frequencies rather than per-point noise: noise reads as jagged, this reads as torn paper.
-// The seeds are fixed for the length of one transition, so the edge keeps its shape as it
-// travels instead of writhing.
-function tabWipeEdge(x, height, seeds, amp, bias, down){
-  const pts = [];
-  for(let i = 0; i <= TAB_WIPE_POINTS; i++){
-    const k = down ? i : TAB_WIPE_POINTS - i;
-    const t = k / TAB_WIPE_POINTS;
-    const w = (Math.sin(t * 9.4 + seeds[0]) * 0.5
-             + Math.sin(t * 17.0 + seeds[1]) * 0.32
-             + Math.sin(t * 5.0 + seeds[2]) * 0.46) / 1.28;
-    // The tap lands on the tab row at the top, so the top of the edge runs ahead — the wipe
-    // reads as dragged from where your finger was rather than pushed evenly.
-    const lead = bias * Math.pow(1 - t, 1.4);
-    pts.push(`${(x + amp * w + lead).toFixed(1)}px ${(t * height).toFixed(1)}px`);
-  }
-  return pts;
-}
-// The band between the two edges: down the trailing one, back up the leading one.
-function tabWipeShape(trailX, leadX, height, seeds, amp, bias){
-  return 'polygon(' + tabWipeEdge(trailX, height, seeds, amp, 0, true)
-    .concat(tabWipeEdge(leadX, height, [seeds[3], seeds[4], seeds[5]], amp, bias, false))
-    .join(', ') + ')';
-}
-
+   Randomised per transition: origin offset, wobble pattern, wobble strength and duration all
+   vary within a range, so repeated switches feel hand-drawn rather than mechanically
+   identical. The header is deliberately outside the overlay — fixed, with top set to the
+   header's measured height — so it stays visible and untouched throughout. */
 function transitionToTab(name, buttonEl){
   const color = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
   const headerEl = document.querySelector('header');
   const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
 
-  // Direction first: the wipe and the panel both need it, and this is what works it out.
+  // Worked out here rather than inside activateTab: the panel slide is played by whichever
+  // caller has the panel on screen, and that is this one.
   slidePanelIn(null, name, 'skip');
-  const dir = uiLastTabDir;
 
-  const style = uiAnim('tabWipe') ? UI_ANIM.tabWipe.style : 'none';
-  if(style === 'none'){
+  if(!uiAnim('tabBloom')){
     activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-' + name);
     if(panel) slidePanelIn(panel, name, true);
@@ -4020,90 +3986,49 @@ function transitionToTab(name, buttonEl){
 
   const areaWidth = window.innerWidth;
   const areaHeight = window.innerHeight - headerHeight;
-  const seeds = Array.from({ length:6 }, ()=> Math.random() * Math.PI * 2);
-
-  if(style === 'bloom'){ tabBloom(overlay, name, buttonEl, areaWidth, areaHeight, headerHeight, seeds); return; }
-
-  const amp = UI_ANIM.tabWipe.tear;
-  const bias = dir * UI_ANIM.tabWipe.lead;
-  // Far enough past each edge that neither the tear nor the lead ever shows a gap at the
-  // extremes, where the band is meant to be completely off screen.
-  const margin = amp + UI_ANIM.tabWipe.lead + 8;
-  const x0 = dir > 0 ? -margin : areaWidth + margin;
-  const x1 = dir > 0 ? areaWidth + margin : -margin;
-  const duration = UI_ANIM.tabWipe.ms + Math.round(Math.random() * 60);
-
-  const shape = (trail, lead)=> tabWipeShape(trail, lead, areaHeight, seeds, amp, bias);
-  const frames = [
-    // Accelerating on, decelerating off. The two middle keyframes are the same shape — fully
-    // covered — which holds the cover either side of the halfway mark rather than only at
-    // the instant of it. That window is what the swap happens inside; without it the
-    // trailing edge has already started to leave by the time the new panel is built, and a
-    // strip of it shows down the entry side. 55ms at this duration: a beat, not a pause.
-    // The easing is per-segment, so these offsets are offsets in time.
-    { clipPath: shape(x0, x0), easing:'cubic-bezier(0.32,0,0.67,0.4)' },
-    { clipPath: shape(x0, x1), offset:0.44, easing:'linear' },
-    { clipPath: shape(x0, x1), offset:0.56, easing:'cubic-bezier(0.33,0.6,0.68,1)' },
-    { clipPath: shape(x1, x1) }
-  ];
-  // The class carries a clip-path transition for the bloom path; this one is driven by
-  // keyframes, and the two would fight over the first frame.
-  overlay.style.transition = 'none';
-  overlay.style.clipPath = frames[0].clipPath;
-  const anim = uiPlay(overlay, frames, { duration, easing:'linear', fill:'forwards' });
-
-  const finish = ()=>{
-    overlay.remove();
-    window.headerCollapseSuspended = false;
-    updateHeaderCollapse();   // catch up once, cleanly, to the now-correct scrolled-to-top state
-  };
-  // The swap is under full cover, and the panel starts arriving from there — so by the time
-  // the trailing edge uncovers a strip, the content in it has nearly settled.
-  setTimeout(()=>{
-    activateTab(name, { deferSlide:true });
-    const panel = document.getElementById('panel-' + name);
-    if(panel) slidePanelIn(panel, name, true);
-  }, Math.round(duration / 2));
-  // Booked on a timer rather than the animation's own finish, so a browser that refused the
-  // keyframe list still tears the overlay down instead of leaving it over the app.
-  setTimeout(finish, duration + 20);
-  if(!anim) setTimeout(()=>{ overlay.style.opacity = '0'; }, 10);
-}
-
-// The centre-out blob the wipe replaced. Same contract: cover, swap, uncover.
-function tabBloom(overlay, name, buttonEl, areaWidth, areaHeight, headerHeight, seeds){
   const maxRadius = Math.ceil(Math.sqrt(Math.pow(areaWidth/2, 2) + Math.pow(areaHeight/2, 2)) * 1.15) + 20;
+
+  // Origin offset from dead-centre — up to ~8% of the content area's smaller dimension, so it
+  // still reads as "roughly the middle" but isn't pixel-identical every time.
   const offsetRange = Math.min(areaWidth, areaHeight) * 0.08;
   const cx = areaWidth/2 + (Math.random()*2-1) * offsetRange;
   const cy = areaHeight/2 + (Math.random()*2-1) * offsetRange;
+  const seeds = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
   const wobbleAmount = 0.14 + Math.random()*0.10;
-  const duration = 370 + Math.random()*70;
+  const duration = UI_ANIM.tabBloom.ms + Math.random()*70;
   const numPoints = 28;
+
+  // Biased toward whichever button was actually tapped — the edge nearest it reaches further
+  // and faster, the opposite side lags, so the shape reads as spreading from the point of the
+  // tap rather than expanding evenly in every direction.
   let biasAngle = null;
   const biasStrength = 0.22;
   if(buttonEl){
     const br = buttonEl.getBoundingClientRect();
     biasAngle = Math.atan2((br.top + br.height/2 - headerHeight) - cy, (br.left + br.width/2) - cx);
   }
+
   const startShape = wobblyPolygonPoints(cx, cy, 2, 0, seeds, numPoints, biasAngle, biasStrength);
   const endShape = wobblyPolygonPoints(cx, cy, maxRadius, wobbleAmount, seeds, numPoints, biasAngle, biasStrength);
+
   overlay.style.transition = 'none';
   overlay.style.clipPath = `polygon(${startShape})`;
-  void overlay.offsetWidth;
+  void overlay.offsetWidth; // force reflow so the transition below actually animates
   overlay.style.transition = `clip-path ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
   overlay.style.clipPath = `polygon(${endShape})`;
-  setTimeout(()=>{ activateTab(name, { deferSlide:true }); }, Math.round(duration * 0.82));
-  // Started while the blob still covers it, so what the reveal shows is a panel already in
-  // motion. Starting it after the reveal instead is a jump from rest to the slide's first
-  // frame, in full view.
+
+  // The panel starts arriving while the blob still covers it, so what the reveal shows is
+  // one already most of the way home — a hair of settle rather than a jump from rest to the
+  // slide's first frame in full view, which is what made the switch look like it shook.
   setTimeout(()=>{
+    activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-'+name);
     if(panel) slidePanelIn(panel, name, true);
-  }, Math.round(duration * 0.88));
+  }, Math.round(duration * 0.82));
   setTimeout(()=>{
     overlay.remove();
     window.headerCollapseSuspended = false;
-    updateHeaderCollapse();
+    updateHeaderCollapse(); // catch up once, cleanly, to the now-correct scrolled-to-top state
   }, duration + 20);
 }
 
@@ -4324,7 +4249,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.16';
+const APP_VERSION = '2026.08.27.17';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
