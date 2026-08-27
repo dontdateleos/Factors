@@ -99,6 +99,16 @@
     color:rgba(251,250,246,0.62); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
   .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
+  /* Its own pair on its own clock. The real mark has somewhere to be; this one only has to
+     blink, so it does it in CSS rather than through the scheduler. */
+  .colophon-eyes{ --eye-box-w:15px; --eye-box-h:11px; --eye-gap:4px; --eye-plate:transparent;
+    --eye-plate-r:0px; --eye-w:4px; --eye-h:11px; --eye-r:2px; --eye-rb:2px;
+    --eye-ink:rgba(251,250,246,0.62); display:inline-flex; vertical-align:baseline;
+    margin-left:8px; position:relative; top:1px; }
+  .colophon-eyes span{ animation:colophonBlink 7.4s infinite; }
+  .colophon-eyes span:last-child{ animation-delay:0.04s; }
+  @keyframes colophonBlink{ 0%,92%,100%{ height:11px; } 95%,96.5%{ height:2px; } }
+  @media (prefers-reduced-motion: reduce){ .colophon-eyes span{ animation:none; } }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
   h1{ font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
@@ -947,6 +957,77 @@
   @media (prefers-reduced-motion: reduce){ #toast{ transition:opacity 0.1s linear; } }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
+  /* ---------- APP MOTION: SECOND BATCH ----------
+     The JS half of these lives beside UI_ANIM; this is the part the browser can do on its
+     own. Everything here is inside the reduced-motion guard at the bottom of the block. */
+
+  /* 2 — One block behind the tab row, moved to whichever tab is active, instead of six
+     backgrounds blinking on and off. The row scrolls, so it is positioned in the row's own
+     coordinates and scrolls with it. */
+  .ui-tabIndicator .tabs{ position:relative; }
+  .ui-tabIndicator .tab-indicator{ position:absolute; left:0; top:0; width:0; height:0; z-index:0;
+    pointer-events:none; transform:translateX(0);
+    transition:transform 300ms cubic-bezier(0.2,0.9,0.2,1), width 300ms cubic-bezier(0.2,0.9,0.2,1),
+               background-color 220ms ease; }
+  .ui-tabIndicator .tab{ position:relative; z-index:1; }
+  /* The block is the indicator's job now; the tab keeps only the type change. */
+  .ui-tabIndicator .tab.active{ background:transparent; }
+  .ui-tabIndicator .tab[data-tab="insights"].active, .ui-tabIndicator .tab[data-tab="training"].active,
+  .ui-tabIndicator .tab[data-tab="goals"].active, .ui-tabIndicator .tab[data-tab="injuries"].active,
+  .ui-tabIndicator .tab[data-tab="data"].active, .ui-tabIndicator .tab[data-tab="settings"].active{ background:transparent; }
+
+  /* 5 — A focused field draws its underline in from the left rather than switching a
+     border on. Inputs can't hold a pseudo-element, so the line is a background layer and
+     the draw is its width. */
+  .ui-fieldUnderline input[type=text], .ui-fieldUnderline input[type=number],
+  .ui-fieldUnderline input[type=date], .ui-fieldUnderline input[type=time],
+  .ui-fieldUnderline select, .ui-fieldUnderline textarea{
+    background-image:linear-gradient(var(--accent), var(--accent));
+    background-repeat:no-repeat; background-position:0 100%; background-size:0% 2px;
+    transition:background-size 220ms cubic-bezier(0.2,0.9,0.2,1); }
+  .ui-fieldUnderline input[type=text]:focus, .ui-fieldUnderline input[type=number]:focus,
+  .ui-fieldUnderline input[type=date]:focus, .ui-fieldUnderline input[type=time]:focus,
+  .ui-fieldUnderline select:focus, .ui-fieldUnderline textarea:focus{ background-size:100% 2px; }
+
+  /* 6 — Things you press go down under the finger. A tap that leaves the surface where it
+     was is the one place the app still feels like a web page. */
+  .ui-buttonPress button, .ui-buttonPress .type-btn, .ui-buttonPress .rating-btn,
+  .ui-buttonPress .add-row, .ui-buttonPress .goal-priority-btn{
+    transition:transform 90ms ease-out; }
+  .ui-buttonPress button:active, .ui-buttonPress .type-btn:active, .ui-buttonPress .rating-btn:active,
+  .ui-buttonPress .add-row:active, .ui-buttonPress .goal-priority-btn:active{ transform:translateY(1px) scale(0.985); }
+
+  /* 7 — The header sits flat on the page at the top and lifts off it once you have
+     scrolled. Drawn as a shadow rather than the border, which the per-tab rules above
+     already clear. */
+  .ui-headerHairline header{ transition:box-shadow 180ms ease; }
+  .ui-headerHairline header.scrolled{ box-shadow:0 1px 0 rgba(12,13,11,0.18), 0 8px 14px -10px rgba(12,13,11,0.4); }
+
+  /* 8 — The update banner is fixed to the bottom edge; it should arrive from under it. */
+  @keyframes bannerSlideIn{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+  .ui-bannerSlide .update-banner{ animation:bannerSlideIn 320ms cubic-bezier(0.2,0.9,0.2,1); }
+
+  /* 9 — Waiting shows the shape of what is coming. */
+  .skeleton{ display:flex; flex-direction:column; gap:10px; padding:var(--sp-3) 0; }
+  .skeleton-row{ height:14px; background:currentColor; opacity:0.12;
+    animation:skeletonPulse 1200ms ease-in-out infinite; }
+  @keyframes skeletonPulse{ 0%,100%{ opacity:0.09; } 50%{ opacity:0.2; } }
+
+  /* 10 — A section's heading stays with you while you read the section. --hdr-h is written
+     by updateHeaderCollapse, so the heading tucks under the header at whatever height the
+     collapse has left it. */
+  .ui-stickyHeads .group-head{ position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; background:var(--bg); }
+  .ui-stickyHeads .form-panel .group-head{ background:var(--reverse-bg); }
+  .ui-stickyHeads #panel-goals > .group:first-child > .group-head{ z-index:2; }
+
+  @media (prefers-reduced-motion: reduce){
+    .tab-indicator{ transition:none; }
+    input, select, textarea{ transition:none; }
+    button, .type-btn, .rating-btn, .add-row, .goal-priority-btn{ transition:none; }
+    header{ transition:none; }
+    .update-banner{ animation:none; }
+    .skeleton-row{ animation:none; opacity:0.14; }
+  }
 </style>
 </head>
 <body>
@@ -1908,7 +1989,18 @@ const EYE_ANIM = {
   chevronEyes:    { on:true, note:'The collapse chevrons are the mark, shut when the section is' },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.62 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
-  holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 }
+  holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 },
+
+  // — Fifth batch.
+  stayVisible:    { on:true, note:'Perches back up in the wordmark when the score scrolls away, and drops again when it returns' },
+  colophonEyes:   { on:true, note:'A pair on the definition at the foot of every page' },
+  tabGaze:        { on:true, note:'Each tab sets the eyes a hair differently' },
+  lookAtToast:    { on:true, note:'Looks at a toast when one lands' },
+  startleOnError: { on:true, note:'A jump, not a polite shake, when something fails' },
+  lookAtSave:     { on:true, note:'Looks at the button you are heading for the moment a form goes dirty' },
+  thinkBeforeCard:{ on:true, note:'A beat of looking away before a recommendation lands' },
+  lookAtPanel:    { on:true, note:'Looks at a panel that opens over the page' },
+  tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -2015,7 +2107,7 @@ function applyEyeForm(el, site){
 
    None of them goes below about half. The five expressions are the mark's actual job, and
    a multiplier deep enough to shut the eyes makes every score band look identical. */
-const eyeCtx = { restDay:false, deloadDay:0, asleep:false, streak:0, trainedMin:0 };
+const eyeCtx = { restDay:false, deloadDay:0, asleep:false, streak:0, trainedMin:0, perched:false };
 function eyeIsNight(){
   const c = EYE_ANIM.sleepAtNight, h = new Date().getHours();
   return c.fromHour > c.toHour ? (h >= c.fromHour || h < c.toHour) : (h >= c.fromHour && h < c.toHour);
@@ -2101,7 +2193,7 @@ function eyeGaze(x, y, ms, holdMs){
   const el = eyeGazeEl();
   if(!el || eyeMotionOff()) return;
   el.style.setProperty('--eye-gaze-ms', (ms || 260) + 'ms');
-  el.style.setProperty('--eye-gaze-x', (x || 0) + 'px');
+  el.style.setProperty('--eye-gaze-x', ((x || 0) + eyeTabBias().x) + 'px');
   // Every gaze is measured from the resting bias, so letting go returns to it rather than
   // to dead centre and timeOfDayGaze needs no call sites of its own.
   el.style.setProperty('--eye-gaze-y', ((y || 0) + eyeRestY()) + 'px');
@@ -2490,7 +2582,8 @@ function settleEyes(){
   const score = document.getElementById('scoreEyes');
   const today = document.getElementById('panel-insights');
   if(!header || !score || !today) return;
-  const onToday = today.classList.contains('active');
+  // The perch means the eyes are legitimately in the header while Today is showing.
+  const onToday = today.classList.contains('active') && !eyeCtx.perched;
   eyesHome = onToday ? 'score' : 'header';
   applyEyeForm(score, 'score');
   applyEyeForm(header, 'header');
@@ -2601,8 +2694,12 @@ function eyesBusyIn(host){
 // it is the mark in the header, as before.
 function withEyesBusy(promise, host){
   if(!promise || typeof promise.then !== 'function') return promise;
+  // Only into an empty section. A skeleton laid over content that is already there is a
+  // redraw, not a wait — the section keeps what it has until the new render replaces it.
+  const unskeleton = (host && !host.children.length) ? showSkeleton(host, 3) : ()=>{};
   const done = host ? eyesBusyIn(host) : (anim('busyEverywhere') ? eyesBusy() : ()=>{});
-  return promise.then(v=>{ done(); return v; }, err=>{ done(); throw err; });
+  const settle = ()=>{ unskeleton(); done(); };
+  return promise.then(v=>{ settle(); return v; }, err=>{ settle(); throw err; });
 }
 
 // A tap on the mark itself. The plate sits over the wordmark, which does nothing else when
@@ -2732,11 +2829,13 @@ async function eyeNotePRFrom(session){
 // Where the gaze sits when nothing is pulling at it. Not quite centre: it rides fractionally
 // up in the morning and drifts down late, which is felt rather than seen.
 function eyeRestY(){
-  if(!anim('timeOfDayGaze')) return 0;
-  const h = new Date().getHours(), px = EYE_ANIM.timeOfDayGaze.px;
-  if(h >= 5 && h < 11) return -px;
-  if(h >= 19 || h < 5) return px;
-  return 0;
+  let y = eyeTabBias().y;
+  if(anim('timeOfDayGaze')){
+    const h = new Date().getHours(), px = EYE_ANIM.timeOfDayGaze.px;
+    if(h >= 5 && h < 11) y -= px;
+    else if(h >= 19 || h < 5) y += px;
+  }
+  return y;
 }
 
 /* ---------- IDLE SLEEP ----------
@@ -3245,6 +3344,154 @@ function eyeMarkPressEnd(which){
 }
 
 
+/* ---------- THE FIFTH BATCH ---------- */
+
+/* 1 — Never off-screen. On Today the mark lives over the score, which scrolls away; it
+   perches back up in the wordmark rather than leaving the app without a face, and drops
+   again when the score comes back. The perch is a state settleEyes has to know about, or
+   it would send the mark straight back down on the next tab switch. */
+let eyePerchTimer = null;
+function updateEyePerch(){
+  if(!anim('stayVisible') || eyeFlightTimer) return;
+  const today = document.getElementById('panel-insights');
+  if(!today || !today.classList.contains('active')) return;
+  const score = document.getElementById('scoreEyes');
+  const header = document.querySelector('header');
+  if(!score || !header) return;
+  const r = score.getBoundingClientRect();
+  // Gone once it is behind the sticky header, back once it is clear of it again. The gap
+  // between the two thresholds is what stops it flickering at the boundary.
+  const headerBottom = header.getBoundingClientRect().bottom;
+  const want = r.bottom < headerBottom + 4 ? true
+             : r.top > headerBottom + 18 ? false
+             : eyeCtx.perched;
+  if(want === eyeCtx.perched) return;
+  eyeCtx.perched = want;
+  // The header the mark is perching into has collapsed to nothing by the time this fires,
+  // and its own geometry is written from the wordmark's size — which is zero. Move it to
+  // the perch first, so the flight has somewhere real to land.
+  updateHeaderCollapse();
+  moveEyes(want ? 'header' : 'score', want ? { x:r.left, y:r.top, offscreen:false } : null);
+}
+// Beside the tab's name, on the one row the collapsed header still has. Measured off the
+// text itself rather than the block, which is full width and would put the mark off-screen.
+const EYE_PERCH_SCALE = 0.5;
+function eyePerchSpot(){
+  const lbl = document.getElementById('currentTabLabel');
+  const brand = document.querySelector('.header-brand');
+  if(!lbl || !brand) return null;
+  const br = brand.getBoundingClientRect();
+  const lr = lbl.getBoundingClientRect();
+  let textRight = lr.left;
+  try{
+    const range = document.createRange();
+    range.selectNodeContents(lbl);
+    const rr = range.getBoundingClientRect();
+    if(rr.width) textRight = rr.right;
+  }catch(e){}
+  const size = 40 * EYE_PERCH_SCALE;   // the header form is 40px square
+  return { left: textRight - br.left + 9, top: (lr.top - br.top) + (lr.height - size)/2 };
+}
+window.addEventListener('scroll', ()=>{
+  clearTimeout(eyePerchTimer);
+  eyePerchTimer = setTimeout(updateEyePerch, 90);
+}, { passive:true });
+
+/* 2 — The colophon is the app signing its name, so the mark is on it. Its own pair rather
+   than the real one: that one has somewhere to be, and this one only has to blink. */
+function decorateColophon(){
+  const host = document.querySelector('.app-colophon-inner');
+  if(!host || host.dataset.eyed) return;
+  if(!anim('colophonEyes')) return;
+  host.dataset.eyed = '1';
+  const mark = document.createElement('span');
+  mark.className = 'colophon-eyes eyes';
+  mark.setAttribute('aria-hidden', 'true');
+  mark.innerHTML = EYE_INNER_HTML;
+  host.appendChild(mark);
+}
+
+/* 3 — Each page sets the eyes a hair differently. Nothing you would name, but no two tabs
+   feel quite the same because of it. */
+const EYE_TAB_GAZE = {
+  insights:{ x:0,    y:-1 },   // up, at the score
+  training:{ x:1.5,  y:0 },
+  injuries:{ x:-1.5, y:0.5 },
+  goals:   { x:0,    y:-1.5 },  // goals are ahead of you
+  data:    { x:0,    y:1.5 },   // data is behind you
+  settings:{ x:1.5,  y:1 }
+};
+let eyeTabName = 'insights';
+function eyeTabBias(){
+  if(!anim('tabGaze')) return { x:0, y:0 };
+  return EYE_TAB_GAZE[eyeTabName] || { x:0, y:0 };
+}
+
+/* 4 + 7 — The toast. A confirmation gets a look; a failure gets a jump, because the shake
+   the toast itself does is polite and an error is not. */
+function eyeNoteToast(isError){
+  const t = document.getElementById('toast');
+  if(isError && anim('startleOnError')){
+    const el = eyeSiteEl();
+    if(el) eyeLidPulse(eyeFullOpen(eyesHome), 90, 620);
+    eyeGesture([
+      { transform:'translateY(0) scale(1,1)' },
+      { transform:'translateY(-6px) scale(0.9,1.16)', offset:0.22 },
+      { transform:'translateY(2px) scale(1.1,0.88)',  offset:0.5 },
+      { transform:'translateY(0) scale(1,1)' }], 520, { easing:'cubic-bezier(0.3,1.3,0.4,1)' });
+    return;
+  }
+  if(anim('lookAtToast')) setTimeout(()=>eyeGlanceAtEl(t, 5), 120);
+}
+
+/* 5 — A form that has gone dirty has one thing you are going to do next. */
+const EYE_SAVE_TEXT = /save|add|log|update|generate/i;
+let eyeDirtyIn = null;
+document.addEventListener('input', e=>{
+  if(!anim('lookAtSave')) return;
+  const field = e.target;
+  if(!field || !field.matches || !field.matches('input, select, textarea')) return;
+  const scope = field.closest('.group, .panel');
+  if(!scope || scope === eyeDirtyIn) return;   // once per form, not once per keystroke
+  eyeDirtyIn = scope;
+  const btn = [...scope.querySelectorAll('button')]
+    .find(b => EYE_SAVE_TEXT.test(b.textContent || '') && b.getBoundingClientRect().width > 0);
+  if(btn) eyeGlanceAtEl(btn, 5);
+}, true);
+// A save or a tab change ends the form; the next edit is a new one.
+function eyeFormSettled(){ eyeDirtyIn = null; }
+
+/* 6 — A beat before a card lands, so the recommendation reads as arrived at rather than
+   handed over. It looks off and away, the way you do when you are working something out. */
+function eyeThinkBeforeCard(then){
+  if(!anim('thinkBeforeCard')){ then(); return; }
+  eyeGaze(-4, -4, 220, 520);
+  setTimeout(then, 280);
+}
+
+/* 8 — A panel that opens over the page has no introduction. The mark gives it one. */
+function eyeNotePanelOpened(panel){
+  if(!anim('lookAtPanel') || !panel) return;
+  requestAnimationFrame(()=>{ if(panel.getBoundingClientRect().height > 0) eyeGlanceAtEl(panel, 6); });
+}
+
+/* 10 — Sat on one tab long enough and it wonders whether you have forgotten the rest of
+   the app is there. */
+let eyeTabSince = Date.now(), eyeWanderTimer = null;
+function eyeNoteTabForWander(){
+  eyeTabSince = Date.now();
+  clearTimeout(eyeWanderTimer);
+  if(!anim('tabWander')) return;
+  const c = EYE_ANIM.tabWander;
+  const tick = ()=>{
+    if(document.hidden || eyeFlightTimer){ eyeWanderTimer = setTimeout(tick, c.everyMs); return; }
+    const tabs = document.querySelector('.tabs');
+    if(tabs) eyeGlanceAtEl(tabs, 4);
+    eyeWanderTimer = setTimeout(tick, c.everyMs);
+  };
+  eyeWanderTimer = setTimeout(tick, c.afterMs);
+}
+
 /* ---------- APP MOTION ----------
    The mark has its own list; this is everything else that moves. Same shape as EYE_ANIM —
    one row per behaviour, `on` to switch it off, and the numbers beside it are the tuning.
@@ -3259,7 +3506,17 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
-  toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 }
+  toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
+  panelDirection:{ on:true, note:'A panel arrives from the side its tab sits on', ms:280, px:26 },
+  tabIndicator: { on:true, note:'The active tab’s block slides between tabs', ms:300 },
+  rowRemove:    { on:true, note:'A removed row closes up instead of vanishing', ms:220 },
+  crossFade:    { on:true, note:'A redrawn detail fades rather than hard-swaps', ms:180 },
+  fieldUnderline:{ on:true, note:'A focused field draws its underline in from the left', ms:220 },
+  buttonPress:  { on:true, note:'Buttons press down under the finger', ms:90 },
+  headerHairline:{ on:true, note:'A hairline appears under the header once the page has scrolled' },
+  bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
+  skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
+  stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3447,6 +3704,112 @@ function toastEntryOffset(){
   return uiLastPointerY < window.innerHeight * 0.5 ? -UI_ANIM.toastFrom.px : UI_ANIM.toastFrom.px;
 }
 
+/* ---------- APP MOTION: SECOND BATCH ---------- */
+
+/* 1 — Panels arrive from the side the tab they belong to sits on. The tab bar is a row you
+   read left to right, and a panel that ignores that makes it a list of buttons rather than
+   a place you move through. */
+const UI_TAB_ORDER = ['insights','training','injuries','goals','data','settings'];
+let uiLastTabIndex = 0;
+let uiPendingSlideDx = 0;
+// The blob transition swaps the content while the overlay still covers it, so the slide has
+// to be played a second time once the overlay lifts. `replay` reuses the direction worked
+// out on the first call rather than re-reading the tab order, which by then says the tab
+// hasn't moved.
+function slidePanelIn(panel, name, replay){
+  if(!replay){
+    const to = UI_TAB_ORDER.indexOf(name);
+    const from = uiLastTabIndex;
+    if(to >= 0) uiLastTabIndex = to;
+    uiPendingSlideDx = (to < 0 || to === from) ? 0
+                     : (to > from ? UI_ANIM.panelDirection.px : -UI_ANIM.panelDirection.px);
+  }
+  if(!uiAnim('panelDirection') || !panel || !uiPendingSlideDx) return;
+  uiPlay(panel, [{ transform:`translateX(${uiPendingSlideDx}px)`, opacity:0.35 },
+                 { transform:'translateX(0)', opacity:1 }],
+    { duration: UI_ANIM.panelDirection.ms, easing:'cubic-bezier(0.2,0.9,0.2,1)' });
+}
+
+/* 2 — The active tab's block slides between tabs. One element behind the row, moved to the
+   box of whichever tab is active, rather than a background that blinks from one to another. */
+const UI_TAB_COLOUR = { insights:'--block-lime', training:'--block-orange', injuries:'--block-purple',
+                        goals:'--block-blue', data:'--block-yellow', settings:'--block-red' };
+function moveTabIndicator(name, animate){
+  if(!uiAnim('tabIndicator')) return;
+  const bar = document.querySelector('.tabs');
+  const tab = document.querySelector(`.tab[data-tab="${name}"]`);
+  if(!bar || !tab) return;
+  let ind = bar.querySelector('.tab-indicator');
+  if(!ind){
+    ind = document.createElement('div');
+    ind.className = 'tab-indicator';
+    ind.setAttribute('aria-hidden', 'true');
+    bar.insertBefore(ind, bar.firstChild);
+  }
+  ind.style.background = `var(${UI_TAB_COLOUR[name] || '--accent'})`;
+  // Offset within the scrolling row, not the viewport, so it stays put when the bar scrolls.
+  const left = tab.offsetLeft, width = tab.offsetWidth, height = tab.offsetHeight;
+  const first = !ind.dataset.placed;
+  ind.dataset.placed = '1';
+  ind.style.height = height + 'px';
+  if(first || !animate){
+    ind.style.transition = 'none';
+    ind.style.transform = `translateX(${left}px)`;
+    ind.style.width = width + 'px';
+    void ind.offsetWidth;
+    ind.style.transition = '';
+    return;
+  }
+  ind.style.transform = `translateX(${left}px)`;
+  ind.style.width = width + 'px';
+}
+
+/* 3 — A row that vanishes yanks everything below it up a step. Collapsing its height first
+   means the list closes rather than jumping. */
+function removeRowAnimated(row, then){
+  if(!uiAnim('rowRemove') || !row){ if(row) row.remove(); if(then) then(); return; }
+  const h = row.getBoundingClientRect().height;
+  const cs = getComputedStyle(row);
+  row.style.overflow = 'hidden';
+  const a = uiPlay(row, [
+    { height:h+'px', opacity:1, marginTop:cs.marginTop, marginBottom:cs.marginBottom },
+    { height:'0px', opacity:0, marginTop:'0px', marginBottom:'0px' }
+  ], { duration: UI_ANIM.rowRemove.ms, easing:'ease-in', fill:'forwards' });
+  const done = ()=>{ row.remove(); if(then) then(); };
+  if(!a){ done(); return; }
+  setTimeout(done, UI_ANIM.rowRemove.ms);
+}
+
+/* 4 — The week picker's detail hard-swapped between days, which reads as a redraw. */
+function crossFade(el){
+  if(!uiAnim('crossFade') || !el) return;
+  uiPlay(el, [{ opacity:0.15 }, { opacity:1 }], { duration: UI_ANIM.crossFade.ms, easing:'ease-out' });
+}
+
+/* 5, 6, 7, 8, 10 and the tab block's styling are the browser's work, not a keyframe list —
+   but they are rows in the registry like everything else, so each one's rules hang off a
+   class and this is what puts the class there. Re-run whenever a switch is flipped. */
+const UI_CSS_ANIMS = ['tabIndicator','fieldUnderline','buttonPress','headerHairline',
+                      'bannerSlide','stickyHeads'];
+function applyUiCssAnims(){
+  UI_CSS_ANIMS.forEach(k=> document.documentElement.classList.toggle('ui-' + k, uiAnim(k)));
+}
+applyUiCssAnims();
+
+/* 9 — Something the shape of what is coming, pulsing, rather than an empty space. Sits in
+   the block it is waiting on and is replaced by the content when it lands. */
+function showSkeleton(host, rows){
+  if(!uiAnim('skeleton') || !host) return ()=>{};
+  if(host.querySelector(':scope > .skeleton')) return ()=>{};
+  const wrap = document.createElement('div');
+  wrap.className = 'skeleton';
+  wrap.setAttribute('aria-hidden', 'true');
+  wrap.innerHTML = Array.from({ length: rows || 3 }, (_, i)=>
+    `<div class="skeleton-row" style="width:${[92, 74, 84, 63][i % 4]}%; animation-delay:${i * 90}ms;"></div>`).join('');
+  host.appendChild(wrap);
+  return ()=>wrap.remove();
+}
+
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
@@ -3482,6 +3845,8 @@ function activateTab(name){
     if(p===targetPanel){ p.classList.add('active'); p.classList.remove('panel-enter'); void p.offsetWidth; p.classList.add('panel-enter'); }
     else p.classList.remove('active');
   });
+  slidePanelIn(targetPanel, name);
+  moveTabIndicator(name, true);
   // generateWarmup writes warmupLog:<date>, which generateMobility reads to skip areas
   // already covered — so these must run in order, not fire-and-forget in parallel.
   if(name==='insights'){
@@ -3523,6 +3888,11 @@ function activateTab(name){
   else if(eyesLeaving) moveEyes('header', eyesFrom);
   bindEyeTap();
   decorateChevrons(document);
+  decorateColophon();
+  eyeTabName = name;
+  eyeCtx.perched = false;
+  eyeFormSettled();
+  eyeNoteTabForWander();
   growBarsSoon();
   eyeNoteTabPath(name);
   requestAnimationFrame(()=>aimEmptyStates(document));
@@ -3649,6 +4019,7 @@ function transitionToTab(name, buttonEl){
       targetPanel.classList.remove('panel-enter');
       void targetPanel.offsetWidth;
       targetPanel.classList.add('panel-enter');
+      slidePanelIn(targetPanel, name, true);
     }
   }, duration + 20);
 }
@@ -3715,6 +4086,7 @@ function activateTabViaUi(t){
     if(isActive) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current');
   });
   document.getElementById('currentTabLabel').textContent = t.textContent;
+  moveTabIndicator(t.dataset.tab, true);
   noteTabTap(t);
   transitionToTab(t.dataset.tab, t);
 }
@@ -3869,7 +4241,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.14';
+const APP_VERSION = '2026.08.27.15';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -4610,6 +4982,22 @@ function updateHeaderCollapse(){
   // and is gone at both ends, so it never fights the finger.
   const squash = anim('collapseSquash') ? 1 + EYE_ANIM.collapseSquash.amt * progress * (1 - progress) * 4 : 1;
   mark.style.transform = `scale(${(1-progress) * squash}, ${1-progress})`;
+  // Perched, it is not part of the wordmark any more — it sits beside the tab's name on the
+  // one row the collapsed header still has, at half size, and stays there until the score
+  // scrolls back into view.
+  if(eyeCtx.perched){
+    const spot = eyePerchSpot();
+    if(spot){
+      mark.style.left = spot.left + 'px';
+      mark.style.top = (spot.top + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
+      mark.style.transform = `scale(${EYE_PERCH_SCALE})`;
+    }
+  }
+  // The header is sticky and shrinks as you scroll, so a heading that tucks under it has to
+  // be told the height it has right now rather than the one it started at.
+  const hdrH = h1.closest('header').getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--hdr-h', Math.round(hdrH) + 'px');
+  h1.closest('header').classList.toggle('scrolled', window.scrollY > 2);
 }
 
 let headerScrollTicking = false;
@@ -4648,6 +5036,8 @@ function showToast(message, isError){
   // Every save, every failure, comes through here — so this is the one place the mark
   // needs to hear about it.
   if(anim('nodOnSave')){ if(isError) eyeShake(); else eyeNod(); }
+  eyeNoteToast(isError);
+  if(!isError) eyeFormSettled();
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 1800);
 }
@@ -5295,7 +5685,9 @@ function addGoalRow(goal){
     attachRunStartToRunningGoal();
   });
 
-  row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); updateGoalPriorityBadges(); attachRunStartToRunningGoal(); });
+  row.querySelector('.remove-row').addEventListener('click', ()=>{
+    removeRowAnimated(row, ()=>{ updateGoalPriorityBadges(); attachRunStartToRunningGoal(); });
+  });
   // previousElementSibling/nextElementSibling would land on the running setup panel now
   // that it sits between rows, so a reorder could insert a goal on the wrong side of it or
   // do nothing at all. Step over anything that is not a goal row, then put the panel back
@@ -6159,6 +6551,7 @@ function renderWeekDayPicker(dayBlocks){
   stage.addEventListener('pointercancel', endDrag);
 })();
 
+let weekDetailLastHtml = '';
 async function renderWeekGrid(){
   // Surface block position where the week is actually planned. Previously the whole
   // periodization model was invisible: an intensification or deload week looked identical
@@ -6330,7 +6723,12 @@ async function renderWeekGrid(){
   // down the page under your thumb, which made the load bars and the buttons a moving
   // target while you were still choosing a day.
   detailCol.style.minHeight = weekDetailTallest(dayBlocks, detailCol) + 'px';
+  // Only when the pane is actually showing something else — the wheel re-renders on every
+  // move, and fading a pane into itself is a flicker, not a transition.
+  const detailChanged = detailHtml !== weekDetailLastHtml;
+  weekDetailLastHtml = detailHtml;
   detailCol.innerHTML = detailHtml;
+  if(detailChanged) crossFade(detailCol);
   detailCol.querySelectorAll('[data-edit-date]').forEach(card=>{
     card.addEventListener('click', ()=>{
       const { editDate, editSlot } = card.dataset;
@@ -6368,6 +6766,7 @@ async function placeBlock(date, slot, type){
 
 function openBlockEditor(date, slot, block){
   const panel = document.getElementById('blockEditPanel');
+  eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
   if(!block){
     panel.style.display = 'block';
@@ -6441,7 +6840,7 @@ function openBlockEditor(date, slot, block){
         row.innerHTML = `
           <div style="flex:1; font-size:var(--fs-sm); color:var(--dim); font-style:italic; padding:6px 0;">${name}</div>
           <span class="remove-row">×</span>`;
-        row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+        row.querySelector('.remove-row').addEventListener('click', ()=>removeRowAnimated(row));
         rowsContainer.appendChild(row);
         return row;
       }
@@ -6471,7 +6870,7 @@ function openBlockEditor(date, slot, block){
           <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
           <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
         </div>`;
-      row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+      row.querySelector('.remove-row').addEventListener('click', ()=>removeRowAnimated(row));
       // BW fills with the most recent logged bodyweight rather than leaving weight blank.
       // Blank silently defaults to 0 in volume-load math, which undercounts calisthenics
       // work (a pull-up genuinely moves bodyweight, that's real training stress) — one tap
@@ -6557,7 +6956,7 @@ function openBlockEditor(date, slot, block){
             <span class="remove-row">×</span>
           </div>`;
       }
-      row.querySelector('.remove-row').addEventListener('click', ()=>row.remove());
+      row.querySelector('.remove-row').addEventListener('click', ()=>removeRowAnimated(row));
       rowsContainer.appendChild(row);
     }
     const stretchList = block.details.stretches||[];
@@ -7556,12 +7955,14 @@ function showNextCard(){
   if(stack) stack.style.display = '';
   counter.textContent = `${cardQueueIndex+1} of ${cardQueue.length}`;
   const item = cardQueue[cardQueueIndex];
+  eyeThinkBeforeCard(()=>{
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
   container.appendChild(card);
   playChipMotion(card);
   growBars(card);
   staggerIn(card, '.rec-signal');
   eyeAttendTo(card);
+  });
 }
 
 async function logRecDecision(type, meta, decision, card){
@@ -16412,6 +16813,18 @@ if(eyeCalmToggleEl){
 const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 if(checkUpdateBtnEl) checkUpdateBtnEl.addEventListener('click', checkForUpdate);
 renderAppVersion();
+
+// The block behind the active tab is the indicator's now, so it has to be under the tab the
+// markup starts on before the first frame — otherwise Today opens with no block at all.
+// After layout, and without animating: there is nowhere it moved from.
+requestAnimationFrame(()=>{
+  const active = document.querySelector('.tab.active');
+  if(active) moveTabIndicator(active.dataset.tab, false);
+});
+window.addEventListener('resize', ()=>{
+  const active = document.querySelector('.tab.active');
+  if(active) moveTabIndicator(active.dataset.tab, false);
+}, { passive:true });
 
 loadRecoveryEntry(todayStr);
 refreshRecoveryLog();
