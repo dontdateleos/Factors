@@ -296,6 +296,10 @@
      short leading, and a stroke heavy enough to read as drawn rather than typed. Tabular
      figures because this number animates between values — proportional digits change the
      number's width mid-count, which reads as a wobble on the one figure most looked at. */
+  /* A strip of 0-9 per place, translated to the digit it should land on. overflow:hidden
+     on the well is what makes it a counter rather than a column of numbers. */
+  .digit-well{ display:inline-block; overflow:hidden; height:1em; vertical-align:top; }
+  .digit-strip{ display:block; will-change:transform; }
   .score-num{ font-family:var(--sans); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.05em; line-height:0.92; -webkit-text-stroke:1.8px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
@@ -534,7 +538,7 @@
   .score-label-row .conf-chevron{ transition:transform 0.15s; }
   .score-label-row[aria-expanded="true"] .conf-chevron{ transform:rotate(180deg); }
   .conf-bar{ flex:1; height:3px; background:rgba(0,0,0,0.12); position:relative; overflow:hidden; }
-  .conf-bar-fill{ position:absolute; left:0; top:0; bottom:0; }
+  .conf-bar-fill{ position:absolute; left:0; top:0; bottom:0; transform-origin:left center; }
   .conf-pct{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); }
   .conf-chevron{ font-size:var(--fs-tag); color:var(--dim); }
   .conf-headline{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); margin-top:2px; text-align:left; letter-spacing:0.01em; }
@@ -768,7 +772,7 @@
     letter-spacing:0.08em; color:var(--dim); margin-bottom:5px; }
   .skg-bar{ height:8px; background:rgba(12,13,11,0.22); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
-  .skg-bar-fill{ height:100%; background:var(--reverse-bg); }
+  .skg-bar-fill{ height:100%; background:var(--reverse-bg); transform-origin:left center; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -928,7 +932,9 @@
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; }
+  /* --toast-from is which way it comes in: up from below when you tapped low, down from
+     above when you tapped high. */
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(var(--toast-from, 20px)); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; }
   @media (prefers-reduced-motion: reduce){ #toast{ transition:opacity 0.1s linear; } }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
@@ -3225,6 +3231,209 @@ function eyeMarkPressEnd(which){
   blinkOnce(el, ()=>scheduleIdle());
 }
 
+
+/* ---------- APP MOTION ----------
+   The mark has its own list; this is everything else that moves. Same shape as EYE_ANIM —
+   one row per behaviour, `on` to switch it off, and the numbers beside it are the tuning.
+   Exposed on window for the same reason. */
+const UI_ANIM = {
+  flipReorder:  { on:true, note:'Reordered goals slide past each other instead of teleporting', ms:340 },
+  chipActsOut:  { on:true, note:'A card’s chip acts out its own symbol as the card lands', ms:520 },
+  rankFlip:     { on:true, note:'A goal’s rank turns over when its place changes', ms:300 },
+  cardExit:     { on:true, note:'Accepted cards settle in, dismissed ones flick away', ms:300 },
+  collapseMotion:{ on:true, note:'Sections open and close instead of blinking in and out', ms:260 },
+  growBars:     { on:true, note:'Bars grow from nothing, one after another', ms:520, stagger:45 },
+  digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
+  tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
+  staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
+  toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 }
+};
+window.UI_ANIM = UI_ANIM;
+function uiAnim(k){
+  if(!UI_ANIM[k] || !UI_ANIM[k].on) return false;
+  return !eyeMotionOff();   // the same reduced-motion gate the mark uses
+}
+// Every one-shot here goes through this, so a browser that refuses a keyframe list costs a
+// flourish rather than the change it was decorating.
+function uiPlay(el, frames, opts){
+  if(!el) return null;
+  try{ return el.animate(frames, Object.assign({ duration:300, easing:'cubic-bezier(0.3,0.9,0.3,1)' }, opts||{})); }
+  catch(e){ return null; }
+}
+
+/* 1 — FLIP. Read where the rows are, let the caller move them, then animate each from where
+   it was to where it now is. Without this a reorder is a teleport, and which row moved is
+   left for you to work out. */
+function flipRows(container, selector, mutate){
+  const rows = [...container.querySelectorAll(selector)];
+  const before = new Map(rows.map(r => [r, r.getBoundingClientRect().top]));
+  mutate();
+  if(!uiAnim('flipReorder')) return;
+  rows.forEach(r=>{
+    const was = before.get(r);
+    if(was == null || !r.isConnected) return;
+    const dy = was - r.getBoundingClientRect().top;
+    if(Math.abs(dy) < 1) return;
+    uiPlay(r, [{ transform:`translateY(${dy}px)` }, { transform:'translateY(0)' }],
+      { duration: UI_ANIM.flipReorder.ms });
+  });
+}
+
+/* 2 — The chip does what its glyph says, once, as the card arrives: plus opens out, minus
+   closes in, the arrow drops, equals settles flat, plus-minus rocks. */
+const CHIP_MOTION = {
+  add:            [{ transform:'scale(0.62)' }, { transform:'scale(1.16)', offset:0.55 }, { transform:'scale(1)' }],
+  reduce:         [{ transform:'scale(1.3)' },  { transform:'scale(0.9)',  offset:0.55 }, { transform:'scale(1)' }],
+  hold:           [{ transform:'translateY(-7px)' }, { transform:'translateY(3px)', offset:0.6 }, { transform:'translateY(0)' }],
+  modify:         [{ transform:'rotate(-9deg)' }, { transform:'rotate(6deg)', offset:0.55 }, { transform:'rotate(0deg)' }],
+  deload_suggest: [{ transform:'translateY(-12px)' }, { transform:'translateY(5px)', offset:0.62 }, { transform:'translateY(0)' }]
+};
+function playChipMotion(card){
+  if(!uiAnim('chipActsOut') || !card) return;
+  const chip = card.querySelector('.rec-symbol');
+  if(!chip) return;
+  const type = [...card.classList].find(c => CHIP_MOTION[c]);
+  if(!type) return;
+  uiPlay(chip, CHIP_MOTION[type], { duration: UI_ANIM.chipActsOut.ms, easing:'cubic-bezier(0.34,1.3,0.5,1)' });
+}
+
+/* 3 — A rank that changed turns over. Only the ones that actually moved: re-rendering the
+   badges touches all three, and animating a number that did not change is noise. */
+function flipRankChip(chip, from, to){
+  if(!uiAnim('rankFlip') || from === to || from == null) return;
+  const up = Number(to) < Number(from);   // promoted, so the new number arrives from below
+  uiPlay(chip, [
+    { transform:`translateY(0) rotateX(0deg)`, opacity:1 },
+    { transform:`translateY(${up ? 8 : -8}px) rotateX(${up ? -70 : 70}deg)`, opacity:0, offset:0.45 },
+    { transform:`translateY(${up ? -8 : 8}px) rotateX(${up ? 70 : -70}deg)`, opacity:0, offset:0.55 },
+    { transform:'translateY(0) rotateX(0deg)', opacity:1 }
+  ], { duration: UI_ANIM.rankFlip.ms, easing:'ease-in-out' });
+}
+
+/* 4 — Accept and dismiss both removed the card, which made them feel like the same button.
+   One settles into the page, the other is thrown off it. */
+function playCardExit(card, decision, then){
+  const ms = UI_ANIM.cardExit.ms;
+  if(!uiAnim('cardExit') || !card){ if(then) then(); return; }
+  const frames = decision === 'accepted'
+    ? [{ transform:'scale(1)', opacity:1 }, { transform:'scale(0.94)', opacity:0 }]
+    : [{ transform:'translateX(0) rotate(0deg)', opacity:1 }, { transform:'translateX(120%) rotate(4deg)', opacity:0 }];
+  const a = uiPlay(card, frames, { duration: ms, easing: decision === 'accepted' ? 'ease-in' : 'cubic-bezier(0.5,0,0.9,0.4)', fill:'forwards' });
+  if(!a){ if(then) then(); return; }
+  setTimeout(()=>{ if(then) then(); }, ms);
+}
+
+/* 5 — Sections had no open or close, just a display toggle. The chevron's eyes were already
+   animating shut over content that had gone in the same frame. */
+function animateCollapse(body, collapsed){
+  if(!uiAnim('collapseMotion') || !body){
+    if(body) body.style.display = collapsed ? 'none' : '';
+    return;
+  }
+  const ms = UI_ANIM.collapseMotion.ms;
+  if(collapsed){
+    const h = body.scrollHeight;
+    const a = uiPlay(body, [{ height:h+'px', opacity:1 }, { height:'0px', opacity:0 }],
+      { duration: ms, easing:'ease-in' });
+    body.style.overflow = 'hidden';
+    setTimeout(()=>{ body.style.display = 'none'; body.style.overflow = ''; }, a ? ms : 0);
+  } else {
+    body.style.display = '';
+    const h = body.scrollHeight;
+    body.style.overflow = 'hidden';
+    uiPlay(body, [{ height:'0px', opacity:0 }, { height:h+'px', opacity:1 }], { duration: ms });
+    setTimeout(()=>{ body.style.overflow = ''; }, ms);
+  }
+}
+
+/* 6 — A bar rendered at its final width was always that long. Growing it says the number
+   was arrived at. Staggered, because a row of them all growing together is one gesture
+   rather than several readings. */
+const UI_BAR_SELECTOR = '.conf-bar-fill, .skg-bar-fill, .vol-bar-fill';
+let growBarsQueued = false;
+// Every re-render replaces its bars, so a new element has no flag and grows; the same
+// element at the same width does not grow twice. Keying on the width rather than a bare
+// flag means a bar whose value changed under it still reads as a new number.
+function growBarsSoon(){
+  if(growBarsQueued || !uiAnim('growBars')) return;
+  growBarsQueued = true;
+  requestAnimationFrame(()=>{ growBarsQueued = false; growBars(document); });
+}
+function growBars(root){
+  if(!uiAnim('growBars')) return;
+  const bars = [...(root || document).querySelectorAll(UI_BAR_SELECTOR)]
+    .filter(b => b.getBoundingClientRect().width > 0 && b.dataset.grown !== b.style.width);
+  bars.forEach((b, i)=>{
+    b.dataset.grown = b.style.width || '1';
+    uiPlay(b, [{ transform:'scaleX(0)' }, { transform:'scaleX(1)' }], {
+      duration: UI_ANIM.growBars.ms, delay: i * UI_ANIM.growBars.stagger,
+      easing:'cubic-bezier(0.2,0.8,0.2,1)'
+    });
+  });
+}
+
+/* 7 — The score counted up by rewriting its own text, which changes the digits but does not
+   move them. A strip of 0-9 per place, translated to the digit it should land on, is a
+   counter — and it is one animation per place rather than a repaint every frame. */
+function rollNumber(el, from, to, ms){
+  if(!uiAnim('digitRoll') || el == null){ return false; }
+  const target = String(to);
+  const source = String(isNaN(from) ? to : from).padStart(target.length, '0');
+  // The strips are 0-9 ten times over, so the element's own text is no longer the number.
+  // Two things read it: a screen reader, and the next roll looking for where to start from.
+  // The label answers the first and dataset.value the second.
+  el.innerHTML = target.split('').map(()=>
+    `<span class="digit-well" aria-hidden="true"><span class="digit-strip">0<br>1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</span></span>`
+  ).join('');
+  el.setAttribute('aria-label', target);
+  el.dataset.value = target;
+  const wells = el.querySelectorAll('.digit-well');
+  if(!wells.length) return false;
+  let ok = true;
+  wells.forEach((well, i)=>{
+    const strip = well.querySelector('.digit-strip');
+    const a = Number(source[i]) || 0, b = Number(target[i]) || 0;
+    // Each place lands a beat after the one to its left, which is the order you read them.
+    const anim = uiPlay(strip,
+      [{ transform:`translateY(${-a * 10}%)` }, { transform:`translateY(${-b * 10}%)` }],
+      { duration: UI_ANIM.digitRoll.ms, delay: i * UI_ANIM.digitRoll.stagger,
+        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'forwards' });
+    if(!anim){ strip.style.transform = `translateY(${-b * 10}%)`; ok = false; }
+  });
+  return ok || true;
+}
+
+/* 8 — Ticking a level changed a colour and nothing else, so the tap had no landing. */
+function tickLevel(row){
+  if(!uiAnim('tickLevel') || !row) return;
+  const num = row.querySelector('.mob-check-num') || row;
+  uiPlay(num, [{ transform:'scale(1)' }, { transform:'scale(1.35)', offset:0.4 }, { transform:'scale(1)' }],
+    { duration: UI_ANIM.tickLevel.ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' });
+}
+
+/* 9 — A list that appears all at once was always there. A short stagger is the cheapest way
+   to say it just arrived. Capped, because a forty-row history staggering in is a wait. */
+function staggerIn(root, selector){
+  if(!uiAnim('staggerIn') || !root) return;
+  const items = [...root.querySelectorAll(selector)].slice(0, UI_ANIM.staggerIn.max);
+  items.forEach((el, i)=>{
+    uiPlay(el, [{ opacity:0, transform:'translateY(6px)' }, { opacity:1, transform:'translateY(0)' }],
+      { duration: UI_ANIM.staggerIn.ms, delay: i * UI_ANIM.staggerIn.stagger, easing:'ease-out' });
+  });
+}
+
+/* 10 — The toast always rose from the bottom, wherever the thing that caused it was. It now
+   comes from the half of the screen you last touched, so a save at the top of a long form
+   is answered near the top of it. */
+let uiLastPointerY = null;
+window.addEventListener('pointerdown', e=>{ uiLastPointerY = e.clientY; }, { passive:true, capture:true });
+function toastEntryOffset(){
+  if(!uiAnim('toastFrom') || uiLastPointerY == null) return null;
+  // The toast sits near the bottom; a tap in the upper half means it should come down to
+  // meet you rather than up from under the fold.
+  return uiLastPointerY < window.innerHeight * 0.5 ? -UI_ANIM.toastFrom.px : UI_ANIM.toastFrom.px;
+}
+
 /* ---------- TAB NAV ---------- */
 const tabs = document.querySelectorAll('.tab');
 
@@ -3301,6 +3510,7 @@ function activateTab(name){
   else if(eyesLeaving) moveEyes('header', eyesFrom);
   bindEyeTap();
   decorateChevrons(document);
+  growBarsSoon();
   eyeNoteTabPath(name);
   requestAnimationFrame(()=>aimEmptyStates(document));
   clearTimeout(eyeSettleTimer);
@@ -3473,6 +3683,7 @@ new MutationObserver((mutations)=>{
       else if(node.querySelectorAll) applyA11yFieldLabels(node);
       if(node.querySelectorAll || (node.matches && node.matches('.empty-state'))) decorateEmptyStates(node.parentElement || document.body);
       if(node.querySelectorAll) decorateChevrons(node.parentElement || document.body);
+      if(node.querySelectorAll) growBarsSoon();
     }
   }
 }).observe(document.body, { childList:true, subtree:true });
@@ -3645,7 +3856,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.11';
+const APP_VERSION = '2026.08.27.12';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -3752,7 +3963,7 @@ try{
 function setCollapsed(key, collapsed){
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
-  if(body) body.style.display = collapsed ? 'none' : '';
+  animateCollapse(body, collapsed);
   // The class is what closes the chevron when it is a pair of eyes; the rotation is what
   // turns the caret when it is not. Both are set, and each is inert in the other's case.
   if(chev){
@@ -4418,6 +4629,8 @@ function showToast(message, isError){
     ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
     : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');
   t.innerHTML = icon + message;
+  const from = toastEntryOffset();
+  t.style.setProperty('--toast-from', (from == null ? 20 : from) + 'px');
   t.className = isError ? 'error show' : 'show';
   // Every save, every failure, comes through here — so this is the one place the mark
   // needs to hear about it.
@@ -5003,8 +5216,10 @@ const SESSION_FOCUS_INFO = {
 
 function updateGoalPriorityBadges(){
   document.querySelectorAll('#goalListRows .goal-row .goal-priority-badge').forEach((badge,i)=>{
+    const was = badge.querySelector('.rank-chip')?.textContent;
     badge.innerHTML = `<span class="rank-chip">${i+1}</span>`
       + (i===0 ? '<span class="goal-priority-tag">Top priority</span>' : '');
+    flipRankChip(badge.querySelector('.rank-chip'), was, String(i+1));
   });
   const rows = document.querySelectorAll('#goalListRows .goal-row');
   document.getElementById('addGoalRow').style.display = rows.length >= 3 ? 'none' : 'block';
@@ -5074,18 +5289,14 @@ function addGoalRow(goal){
   // under whichever row is the running one afterwards.
   const prevGoalRow = el => { let n = el.previousElementSibling; while(n && !n.classList.contains('goal-row')) n = n.previousElementSibling; return n; };
   const nextGoalRow = el => { let n = el.nextElementSibling; while(n && !n.classList.contains('goal-row')) n = n.nextElementSibling; return n; };
-  row.querySelector('.goal-move-up').addEventListener('click', ()=>{
-    const prev = prevGoalRow(row);
-    if(prev) container.insertBefore(row, prev);
+  const moveGoal = dir => flipRows(container, '.goal-row', ()=>{
+    if(dir < 0){ const prev = prevGoalRow(row); if(prev) container.insertBefore(row, prev); }
+    else { const next = nextGoalRow(row); if(next) container.insertBefore(next, row); }
     updateGoalPriorityBadges();
     attachRunStartToRunningGoal();
   });
-  row.querySelector('.goal-move-down').addEventListener('click', ()=>{
-    const next = nextGoalRow(row);
-    if(next) container.insertBefore(next, row);
-    updateGoalPriorityBadges();
-    attachRunStartToRunningGoal();
-  });
+  row.querySelector('.goal-move-up').addEventListener('click', ()=>moveGoal(-1));
+  row.querySelector('.goal-move-down').addEventListener('click', ()=>moveGoal(1));
 
   container.appendChild(row);
   updateGoalPriorityBadges();
@@ -5545,7 +5756,12 @@ async function renderMobilityAssessment(skipCollapse){
       }
       mobilityDraftScores[domain] = lvl;
       if(mobilityStepIndex < MOBILITY_DOMAINS.length-1) mobilityStepIndex++;
-      renderMobilityAssessment(true);
+      // After the re-render, not before: the row that was tapped is thrown away by it, so
+      // an animation started on the old one goes with it. The render is async, so this
+      // waits on it rather than on a frame.
+      renderMobilityAssessment(true).then(()=>{
+        tickLevel(document.querySelector(`#mobilityAssessmentRows .mob-check-row[data-level="${lvl}"]`));
+      });
     });
   });
 
@@ -7329,6 +7545,9 @@ function showNextCard(){
   const item = cardQueue[cardQueueIndex];
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
   container.appendChild(card);
+  playChipMotion(card);
+  growBars(card);
+  staggerIn(card, '.rec-signal');
   eyeAttendTo(card);
 }
 
@@ -7366,7 +7585,7 @@ async function logRecDecision(type, meta, decision, card){
     document.getElementById('undoDecisionBtn').style.display = 'block';
   } catch(e){ showToast('Save failed — try again', true); console.error(e); }
   cardQueueIndex++;
-  setTimeout(showNextCard, 220);
+  playCardExit(card, decision, ()=>showNextCard());
   refreshRecHistory();
 }
 
@@ -7479,9 +7698,9 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   // numbers against a fixed formula. Falls back to the Adaptive/Target average before
   // that, since capacity genuinely has nothing to show yet.
   if(capacityResult && capacityResult.available){
-    const prevNum = parseInt(out.textContent);
+    const prevNum = parseInt(out.dataset.value || out.textContent);
     const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
-    animateNumber(out, prev, capacityResult.score, 500);
+    if(!rollNumber(out, prev, capacityResult.score)) animateNumber(out, prev, capacityResult.score, 500);
     setEyeScore(capacityResult.score);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
@@ -7491,6 +7710,8 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
   if(parts.length === 0){
     out.innerHTML=SCORE_PLACEHOLDER_SVG;
+    delete out.dataset.value;
+    out.removeAttribute('aria-label');
     setEyeScore(null);
     // Say WHY there is no number. A bare placeholder labelled "Overall" is
     // indistinguishable from a broken score — it reads as the app failing rather than as
@@ -7506,9 +7727,9 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     return;
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
-  const prevNum = parseInt(out.textContent);
+  const prevNum = parseInt(out.dataset.value || out.textContent);
   const prev = isNaN(prevNum) ? overall : prevNum;
-  animateNumber(out, prev, overall, 500);
+  if(!rollNumber(out, prev, overall)) animateNumber(out, prev, overall, 500);
   setEyeScore(overall);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
@@ -12505,7 +12726,7 @@ async function renderBlockHistory(){
           <span>${b.sessions} session${b.sessions===1?'':'s'} · ${b.volume.toLocaleString()}kg</span>
         </div>
         <div style="height:8px; background:var(--border-bold); opacity:0.2;">
-          <div style="height:100%; width:${barPct}%; background:var(--reverse-bg); opacity:1;"></div>
+          <div class="vol-bar-fill" style="height:100%; width:${barPct}%; background:var(--reverse-bg); opacity:1; transform-origin:left center;"></div>
         </div>
         <div class="score-note" style="margin-top:3px;">from ${b.label} · ${lifts}${delta ? ' · ' + delta : ''}</div>
       </div>`;
