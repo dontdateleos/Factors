@@ -142,6 +142,8 @@
      part of it has to go on painting behind the header. `hidden` on one axis forces the other
      to `auto`; `clip` is the pair that is allowed to stay `visible`. */
   main.tab-dealing{ position:relative; overflow-x:clip; overflow-y:visible; }
+  .tab-field{ position:absolute; left:0; right:0; top:0; z-index:1; pointer-events:none;
+    background:#000000; }
   .panel.tab-card{ position:relative; z-index:3; }
   /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
      the top of the screen while the rest of it is still travelling, which tears it. */
@@ -4011,10 +4013,15 @@ function liftEdge(axis, dir, a){
   return `${o(2)} 0 rgba(251,250,246,${a}), ${o(5)} 0 rgba(12,13,11,${a * 0.92})`;
 }
 
-/* The tab transition. The tab's colour fills the content area and the new page is dealt up
-   onto it from the bottom edge.
+/* The tab transition. The page is dealt up out of the app's own black, from the bottom edge.
 
-   Two things make it read cleanly, and both were arrived at by getting them wrong first.
+   Not out of the tab's colour, which is what the backdrop behind the page is set to and what
+   this used to show. A whole content area of flat colour appearing on every tap read as a
+   blank waiting to be filled — a loading state — and then clashed with the card's own blocks
+   coming up over it. Black is what is already above and below: the header, and the colophon
+   the page sits on. The card rises out of the app's own frame rather than out of an event.
+
+   Two more things make it read cleanly, both arrived at by getting them wrong first.
 
    Only one page is ever legible. Holding the outgoing page on screen while the new one slid
    over it meant two dense pages at once, every line on both of them sliced by the boundary
@@ -4061,6 +4068,16 @@ function transitionToTab(name){
   if(!card) return;
   const mainAt = main.getBoundingClientRect();
   main.classList.add('tab-dealing');
+
+  // What the card comes up out of. Sized from main's top to the foot of the screen, and it
+  // outlives nothing — by the time it goes the card covers main's box, and below that box is
+  // the colophon, which is this same black. So there is nothing to see when it is removed.
+  const field = document.createElement('div');
+  field.className = 'tab-field';
+  field.setAttribute('aria-hidden', 'true');
+  field.style.height = Math.max(0, window.innerHeight - mainAt.top) + 'px';
+  main.appendChild(field);
+
   card.classList.add('tab-card');
 
   const axis = UI_ANIM.tabLift.axis === 'X' ? 'X' : 'Y';
@@ -4074,19 +4091,23 @@ function transitionToTab(name){
   const T = px => `translate${axis}(${px}px)`;
 
   // A panel's box is narrower than the panel: its full-bleed blocks escape the column with
-  // negative margins, so it paints fourteen pixels past its own border box on each side, and
-  // a leading edge drawn on that box lands inside the page it is meant to edge with the
-  // escaping blocks painted over the top of it. Stretched to main's padding box, measured
+  // negative margins, so it paints fourteen pixels past its own border box on each side. Both
+  // things the card needs are drawn on that box — its leading edge and its ground — and both
+  // would come up short of what it actually paints. Stretched to main's padding box, measured
   // rather than assumed, with the difference put back as padding so the column inside it does
-  // not move. Sideways only: the top of a panel's box is already the top of what it paints.
-  if(axis === 'X'){
-    const cardAt = card.getBoundingClientRect();
-    const padL = cardAt.left - mainAt.left, padR = mainAt.right - cardAt.right;
-    card.style.marginLeft = -padL + 'px';
-    card.style.marginRight = -padR + 'px';
-    card.style.paddingLeft = padL + 'px';
-    card.style.paddingRight = padR + 'px';
-  }
+  // not move.
+  const cardAt = card.getBoundingClientRect();
+  const padL = cardAt.left - mainAt.left, padR = mainAt.right - cardAt.right;
+  card.style.marginLeft = -padL + 'px';
+  card.style.marginRight = -padR + 'px';
+  card.style.paddingLeft = padL + 'px';
+  card.style.paddingRight = padR + 'px';
+  // The page is not opaque. Its own blocks leave gaps, and what shows through them is the
+  // backdrop, set to this tab's colour — so the colour is part of the page rather than
+  // scenery behind it. Laying black under the whole content area therefore blacked out every
+  // gap in the card as well, and they all turned back to colour the moment the black went.
+  // The card carries its own copy of that colour instead, and the black stays behind it.
+  card.style.backgroundColor = TAB_BACKDROP_COLOR[name] || 'transparent';
 
   const c = uiPlay(card, [
     // A dealt card starts fast and stops — an ease-out is right — but the curve this was drawn
@@ -4108,11 +4129,13 @@ function transitionToTab(name){
     // Cancelled before the box is put back: a filled animation goes on holding its transform,
     // and a page that keeps it is a page sitting off to one side next time you open it.
     if(c) try{ c.cancel(); }catch(e){}
+    field.remove();
     card.classList.remove('tab-card');
     card.style.removeProperty('margin-left');
     card.style.removeProperty('margin-right');
     card.style.removeProperty('padding-left');
     card.style.removeProperty('padding-right');
+    card.style.removeProperty('background-color');
     main.classList.remove('tab-dealing');
   };
   const timer = setTimeout(tabLiftCleanup, ms + 20);
@@ -4336,7 +4359,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.23';
+const APP_VERSION = '2026.08.27.24';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
