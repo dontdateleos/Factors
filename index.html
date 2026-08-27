@@ -131,6 +131,18 @@
   .tab[data-tab="data"].active{ background:var(--block-yellow); }
   .tab[data-tab="settings"].active{ background:var(--block-red); }
   #scrollBackdrop{ position:absolute; inset:0; z-index:-1; background-repeat:repeat; }
+  /* The deal. Three layers inside main, all of them under the header's z-index 10 so the
+     header stays put and untouched the way it does in every other transition here. Each one
+     is a positioned element with a z-index, so it makes its own stacking context and the
+     sticky headings inside a panel cannot climb out of it and land on top of the card. */
+  main.tab-dealing{ position:relative; }
+  .panel.tab-ghost{ display:block; position:absolute; z-index:1; pointer-events:none; }
+  .tab-scrim{ position:absolute; left:0; right:0; top:0; z-index:2; pointer-events:none;
+    background:var(--reverse-bg); opacity:0; }
+  .panel.tab-card{ position:relative; z-index:3; }
+  /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
+     the top of the screen while the rest of it is still travelling, which tears it. */
+  main.tab-dealing .group-head{ position:static; }
   .tab-circle-transition{ position:fixed; left:0; right:0; bottom:0; z-index:9999; pointer-events:none; clip-path:circle(0px at 50% 50%); transition:clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
   body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--block-lime); }
   body.tab-training main{ background:transparent; } body.tab-training{ background:var(--block-orange); }
@@ -3516,7 +3528,7 @@ const UI_ANIM = {
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
-  panelDirection:{ on:true, note:'A panel arrives from the side its tab sits on', ms:280, px:26 },
+  panelDirection:{ on:true, note:'A panel arrives from the side its tab sits on — what runs when the deal is off, since both write the same transform', ms:280, px:26 },
   tabIndicator: { on:true, note:'The active tab’s block slides between tabs', ms:300 },
   rowRemove:    { on:true, note:'A removed row closes up instead of vanishing', ms:220 },
   crossFade:    { on:true, note:'A redrawn detail fades rather than hard-swaps', ms:180 },
@@ -3526,8 +3538,8 @@ const UI_ANIM = {
   bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
-  tabInk:       { on:true, note:'The new tab’s colour bleeds across the page like ink into paper',
-                  ms:700, soak:0.46, settle:0.2 }
+  tabLift:      { on:true, note:'The new page is dealt up over the old one from the bottom edge',
+                  ms:420, recede:16, dim:0.32 }
 };
 window.UI_ANIM = UI_ANIM;
 function uiAnim(k){
@@ -3961,99 +3973,126 @@ function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, bia
   return pts.join(', ');
 }
 
-/* The tab transition. The new tab's colour bleeds across the page the way ink finds the
-   grain of paper: it opens ragged and reaches much further in some directions than others,
-   then evens out as it fills, so the edge is at its most irregular halfway through rather
-   than at the end. Three keyframes, not two — the middle one is the wet stage, and it is the
-   whole difference between ink soaking outward and a balloon inflating.
+/* The tab transition. The new page is dealt up over the old one from the bottom edge, and
+   the old one recedes a little and dims underneath it.
 
-   The content swaps at 86%, under cover, and by then the overlay is the same colour as the
-   new tab's own background, so removing it is invisible. Every transition gets fresh seeds
-   and a nudged origin, so no two are identical. The header is deliberately outside the
-   overlay — fixed, with top set to the header's measured height — so it stays visible and
-   untouched throughout.
+   Nothing is cloned. A copy of the outgoing page would come out with its inputs empty and
+   its charts blank — cloneNode carries attributes, not the values and bitmaps that got there
+   at runtime — and the Data tab is almost entirely inputs. So the real outgoing panel is
+   taken out of flow and left exactly where it was instead, and the real incoming panel is
+   what slides. Both are the genuine article the whole way.
 
-   The bleed ignores which tab you pressed. The blob this replaced leaned toward it, because
-   an expanding shape reads as something you pushed; ink is a material doing what it does,
-   and pulling it toward your thumb makes it look aimed. */
-const TAB_INK_POINTS = 34;   // more than the blob's 28 — the ragged stage needs the resolution
+   "Exactly where it was" is the fiddly part. activateTab resets the scroll and lets the
+   header spring back open, and both of those move everything underneath — which the blob
+   and the ink never had to care about, because they covered the page before any of it
+   happened. Here there is no cover, so the outgoing page is measured in viewport
+   coordinates first and pinned back to that same viewport position afterwards.
+
+   The horizontal panel slide sits this one out: it writes the same transform the card does,
+   so the two cannot both play, and the card already is the panel arriving. */
+let tabLiftCleanup = null;
 function transitionToTab(name){
-  const color = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
-  const headerEl = document.querySelector('header');
-  const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+  const main = document.querySelector('main');
+  const ghost = document.querySelector('.panel.active');
 
-  // Worked out here rather than inside activateTab: the panel slide is played by whichever
-  // caller has the panel on screen, and that is this one.
-  slidePanelIn(null, name, 'skip');
+  // A second tap during a deal: put the last one straight rather than leaving a panel pinned.
+  if(tabLiftCleanup) tabLiftCleanup();
 
-  if(!uiAnim('tabInk')){
+  if(!uiAnim('tabLift') || !ghost || !main){
+    slidePanelIn(null, name, 'skip');
     activateTab(name, { deferSlide:true });
     const panel = document.getElementById('panel-' + name);
     if(panel) slidePanelIn(panel, name, true);
     return;
   }
 
-  window.headerCollapseSuspended = true; // frozen for the whole transition — see updateHeaderCollapse
+  // Read before anything reflows.
+  const wasAt = ghost.getBoundingClientRect();
+  // The backdrop behind both pages is a single element, and activateTab is about to set it to
+  // the new tab's colour — correct for the card, wrong for the page underneath it, which then
+  // shows the incoming colour through every transparent strip in itself. So the outgoing page
+  // gets its own ground to sit on for as long as it is still visible.
+  const wasColor = TAB_BACKDROP_COLOR[(ghost.id || '').replace('panel-', '')] || 'transparent';
 
-  const overlay = document.createElement('div');
-  overlay.className = 'tab-circle-transition';
-  overlay.style.background = color;
-  overlay.style.top = headerHeight + 'px';
-  document.body.appendChild(overlay);
+  activateTab(name, { deferSlide:true });
+  // activateTab has scrolled to the top; this is the header catching up to that in the same
+  // frame, so the box everything is measured against below is the one it will settle at
+  // rather than the collapsed one it happens to be wearing right now.
+  window.headerCollapseSuspended = false;
+  updateHeaderCollapse();
 
-  const areaWidth = window.innerWidth;
-  const areaHeight = window.innerHeight - headerHeight;
-  // Above and left of centre, nudged. Dead centre reads as a target; this reads as a place
-  // the ink happened to land.
-  const cx = areaWidth * (0.42 + (Math.random()*2-1) * 0.06);
-  const cy = areaHeight * (0.46 + (Math.random()*2-1) * 0.06);
-  const seeds = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
-  // 0.78 of the diagonal is the size this was drawn at and looks right at, but a fraction of
-  // the diagonal is a guess about aspect ratio, and on a short wide viewport the guess runs
-  // out: wobblyPolygonPoints puts its shallowest lobe at r*(1-wobble), and that lobe was
-  // clearing the far corner by a single pixel at the worst draw. So the needed radius is
-  // worked out from the corner it actually has to reach, and the drawn size is used only
-  // where it is already more than that.
-  const farCorner = Math.max(...[[0,0],[areaWidth,0],[0,areaHeight],[areaWidth,areaHeight]]
-    .map(c => Math.hypot(c[0] - cx, c[1] - cy)));
-  const maxRadius = Math.max(
-    Math.sqrt(areaWidth*areaWidth + areaHeight*areaHeight) * 0.78,
-    (farCorner + 12) / (1 - UI_ANIM.tabInk.settle)
-  );
-  const duration = UI_ANIM.tabInk.ms;
-  const shape = (r, wobble)=> `polygon(${wobblyPolygonPoints(cx, cy, r, wobble, seeds, TAB_INK_POINTS, null, 0)})`;
+  const card = document.getElementById('panel-' + name);
+  if(!card) return;
+  const mainAt = main.getBoundingClientRect();
 
-  const frames = [
-    { clipPath: shape(3, 0), easing:'cubic-bezier(0.2,0.7,0.4,1)' },
-    // The wet stage: half grown, and by far the most ragged it ever gets.
-    { clipPath: shape(maxRadius * 0.55, UI_ANIM.tabInk.soak), offset:0.5, easing:'cubic-bezier(0.3,0,0.3,1)' },
-    { clipPath: shape(maxRadius, UI_ANIM.tabInk.settle) }
-  ];
+  main.classList.add('tab-dealing');
+  ghost.classList.add('tab-ghost');
+  // Pinned to the viewport position it held a moment ago: main's own top has moved by the
+  // scroll reset and the header, and this cancels both out.
+  ghost.style.top = (wasAt.top - mainAt.top) + 'px';
+  // Stretched to main's full padding box rather than the panel's own column, with the
+  // difference put back as padding so nothing inside it moves. The column has to stay where
+  // it was, but the ground under it has to reach the edges of the screen — a panel's
+  // full-bleed blocks escape the column with negative margins, and a background that stopped
+  // at the column left a stripe of the incoming tab down the side.
+  ghost.style.left = '0px';
+  ghost.style.width = mainAt.width + 'px';
+  ghost.style.paddingLeft = (wasAt.left - mainAt.left) + 'px';
+  ghost.style.paddingRight = (mainAt.right - wasAt.right) + 'px';
+  ghost.style.backgroundColor = wasColor;
 
-  overlay.style.transition = 'none';
-  overlay.style.clipPath = frames[0].clipPath;
-  const ink = uiPlay(overlay, frames, { duration, easing:'linear', fill:'forwards' });
-  if(!ink){
-    // A browser that refused the keyframe list still gets a cover, just a plainer one — two
-    // states is all a CSS transition can carry.
-    void overlay.offsetWidth;
-    overlay.style.transition = `clip-path ${duration}ms cubic-bezier(0.3,0,0.2,1)`;
-    overlay.style.clipPath = frames[frames.length - 1].clipPath;
-  }
+  // From the bottom edge of the screen, not from the bottom of its own box — a short page
+  // would otherwise start halfway up and look like it was already arriving.
+  const travel = Math.max(0, window.innerHeight - mainAt.top);
+  // A page shorter than the screen would otherwise leave a strip of the new tab below it
+  // while the card is still on its way up.
+  ghost.style.minHeight = Math.max(0, travel - (wasAt.top - mainAt.top)) + 'px';
+  const ms = UI_ANIM.tabLift.ms;
 
-  // The panel starts arriving while the ink still covers it, so what the reveal shows is one
-  // already most of the way home — a hair of settle rather than a jump from rest to the
-  // slide's first frame in full view, which is what made the switch look like it shook.
-  setTimeout(()=>{
-    activateTab(name, { deferSlide:true });
-    const panel = document.getElementById('panel-'+name);
-    if(panel) slidePanelIn(panel, name, true);
-  }, Math.round(duration * 0.86));
-  setTimeout(()=>{
-    overlay.remove();
-    window.headerCollapseSuspended = false;
-    updateHeaderCollapse(); // catch up once, cleanly, to the now-correct scrolled-to-top state
-  }, duration + 20);
+  const scrim = document.createElement('div');
+  scrim.className = 'tab-scrim';
+  scrim.setAttribute('aria-hidden', 'true');
+  scrim.style.height = travel + 'px';
+  main.appendChild(scrim);
+
+  card.classList.add('tab-card');
+  const a = uiPlay(ghost, [{ transform:'translateY(0)' },
+                           { transform:`translateY(-${UI_ANIM.tabLift.recede}px)` }],
+    { duration: ms, easing:'cubic-bezier(0.3,0,0.2,1)', fill:'forwards' });
+  const b = uiPlay(scrim, [{ opacity:0 }, { opacity: UI_ANIM.tabLift.dim }],
+    { duration: ms, easing:'cubic-bezier(0.3,0,0.2,1)', fill:'forwards' });
+  const c = uiPlay(card, [
+    { transform:`translateY(${travel}px)`, boxShadow:'0 -14px 26px rgba(12,13,11,0.38)' },
+    { transform:'translateY(0)', boxShadow:'0 -14px 26px rgba(12,13,11,0)' }
+    // A dealt card starts fast and stops — an ease-out is right — but the curve this was
+    // drawn with put it 95% of the way home in half the time, which over 565px of real screen
+    // is a snap followed by two hundred milliseconds of nothing. Softened so the motion fills
+    // the window it is given.
+  ], { duration: ms, easing:'cubic-bezier(0.28,0.72,0.3,1)' });
+
+  let done = false;
+  tabLiftCleanup = ()=>{
+    if(done) return;
+    done = true;
+    tabLiftCleanup = null;
+    clearTimeout(timer);
+    // Cancel before unpinning: a filled animation goes on holding its transform, and a panel
+    // that keeps it is a panel sitting 16px high the next time you open it.
+    [a, b, c].forEach(x=>{ if(x) try{ x.cancel(); }catch(e){} });
+    ghost.classList.remove('tab-ghost');
+    ghost.style.removeProperty('top');
+    ghost.style.removeProperty('left');
+    ghost.style.removeProperty('width');
+    ghost.style.removeProperty('padding-left');
+    ghost.style.removeProperty('padding-right');
+    ghost.style.removeProperty('min-height');
+    ghost.style.removeProperty('background-color');
+    card.classList.remove('tab-card');
+    main.classList.remove('tab-dealing');
+    scrim.remove();
+  };
+  const timer = setTimeout(tabLiftCleanup, ms + 20);
+  if(!a && !c) tabLiftCleanup();   // no keyframes accepted: it is already a plain swap
 }
 
 function applyA11yFieldLabels(root){
@@ -4273,7 +4312,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.19';
+const APP_VERSION = '2026.08.27.20';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
