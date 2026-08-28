@@ -210,6 +210,15 @@
   /* Colour only when something is true that you would want to know without asking. A deload
      week is the one state here that changes what you should do today. */
   .header-readout .ro-flag{ color:var(--warn); }
+  /* The rest day plate. Same black, same cream rule, same mono caption as a section heading —
+     it is the page's way of saying there is nothing here, so it should look like the app
+     rather than like an error. */
+  .rest-plate{ background:#000000; border-top:2px solid var(--bg); margin:0 -14px;
+    padding:var(--sp-4) 14px; }
+  .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
+    line-height:0.9; text-transform:uppercase; color:var(--bg); -webkit-text-stroke:0.6px var(--bg); }
+  .rest-note{ font-family:var(--mono); font-size:10px; letter-spacing:0.02em; line-height:1.4;
+    color:rgba(251,250,246,0.56); margin-top:8px; }
   /* The day number is the one part you read at a glance, so it carries the weight; the
      words either side of it stay quiet enough not to compete with the logo. */
   .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
@@ -1167,6 +1176,11 @@
       <div id="recommendationCards"></div>
     </div>
 
+    <!-- A rest day has nothing to plan, so the page stops pretending it has. -->
+    <div class="rest-plate" id="restDayPlate" style="display:none;">
+      <div class="rest-word">Rest</div>
+      <div class="rest-note" id="restDayNote"></div>
+    </div>
     <div class="session-type" id="todaySessionTypePills">
       <div class="type-btn active" data-type="strength">Strength</div>
       <div class="type-btn" data-type="run">Run</div>
@@ -1213,7 +1227,7 @@
       <div id="recHistory"></div>
     </div>
 
-    <div class="group">
+    <div class="group" id="sessionSourceGroup">
       <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">why today looks like this</div></div>
       <div class="fields">
         <div id="planSourceLabel" class="score-note" style="margin-bottom:0;"></div>
@@ -2236,7 +2250,9 @@ async function refreshEyeContext(){
     const dow = (new Date(todayStr).getDay() + 6) % 7;
     eyeCtx.deloadDay = inDeload ? dow : 0;
   }catch(e){ eyeCtx.deloadDay = 0; }
-  try{ eyeCtx.restDay = !(await isRestDayComing(0)); }catch(e){ eyeCtx.restDay = false; }
+  // isRestDayComing returns {isRest, date}, and negating an object is always false — so the
+  // rest-day face has never once been worn.
+  try{ eyeCtx.restDay = !!(await isRestDayComing(0)).isRest; }catch(e){ eyeCtx.restDay = false; }
   await refreshEyeHistory();
   await refreshEyeTraining();
   applyEyeSag();
@@ -4090,6 +4106,7 @@ function activateTab(name, opts){
   // already covered — so these must run in order, not fire-and-forget in parallel.
   if(name==='insights'){
     refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
+    applyRestDayShape();
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
     withEyesBusy(
@@ -4568,7 +4585,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.6';
+const APP_VERSION = '2026.08.28.7';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -12784,6 +12801,45 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
 // deliberately lighter loads looked like the app being over-cautious. Where the two
 // genuinely conflict (fresh score on a deload, poor score on an intensification week),
 // say so explicitly rather than leaving the person to reconcile it.
+/* On a rest day the session half of Today is furniture around an absence: three pills that
+   each say nothing is planned, a workout area saying the same, and a section explaining why
+   there is no plan. All of it is replaced by one line.
+
+   What stays is what is still true — the score, where you are in the block, and the
+   recommendation cards, which are recovery guidance and matter most on the day you are not
+   training. The warm-up and cooldown sections are left alone deliberately: they hide
+   themselves when they are empty, and forcing them shut here would mean deciding when to
+   open them again. */
+const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup'];
+async function applyRestDayShape(){
+  const plate = document.getElementById('restDayPlate');
+  if(!plate) return;
+  let resting = false;
+  try{ resting = !!(await isRestDayComing(0)).isRest; }catch(e){ return; }
+  plate.style.display = resting ? '' : 'none';
+  REST_HIDDEN.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = resting ? 'none' : '';
+  });
+  if(!resting) return;
+  // What it says is the one thing worth knowing on a day with nothing in it: when the next
+  // thing is. Scanned forward rather than assumed, and it says nothing rather than guessing
+  // if the week ahead is empty too.
+  const note = document.getElementById('restDayNote');
+  if(!note) return;
+  let next = null, nextIn = 0;
+  for(let i = 1; i <= 7 && !next; i++){
+    try{ const r = await isRestDayComing(i); if(!r.isRest){ next = r.date; nextIn = i; } }catch(e){}
+  }
+  // isRestDayComing builds its dates the same way, so comparing i === 1 is the same question
+  // as comparing date strings and cannot drift across a month or a daylight-saving boundary.
+  const label = next
+    ? (nextIn === 1 ? 'tomorrow'
+       : new Date(next).toLocaleDateString(undefined, { weekday:'long' }).toLowerCase())
+    : null;
+  note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
+}
+
 async function renderTodayBlockContext(){
   const el = document.getElementById('todayBlockContext');
   if(!el) return;
