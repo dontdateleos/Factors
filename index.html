@@ -744,25 +744,6 @@
      a page that has two blacks and one cream and no third thing. Horizontal displacement and
      a clipped band, which is what a broken raster actually does. Today never glitches; it is
      the reading that is simply true. */
-  /* Displacement rides on `translate`, not `transform`. Everything this lands on already
-     has a transform of its own — the score's eyes are centred with translateX(-50%), the mark
-     carries its gaze and its idle loop, a panel is mid-deal — and a keyframe touching
-     transform would throw all of that away for the length of the animation. `translate` is a
-     separate property that composes with it, so the tear can be put on anything.
-     --glitch-x sets how far it throws: far on a number you are holding, barely on a page. */
-  .glitching{ animation:uiGlitch var(--glitch-ms, 340ms) steps(1, end) 1; }
-  @keyframes uiGlitch{
-    0%,  100%{ clip-path:inset(0 0 0 0);     translate:0; }
-    8%       { clip-path:inset(14% 0 52% 0); translate:calc(var(--glitch-x, 7px) * -1); }
-    16%      { clip-path:inset(0 0 0 0);     translate:0; }
-    28%      { clip-path:inset(62% 0 10% 0); translate:calc(var(--glitch-x, 7px) * 0.86); }
-    36%      { clip-path:inset(0 0 0 0);     translate:0; }
-    52%      { clip-path:inset(38% 0 38% 0); translate:calc(var(--glitch-x, 7px) * -0.57); }
-    60%      { clip-path:inset(0 0 0 0);     translate:0; }
-    76%      { clip-path:inset(6% 0 74% 0);  translate:calc(var(--glitch-x, 7px) * 0.43); }
-    84%      { clip-path:inset(0 0 0 0);     translate:0; }
-  }
-  @media (prefers-reduced-motion: reduce){ .glitching{ animation:none; } }
   /* Further back reads fainter. The trace is deliberately not in here — it is the index you
      are navigating by, so it stays at full strength however far you have gone. */
   .gauge-wrap, #todayBlockContext{ transition:opacity 0.18s linear; }
@@ -3913,7 +3894,7 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
-  pageGlitch:   { on:true, note:'A page tears once as it lands on a newly selected tab', ms:260 },
+  pageGlitch:   { on:true, note:'A page jolts sideways once as it lands on a newly selected tab', ms:260 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:200 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
@@ -4344,7 +4325,7 @@ function activateTab(name, opts){
   clearTimeout(pageGlitchTimer);
   pageGlitchTimer = setTimeout(()=>{
     const landed = document.querySelector('.panel.active');
-    if(landed) playGlitch(landed, 'pageGlitch', 4);
+    if(landed) playGlitch(landed, 'pageGlitch', 6, false);
   }, uiAnim('tabLift') ? UI_ANIM.tabLift.ms : 0);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -4798,7 +4779,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.25';
+const APP_VERSION = '2026.08.28.26';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9147,8 +9128,6 @@ async function renderScoreTrace(todayScore){
   scoreDayIndex = scoreDays.length - 1;
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
-  const out0 = document.getElementById('overallScoreOut');
-  if(out0) out0.classList.remove('glitching');
   const lbl = document.getElementById('overallScoreLabel');
   scoreTodayLabel = lbl ? lbl.textContent : '';
   if(scoreDays.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
@@ -9225,16 +9204,67 @@ function paintScoreTrace(){
    Days with no entry are stepped over rather than landed on: an empty day would blank the
    number, and a blank number is indistinguishable from a broken one. */
 /* One tear, three places: the score you swipe to, the page you land on, and the mark, at
-   random, the way it blinks. Same keyframes, different throw and different length — a number
-   under your thumb can be flung seven pixels, a whole page cannot. */
+   random, the way it blinks. Same frames, different throw and different length — a number
+   under your thumb can be flung seven pixels, a whole page cannot.
+
+   Script animation rather than a CSS class, and that is the whole reason it works on a panel.
+   As a class it lost silently: `.panel.active.panel-enter` sets `animation` for the arrival
+   fade, and three classes beat one, so the panel kept fading and never tore. Rather than
+   chase every host's specificity, this goes through the Web Animations API, which sorts above
+   every CSS animation whatever the selector says — the same reason the tab deal's transform
+   holds.
+
+   Displacement rides on `translate`, not `transform`. Everything this lands on already has a
+   transform of its own — the score's eyes are centred with translateX(-50%), the mark carries
+   its gaze and its idle loop, a panel is mid-deal — and touching transform would throw all of
+   that away for the length of the animation. `translate` is a separate property that composes
+   with it, so the tear can be put on anything.
+
+   No colour separation: the usual chromatic-aberration trick would put red and cyan on a page
+   that has two blacks, one cream and no third thing. Horizontal displacement and a clipped
+   band, which is what a broken raster actually does. */
 let pageGlitchTimer = null;
-function playGlitch(el, key, px){
-  if(!el || !uiAnim(key)) return;
-  el.classList.remove('glitching');
-  void el.offsetWidth;                   // or the remove and the add coalesce into nothing
-  el.style.setProperty('--glitch-ms', UI_ANIM[key].ms + 'ms');
-  el.style.setProperty('--glitch-x', px + 'px');
-  el.classList.add('glitching');
+const GLITCH_FRAMES = [
+  [0,    'inset(0 0 0 0)',      0],
+  [0.08, 'inset(14% 0 52% 0)', -1],
+  [0.16, 'inset(0 0 0 0)',      0],
+  [0.28, 'inset(62% 0 10% 0)',  0.86],
+  [0.36, 'inset(0 0 0 0)',      0],
+  [0.52, 'inset(38% 0 38% 0)', -0.57],
+  [0.60, 'inset(0 0 0 0)',      0],
+  [0.76, 'inset(6% 0 74% 0)',   0.43],
+  [0.84, 'inset(0 0 0 0)',      0],
+  [1,    'inset(0 0 0 0)',      0]
+];
+/* Clipping is right for something small and wrong for something tall. inset() keeps a band
+   and throws the rest away, and the bands are percentages of the ELEMENT — on a 46px score
+   that is a tear across the digits, on a 1200px panel it is most of the page vanishing to
+   bare colour while the surviving band sits below the fold. Measured: at three of nine frames
+   the viewport went empty. So a page displaces and does not clip. Same steps, same throw
+   profile, nothing destroyed. */
+function playGlitch(el, key, px, clip){
+  if(!el || !uiAnim(key)) return null;
+  if(clip === false){
+    try{
+      return el.animate(
+        GLITCH_FRAMES.map(([offset, , mul])=>({ offset, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)' })),
+        { duration: UI_ANIM[key].ms });
+    } catch(e){ return null; }
+  }
+  try{
+    // The step easing goes on EVERY KEYFRAME, not in the options. CSS applies
+    // animation-timing-function per keyframe segment; the Web Animations API applies an
+    // option easing across the whole effect, so steps(1, end) there means "hold the first
+    // frame for the entire duration, then jump to the last" — which is what the port did, and
+    // why it ran without tearing. Per keyframe it means what it meant in CSS: hold this value
+    // until the next offset, then cut. No fill, so the element is back under its own styles
+    // the moment it finishes.
+    return el.animate(
+      GLITCH_FRAMES.map(([offset, clipPath, mul])=>({
+        offset, clipPath, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)'
+      })),
+      { duration: UI_ANIM[key].ms });
+  } catch(e){ return null; }
 }
 
 const SCORE_FADE_STEP = 0.065;   // per day back, over six days
