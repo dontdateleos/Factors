@@ -3962,7 +3962,7 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
-  pageGlitch:   { on:true, note:'A newly selected page arrives behind scanlines and resolves', ms:300 },
+  pageGlitch:   { on:true, note:'One piece of a newly selected page, picked at random, tears as it lands', ms:300 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:200 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
@@ -4442,7 +4442,7 @@ function activateTab(name, opts){
   // seven is the page falling over.
   clearTimeout(pageGlitchTimer);
   pageGlitchTimer = setTimeout(()=>{
-    playInterlace('pageGlitch');
+    playGlitchPart('pageGlitch');
   }, uiAnim('tabLift') ? UI_ANIM.tabLift.ms : 0);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -4897,7 +4897,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.32';
+const APP_VERSION = '2026.08.28.33';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9710,59 +9710,49 @@ const GLITCH_FRAMES = [
   [0.84, 'inset(0 0 0 0)',      0],
   [1,    'inset(0 0 0 0)',      0]
 ];
-/* THE PAGE TUNES IN. Every earlier version of this was subtractive — cut a slice out of a
-   block, or shove the block sideways — and both fail for the same reason: they scale with the
-   element. The score's tear works because the number is 46px tall, and nothing about that
-   recipe survives being applied to something the size of a page.
+/* ONE PIECE OF THE PAGE, PICKED AT RANDOM. The whole page was never the right subject. The
+   tear the score gets works because the thing it happens to is small — keep a band, throw the
+   rest away, and at that size it reads as digits coming apart rather than as content going
+   missing. So the page gets the same tear, applied to one small part of itself, chosen fresh
+   every time. Different piece on every arrival, which is what makes it feel like a fault in
+   the picture rather than a transition someone designed.
 
-   So the page is not deformed at all. A coarse scanline field is laid over the content area
-   and let go in four hard steps: the page arrives behind it and resolves, the way a signal
-   does. Nothing moves, nothing is hidden, and it looks the same on a short page and a long
-   one — which is the thing no clipping version ever managed.
-
-   Two line colours, because this app has two grounds. Dark rows read on the cream and on the
-   coloured blocks; a faint cream row between them reads on the black. One of the pair does
-   the work wherever it happens to land.
-
-   Over main only. The header does not change on a tab switch the way the content does, and
-   the mark lives up there — strobing the character every time you press a tab would be a
-   different and much worse idea. */
-const INTERLACE_STEPS = [1, 0.72, 0.45, 0.2, 0];
-let interlaceEl = null;
-function playInterlace(key){
-  if(!uiAnim(key)) return;
-  const main = document.querySelector('main');
-  if(!main) return;
-  // A fast double-tap should replace the field, not stack a second one on it.
-  if(interlaceEl){ interlaceEl.remove(); interlaceEl = null; }
-  const r = main.getBoundingClientRect();
-  const el = document.createElement('div');
-  el.setAttribute('aria-hidden', 'true');
-  el.style.cssText = `position:fixed; left:0; right:0; top:${Math.max(0, Math.round(r.top))}px; bottom:0;
-    z-index:9; pointer-events:none;
-    background-image:repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 2px, transparent 2px 5px),
-                     repeating-linear-gradient(0deg, transparent 0 2px, rgba(251,250,246,0.11) 2px 3px, transparent 3px 5px);`;
-  document.body.appendChild(el);
-  interlaceEl = el;
-  const done = ()=>{ el.remove(); if(interlaceEl === el) interlaceEl = null; };
-  let anim = null;
-  try{
-    anim = el.animate(INTERLACE_STEPS.map((opacity, i)=>({
-      offset: i / (INTERLACE_STEPS.length - 1),
-      opacity,
-      // A pixel of drift per step, so the field is not a static screen door sitting there
-      // getting fainter — it is a picture that has not locked yet.
-      backgroundPosition: `0 ${i % 2 ? 1 : 0}px, 0 ${i % 2 ? 0 : 1}px`,
-      easing: 'steps(1, end)'
-    })), { duration: UI_ANIM[key].ms });
-  } catch(e){}
-  if(anim) anim.finished.then(done).catch(done); else done();
+   The candidates are bounded by measurement, not by a list of selectors: on screen, wide
+   enough to see, and tall enough to tear but never more than a third of the screen — past
+   that the clip stops being a tear again and the failure this whole thing kept running into
+   comes back. Deepest match wins, so it lands on a heading or a row rather than on the group
+   that contains it. */
+const GLITCH_PICK_MIN_H = 16;
+const GLITCH_PICK_MAX_FRAC = 0.34;
+const GLITCH_PICK_MIN_W = 60;
+function glitchCandidates(root){
+  const vh = window.innerHeight, maxH = vh * GLITCH_PICK_MAX_FRAC;
+  const out = [];
+  root.querySelectorAll('*').forEach(el=>{
+    if(el.closest('#blockEditPanel')) return;              // never mid-edit under someone's thumb
+    const r = el.getBoundingClientRect();
+    if(r.height < GLITCH_PICK_MIN_H || r.height > maxH) return;
+    if(r.width < GLITCH_PICK_MIN_W) return;
+    if(r.bottom <= 0 || r.top >= vh) return;
+    if(!el.textContent.trim() && !el.querySelector('svg')) return;   // nothing to see torn
+    out.push(el);
+  });
+  // Prefer the deepest thing that qualifies: a heading rather than the section around it.
+  return out.filter(el => !out.some(other => other !== el && el.contains(other)));
+}
+function playGlitchPart(key){
+  if(!uiAnim(key)) return null;
+  const root = document.querySelector('.panel.active');
+  if(!root) return null;
+  const picks = glitchCandidates(root);
+  if(!picks.length) return null;
+  const el = picks[Math.floor(Math.random() * picks.length)];
+  return playGlitch(el, key, Math.random() < 0.5 ? -6 : 6);
 }
 
-/* The clip-and-slip tear. Only ever used on something small — the score's digits, the mark —
-   because inset() keeps a band and throws the rest away, which reads as a tear across 46px of
-   number and as a blackout across anything the size of a page. The page has its own effect
-   now; this one is not it. */
+/* The clip-and-slip tear. Everything that uses it hands it something small — the score's
+   digits, the mark, one picked piece of the page — because inset() keeps a band and throws the
+   rest away, which reads as a tear at that size and as a blackout at any other. */
 function playGlitch(el, key, px){
   if(!el || !uiAnim(key)) return null;
   try{
