@@ -729,6 +729,28 @@
      others, and a fixed width that clears "100" at 320px would be needlessly small the rest
      of the time. */
   #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:none; }
+  /* A reading you have gone back to arrives torn, then settles. steps(1) so every frame is a
+     hard cut — an interpolated glitch is a smear, and nothing else in this app smears. No
+     colour separation either: the usual chromatic-aberration trick would put red and cyan on
+     a page that has two blacks and one cream and no third thing. Horizontal displacement and
+     a clipped band, which is what a broken raster actually does. Today never glitches; it is
+     the reading that is simply true. */
+  .score-glitch{ animation:scoreGlitch var(--glitch-ms, 340ms) steps(1, end) 1; }
+  @keyframes scoreGlitch{
+    0%,  100%{ clip-path:inset(0 0 0 0);       transform:translateX(0); }
+    8%       { clip-path:inset(14% 0 52% 0);   transform:translateX(-7px); }
+    16%      { clip-path:inset(0 0 0 0);       transform:translateX(0); }
+    28%      { clip-path:inset(62% 0 10% 0);   transform:translateX(6px); }
+    36%      { clip-path:inset(0 0 0 0);       transform:translateX(0); }
+    52%      { clip-path:inset(38% 0 38% 0);   transform:translateX(-4px); }
+    60%      { clip-path:inset(0 0 0 0);       transform:translateX(0); }
+    76%      { clip-path:inset(6% 0 74% 0);    transform:translateX(3px); }
+    84%      { clip-path:inset(0 0 0 0);       transform:translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce){ .score-glitch{ animation:none; } }
+  /* Further back reads fainter. The trace is deliberately not in here — it is the index you
+     are navigating by, so it stays at full strength however far you have gone. */
+  .gauge-wrap, #todayBlockContext{ transition:opacity 0.18s linear; }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
@@ -1183,8 +1205,12 @@
      rule rather than floating in the middle of the band. */
   .ui-stickyHeads .group-head{
     background:#000000;
-    border-top:2px solid var(--bg);
-    border-bottom-color:rgba(251,250,246,0.16);
+    /* Black, not cream. The rules were drawn to separate a head from what is above and below
+       it, but the head is already a black slab against a coloured ground — the boundary was
+       doing the job before the line was added, and the line was reading as a seam across it.
+       Kept as borders rather than removed so the box keeps the height it was laid out to. */
+    border-top:2px solid #000000;
+    border-bottom-color:#000000;
     padding-top:calc(var(--sp-3) - 1px);
     row-gap:3px;
   }
@@ -1197,9 +1223,9 @@
   }
   .ui-stickyHeads .group-head .head-est,
   .ui-stickyHeads .group-head .collapse-chevron{ color:rgba(251,250,246,0.66); }
-  /* The two heads that were already black plates get the rule too, or they are the only
-     sections that open without one. */
-  .ui-stickyHeads #panel-goals > .group:first-child > .group-head{ border-top:2px solid var(--bg); }
+  /* The two heads that were already black plates carry the same black edge, so every section
+     starts the same way. */
+  .ui-stickyHeads #panel-goals > .group:first-child > .group-head{ border-top:2px solid #000000; }
 
   @media (prefers-reduced-motion: reduce){
     .tab-indicator{ transition:none; }
@@ -3851,6 +3877,7 @@ const UI_ANIM = {
   growBars:     { on:true, note:'Bars grow from nothing, one after another', ms:520, stagger:45 },
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
+  scoreGlitch:  { on:true, note:'A day you have swiped back to tears itself in rather than simply appearing', ms:340 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -4725,7 +4752,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.18';
+const APP_VERSION = '2026.08.28.19';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8976,6 +9003,10 @@ async function renderScoreTrace(todayScore){
   }
   scoreDays.push({ date: todayStr, score: todayScore });
   scoreDayIndex = scoreDays.length - 1;
+  [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
+    .forEach(el=>{ if(el) el.style.opacity = ''; });
+  const out0 = document.getElementById('overallScoreOut');
+  if(out0) out0.classList.remove('score-glitch');
   const lbl = document.getElementById('overallScoreLabel');
   scoreTodayLabel = lbl ? lbl.textContent : '';
   if(scoreDays.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
@@ -9041,6 +9072,7 @@ function paintScoreTrace(){
    from today, which is the whole answer to "what am I looking at".
    Days with no entry are stepped over rather than landed on: an empty day would blank the
    number, and a blank number is indistinguishable from a broken one. */
+const SCORE_FADE_STEP = 0.065;   // per day back, over six days
 function scoredIndices(){
   return scoreDays.map((d, i)=> d.score != null ? i : -1).filter(i=>i >= 0);
 }
@@ -9064,6 +9096,22 @@ function showScoreDay(idx){
   // face over a wrecked reading would be the block contradicting itself.
   setEyeScore(to);
   if(label) label.textContent = idx === scoreDays.length - 1 ? scoreTodayLabel : stamp(scoreDays[idx].date);
+  // Days back, and how faint that makes it. Floored well above the point where cream on black
+  // stops being comfortably readable — this is depth, not disappearance.
+  const back = (scoreDays.length - 1) - idx;
+  const dim = back ? String(Math.max(0.6, 1 - back * SCORE_FADE_STEP)) : '';
+  // The context line goes with it: it is about the browsed day now, so it belongs to the same
+  // reading and should not sit at full strength under a faded one.
+  [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
+    .forEach(el=>{ if(el) el.style.opacity = dim; });
+  if(back && out && uiAnim('scoreGlitch')){
+    out.classList.remove('score-glitch');
+    void out.offsetWidth;                       // or the remove and the add coalesce into nothing
+    out.style.setProperty('--glitch-ms', UI_ANIM.scoreGlitch.ms + 'ms');
+    out.classList.add('score-glitch');
+  } else if(out){
+    out.classList.remove('score-glitch');
+  }
   // A reading from six days ago can sit in the previous block week, and the line under it
   // was stating this week's position regardless — a small lie, but the block position is
   // exactly the context that makes an old score readable, so it is worth getting right.
