@@ -130,20 +130,26 @@
   .tab[data-tab="injuries"].active{ background:var(--block-purple); }
   .tab[data-tab="data"].active{ background:var(--block-yellow); }
   .tab[data-tab="settings"].active{ background:var(--block-red); }
-  /* An ordered dot screen on a 4px grid, offset on the second pass so it reads as a printed
-     ground rather than as a grid. Black at 13% — no new colour anywhere.
+  /* An ordered dot screen on a 7px grid, offset on the second pass so it reads as a printed
+     ground rather than as a grid. Black at 16% — no new colour anywhere.
+
+     It was 4px at 13% first, and at phone density that read as a faint dirtiness you had to
+     go looking for rather than as a screen. Compared against 5px and 6px on the real page:
+     5px is barely more than the 4px was, 6px resolves into dots, 7px is unmistakably a
+     printed halftone at arm's length. Since the point of the thing is to be felt, it is set
+     where it is felt. Anyone who has asked for more contrast still gets the flat colour.
 
      It goes on the backdrop and nowhere else, which is what puts it on the coloured parts
      only: the backdrop is the tab's colour showing through the gaps the page leaves, and
      every black block in the app is an opaque element painted on top of it. So the screen
      appears exactly where colour appears, and the chips, the plate and the tab blocks — all
-     of them small enough that a 4px screen would read as dirt rather than as tone — are
+     of them small enough that a screen would read as dirt rather than as tone — are
      untouched. */
   :root{
-    --screen:radial-gradient(rgba(0,0,0,0.13) 0.5px, transparent 0.6px),
-             radial-gradient(rgba(0,0,0,0.13) 0.5px, transparent 0.6px);
-    --screen-size:4px 4px, 4px 4px;
-    --screen-pos:0 0, 2px 2px;
+    --screen:radial-gradient(rgba(0,0,0,0.16) 1px, transparent 1.2px),
+             radial-gradient(rgba(0,0,0,0.16) 1px, transparent 1.2px);
+    --screen-size:7px 7px, 7px 7px;
+    --screen-pos:0 0, 3.5px 3.5px;
   }
   #scrollBackdrop{ position:absolute; inset:0; z-index:-1; background-repeat:repeat;
     background-image:var(--screen); background-size:var(--screen-size);
@@ -4639,7 +4645,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.11';
+const APP_VERSION = '2026.08.28.12';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
