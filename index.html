@@ -935,6 +935,28 @@
   .log-bar-drop{ height:auto; padding:0 16px; background:transparent; color:rgba(251,250,246,0.55);
     border:none; border-left:2px solid rgba(251,250,246,0.25); font-size:var(--fs-md);
     flex:0 0 auto; cursor:pointer; }
+  /* FIRST RUN. The app has a gate — it cannot plan a week without knowing which days you
+     train and what you are training for — and that gate used to be invisible: the training
+     setup was collapsed inside a group inside the last tab, and the goals were on a third
+     tab, so a new user's Today said "nothing planned this week" and offered no way to change
+     that. The three questions that actually unlock the generator now ARE the first screen. */
+  .fr-lead{ font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; background:var(--accent);
+    color:var(--reverse-bg); padding:14px; margin-bottom:var(--sp-3); }
+  .fr-sub{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
+    text-transform:none; font-weight:var(--fw-medium); display:block; margin-top:4px; opacity:0.72; }
+  .fr-pick{ display:flex; flex-wrap:wrap; gap:8px; }
+  /* .type-btn's default active state is a dark fill, which is invisible on the dark panel
+     these sit on — the same problem the Data tab's pills already solve for themselves. */
+  .fr-pick .type-btn{ flex:1 1 28%; min-width:78px; background:transparent;
+    color:rgba(251,250,246,0.65); border-color:rgba(251,250,246,0.4); }
+  .fr-pick .type-btn.active{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
+  #firstRunBuildBtn{ width:100%; margin-top:4px; }
+  .fr-note{ margin-top:10px; }
+  .today-open.today-open-empty{ padding-top:0; padding-bottom:0; margin-bottom:0; }
+  /* Set on Today's own sections rather than toggling each one's display, so every section
+     keeps whatever show/hide logic it already had for when the app is set up. */
+  #panel-insights > [data-first-run-hidden]{ display:none !important; }
   .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
     color:var(--dim); flex:1; text-align:center; }
@@ -1359,6 +1381,42 @@
 <main>
   <!-- INSIGHTS PANEL -->
   <div class="panel active" id="panel-insights">
+
+    <!-- Shown instead of the whole of Today until the app can actually plan a week. Not a
+         tutorial and not a wizard with its own chrome — the same groups and buttons the rest
+         of the app is made of, asking the three things it cannot proceed without. -->
+    <div id="firstRun" style="display:none;">
+      <div class="fr-lead">Three answers and it builds your week<span class="fr-sub">All of it changeable afterwards.</span></div>
+
+      <div class="group form-panel">
+        <div class="group-head"><div class="group-title">1 &middot; What are you training for?</div><div class="group-sub">pick the main one — you can add two more later</div></div>
+        <div class="fields"><div class="fr-pick" id="firstRunGoal">
+          <div class="type-btn" data-goal="strength">Strength</div>
+          <div class="type-btn" data-goal="hypertrophy">Muscle</div>
+          <div class="type-btn" data-goal="running">Running</div>
+        </div></div>
+      </div>
+
+      <div class="group form-panel">
+        <div class="group-head"><div class="group-title">2 &middot; Which days can you train?</div><div class="group-sub">only these ever get a session put on them</div></div>
+        <div class="fields"><div class="fr-pick" id="firstRunDays"></div></div>
+      </div>
+
+      <div class="group form-panel">
+        <div class="group-head"><div class="group-title">3 &middot; How long have you got?</div><div class="group-sub">per session, on a normal day</div></div>
+        <div class="fields"><div class="fr-pick" id="firstRunLength">
+          <div class="type-btn" data-len="20">20 min</div>
+          <div class="type-btn" data-len="30">30 min</div>
+          <div class="type-btn active" data-len="45">45 min</div>
+          <div class="type-btn" data-len="60">60 min</div>
+          <div class="type-btn" data-len="90">90 min</div>
+        </div></div>
+      </div>
+
+      <button class="primary" id="firstRunBuildBtn">Build my first week</button>
+      <div id="firstRunResult" class="score-note fr-note"></div>
+    </div>
+
     <div class="today-open">
     <div class="gauge-wrap">
       <div class="score-stack">
@@ -2510,6 +2568,12 @@ async function refreshEyeContext(){
 }
 
 let eyesHome = 'header';   // where they rest when nothing is in flight
+// Both assumed until proven otherwise, so a set-up app never blinks through the first-run
+// page on the way to its own.
+let todayIsSetUp = true;
+// The eyes' Today perch is inside the score stack. When there is no score to stand on they
+// have to stay in the header, or they are docked to something that isn't drawn.
+let todayScoreShown = true;
 let eyeScore = null;       // the score the expression is drawn from
 let eyeFlyer = null;
 let eyeFlightTimer = null;
@@ -2945,7 +3009,8 @@ function settleEyes(){
   const today = document.getElementById('panel-insights');
   if(!header || !score || !today) return;
   // The perch means the eyes are legitimately in the header while Today is showing.
-  const onToday = today.classList.contains('active') && !eyeCtx.perched;
+  const onToday = today.classList.contains('active') && !eyeCtx.perched
+                  && todayIsSetUp && todayScoreShown;
   eyesHome = onToday ? 'score' : 'header';
   applyEyeForm(score, 'score');
   applyEyeForm(header, 'header');
@@ -4350,8 +4415,10 @@ function updateFooterVisibility(){
   const colophon = document.querySelector('.app-colophon');
   const strip = document.getElementById('todayLogStrip');
   if(colophon) colophon.style.display = onToday ? 'none' : '';
-  if(strip) strip.style.display = onToday ? 'flex' : 'none';
-  if(onToday) refreshLogStripWord();
+  // "Swipe down to log workout" offers to log a session that cannot exist yet.
+  const stripOn = onToday && todayIsSetUp;
+  if(strip) strip.style.display = stripOn ? 'flex' : 'none';
+  if(stripOn) refreshLogStripWord();
   // The minimised bar sits above whatever footer this tab has, so it has to be remeasured
   // whenever the footer comes or goes. Guarded because this runs during boot, before the
   // bar's own state exists.
@@ -4433,6 +4500,7 @@ function activateTab(name, opts){
   // generateWarmup writes warmupLog:<date>, which generateMobility reads to skip areas
   // already covered — so these must run in order, not fire-and-forget in parallel.
   if(name==='insights'){
+    applyTodayStage();
     refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
     applyRestDayShape();
     // Each section waits on its own generator, so the page shows which half is still
@@ -4929,7 +4997,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.35';
+const APP_VERSION = '2026.08.28.36';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5878,7 +5946,9 @@ async function renderHeaderReadout(){
   const spoken = [];
   readoutPinned = '';
   readoutSlots = [];
-  try{
+  // B1 W1/4 counted from the first second of a fresh install, reporting a position in a
+  // block that had not been set up, let alone started. It waits for the setup now.
+  if(await hasTrainingDays()) try{
     const pos = await getBlockPosition(todayStr);
     const deload = isDeloadPosition(pos.weekInBlock, pos.length);
     readoutPinned = `<span class="${deload ? 'ro-flag' : ''}">B${pos.blocksCompleted + 1} W${pos.weekInBlock}/${pos.length}</span>`;
@@ -14193,6 +14263,145 @@ async function applyRestDayShape(){
   note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
 }
 
+/* ---------- FIRST RUN ----------
+   The app has a hard gate and it used to be invisible. The week generator needs two things:
+   which days you can train (Settings > Training Setup, collapsed, last tab) and at least one
+   goal (Goals tab, its own form). With neither, generateMultiWeekProgram returns 'no-goals'
+   and Today reads "REST — nothing planned this week" forever, with nothing anywhere on the
+   screen suggesting what to do about it. A new user could not get out of that on their own.
+
+   So the gate is the first screen now. Three questions, in the app's own components, and the
+   button at the bottom writes the setup, writes the goal and runs the generator — the same
+   three things the three tabs did, without having to find them. Everything stays editable in
+   its usual place afterwards; this is a way in, not a second copy of the settings. */
+async function hasTrainingDays(){
+  try{
+    const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
+    return (setup.availableDays || []).length > 0;
+  } catch(e){ return false; }
+}
+async function hasAnyGoal(){
+  try{ const rec = await getCurrentGoals(); return !!(rec && rec.list && rec.list.length); }
+  catch(e){ return false; }
+}
+/* The first-run page exists to get you to a plan, so having one is the real proof you are
+   past it — a week planned by hand on Weekly needs no goals record, and gating on goals
+   alone would send someone who already had sessions back to the setup questions. */
+async function hasAnyPlannedSession(){
+  try{ const res = await window.storage.list('weekplan:'); return !!(res && res.keys && res.keys.length); }
+  catch(e){ return false; }
+}
+async function hasAnyRecoveryEntry(){
+  try{ const res = await window.storage.list('entry:'); return !!(res && res.keys && res.keys.length); }
+  catch(e){ return false; }
+}
+
+/* Today has three states and used to render only the last one. Before there is a plan it
+   showed a score placeholder, a block counter for a block that had not started and an empty
+   session; the page was fully furnished and every piece of it was describing nothing. */
+async function applyTodayStage(){
+  const fr = document.getElementById('firstRun');
+  const panel = document.getElementById('panel-insights');
+  if(!fr || !panel) return;
+  const ready = (await hasAnyPlannedSession())
+             || ((await hasTrainingDays()) && (await hasAnyGoal()));
+  todayIsSetUp = ready;
+  updateFooterVisibility();
+  if(!ready && todayScoreShown){ todayScoreShown = false; settleEyes(); }
+  fr.style.display = ready ? 'none' : 'block';
+  [...panel.children].forEach(c=>{
+    if(c === fr) return;
+    // Sections with their own show/hide logic keep it; this only takes the whole page away.
+    if(ready) c.removeAttribute('data-first-run-hidden');
+    else c.setAttribute('data-first-run-hidden', '');
+  });
+  if(!ready) return;
+  // A score, its trace and its block position are all readings of data. Until one morning
+  // has been logged there is no reading to report, and three pieces of chrome saying so is
+  // worse than saying nothing — the first score means more arriving into an empty space.
+  const seen = await hasAnyRecoveryEntry();
+  const gauge = panel.querySelector('.gauge-wrap');
+  const trace = document.getElementById('scoreTrace');
+  const ctx = document.getElementById('todayBlockContext');
+  [gauge, trace, ctx].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
+  // The band is the score's own ground. Emptied but still standing it is a black hole at the
+  // top of the page, so it collapses with what it was holding.
+  const band = panel.querySelector('.today-open');
+  if(band) band.classList.toggle('today-open-empty', !seen);
+  if(todayScoreShown !== seen){ todayScoreShown = seen; settleEyes(); }
+}
+
+(function wireFirstRun(){
+  const days = document.getElementById('firstRunDays');
+  if(days) WEEKDAY_NAMES.forEach(d=>{
+    const b = document.createElement('div');
+    b.className = 'type-btn'; b.dataset.day = d; b.textContent = d;
+    b.addEventListener('click', ()=> b.classList.toggle('active'));
+    days.appendChild(b);
+  });
+  // One goal, one length: picking replaces rather than adds.
+  ['firstRunGoal','firstRunLength'].forEach(id=>{
+    const box = document.getElementById(id);
+    if(!box) return;
+    box.addEventListener('click', e=>{
+      const b = e.target.closest('.type-btn');
+      if(!b) return;
+      box.querySelectorAll('.type-btn').forEach(x=> x.classList.toggle('active', x === b));
+    });
+  });
+  const build = document.getElementById('firstRunBuildBtn');
+  if(build) build.addEventListener('click', async ()=>{
+    const out = document.getElementById('firstRunResult');
+    const goal = document.querySelector('#firstRunGoal .type-btn.active');
+    const chosen = [...document.querySelectorAll('#firstRunDays .type-btn.active')].map(b=>b.dataset.day);
+    const len = document.querySelector('#firstRunLength .type-btn.active');
+    // Said once, plainly, rather than three separate complaints as you fix them.
+    const missing = [!goal && 'what you are training for', !chosen.length && 'at least one day'].filter(Boolean);
+    if(missing.length){ out.textContent = `Still need ${missing.join(' and ')}.`; return; }
+    out.textContent = 'Building...';
+    build.disabled = true;
+    try{
+      await window.storage.set('settings:trainingSetup', JSON.stringify({
+        availableDays: chosen,
+        sessionLength: len ? len.dataset.len : '45',
+        multiSessionOk:false, bodyweightAll:false, bodyweightMobility:false,
+        useSupersets:false, useDropSets:false
+      }));
+      // The same record shape the Goals form writes, so the goal shows up there as a normal
+      // row you can retarget rather than something that arrived by a private door.
+      await window.storage.set(`goals:${todayStr}`, JSON.stringify({
+        date: todayStr, skillGoals: [],
+        list: [{ type: goal.dataset.goal, detail:'', targetExercise:'', targetWeight:null,
+                 targetDistance:null, targetTime:null, targetDate:null, isMaintenance:false }]
+      }));
+      // Two weeks, not one: build your first week on a Friday and a single week puts every
+      // session in the days you have already lived through.
+      const res = await generateMultiWeekProgram(2, 'auto',
+        { includeStrength:true, includeMobility:true, includeRunning:true });
+      const err = res && res[0] && res[0].result && res[0].result.error;
+      await loadTrainingSetup();
+      await loadCurrentGoals();
+      await renderWeekGrid();
+      await applyTodayStage();
+      if(err){
+        // The setup and the goal are saved either way — being unable to fill the week is not
+        // a reason to make someone answer the three questions again.
+        out.textContent = 'Saved, but the week came back empty. Plan it by hand on Weekly.';
+        activateTab('training');
+      } else {
+        out.textContent = '';
+        showToast('Week built');
+        await Promise.all([generateRecommendations(), renderTodayBlockContext(),
+                           renderTodayWorkoutSummary(), applyRestDayShape()]);
+        initWarmupTab();
+        updateFooterVisibility();
+      }
+    } catch(e){
+      out.textContent = 'Something went wrong — try again.';
+    } finally { build.disabled = false; }
+  });
+})();
+
 async function renderTodayBlockContext(forDate){
   const el = document.getElementById('todayBlockContext');
   if(!el) return;
@@ -18908,6 +19117,7 @@ window.addEventListener('resize', ()=>{
   renderScoreTrace(isNaN(shown) ? null : shown);
 }, { passive:true });
 
+applyTodayStage();
 loadRecoveryEntry(todayStr);
 refreshRecoveryLog();
 
