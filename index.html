@@ -2197,7 +2197,7 @@ const EYE_ANIM = {
   lookAtPanel:    { on:true, note:'Looks at a panel that opens over the page' },
   tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 },
   // — Treatment. Not a behaviour of its own; it changes how every behaviour above moves.
-  heldFrames:     { on:true, note:'Ticks between held positions instead of gliding — every morph, gesture and glance in steps', steps:4 }
+  heldFrames:     { on:true, note:'Ticks between held positions instead of gliding — every morph, gesture and glance, and the score\'s digits, in steps', steps:4 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -2249,6 +2249,15 @@ function eyeHeldEasing(steps){
 }
 function applyEyeHeld(){
   document.documentElement.classList.toggle('eye-held', anim('heldFrames'));
+}
+/* The score's digits take the same treatment, because they are the mark's number: the pair
+   sits directly above them and wears whatever they say. Two things, one reading, one switch.
+   The step count is the digits actually passed through rather than anything derived from
+   distance — here the stops MEAN something, a strip has to land ON a digit, and a count
+   picked any other way parks it between two. */
+function heldDigitEasing(from, to){
+  const steps = Math.abs(to - from);
+  return (steps >= 1 && anim('heldFrames')) ? `steps(${steps}, end)` : null;
 }
 
 function anim(k){
@@ -4057,7 +4066,7 @@ function rollNumber(el, from, to, ms){
     const anim = uiPlay(strip,
       [{ transform:`translateY(${-a * 10}%)` }, { transform:`translateY(${-b * 10}%)` }],
       { duration: UI_ANIM.digitRoll.ms, delay: wait + i * UI_ANIM.digitRoll.stagger,
-        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'both' });
+        easing: heldDigitEasing(a, b) || 'cubic-bezier(0.2,0.9,0.2,1)', fill:'both' });
     if(!anim){ strip.style.transform = `translateY(${-b * 10}%)`; ok = false; }
   });
   return ok || true;
@@ -4742,7 +4751,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.16';
+const APP_VERSION = '2026.08.28.17';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
