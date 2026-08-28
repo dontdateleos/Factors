@@ -2022,6 +2022,7 @@ const EYE_ANIM = {
   blinkOnTap:     { on:true, note:'Tap the mark and it blinks back' },
   glanceAtTab:    { on:true, note:'Looks toward the tab you just tapped, before the wipe' },
   scrollLook:     { on:true, note:'Looks down as you scroll down, up as you scroll up', px:3 },
+  rollWithScore:  { on:true, note:'The mark runs through every face and lands on the day’s as the score counts up' },
   glanceAtNumber: { on:true, note:'One look down at the score after landing, then back up' },
   nodOnSave:      { on:true, note:'Nods when something saves; shakes when it fails' },
   lookAtCard:     { on:true, note:'Looks at the recommendation card you accept or dismiss' },
@@ -2173,8 +2174,18 @@ function eyeFullOpen(site){ return parseFloat(EYE_SITES[site]['--eye-h']); }
 function applyEyeForm(el, site){
   if(!el) return;
   const vars = EYE_SITES[site];
+  // While a count is running it owns the expression. The flight's own landing calls this,
+  // and it was putting the day's face on partway through the sweep — so the mark showed the
+  // answer, carried on rolling, and arrived at it a second time. Skipping the expression is
+  // not enough on its own: the loop below writes the site's own resting height first, so the
+  // face in progress has to be held across it.
+  const rolling = site === 'score' && !!eyeRollTimer;
+  const held = rolling ? el.style.getPropertyValue('--eye-h') : '';
   for(const k in vars) el.style.setProperty(k, vars[k]);
-  if(site === 'score') applyEyeState(el, eyeStateForScore(eyeScore));
+  if(site === 'score'){
+    if(rolling){ if(held) el.style.setProperty('--eye-h', held); }
+    else applyEyeState(el, eyeStateForScore(eyeScore));
+  }
   else applyEyeMood(el);
 }
 
@@ -2681,6 +2692,10 @@ function setEyeScore(score){
   const waking = anim('wakeOnScore') && eyeScore == null && score != null;
   eyeScore = score;
   if(changed) renderHeaderReadout();
+  // A count is running and it lands on the right face itself. Applying the answer here as
+  // well put the day's expression on screen before the count had started, and the
+  // double-take fired in the middle of it.
+  if(eyeRollTimer) return;
   if(eyesHome !== 'score') return;
   const el = document.getElementById('scoreEyes');
   if(changed) stopIdle();
@@ -2699,6 +2714,56 @@ function setEyeScore(score){
   applyEyeForm(el, 'score');
   applyEyeSag();
   if(changed){ eyeDoubleTake(score); scheduleIdle(2200); }
+}
+
+/* The mark counts with the number. As the digits climb it runs through every face it owns,
+   in order, and comes to rest on the one the day's score calls for — then looks down at what
+   it landed on.
+
+   Every face once and then the day's, rather than a sweep from nothing to the target: the
+   target IS the last face on a good day, so a high score would run the whole dial and a low
+   one would not move at all. Going all the way round first means it reads as a dial coming to
+   rest whatever the number turns out to be.
+
+   Timed off the digit roll and started with it, so the two are the same gesture. */
+let eyeRollTimer = null;
+function eyeRollThroughStates(score, delayMs, ms){
+  clearTimeout(eyeRollTimer);
+  eyeRollTimer = null;
+  if(!anim('rollWithScore')) return;
+  const el = document.getElementById('scoreEyes');
+  if(!el) return;
+  const land = eyeStateForScore(score);
+  const seq = EYE_STATES.slice();
+  if(seq[seq.length - 1] !== land) seq.push(land);
+  const step = Math.max(70, Math.round((ms || 620) / seq.length));
+  let i = 0;
+  const done = ()=>{
+    el.style.removeProperty('--eye-morph');
+    eyeRollTimer = null;
+    applyEyeState(el, land);   // whatever happened, it ends on the day's face
+  };
+  const advance = ()=>{
+    // Checked here rather than up front: this is set up while the mark may still be in the
+    // air, and where it is by the time the count starts is what matters.
+    if(eyesHome !== 'score'){ done(); return; }
+    applyEyeState(el, seq[i]);
+    i++;
+    if(i < seq.length){ eyeRollTimer = setTimeout(advance, step); return; }
+    eyeRollTimer = setTimeout(()=>{
+      done();
+      if(anim('glanceAtNumber')){ eyeGaze(0, 5, 240, 700); eyeConvergeFor(40); }
+      scheduleIdle(1600);
+    }, step);
+  };
+  // Each face has to arrive before the next is asked for, or the morph never lands.
+  el.style.setProperty('--eye-morph', Math.round(step * 0.7) + 'ms');
+  stopIdle();
+  // Shut to the first face straight away rather than after the wait. Left until the count
+  // began, the day's face — applied once up front by setEyeScore — showed for the length of
+  // the deal and then the mark rolled away from the answer it had already given.
+  if(eyesHome === 'score') applyEyeState(el, seq[0]);
+  eyeRollTimer = setTimeout(advance, Math.max(0, delayMs || 0));
 }
 
 /* ---------- THE REST OF THE LIST ----------
@@ -4503,7 +4568,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.5';
+const APP_VERSION = '2026.08.28.6';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8551,7 +8616,15 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
   const prevNum = parseInt(out.dataset.value || out.textContent);
-  if(!rollNumber(out, prevNum, overall)) animateNumber(out, isNaN(prevNum) ? 0 : overall, overall, 500);
+  // Arriving on Today counts up from zero every time, whether or not the score has moved.
+  // Rolling only on a change meant it never rolled: the number is the same all day, so the
+  // second visit onward found its own last value sitting in dataset.value and animated from
+  // it to itself. A score that changes while you are already here still rolls from where it
+  // was, because there the distance travelled is the information.
+  const rollFrom = uiArriving() ? NaN : prevNum;
+  if(!rollNumber(out, rollFrom, overall)) animateNumber(out, isNaN(rollFrom) ? 0 : rollFrom, overall, 500);
+  // Set up before setEyeScore, so the roll owns the expression for its duration.
+  eyeRollThroughStates(overall, uiArriving(), UI_ANIM.digitRoll.ms);
   setEyeScore(overall);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
