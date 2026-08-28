@@ -917,6 +917,31 @@
   .week-ex-fail.on{ background:var(--bad); border-color:var(--bad); color:#0c0d0b; }
   .pr-plate{ display:inline-block; font-family:var(--mono); font-size:0.86em; font-weight:var(--fw-bold);
     letter-spacing:0.1em; background:var(--accent); color:#0c0d0b; padding:0 5px; margin-left:6px; }
+  .log-bar{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:stretch;
+    background:#000000; border-top:2px solid var(--bg);
+    padding-bottom:env(safe-area-inset-bottom, 0px); }
+  .log-bar-open{ flex:1; min-width:0; height:auto; padding:11px 14px; background:transparent;
+    border:none; color:var(--bg); display:flex; align-items:baseline; gap:8px; cursor:pointer;
+    justify-content:flex-start; }
+  .log-bar-name{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .log-bar-count{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.06em;
+    color:rgba(251,250,246,0.55); flex:0 0 auto; }
+  .log-bar-clock{ align-self:center; font-family:var(--mono); font-size:var(--fs-md);
+    font-weight:var(--fw-bold); color:var(--bg); font-variant-numeric:tabular-nums;
+    padding:0 12px; flex:0 0 auto; }
+  .log-bar-clock.running{ color:var(--bad); }
+  .log-bar-drop{ height:auto; padding:0 16px; background:transparent; color:rgba(251,250,246,0.55);
+    border:none; border-left:2px solid rgba(251,250,246,0.25); font-size:var(--fs-md);
+    flex:0 0 auto; cursor:pointer; }
+  .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
+    color:var(--dim); flex:1; text-align:center; }
+  .log-step-arrow{ font-family:var(--mono); font-size:var(--fs-xl); line-height:1; height:auto;
+    padding:2px 14px; background:transparent; color:var(--text);
+    border:2px solid var(--border-bold); flex:0 0 auto; cursor:pointer; }
+  .log-step-arrow:disabled{ opacity:0.25; cursor:default; }
   .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .rest-clock{ font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     letter-spacing:0.02em; font-variant-numeric:tabular-nums; min-width:64px; }
@@ -2148,6 +2173,18 @@
 <div class="app-colophon"><div class="app-colophon-inner"><b>dogfood</b> <i>(v.)</i> — to use the thing you built on yourself.</div></div>
 <!-- Today ends in the thing you do next rather than in a joke about the app. Same black
      block, same place; the definition still closes every other tab. -->
+<!-- The session, put away but not gone. Fixed to the bottom so it survives scrolling and tab
+     switching, and carrying the rest clock, which is the one thing you want visible while the
+     panel is closed and the only thing closing it used to hide. -->
+<div class="log-bar" id="logBar" style="display:none;">
+  <button type="button" class="log-bar-open" id="logBarOpen">
+    <span class="log-bar-name" id="logBarName"></span>
+    <span class="log-bar-count" id="logBarCount"></span>
+  </button>
+  <span class="rest-clock log-bar-clock" id="logBarClock"></span>
+  <button type="button" class="log-bar-drop" id="logBarDrop" aria-label="Put the session away">×</button>
+</div>
+
 <div class="log-strip" id="todayLogStrip" role="button" tabindex="0" style="display:none;">
   <span class="log-strip-word" id="logStripWord">Swipe down to log workout</span>
   <span class="log-strip-arrow" aria-hidden="true">▾</span>
@@ -4315,6 +4352,10 @@ function updateFooterVisibility(){
   if(colophon) colophon.style.display = onToday ? 'none' : '';
   if(strip) strip.style.display = onToday ? 'flex' : 'none';
   if(onToday) refreshLogStripWord();
+  // The minimised bar sits above whatever footer this tab has, so it has to be remeasured
+  // whenever the footer comes or goes. Guarded because this runs during boot, before the
+  // bar's own state exists.
+  try{ updateLogBar(); }catch(e){}
 }
 // "Log" and "resume" are different offers and the strip should not make the same one twice.
 async function refreshLogStripWord(){
@@ -4888,7 +4929,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.34';
+const APP_VERSION = '2026.08.28.35';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7765,11 +7806,15 @@ let blockEditReturnTab = null;
 let blockEditDate = null;
 let blockEditHosted = false;   // true while the panel is living on Today rather than Weekly
 let blockEditSlot = 'am';
+let blockEditMinimisable = false;  // a session can be put on the bar; a type picker cannot
 function closeBlockEditor(opts){
   const keepDraft = !!(opts && opts.keepDraft);
   const panel = document.getElementById('blockEditPanel');
   if(!panel) return;
   stopRestTimer();
+  logMinimised = false;
+  blockEditMinimisable = false;
+  updateLogBar();
   panel.style.display = 'none';
   panel.innerHTML = '';
   // Home again, so Weekly's own editing still finds it where it expects to.
@@ -7859,6 +7904,107 @@ async function loggingStartedAt(date){
   try{ return JSON.parse((await window.storage.get(loggingKey(date))).value).at; } catch(e){ return null; }
 }
 
+/* MINIMISED, NOT CLOSED. Closing used to hide the rest clock, which is exactly backwards —
+   the clock matters most in the gap where the panel is not wanted. The session shrinks to a
+   line instead: what you are doing, how far through it you are, and the countdown still
+   running. Tapping it puts the panel back; the cross beside it parks the session properly and
+   hands you back to the Resume marker on Today.
+
+   Fixed to the bottom rather than left in the page, so it survives scrolling and tab
+   switching — put the phone down mid-set, go and look at the week, and the session is still
+   there when you come back. */
+let logMinimised = false;
+function updateLogBar(){
+  const bar = document.getElementById('logBar');
+  if(!bar) return;
+  bar.style.display = logMinimised ? 'flex' : 'none';
+  if(!logMinimised){ document.body.style.paddingBottom = ''; return; }
+  // Above the tab bar, not over it. Half the point of putting the session away is going to
+  // look at something else, which you cannot do if the bar has covered the way there.
+  const footer = document.querySelector('footer');
+  bar.style.bottom = (footer && getComputedStyle(footer).display !== 'none' ? footer.offsetHeight : 0) + 'px';
+  document.body.style.paddingBottom = bar.offsetHeight + 'px';
+  const rows = logExRows();
+  const done = rows.filter(r=> ['sets','reps','weight']
+    .some(k=> (r.querySelector('.week-ex-' + k)?.value || '').trim())).length;
+  const name = document.getElementById('logBarName');
+  const count = document.getElementById('logBarCount');
+  if(name) name.textContent = logBarTitle;
+  if(count) count.textContent = rows.length ? `${done}/${rows.length}` : '';
+  // The clock earns its place on the bar only while it is counting; a parked 2:00 sitting
+  // beside the session reads as time elapsed, which it is not.
+  const clock = document.getElementById('logBarClock');
+  if(clock) clock.style.display = restTimerId ? '' : 'none';
+}
+let logBarTitle = 'Session';
+function minimiseBlockEditor(){
+  const panel = document.getElementById('blockEditPanel');
+  if(!panel || panel.style.display === 'none') return;
+  panel.style.display = 'none';
+  logMinimised = true;
+  updateLogBar();
+  // Today keeps its own offer to open the session and it has to agree with the bar: leaving
+  // it reading "log this workout" while a half-typed one is sitting on the bar gives you two
+  // doors into the same room, one of which is lying about what is behind it.
+  renderTodayWorkoutSummary();
+  updateFooterVisibility();
+}
+function expandBlockEditor(){
+  const panel = document.getElementById('blockEditPanel');
+  if(!panel || !logMinimised) return;
+  logMinimised = false;
+  updateLogBar();
+  // The panel lives inside whichever tab it was opened from; going back to it means going
+  // back there, or you expand something you cannot see.
+  const host = panel.closest('.panel');
+  if(host && !host.classList.contains('active')){
+    const name = host.id.replace('panel-', '');
+    activateTab(name);
+    setTimeout(()=>{ panel.style.display = 'block'; panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' }); }, 500);
+    return;
+  }
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
+}
+(function wireLogBar(){
+  const open = document.getElementById('logBarOpen');
+  const drop = document.getElementById('logBarDrop');
+  if(open) open.addEventListener('click', expandBlockEditor);
+  if(drop) drop.addEventListener('click', async ()=>{
+    await saveLogDraftNow();
+    logMinimised = false;
+    closeBlockEditor({ keepDraft:true });
+  });
+})();
+
+/* ONE LIFT ON SCREEN AT A TIME. A session of six exercises was six stacked forms, so the one
+   you were actually doing was somewhere in the middle of a scroll and everything above and
+   below it was noise. The rows all still exist — Save reads every one of them, and the draft
+   writes every one of them — they are simply not all shown at once. What changes is what you
+   are looking at, not what is there.
+
+   Position rather than a name in the stepper: "3 / 6" answers how much is left, which is the
+   question you have between sets. The name is on the row you are looking at. */
+let logExIndex = 0;
+function logExRows(){
+  return [...document.querySelectorAll('#weekExerciseRows .edit-row')].filter(r=>r.querySelector('.week-ex-name'));
+}
+function showLogExercise(i){
+  const rows = logExRows();
+  if(!rows.length) return;
+  logExIndex = Math.max(0, Math.min(rows.length - 1, i));
+  rows.forEach((r, n)=>{ r.style.display = n === logExIndex ? '' : 'none'; });
+  const pos = document.getElementById('logPos');
+  if(pos) pos.textContent = `${logExIndex + 1} / ${rows.length}`;
+  const prev = document.getElementById('logPrev'), next = document.getElementById('logNext');
+  if(prev) prev.disabled = logExIndex === 0;
+  if(next) next.disabled = logExIndex === rows.length - 1;
+  updateLogBar();
+}
+// Rows the exercise stepper hid are still rows. Removing the one on screen has to leave you
+// looking at something rather than at the gap where it was.
+function afterLogRowRemoved(){ setTimeout(()=> showLogExercise(logExIndex), 240); }
+
 /* The one thing a training app does DURING a session that this one did not do at all. It
    lives in the editor because that is where you already are between sets, and it counts down
    in mono in place rather than opening anything. The mark is told when it lands, so the app
@@ -7871,20 +8017,28 @@ function restClockText(sec){
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 let restTimerId = null, restEndsAt = 0, restChosen = REST_DEFAULT;
+// There are two clocks now — the one in the editor and the one on the minimised bar — and
+// the countdown belongs to the session, not to either of them. Write to every clock on the
+// page and neither can drift or go stale behind the other.
+function restClocks(){ return [...document.querySelectorAll('.rest-clock')]; }
+function paintRestClocks(text, running){
+  restClocks().forEach(c=>{ c.textContent = text; c.classList.toggle('running', !!running); });
+  // The bar's clock appears the moment a rest starts rather than at the next bar repaint.
+  const bar = document.getElementById('logBarClock');
+  if(bar) bar.style.display = running ? '' : 'none';
+}
 function stopRestTimer(){
   clearInterval(restTimerId);
   restTimerId = null;
   restEndsAt = 0;
   const go = document.getElementById('restGoBtn');
-  const clock = document.getElementById('restClock');
   if(go) go.textContent = 'Rest';
-  if(clock){ clock.textContent = restClockText(restChosen); clock.classList.remove('running'); }
+  paintRestClocks(restClockText(restChosen), false);
 }
 function tickRestTimer(){
-  const clock = document.getElementById('restClock');
-  if(!clock){ stopRestTimer(); return; }          // editor closed under it
+  if(!restClocks().length){ stopRestTimer(); return; }   // editor closed under it
   const left = Math.round((restEndsAt - Date.now()) / 1000);
-  clock.textContent = restClockText(left);
+  paintRestClocks(restClockText(left), true);
   if(left > 0) return;
   stopRestTimer();
   showToast('Rest done');
@@ -7901,15 +8055,14 @@ function wireRestTimer(panel){
       restChosen = +b.dataset.rest;
       panel.querySelectorAll('.rest-preset').forEach(x=> x.classList.toggle('on', +x.dataset.rest === restChosen));
       if(restTimerId){ restEndsAt = Date.now() + restChosen * 1000; tickRestTimer(); }
-      else document.getElementById('restClock').textContent = restClockText(restChosen);
+      else paintRestClocks(restClockText(restChosen), false);
     });
   });
   go.addEventListener('click', ()=>{
     if(restTimerId){ stopRestTimer(); return; }
     restEndsAt = Date.now() + restChosen * 1000;
     go.textContent = 'Stop';
-    const clock = document.getElementById('restClock');
-    if(clock) clock.classList.add('running');
+    paintRestClocks(restClockText(restChosen), true);
     // Wall-clock, not a decrementing counter: a phone that sleeps or throttles a background
     // tab would otherwise come back with a timer that has quietly lost the minute it slept.
     restTimerId = setInterval(tickRestTimer, 250);
@@ -7917,17 +8070,22 @@ function wireRestTimer(panel){
   });
 }
 
+async function saveLogDraftNow(){
+  const p = document.getElementById('blockEditPanel');
+  if(!p || !blockEditDirty || !blockEditDate) return;
+  try{ await window.storage.set(logDraftKey(blockEditDate, blockEditSlot), JSON.stringify(collectLogDraft(p))); } catch(e){}
+}
 function wireBlockEditorClose(panel){
   const btn = panel.querySelector('#closeWeekBlockBtn');
   if(!btn) return;
   btn.addEventListener('click', async ()=>{
-    // Nothing to confirm any more: closing keeps everything. What you typed is in the draft
-    // and Today says so until you save it or throw it away on purpose.
-    const p = document.getElementById('blockEditPanel');
-    if(p && blockEditDirty && blockEditDate){
-      try{ await window.storage.set(logDraftKey(blockEditDate, blockEditSlot), JSON.stringify(collectLogDraft(p))); } catch(e){}
-    }
-    closeBlockEditor({ keepDraft:true });
+    // Nothing to confirm either way: what you typed is in the draft before the panel moves.
+    await saveLogDraftNow();
+    // A session goes to the bar rather than away — the rest timer is still running and you
+    // are still in the middle of it. Only the type picker, which has no session behind it,
+    // still closes outright.
+    if(blockEditMinimisable) minimiseBlockEditor();
+    else closeBlockEditor({ keepDraft:true });
   });
   // Delegated, so rows added after this runs are covered too.
   ['input','change'].forEach(t=> panel.addEventListener(t, e=>{
@@ -8002,6 +8160,9 @@ function lastLoggedLine(name){
 
 async function openBlockEditor(date, slot, block, opts){
   const panel = document.getElementById('blockEditPanel');
+  // However you got back in — the bar, Today's marker, the day wheel — the bar's job is done.
+  logMinimised = false;
+  updateLogBar();
   blockEditDirty = false;
   blockEditReturnTab = null;
   blockEditDate = date;
@@ -8011,6 +8172,11 @@ async function openBlockEditor(date, slot, block, opts){
   if(blockEditHosted && panel.parentElement !== opts.host) opts.host.appendChild(panel);
   eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
+  blockEditMinimisable = !!block;
+  // What the session is called, not where it sits in the week: the bar only ever carries the
+  // one you are in the middle of, so the day and slot are not the question. Its own name if
+  // it has one — the same words Today's card uses — and the type if it does not.
+  logBarTitle = block ? ((block.details && block.details.workoutTag) || block.type) : `${dayLabel} ${slot.toUpperCase()}`;
   if(!block){
     panel.style.display = 'block';
     panel.innerHTML = `
@@ -8037,7 +8203,12 @@ async function openBlockEditor(date, slot, block, opts){
   if(wheelStage) wheelStage.style.display = 'none';
   let fieldsHtml = '';
   if(block.type === 'strength'){
-    fieldsHtml = `<div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
+    fieldsHtml = `<div class="log-step" id="logStep">
+        <button type="button" class="log-step-arrow" id="logPrev" aria-label="Previous exercise">\u2039</button>
+        <span class="log-step-pos" id="logPos"></span>
+        <button type="button" class="log-step-arrow" id="logNext" aria-label="Next exercise">\u203a</button>
+      </div>
+      <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
   } else if(block.type === 'run'){
     fieldsHtml = `
       <div class="edit-row"><select id="weekRunType">
@@ -8067,7 +8238,7 @@ async function openBlockEditor(date, slot, block, opts){
     ${fieldsHtml}
     <div class="score-note" style="margin-top:8px;">${logNoteByType[block.type]}</div>
     <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-      <button id="closeWeekBlockBtn" class="small outline">Close</button>
+      <button id="closeWeekBlockBtn" class="small outline">Minimise</button>
       <button id="logWeekSessionBtn" class="primary">Save</button>
       <button id="deleteWeekBlockBtn" class="small outline" style="margin-left:auto; flex:0 0 auto;">Delete</button>
     </div>
@@ -8132,7 +8303,7 @@ async function openBlockEditor(date, slot, block, opts){
           <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
           <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
         </div>`;
-      row.querySelector('.remove-row').addEventListener('click', ()=>removeRowAnimated(row));
+      row.querySelector('.remove-row').addEventListener('click', ()=>{ removeRowAnimated(row); afterLogRowRemoved(); });
       // Whether a set was taken to failure is the input the effort estimate has been guessing
       // from the rep drop-off. 5,5,4 because you failed and 5,5,4 because you stopped are
       // different sessions, and only you know which.
@@ -8173,7 +8344,12 @@ async function openBlockEditor(date, slot, block, opts){
     }
     (block.details.exercises||[]).forEach(ex=>addWeekExRow(ex));
     if((block.details.exercises||[]).length===0) addWeekExRow();
-    document.getElementById('addWeekExerciseRow').addEventListener('click', ()=>addWeekExRow());
+    document.getElementById('addWeekExerciseRow').addEventListener('click', ()=>{
+      addWeekExRow();
+      showLogExercise(logExRows().length - 1);   // land on the one you just asked for
+    });
+    document.getElementById('logPrev').addEventListener('click', ()=> showLogExercise(logExIndex - 1));
+    document.getElementById('logNext').addEventListener('click', ()=> showLogExercise(logExIndex + 1));
   }
 
   if(block.type==='mobility'){
@@ -8248,6 +8424,14 @@ async function openBlockEditor(date, slot, block, opts){
   }
 
   applyLogDraft(panel, await loadLogDraft(date, slot));
+  // Open on the first lift with nothing entered — coming back to a session should put you
+  // where the work is, not at the top of a list you have already been through.
+  if(block.type === 'strength'){
+    const rows = logExRows();
+    const firstBlank = rows.findIndex(r=> !['sets','reps','weight']
+      .some(k=> (r.querySelector('.week-ex-' + k)?.value || '').trim()));
+    showLogExercise(firstBlank < 0 ? 0 : firstBlank);
+  }
   wireBlockEditorClose(panel);
   wireRestTimer(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
