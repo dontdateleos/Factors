@@ -3946,7 +3946,7 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
-  pageGlitch:   { on:true, note:'A page jolts sideways once as it lands on a newly selected tab', ms:260 },
+  pageGlitch:   { on:true, note:'Every block on a newly selected page tears once as it lands', ms:260 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:200 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
@@ -4417,8 +4417,7 @@ function activateTab(name, opts){
   // seven is the page falling over.
   clearTimeout(pageGlitchTimer);
   pageGlitchTimer = setTimeout(()=>{
-    const landed = document.querySelector('.panel.active');
-    if(landed) playGlitch(landed, 'pageGlitch', 6, false);
+    playGlitchGroup(document.querySelector('.panel.active'), 'pageGlitch', 2);
   }, uiAnim('tabLift') ? UI_ANIM.tabLift.ms : 0);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -4872,7 +4871,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.28';
+const APP_VERSION = '2026.08.28.29';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9552,9 +9551,66 @@ const GLITCH_FRAMES = [
 /* Clipping is right for something small and wrong for something tall. inset() keeps a band
    and throws the rest away, and the bands are percentages of the ELEMENT — on a 46px score
    that is a tear across the digits, on a 1200px panel it is most of the page vanishing to
-   bare colour while the surviving band sits below the fold. Measured: at three of nine frames
-   the viewport went empty. So a page displaces and does not clip. Same steps, same throw
-   profile, nothing destroyed. */
+   bare colour while the surviving band sits below the fold.
+
+   So a page is not glitched as one thing. Displacing the whole panel instead was a shake, and
+   a shake is a different effect: the page moved but nothing on it broke up. It is glitched
+   BLOCK BY BLOCK — each visible piece of it tears on its own bands, on its own beat, which is
+   what a raster losing its grip actually looks like and is the same tear the score gets. A
+   block taller than the screen still cannot be clipped without blanking it, so those few
+   displace instead; measured rather than assumed, per element, every time. */
+/* Everything on the page, tearing at slightly different moments. One synchronised blink
+   across every block reads as the screen blinking; a few tens of milliseconds of scatter reads
+   as the picture breaking up. Only what is actually on screen — a block below the fold that
+   tears while you cannot see it is work spent on nothing. */
+const GLITCH_GROUP_MAX = 10;
+const GLITCH_GROUP_SCATTER = 70;   // ms
+/* The score's frames KEEP a narrow band and throw the rest away, which is a tear on something
+   46px tall and a blackout on something the size of a page. A block gets the inverse: a thin
+   slice CUT out of it, everything else left alone. And the slice is measured in pixels off the
+   part of the block that is actually on screen — as a percentage of the element it would land
+   below the fold on anything long, which is the same bug in a different costume. */
+const GLITCH_PAGE_CUTS = [
+  [0,    null,              0],
+  [0.08, ['bottom', 0.24], -1],
+  [0.16, null,              0],
+  [0.28, ['top',    0.19],  0.86],
+  [0.36, null,              0],
+  [0.52, ['bottom', 0.13], -0.57],
+  [0.60, null,              0],
+  [0.76, ['top',    0.10],  0.43],
+  [0.84, null,              0],
+  [1,    null,              0]
+];
+function pageGlitchFrames(el, px){
+  const r = el.getBoundingClientRect(), H = r.height, vh = window.innerHeight;
+  const visTop = Math.max(0, -r.top), visBot = Math.min(H, vh - r.top);
+  const vis = Math.max(1, visBot - visTop);
+  return GLITCH_PAGE_CUTS.map(([offset, cut, mul])=>{
+    let clipPath = 'inset(0px 0px 0px 0px)';
+    if(cut){
+      const band = vis * cut[1];
+      clipPath = cut[0] === 'bottom'
+        ? `inset(0px 0px ${Math.max(0, Math.round(H - (visBot - band)))}px 0px)`
+        : `inset(${Math.max(0, Math.round(visTop + band))}px 0px 0px 0px)`;
+    }
+    return { offset, clipPath, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)' };
+  });
+}
+function playGlitchGroup(root, key, px){
+  if(!root || !uiAnim(key)) return;
+  const vh = window.innerHeight;
+  const blocks = [...root.children].filter(el=>{
+    const r = el.getBoundingClientRect();
+    return r.height > 8 && r.bottom > 0 && r.top < vh;
+  }).slice(0, GLITCH_GROUP_MAX);
+  blocks.forEach((el, i)=>{
+    const throwPx = (i % 2 ? -1 : 1) * px;
+    setTimeout(()=>{
+      try{ el.animate(pageGlitchFrames(el, throwPx), { duration: UI_ANIM[key].ms }); } catch(e){}
+    }, Math.round(Math.random() * GLITCH_GROUP_SCATTER));
+  });
+}
 function playGlitch(el, key, px, clip){
   if(!el || !uiAnim(key)) return null;
   if(clip === false){
