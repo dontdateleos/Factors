@@ -336,10 +336,6 @@
   .eyes span:last-child{ transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1) rotate(var(--eye-rot));
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
-  /* Held frames, on the mark alone. Both easings are variables so this is two lines rather
-     than a duplicate of every transition above. Steps, not a curve: the pair stops moving
-     like a face and starts moving like a shutter. */
-  .eye-held .eyes{ --eye-ease:steps(4, end); --eye-gaze-ease:steps(4, end); }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
   /* Held on the flyer for one frame while it is dressed in the form it is LEAVING, so the
      browser takes that as the current style. Without it the two writes coalesce and the
@@ -2195,9 +2191,7 @@ const EYE_ANIM = {
   lookAtSave:     { on:true, note:'Looks at the button you are heading for the moment a form goes dirty' },
   thinkBeforeCard:{ on:true, note:'A beat of looking away before a recommendation lands' },
   lookAtPanel:    { on:true, note:'Looks at a panel that opens over the page' },
-  tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 },
-  // — Treatment. Not a behaviour of its own; it changes how every behaviour above moves.
-  heldFrames:     { on:true, note:'Ticks between held positions instead of gliding — every morph, gesture and glance, and the score\'s digits, in steps', steps:4 }
+  tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -2234,30 +2228,16 @@ function setEyeCalm(on){
 // One gate for everything: off if the behaviour is off, off in calm mode unless it is one
 // of the keepers, and off entirely under prefers-reduced-motion. No single behaviour has
 // to remember to check any of it.
-/* HELD FRAMES, on the mark alone. The interface glides; the character ticks — it moves
-   between a few positions and rests on each one, the way a mechanism does rather than the way
-   software does. Tried across the whole app first and taken back out: over a page of travel a
-   step is a hundred and fifty pixels, which reads as a dropped frame rather than as intent.
-   The mark's moves are all small — a few pixels of gaze, a lid closing — so a step is a step.
+/* The score's digits tick between digits instead of gliding between them. Tried on the mark
+   too and taken back off: stepping made the pair read as a mechanism, and the whole job of
+   that mark is to feel fresh and quick. A counter should tick. A face should not.
 
-   Two hooks reach everything. --eye-ease drives every morph transition the pair has (lid
-   height, width, radius, colour, the gap between them), so one variable re-tones all of them;
-   and eyeGesture is the one-shot player every blink, wink and nod goes through. */
-const EYE_HELD_STEPS = 4;
-function eyeHeldEasing(steps){
-  return anim('heldFrames') ? `steps(${Math.max(2, steps || EYE_HELD_STEPS)}, end)` : null;
-}
-function applyEyeHeld(){
-  document.documentElement.classList.toggle('eye-held', anim('heldFrames'));
-}
-/* The score's digits take the same treatment, because they are the mark's number: the pair
-   sits directly above them and wears whatever they say. Two things, one reading, one switch.
-   The step count is the digits actually passed through rather than anything derived from
-   distance — here the stops MEAN something, a strip has to land ON a digit, and a count
-   picked any other way parks it between two. */
+   The step count is the digits actually passed through, not anything derived from distance —
+   here the stops MEAN something, a strip has to land ON a digit, and a count picked any other
+   way parks it between two. */
 function heldDigitEasing(from, to){
   const steps = Math.abs(to - from);
-  return (steps >= 1 && anim('heldFrames')) ? `steps(${steps}, end)` : null;
+  return (steps >= 1 && uiAnim('digitStep')) ? `steps(${steps}, end)` : null;
 }
 
 function anim(k){
@@ -2449,11 +2429,7 @@ function eyeGazeResetAll(){
 function eyeGesture(frames, ms, opts){
   const el = eyeMotionEl();
   if(!el || eyeMotionOff()) return null;
-  const o = Object.assign({ duration: ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' }, opts || {});
-  const held = eyeHeldEasing(o.heldSteps);
-  if(held) o.easing = held;
-  delete o.heldSteps;
-  try{ return el.animate(frames, o); }
+  try{ return el.animate(frames, Object.assign({ duration: ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' }, opts || {})); }
   catch(e){ return null; }
 }
 // A one-shot lid move that returns to whatever the lids were doing. Bumps blinkSeq so a
@@ -3468,7 +3444,6 @@ function renderEyeAnimList(){
     box.addEventListener('change', ()=>{
       EYE_ANIM[key].on = box.checked;
       saveEyeAnimPrefs();
-      applyEyeHeld();
       // Switching the idle loop off has to actually stop it, not wait for the next landing.
       stopEyeIdle(); startEyeIdle();
       renderEyeAnimList();
@@ -3875,6 +3850,7 @@ const UI_ANIM = {
   collapseMotion:{ on:true, note:'Sections open and close instead of blinking in and out', ms:260 },
   growBars:     { on:true, note:'Bars grow from nothing, one after another', ms:520, stagger:45 },
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
+  digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -3917,7 +3893,6 @@ function uiAnim(k){
 function uiPlay(el, frames, opts){
   if(!el) return null;
   const o = Object.assign({ duration:300, easing:'cubic-bezier(0.3,0.9,0.3,1)' }, opts||{});
-  delete o.heldSteps;   // ours, not the Web Animations API's — see eyeHeldEasing
   try{ return el.animate(frames, o); }
   catch(e){ return null; }
 }
@@ -4196,7 +4171,6 @@ function applyUiCssAnims(){
   UI_CSS_ANIMS.forEach(k=> document.documentElement.classList.toggle('ui-' + k, uiAnim(k)));
 }
 applyUiCssAnims();
-applyEyeHeld();
 
 /* 9 — Something the shape of what is coming, pulsing, rather than an empty space. Sits in
    the block it is waiting on and is replaced by the content when it lands. */
@@ -4751,7 +4725,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.17';
+const APP_VERSION = '2026.08.28.18';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8972,15 +8946,23 @@ const TRACE_BAND = 26;          // the trace's own height, above its rail
 const TICK_H = 3;               // today's mark; the other six are 2px
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
+/* The week, held. renderScoreTrace gathers it; paintScoreTrace draws it; and because the
+   readings are kept rather than thrown away after drawing, the block can be swiped back
+   through them without going near storage again. */
+let scoreDays = [];        // 7 entries, oldest first, score null where nothing was logged
+let scoreDayIndex = null;  // which one the block is showing; the last scored one is today
+let scoreTodayLabel = '';  // the label today had, to put back when you return to it
+
 async function renderScoreTrace(todayScore){
   const host = document.getElementById('scoreTrace');
   if(!host) return;
   host.style.display = 'none';
+  scoreDays = [];
+  scoreDayIndex = null;
   if(todayScore == null) return;
 
-  // Six days back plus today. A day with no entry is a hole, not a zero — the path breaks
-  // across it rather than drawing a dive to the floor and back.
-  const days = [];
+  // Six days back plus today. A day with no entry is a hole, not a zero — it simply has no
+  // mark, and the swipe steps over it rather than landing on nothing.
   for(let d = 6; d >= 1; d--){
     const dt = new Date(todayStr);
     dt.setDate(dt.getDate() - d);
@@ -8990,11 +8972,19 @@ async function renderScoreTrace(todayScore){
       const entry = JSON.parse((await window.storage.get(keyFor(date))).value);
       score = await overallScoreForEntry(entry);
     } catch(e){}
-    days.push({ date, score });
+    scoreDays.push({ date, score });
   }
-  days.push({ date: todayStr, score: todayScore });
-  if(days.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
+  scoreDays.push({ date: todayStr, score: todayScore });
+  scoreDayIndex = scoreDays.length - 1;
+  const lbl = document.getElementById('overallScoreLabel');
+  scoreTodayLabel = lbl ? lbl.textContent : '';
+  if(scoreDays.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
+  paintScoreTrace();
+}
 
+function paintScoreTrace(){
+  const host = document.getElementById('scoreTrace');
+  if(!host || !scoreDays.length) return;
   // Width is whatever the band has left once the score's own digits are clear of it —
   // measured, because "84" and "100" are not the same width and 320px is not 430px.
   const band = document.querySelector('.today-open');
@@ -9002,9 +8992,10 @@ async function renderScoreTrace(todayScore){
   if(!band || !num) return;
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
   const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
-  if(W < TRACE_MIN_W) return;
+  if(W < TRACE_MIN_W){ host.style.display = 'none'; return; }
 
-  const vals = days.filter(x=>x.score != null).map(x=>x.score);
+  const vals = scoreDays.filter(x=>x.score != null).map(x=>x.score);
+  if(vals.length < 3){ host.style.display = 'none'; return; }
   const mid = (Math.min(...vals) + Math.max(...vals)) / 2;
   const span = Math.max(TRACE_MIN_SPAN, (Math.max(...vals) - Math.min(...vals)) + TRACE_PAD * 2);
   let lo = mid - span / 2, hi = mid + span / 2;
@@ -9014,29 +9005,110 @@ async function renderScoreTrace(todayScore){
   // One free-floating mark per day, over a rail, rather than a joined line. Seven readings
   // ARE seven separate marks — nothing was measured between them — and a day with no entry
   // is then simply an absence, which no line-based version can say without a special case.
-  const slot = W / days.length;
+  const slot = W / scoreDays.length;
   const tickW = Math.max(6, Math.round(slot * 0.62));
   const y = s => TRACE_BAND - ((clamp(s, lo, hi) - lo) / (hi - lo)) * (TRACE_BAND - TICK_H);
-  const marks = days.map((day, i)=>{
+  const marks = scoreDays.map((day, i)=>{
     if(day.score == null) return '';
-    const isToday = i === days.length - 1;
-    const h = isToday ? TICK_H : 2;
+    // Three weights, not two: the day you are looking at, today as the anchor you came from,
+    // and the rest. Dropping today back to the crowd while you browse loses the one mark that
+    // tells you which end of the week you are at.
+    const picked = i === scoreDayIndex;
+    const isToday = i === scoreDays.length - 1;
+    const h = picked ? TICK_H : 2;
+    const fill = picked ? 'var(--bg)' : (isToday ? 'rgba(251,250,246,0.85)' : 'rgba(251,250,246,0.5)');
     const x = Math.round(i * slot + (slot - tickW) / 2);
-    const ty = Math.round(y(day.score)) - (isToday ? 1 : 0);
-    return `<rect x="${x}" y="${ty}" width="${tickW}" height="${h}" fill="${isToday ? 'var(--bg)' : 'rgba(251,250,246,0.5)'}"/>`;
+    const ty = Math.round(y(day.score)) - (picked ? 1 : 0);
+    return `<rect x="${x}" y="${ty}" width="${tickW}" height="${h}" fill="${fill}"/>`;
   }).join('');
-  const svg = `<svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
+  host.innerHTML = `<svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
     </svg>`;
-  host.innerHTML = svg;
   host.style.display = 'block';
   // Centred on the number rather than on the band: the band's own middle is empty space
   // between the eyes and the label, and the trace belongs to the figure it is a history of.
   host.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - TRACE_BAND) / 2) + 'px';
-  host.setAttribute('aria-label', 'Score over the last 7 days: ' +
-    days.map(x=> x.score == null ? 'no reading' : x.score).join(', '));
+  const showing = scoreDays[scoreDayIndex];
+  host.setAttribute('aria-label',
+    (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
+    'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading' : x.score).join(', '));
 }
+
+/* Swipe the block back through the week. The number, the mark and the highlighted tick all
+   move together, because they are one reading — and nothing else on the page does, because
+   nothing else on the page is about that day. The label carries the date while you are away
+   from today, which is the whole answer to "what am I looking at".
+   Days with no entry are stepped over rather than landed on: an empty day would blank the
+   number, and a blank number is indistinguishable from a broken one. */
+function scoredIndices(){
+  return scoreDays.map((d, i)=> d.score != null ? i : -1).filter(i=>i >= 0);
+}
+function stepScoreDay(dir){
+  const list = scoredIndices();
+  if(list.length < 2 || scoreDayIndex == null) return false;
+  const at = list.indexOf(scoreDayIndex);
+  const next = list[Math.max(0, Math.min(list.length - 1, (at < 0 ? list.length - 1 : at) + dir))];
+  if(next === scoreDayIndex) return false;
+  showScoreDay(next);
+  return true;
+}
+function showScoreDay(idx){
+  const out = document.getElementById('overallScoreOut');
+  const label = document.getElementById('overallScoreLabel');
+  const from = scoreDays[scoreDayIndex] ? scoreDays[scoreDayIndex].score : NaN;
+  scoreDayIndex = idx;
+  const to = scoreDays[idx].score;
+  if(out && !rollNumber(out, from, to)) animateNumber(out, isNaN(from) ? 0 : from, to, 400);
+  // The pair wears whatever the number says — that is the rule everywhere else, and a fresh
+  // face over a wrecked reading would be the block contradicting itself.
+  setEyeScore(to);
+  if(label) label.textContent = idx === scoreDays.length - 1 ? scoreTodayLabel : stamp(scoreDays[idx].date);
+  // A reading from six days ago can sit in the previous block week, and the line under it
+  // was stating this week's position regardless — a small lie, but the block position is
+  // exactly the context that makes an old score readable, so it is worth getting right.
+  renderTodayBlockContext(scoreDays[idx].date);
+  paintScoreTrace();
+}
+
+(function setupScoreSwipe(){
+  const band = document.querySelector('.today-open');
+  if(!band) return;
+  const STEP_PX = 56;   // one day per this much travel, the week picker's idiom sideways
+  let dragging = false, startX = 0, startY = 0, accumulated = 0, engaged = false;
+  band.addEventListener('pointerdown', e=>{
+    if(e.target.closest('button, input, select, a')) return;
+    dragging = true; engaged = false; accumulated = 0;
+    startX = e.clientX; startY = e.clientY;
+  });
+  band.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    // Not until the gesture has committed to sideways. Anything else is the page scrolling,
+    // and stealing it would make the top of Today feel stuck.
+    if(!engaged){
+      if(Math.abs(dy) > Math.abs(dx)){ dragging = false; return; }
+      if(Math.abs(dx) < 12) return;
+      engaged = true;
+      band.setPointerCapture(e.pointerId);
+    }
+    const steps = Math.trunc((dx - accumulated) / STEP_PX);
+    if(!steps) return;
+    accumulated += steps * STEP_PX;
+    // Dragging right pulls the older end of the week toward you, which is the direction the
+    // trace already reads: oldest on the left, today at the right.
+    for(let n = 0; n < Math.abs(steps); n++) stepScoreDay(steps > 0 ? -1 : 1);
+  }, { passive:true });
+  const end = ()=>{ dragging = false; engaged = false; };
+  band.addEventListener('pointerup', end);
+  band.addEventListener('pointercancel', end);
+  // The same move from the keyboard, on the one thing in the band that already takes focus.
+  const toggle = document.getElementById('scoreToggle');
+  if(toggle) toggle.addEventListener('keydown', e=>{
+    if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if(stepScoreDay(e.key === 'ArrowLeft' ? -1 : 1)) e.preventDefault();
+  });
+})();
 
 async function isRestDayComing(daysAhead){
   const d = new Date(todayStr);
@@ -13230,17 +13302,21 @@ async function applyRestDayShape(){
   note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
 }
 
-async function renderTodayBlockContext(){
+async function renderTodayBlockContext(forDate){
   const el = document.getElementById('todayBlockContext');
   if(!el) return;
   try{
-    const pos = await getBlockPosition(todayStr);
+    const pos = await getBlockPosition(forDate || todayStr);
     const dl = isDeloadPosition(pos.weekInBlock, pos.length);
     const reintro = isBlockReintroWeek(pos.weekInBlock, pos.blocksCompleted);
     const phase = dl ? 'deload' : getBlockPhase(pos.weekInBlock, dl, pos.length);
     let line = `Block ${pos.blocksCompleted + 1} · week ${pos.weekInBlock}/${pos.length} · ${phase}`;
     let note = '';
-    if(dl) note = 'Planned recovery week — a good score today is the deload working, not a reason to add work back.';
+    // The notes are all written in the present tense about today. On a day you have swiped
+    // back to they would be advice about a week that has already happened, so the line keeps
+    // the position — which is what makes the reading mean something — and drops the coaching.
+    if(forDate && forDate !== todayStr){ /* position only */ }
+    else if(dl) note = 'Planned recovery week — a good score today is the deload working, not a reason to add work back.';
     else if(reintro) note = 'First week back — loads are intentionally ~10% down. Ramping, not testing.';
     else if(phase === 'intensification') note = 'Highest planned volume of the block. If the score is low, this is the week to take that seriously.';
     el.innerHTML = line + (note ? `<div style="opacity:0.75; margin-top:2px;">${note}</div>` : '');
