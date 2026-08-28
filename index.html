@@ -273,9 +273,6 @@
   /* Uppercase at display size does not want the tight tracking those were drawn with, and
      mono does not want negative tracking at all — the grid is the point. */
   .group-title, .rest-word, .score-num{ letter-spacing:0.02em; }
-  /* The one piece of motion here that is a CSS transition rather than a scripted one, so it
-     cannot go through uiPlay and gets its steps set directly. */
-  .ui-heldFrames .tab-indicator{ transition-timing-function:steps(6, end); }
   .rest-plate{ background:#000000; border-top:2px solid var(--bg); margin:0 -14px;
     padding:var(--sp-4) 14px; }
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
@@ -322,7 +319,7 @@
   .eye-gaze{ display:flex; align-items:center; justify-content:center;
     transform:translate(var(--eye-gaze-x, 0px), var(--eye-gaze-y, 0px));
     /* Overshoots and settles rather than easing flat to a stop, matching the flight. */
-    transition:transform var(--eye-gaze-ms, 0.26s) cubic-bezier(0.34,1.32,0.5,1); }
+    transition:transform var(--eye-gaze-ms, 0.26s) var(--eye-gaze-ease, cubic-bezier(0.34,1.32,0.5,1)); }
   .eye-motion{ display:flex; align-items:center; gap:var(--eye-gap);
     transition:gap var(--eye-morph) var(--eye-ease); }
   /* --eye-converge turns the two eyes toward each other. Opposite signs, applied outside
@@ -339,6 +336,10 @@
   .eyes span:last-child{ transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1) rotate(var(--eye-rot));
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
+  /* Held frames, on the mark alone. Both easings are variables so this is two lines rather
+     than a duplicate of every transition above. Steps, not a curve: the pair stops moving
+     like a face and starts moving like a shutter. */
+  .eye-held .eyes{ --eye-ease:steps(4, end); --eye-gaze-ease:steps(4, end); }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
   /* Held on the flyer for one frame while it is dressed in the form it is LEAVING, so the
      browser takes that as the current style. Without it the two writes coalesce and the
@@ -2194,7 +2195,9 @@ const EYE_ANIM = {
   lookAtSave:     { on:true, note:'Looks at the button you are heading for the moment a form goes dirty' },
   thinkBeforeCard:{ on:true, note:'A beat of looking away before a recommendation lands' },
   lookAtPanel:    { on:true, note:'Looks at a panel that opens over the page' },
-  tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 }
+  tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 },
+  // — Treatment. Not a behaviour of its own; it changes how every behaviour above moves.
+  heldFrames:     { on:true, note:'Ticks between held positions instead of gliding — every morph, gesture and glance in steps', steps:4 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -2231,6 +2234,23 @@ function setEyeCalm(on){
 // One gate for everything: off if the behaviour is off, off in calm mode unless it is one
 // of the keepers, and off entirely under prefers-reduced-motion. No single behaviour has
 // to remember to check any of it.
+/* HELD FRAMES, on the mark alone. The interface glides; the character ticks — it moves
+   between a few positions and rests on each one, the way a mechanism does rather than the way
+   software does. Tried across the whole app first and taken back out: over a page of travel a
+   step is a hundred and fifty pixels, which reads as a dropped frame rather than as intent.
+   The mark's moves are all small — a few pixels of gaze, a lid closing — so a step is a step.
+
+   Two hooks reach everything. --eye-ease drives every morph transition the pair has (lid
+   height, width, radius, colour, the gap between them), so one variable re-tones all of them;
+   and eyeGesture is the one-shot player every blink, wink and nod goes through. */
+const EYE_HELD_STEPS = 4;
+function eyeHeldEasing(steps){
+  return anim('heldFrames') ? `steps(${Math.max(2, steps || EYE_HELD_STEPS)}, end)` : null;
+}
+function applyEyeHeld(){
+  document.documentElement.classList.toggle('eye-held', anim('heldFrames'));
+}
+
 function anim(k){
   if(!EYE_ANIM[k] || !EYE_ANIM[k].on) return false;
   if(eyeCalm && EYE_CALM_KEEP.indexOf(k) < 0) return false;
@@ -2420,7 +2440,11 @@ function eyeGazeResetAll(){
 function eyeGesture(frames, ms, opts){
   const el = eyeMotionEl();
   if(!el || eyeMotionOff()) return null;
-  try{ return el.animate(frames, Object.assign({ duration: ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' }, opts || {})); }
+  const o = Object.assign({ duration: ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' }, opts || {});
+  const held = eyeHeldEasing(o.heldSteps);
+  if(held) o.easing = held;
+  delete o.heldSteps;
+  try{ return el.animate(frames, o); }
   catch(e){ return null; }
 }
 // A one-shot lid move that returns to whatever the lids were doing. Bumps blinkSeq so a
@@ -3435,6 +3459,7 @@ function renderEyeAnimList(){
     box.addEventListener('change', ()=>{
       EYE_ANIM[key].on = box.checked;
       saveEyeAnimPrefs();
+      applyEyeHeld();
       // Switching the idle loop off has to actually stop it, not wait for the next landing.
       stopEyeIdle(); startEyeIdle();
       renderEyeAnimList();
@@ -3857,8 +3882,7 @@ const UI_ANIM = {
   tabLift:      { on:true, note:'The tab’s colour fills the page and the new one is dealt up onto it',
                   axis:'Y', ms:440 },
   planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 },
-  readoutCycle: { on:true, note:'The header readout turns over its second slot, one reading at a time', ms:2600 },
-  heldFrames:   { on:true, note:'Motion ticks between held positions instead of gliding', steps:'3–8, by distance' }
+  readoutCycle: { on:true, note:'The header readout turns over its second slot, one reading at a time', ms:2600 }
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -3881,48 +3905,10 @@ function uiAnim(k){
 }
 // Every one-shot here goes through this, so a browser that refuses a keyframe list costs a
 // flourish rather than the change it was decorating.
-/* HELD FRAMES. Nothing here glides; it ticks between positions and rests on each one. A
-   sweep second hand versus a ticking one — same departure, same arrival, same duration, but
-   only a few positions on the way and long enough on each for the eye to land.
-
-   Everything else in this app already refuses to be smooth: hard shadows with no blur, no
-   rounded corners, no gradients, a printed screen instead of a wash. Motion was the last
-   thing still behaving like ordinary software.
-
-   The step count is taken from how far the thing actually travels, because one number cannot
-   serve both. Four steps across a chevron reads as mechanism; four steps across a whole page
-   is a hundred and fifty pixels a jump, which reads as a dropped frame. Measured off the
-   keyframes rather than declared, so a caller cannot get it wrong by forgetting.
-
-   The prototype's worst fault was a dead beat: it sat perfectly still for the first quarter
-   of the animation before moving. Switching the jump function was the obvious fix and the
-   wrong one — it puts the card an eighth of the way in on the first frame, which breaks the
-   thing that makes this a DEAL rather than a slide, that the card starts one whole page clear
-   of where it lands. (deal2 asserts exactly that, and caught it.) The real fault was never
-   the jump function, it was the step count: four steps over 440ms is a 110ms hold whatever
-   you do. At eight, the plain default holds the start for 55ms — a beat, not a stall — and
-   the invariant survives. */
-const HELD_STEPS = [[40,3],[150,4],[400,6],[Infinity,8]];
-function heldEasing(frames, opts){
-  if(opts && opts.smooth) return null;
-  if(!uiAnim('heldFrames')) return null;
-  // An explicit count, for motion whose stops are meaningful — the score's digit strips have
-  // to land ON digits, and a distance-derived guess would park them between two.
-  if(opts && opts.heldSteps) return opts.heldSteps >= 1 ? `steps(${Math.round(opts.heldSteps)}, end)` : null;
-  let travel = 0;
-  (frames || []).forEach(f=>{
-    const t = f && f.transform;
-    if(typeof t !== 'string') return;
-    (t.match(/-?[\d.]+(?=px)/g) || []).forEach(v=> travel = Math.max(travel, Math.abs(parseFloat(v))));
-  });
-  return `steps(${(HELD_STEPS.find(([lim])=> travel < lim) || [0,4])[1]}, end)`;
-}
 function uiPlay(el, frames, opts){
   if(!el) return null;
   const o = Object.assign({ duration:300, easing:'cubic-bezier(0.3,0.9,0.3,1)' }, opts||{});
-  const held = heldEasing(frames, o);
-  if(held) o.easing = held;
-  delete o.smooth; delete o.heldSteps;   // ours, not the Web Animations API's
+  delete o.heldSteps;   // ours, not the Web Animations API's — see eyeHeldEasing
   try{ return el.animate(frames, o); }
   catch(e){ return null; }
 }
@@ -4071,10 +4057,7 @@ function rollNumber(el, from, to, ms){
     const anim = uiPlay(strip,
       [{ transform:`translateY(${-a * 10}%)` }, { transform:`translateY(${-b * 10}%)` }],
       { duration: UI_ANIM.digitRoll.ms, delay: wait + i * UI_ANIM.digitRoll.stagger,
-        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'both',
-        // One step per digit passed through, so a counter going 3 to 7 shows 4, 5 and 6 and
-        // stops square on each of them.
-        heldSteps: Math.abs(b - a) });
+        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'both' });
     if(!anim){ strip.style.transform = `translateY(${-b * 10}%)`; ok = false; }
   });
   return ok || true;
@@ -4199,11 +4182,12 @@ function crossFade(el){
    but they are rows in the registry like everything else, so each one's rules hang off a
    class and this is what puts the class there. Re-run whenever a switch is flipped. */
 const UI_CSS_ANIMS = ['tabIndicator','fieldUnderline','buttonPress','headerHairline',
-                      'bannerSlide','stickyHeads','heldFrames'];
+                      'bannerSlide','stickyHeads'];
 function applyUiCssAnims(){
   UI_CSS_ANIMS.forEach(k=> document.documentElement.classList.toggle('ui-' + k, uiAnim(k)));
 }
 applyUiCssAnims();
+applyEyeHeld();
 
 /* 9 — Something the shape of what is coming, pulsing, rather than an empty space. Sits in
    the block it is waiting on and is replaced by the content when it lands. */
@@ -4758,7 +4742,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.15';
+const APP_VERSION = '2026.08.28.16';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
