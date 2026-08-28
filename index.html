@@ -2767,6 +2767,28 @@ function bindEyeTap(){
 
 // Which way the tapped tab lies from the mark, so it looks over at what you just asked for
 // a moment before the wipe covers it.
+/* A look at the tab you just pressed, every time.
+   It used to go out on the tap and then be wiped a few milliseconds later, because a switch
+   that moves the mark runs eyeGazeResetAll on its way out and follows it with a look in the
+   flight's own direction — so on any switch to or from Today the glance was replaced before
+   it had rendered, and on the rest it was aimed from a slot the mark was about to leave.
+   Issued once everything has landed instead: the direction is measured from where the mark
+   actually ended up, and there is nothing left running to overwrite it. */
+let eyeTabGlanceTimer = null;
+function eyeGlanceAtTabSoon(name){
+  clearTimeout(eyeTabGlanceTimer);
+  if(!anim('glanceAtTab')) return;
+  const wait = Math.max(UI_ANIM.tabLift.ms, EYE_FLIGHT_MS) + 140;
+  eyeTabGlanceTimer = setTimeout(()=>{
+    if(eyeTabName !== name) return;          // a newer tap got there first
+    const btn = document.querySelector(`.tab[data-tab="${name}"]`);
+    if(!btn) return;
+    eyeGlanceAtEl(btn, 5);
+    // And nothing idle for a moment, so the look is not cut short by a saccade.
+    scheduleIdle(1900);
+  }, wait);
+}
+
 function eyeGlanceAtEl(target, px){
   if(!target) return;
   const site = eyeSiteEl();
@@ -2788,7 +2810,6 @@ function noteTabTap(buttonEl){
   // 15px, 9ms after the tap, well before activateTab gets its own mute up. A look prompted
   // by that is motion the user did not ask for, on top of the glance they did.
   eyeScrollMuteUntil = Date.now() + 1400;
-  if(anim('glanceAtTab')) eyeGlanceAtEl(buttonEl, 4);
   if(!anim('dizzySpin')) return;
   const c = EYE_ANIM.dizzySpin, now = Date.now();
   eyeTapTimes.push(now);
@@ -3379,25 +3400,68 @@ function eyeMarkPressEnd(which){
 let eyePerchTimer = null;
 function updateEyePerch(){
   if(!anim('stayVisible') || eyeFlightTimer) return;
-  const today = document.getElementById('panel-insights');
-  if(!today || !today.classList.contains('active')) return;
-  const score = document.getElementById('scoreEyes');
   const header = document.querySelector('header');
-  if(!score || !header) return;
-  const r = score.getBoundingClientRect();
-  // Gone once it is behind the sticky header, back once it is clear of it again. The gap
-  // between the two thresholds is what stops it flickering at the boundary.
+  if(!header) return;
+  const today = document.getElementById('panel-insights');
+  const onToday = !!(today && today.classList.contains('active'));
+  const score = document.getElementById('scoreEyes');
   const headerBottom = header.getBoundingClientRect().bottom;
-  const want = r.bottom < headerBottom + 4 ? true
-             : r.top > headerBottom + 18 ? false
-             : eyeCtx.perched;
+  let want;
+  if(onToday && score){
+    // Gone once the score is behind the sticky header, back once it is clear of it again.
+    // The gap between the two thresholds is what stops it flickering at the boundary.
+    const r = score.getBoundingClientRect();
+    want = r.bottom < headerBottom + 4 ? true
+         : r.top > headerBottom + 18 ? false
+         : eyeCtx.perched;
+  } else {
+    // On every other tab there is nothing for it to hide behind — it lives in the wordmark,
+    // and the wordmark shrinks to nothing as you scroll, taking the mark down to a scale of
+    // zero with it. So it perched nowhere and simply vanished. The trigger here is how far
+    // that collapse has got rather than where anything else has scrolled to, with the same
+    // gap between the two thresholds.
+    const shrunk = window.scrollY / 100;
+    want = shrunk > 0.6 ? true : shrunk < 0.4 ? false : eyeCtx.perched;
+  }
   if(want === eyeCtx.perched) return;
   eyeCtx.perched = want;
+
+  if(!onToday || !score){
+    // Nowhere to fly from and nowhere to fly to — the mark is already in the header on these
+    // tabs, so this is the same move updateHeaderCollapse would make anyway, animated. Read
+    // where it is, let the collapse rewrite it, then play it from where it was.
+    const mark = document.querySelector('.header-mark');
+    const before = mark ? mark.getBoundingClientRect() : null;
+    updateHeaderCollapse();
+    if(mark && before && before.width) eyePerchHop(mark, before);
+    return;
+  }
+
+  const r = score.getBoundingClientRect();
   // The header the mark is perching into has collapsed to nothing by the time this fires,
   // and its own geometry is written from the wordmark's size — which is zero. Move it to
   // the perch first, so the flight has somewhere real to land.
   updateHeaderCollapse();
   moveEyes(want ? 'header' : 'score', want ? { x:r.left, y:r.top, offscreen:false } : null);
+}
+// The hop up to the perch, and back down again. updateHeaderCollapse has already written the
+// destination, so this plays the trip from where the mark was to where it now is — with a
+// little past the mark and back, because a thing that jumps overshoots.
+function eyePerchHop(mark, before){
+  if(eyeMotionOff()) return;
+  const after = mark.getBoundingClientRect();
+  if(!after.width) return;
+  const dx = before.left - after.left, dy = before.top - after.top;
+  if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+  const base = after.width / EYE_PERCH_SCALE;      // the mark's own unscaled width
+  const settled = mark.style.transform || 'none';
+  try{
+    mark.animate([
+      { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${(before.width / base).toFixed(3)})` },
+      { transform: `translate(${(dx * 0.12).toFixed(1)}px, -7px) ${settled}`, offset:0.62 },
+      { transform: settled }
+    ], { duration: 380, easing:'cubic-bezier(0.3,1.05,0.4,1)' });
+  }catch(e){}
 }
 // Beside the tab's name, on the one row the collapsed header still has. Measured off the
 // text itself rather than the block, which is full width and would put the mark off-screen.
@@ -3924,6 +3988,7 @@ function activateTab(name, opts){
   decorateChevrons(document);
   decorateColophon();
   eyeTabName = name;
+  eyeGlanceAtTabSoon(name);
   eyeCtx.perched = false;
   eyeFormSettled();
   eyeNoteTabForWander();
@@ -4359,7 +4424,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.27.24';
+const APP_VERSION = '2026.08.28.1';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
