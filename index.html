@@ -938,7 +938,7 @@
   .goal-row-controls{ display:flex; gap:10px; align-items:center; }
   .goal-row-controls button{ padding:2px 8px; }
   .goal-row .field-row{ margin-bottom:8px; }
-  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--wordmark); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-control); padding:0 4px; }
 
 
@@ -1140,6 +1140,13 @@
   /* 5 — A focused field draws its underline in from the left rather than switching a
      border on. Inputs can't hold a pseudo-element, so the line is a background layer and
      the draw is its width. */
+  /* What you type is set in the wordmark's face, not the interface's. Everything else on
+     screen is the app reporting — labels, states, figures it produced — and the interface
+     face is the voice it reports in. A field is the one place the words are yours, so they
+     come out in the face the app signs its own name in. Selects are left alone: their content
+     is a label the app wrote and you picked, not something you typed. */
+  input[type=text], input[type=number], input[type=date], input[type=time],
+  input[type=email], input[type=search], textarea{ font-family:var(--wordmark); }
   .ui-fieldUnderline input[type=text], .ui-fieldUnderline input[type=number],
   .ui-fieldUnderline input[type=date], .ui-fieldUnderline input[type=time],
   .ui-fieldUnderline select, .ui-fieldUnderline textarea{
@@ -4752,7 +4759,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.19';
+const APP_VERSION = '2026.08.28.20';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
