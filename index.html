@@ -722,7 +722,12 @@
      and an empty baseline line leaves its own margin behind even with nothing in it. */
   /* The extra top padding is the eyes' room. They only ever come down on this tab, and
      on this tab they are always down, so the space is theirs permanently. */
-  .today-open{ position:relative; background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
+  /* pan-y hands vertical scrolling to the browser and keeps horizontal for us. Without it the
+     band swiped on a phone and nothing happened: measured on a real touch stream, two
+     pointermove events arrived and then pointercancel — the browser claimed the gesture before
+     the handler had crossed its own engage threshold. A mouse pointer is never cancelled that
+     way, which is why it worked everywhere except the device it is for. */
+  .today-open{ touch-action:pan-y; position:relative; background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
   /* The last seven days of the same number, at the number's own eye level, out in the band's
      empty right half. Placed and sized in script rather than here: how much room there is
      depends on how wide the score itself is drawn, which is two digits some days and three
@@ -4759,7 +4764,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.20';
+const APP_VERSION = '2026.08.28.21';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9130,12 +9135,20 @@ function showScoreDay(idx){
   const band = document.querySelector('.today-open');
   if(!band) return;
   const STEP_PX = 56;   // one day per this much travel, the week picker's idiom sideways
-  let dragging = false, startX = 0, startY = 0, accumulated = 0, engaged = false;
+  let dragging = false, startX = 0, startY = 0, accumulated = 0, engaged = false, swallowClick = false;
   band.addEventListener('pointerdown', e=>{
     if(e.target.closest('button, input, select, a')) return;
-    dragging = true; engaged = false; accumulated = 0;
+    dragging = true; engaged = false; accumulated = 0; swallowClick = false;
     startX = e.clientX; startY = e.clientY;
   });
+  // A swipe that starts on the score's label row would otherwise end in a click on it and
+  // open the disclosure underneath — every swipe toggling a panel you did not ask for.
+  band.addEventListener('click', e=>{
+    if(!swallowClick) return;
+    swallowClick = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
   band.addEventListener('pointermove', e=>{
     if(!dragging) return;
     const dx = e.clientX - startX, dy = e.clientY - startY;
@@ -9145,6 +9158,7 @@ function showScoreDay(idx){
       if(Math.abs(dy) > Math.abs(dx)){ dragging = false; return; }
       if(Math.abs(dx) < 12) return;
       engaged = true;
+      swallowClick = true;
       band.setPointerCapture(e.pointerId);
     }
     const steps = Math.trunc((dx - accumulated) / STEP_PX);
