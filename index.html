@@ -1040,11 +1040,44 @@
      panels and the Goals opening were already black bands, so this is every other heading
      agreeing with them rather than a new treatment. --reverse-bg, not #000000 — these are
      content, and the pure black is the chrome's. */
-  .ui-stickyHeads .group-head{ background:var(--reverse-bg); border-bottom-color:rgba(251,250,246,0.22); }
-  .ui-stickyHeads .group-head .group-title{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
-  .ui-stickyHeads .group-head .group-sub,
+  /* Fully black, and set like a printed slug rather than written like more of the page.
+     What made it read as extra text was that the subtitle was body copy: same face as the
+     paragraph under it, sentence case, sitting directly beneath the title with nothing
+     between them. Three changes, all of them borrowed from what this app already does
+     elsewhere rather than invented here.
+
+     A rule across the top, two pixels of the page's own cream. The same rule the card's
+     leading edge carries, so a heading and an arriving page are marked the same way — and
+     it turns a band of black into a plate with a top edge instead of a fill.
+
+     The subtitle moves to the mono face at label size, which is the voice this app already
+     uses for everything that annotates rather than states — MEDIUM CONFIDENCE, TOP
+     PRIORITY, LEVEL 3, GARMIN. It reads as a caption under a plate rather than as the first
+     line of the section. Tracking stays near zero: the app's mono labels are two or three
+     words and can carry wide tracking, but these are sentences, and opened up they ran to
+     two lines and pushed the collapse chevron off the title's row.
+
+     And a hair more air above the title than below the subtitle, so the pair sits on its
+     rule rather than floating in the middle of the band. */
+  .ui-stickyHeads .group-head{
+    background:#000000;
+    border-top:2px solid var(--bg);
+    border-bottom-color:rgba(251,250,246,0.16);
+    padding-top:calc(var(--sp-3) - 1px);
+    row-gap:3px;
+  }
+  .ui-stickyHeads .group-head .group-title{
+    color:var(--bg); -webkit-text-stroke-color:var(--bg); letter-spacing:0.05em;
+  }
+  .ui-stickyHeads .group-head .group-sub{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.01em; line-height:1.4;
+    color:rgba(251,250,246,0.56); -webkit-text-stroke:0;
+  }
   .ui-stickyHeads .group-head .head-est,
-  .ui-stickyHeads .group-head .collapse-chevron{ color:rgba(251,250,246,0.7); }
+  .ui-stickyHeads .group-head .collapse-chevron{ color:rgba(251,250,246,0.66); }
+  /* The two heads that were already black plates get the rule too, or they are the only
+     sections that open without one. */
+  .ui-stickyHeads #panel-goals > .group:first-child > .group-head{ border-top:2px solid var(--bg); }
 
   @media (prefers-reduced-motion: reduce){
     .tab-indicator{ transition:none; }
@@ -4424,7 +4457,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.1';
+const APP_VERSION = '2026.08.28.2';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -10511,8 +10544,9 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
     // If this area hasn't had enough DIRECT exercises yet, keep a gap open regardless of
     // what indirect crediting says — otherwise arms and core are permanently starved.
     const floorNeeded = DIRECT_FLOOR_AREAS[area];
-    if(floorNeeded && (directPicksByArea[area]||0) < floorNeeded && gap <= 0){
-      gap = 0.5; // small positive gap: enough to stay eligible, ranked below genuine deficits
+    const floorShort = !!floorNeeded && (directPicksByArea[area] || 0) < floorNeeded;
+    if(floorShort && gap <= 0){
+      gap = 0.5; // small positive gap: enough to stay eligible
     }
     if(gap <= 0) return null;
     // Spread the remaining gap over the days left rather than dumping it all into today.
@@ -10528,8 +10562,23 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
     // have; missing mavHigh is only slower growth. So the floor outranks emphasis, and
     // emphasis spends whatever time is left after everything is maintained.
     const belowMaintenance = VOLUME_LANDMARKS[area] && current < VOLUME_LANDMARKS[area].mev;
+    // An unmet direct floor is its own priority, not just eligibility. Keeping the gap open
+    // at 0.5 made the area *reachable* and nothing more: 0.5 loses to every area carrying a
+    // real number, so biceps sat at the bottom of every ranking and were cut by maxPicks or
+    // by the session trim before they were ever reached. Measured on a generated week —
+    // hypertrophy four days at sixty minutes: three sets of direct biceps for the whole week
+    // and no triceps at all; strength four days at sixty, and hypertrophy three days at
+    // forty-five: none of either. Shoulders, chest and back took two to three exercises each
+    // in the same weeks.
+    //
+    // It belongs above emphasis and below a genuine deficit. An area under MEV is losing
+    // tissue it already has, which beats everything. But an area that only *reads* as
+    // maintained — because every row credited its biceps half a set at a short length,
+    // nowhere near failure — is a bookkeeping deficit standing in for a real one, and
+    // clearing it beats spending the same slot on whatever the block is emphasising.
+    const belowFloor = floorShort ? 800 : 0;
     return { area, gap, perDay,
-      rank: gap + (belowMaintenance ? 1000 : 0) + (emphasis.has(area) ? 500 : 0) };
+      rank: gap + (belowMaintenance ? 1000 : 0) + belowFloor + (emphasis.has(area) ? 500 : 0) };
   }).filter(Boolean).sort((a,b)=> b.rank - a.rank);
 
   const picks = [];
