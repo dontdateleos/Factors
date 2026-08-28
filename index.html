@@ -3962,7 +3962,7 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
-  pageGlitch:   { on:true, note:'Every block on a newly selected page tears once as it lands', ms:260 },
+  pageGlitch:   { on:true, note:'A newly selected page arrives behind scanlines and resolves', ms:300 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:200 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
@@ -4442,7 +4442,7 @@ function activateTab(name, opts){
   // seven is the page falling over.
   clearTimeout(pageGlitchTimer);
   pageGlitchTimer = setTimeout(()=>{
-    playGlitchGroup(document.querySelector('.panel.active'), 'pageGlitch', 2);
+    playInterlace('pageGlitch');
   }, uiAnim('tabLift') ? UI_ANIM.tabLift.ms : 0);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -4897,7 +4897,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.31';
+const APP_VERSION = '2026.08.28.32';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9710,78 +9710,61 @@ const GLITCH_FRAMES = [
   [0.84, 'inset(0 0 0 0)',      0],
   [1,    'inset(0 0 0 0)',      0]
 ];
-/* Clipping is right for something small and wrong for something tall. inset() keeps a band
-   and throws the rest away, and the bands are percentages of the ELEMENT — on a 46px score
-   that is a tear across the digits, on a 1200px panel it is most of the page vanishing to
-   bare colour while the surviving band sits below the fold.
+/* THE PAGE TUNES IN. Every earlier version of this was subtractive — cut a slice out of a
+   block, or shove the block sideways — and both fail for the same reason: they scale with the
+   element. The score's tear works because the number is 46px tall, and nothing about that
+   recipe survives being applied to something the size of a page.
 
-   So a page is not glitched as one thing. Displacing the whole panel instead was a shake, and
-   a shake is a different effect: the page moved but nothing on it broke up. It is glitched
-   BLOCK BY BLOCK — each visible piece of it tears on its own bands, on its own beat, which is
-   what a raster losing its grip actually looks like and is the same tear the score gets. A
-   block taller than the screen still cannot be clipped without blanking it, so those few
-   displace instead; measured rather than assumed, per element, every time. */
-/* Everything on the page, tearing at slightly different moments. One synchronised blink
-   across every block reads as the screen blinking; a few tens of milliseconds of scatter reads
-   as the picture breaking up. Only what is actually on screen — a block below the fold that
-   tears while you cannot see it is work spent on nothing. */
-const GLITCH_GROUP_MAX = 10;
-const GLITCH_GROUP_SCATTER = 70;   // ms
-/* The score's frames KEEP a narrow band and throw the rest away, which is a tear on something
-   46px tall and a blackout on something the size of a page. A block gets the inverse: a thin
-   slice CUT out of it, everything else left alone. And the slice is measured in pixels off the
-   part of the block that is actually on screen — as a percentage of the element it would land
-   below the fold on anything long, which is the same bug in a different costume. */
-const GLITCH_PAGE_CUTS = [
-  [0,    null,              0],
-  [0.08, ['bottom', 0.24], -1],
-  [0.16, null,              0],
-  [0.28, ['top',    0.19],  0.86],
-  [0.36, null,              0],
-  [0.52, ['bottom', 0.13], -0.57],
-  [0.60, null,              0],
-  [0.76, ['top',    0.10],  0.43],
-  [0.84, null,              0],
-  [1,    null,              0]
-];
-function pageGlitchFrames(el, px){
-  const r = el.getBoundingClientRect(), H = r.height, vh = window.innerHeight;
-  const visTop = Math.max(0, -r.top), visBot = Math.min(H, vh - r.top);
-  const vis = Math.max(1, visBot - visTop);
-  return GLITCH_PAGE_CUTS.map(([offset, cut, mul])=>{
-    let clipPath = 'inset(0px 0px 0px 0px)';
-    if(cut){
-      const band = vis * cut[1];
-      clipPath = cut[0] === 'bottom'
-        ? `inset(0px 0px ${Math.max(0, Math.round(H - (visBot - band)))}px 0px)`
-        : `inset(${Math.max(0, Math.round(visTop + band))}px 0px 0px 0px)`;
-    }
-    return { offset, clipPath, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)' };
-  });
+   So the page is not deformed at all. A coarse scanline field is laid over the content area
+   and let go in four hard steps: the page arrives behind it and resolves, the way a signal
+   does. Nothing moves, nothing is hidden, and it looks the same on a short page and a long
+   one — which is the thing no clipping version ever managed.
+
+   Two line colours, because this app has two grounds. Dark rows read on the cream and on the
+   coloured blocks; a faint cream row between them reads on the black. One of the pair does
+   the work wherever it happens to land.
+
+   Over main only. The header does not change on a tab switch the way the content does, and
+   the mark lives up there — strobing the character every time you press a tab would be a
+   different and much worse idea. */
+const INTERLACE_STEPS = [1, 0.72, 0.45, 0.2, 0];
+let interlaceEl = null;
+function playInterlace(key){
+  if(!uiAnim(key)) return;
+  const main = document.querySelector('main');
+  if(!main) return;
+  // A fast double-tap should replace the field, not stack a second one on it.
+  if(interlaceEl){ interlaceEl.remove(); interlaceEl = null; }
+  const r = main.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.setAttribute('aria-hidden', 'true');
+  el.style.cssText = `position:fixed; left:0; right:0; top:${Math.max(0, Math.round(r.top))}px; bottom:0;
+    z-index:9; pointer-events:none;
+    background-image:repeating-linear-gradient(0deg, rgba(0,0,0,0.5) 0 2px, transparent 2px 5px),
+                     repeating-linear-gradient(0deg, transparent 0 2px, rgba(251,250,246,0.11) 2px 3px, transparent 3px 5px);`;
+  document.body.appendChild(el);
+  interlaceEl = el;
+  const done = ()=>{ el.remove(); if(interlaceEl === el) interlaceEl = null; };
+  let anim = null;
+  try{
+    anim = el.animate(INTERLACE_STEPS.map((opacity, i)=>({
+      offset: i / (INTERLACE_STEPS.length - 1),
+      opacity,
+      // A pixel of drift per step, so the field is not a static screen door sitting there
+      // getting fainter — it is a picture that has not locked yet.
+      backgroundPosition: `0 ${i % 2 ? 1 : 0}px, 0 ${i % 2 ? 0 : 1}px`,
+      easing: 'steps(1, end)'
+    })), { duration: UI_ANIM[key].ms });
+  } catch(e){}
+  if(anim) anim.finished.then(done).catch(done); else done();
 }
-function playGlitchGroup(root, key, px){
-  if(!root || !uiAnim(key)) return;
-  const vh = window.innerHeight;
-  const blocks = [...root.children].filter(el=>{
-    const r = el.getBoundingClientRect();
-    return r.height > 8 && r.bottom > 0 && r.top < vh;
-  }).slice(0, GLITCH_GROUP_MAX);
-  blocks.forEach((el, i)=>{
-    const throwPx = (i % 2 ? -1 : 1) * px;
-    setTimeout(()=>{
-      try{ el.animate(pageGlitchFrames(el, throwPx), { duration: UI_ANIM[key].ms }); } catch(e){}
-    }, Math.round(Math.random() * GLITCH_GROUP_SCATTER));
-  });
-}
-function playGlitch(el, key, px, clip){
+
+/* The clip-and-slip tear. Only ever used on something small — the score's digits, the mark —
+   because inset() keeps a band and throws the rest away, which reads as a tear across 46px of
+   number and as a blackout across anything the size of a page. The page has its own effect
+   now; this one is not it. */
+function playGlitch(el, key, px){
   if(!el || !uiAnim(key)) return null;
-  if(clip === false){
-    try{
-      return el.animate(
-        GLITCH_FRAMES.map(([offset, , mul])=>({ offset, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)' })),
-        { duration: UI_ANIM[key].ms });
-    } catch(e){ return null; }
-  }
   try{
     // The step easing goes on EVERY KEYFRAME, not in the options. CSS applies
     // animation-timing-function per keyframe segment; the Web Animations API applies an
