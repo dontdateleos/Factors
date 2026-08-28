@@ -4639,7 +4639,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.10';
+const APP_VERSION = '2026.08.28.11';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8804,7 +8804,8 @@ async function overallScoreForEntry(entry){
 // of it. This one is read as shape, not as value — the number itself is directly beside it.
 const TRACE_MIN_SPAN = 20;
 const TRACE_PAD = 4;            // so the highest and lowest days aren't drawn on the edges
-const TRACE_BAND = 26;          // the trace's own height
+const TRACE_BAND = 26;          // the trace's own height, above its rail
+const TICK_H = 3;               // today's mark; the other six are 2px
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
 async function renderScoreTrace(todayScore){
@@ -8846,31 +8847,23 @@ async function renderScoreTrace(todayScore){
   if(hi > 100){ lo -= hi - 100; hi = 100; }
   if(lo < 0){ hi = Math.min(100, hi - lo); lo = 0; }
 
-  const step = W / (days.length - 1);
-  const y = s => TRACE_BAND - ((clamp(s, lo, hi) - lo) / (hi - lo)) * TRACE_BAND;
-  const pts = days.map((day, i)=> day.score == null ? null : { x: Math.round(i * step), y: y(day.score) });
-  // Stepped, not sloped: a score is a reading taken once a day, and a diagonal between two
-  // of them draws hours that were never measured. Runs of consecutive readings are joined;
-  // a hole breaks the path rather than being interpolated across.
-  let d = '', i = 0;
-  while(i < pts.length){
-    if(!pts[i]){ i++; continue; }
-    let j = i;
-    while(j + 1 < pts.length && pts[j+1]) j++;
-    if(j === i){
-      // A lone reading between two holes still gets a mark. A bare moveto draws nothing,
-      // so the one day you did log would have read as another day you didn't.
-      d += ` M ${Math.max(0, pts[i].x - 2)} ${pts[i].y} H ${Math.min(W, pts[i].x + 2)}`;
-    } else {
-      d += ` M ${pts[i].x} ${pts[i].y}`;
-      for(let k = i + 1; k <= j; k++) d += ` H ${pts[k].x} V ${pts[k].y}`;
-    }
-    i = j + 1;
-  }
-  const last = pts[pts.length - 1];   // today always has a reading — we returned early if not
-  const svg = `<svg width="${W}" height="${TRACE_BAND}" viewBox="0 0 ${W} ${TRACE_BAND}" style="display:block; overflow:visible;" aria-hidden="true">
-      <path d="${d.trim()}" fill="none" stroke="rgba(251,250,246,0.42)" stroke-width="1.5" shape-rendering="crispEdges"/>
-      <rect x="${last.x - 3}" y="${last.y - 3}" width="6" height="6" fill="var(--bg)"/>
+  // One free-floating mark per day, over a rail, rather than a joined line. Seven readings
+  // ARE seven separate marks — nothing was measured between them — and a day with no entry
+  // is then simply an absence, which no line-based version can say without a special case.
+  const slot = W / days.length;
+  const tickW = Math.max(6, Math.round(slot * 0.62));
+  const y = s => TRACE_BAND - ((clamp(s, lo, hi) - lo) / (hi - lo)) * (TRACE_BAND - TICK_H);
+  const marks = days.map((day, i)=>{
+    if(day.score == null) return '';
+    const isToday = i === days.length - 1;
+    const h = isToday ? TICK_H : 2;
+    const x = Math.round(i * slot + (slot - tickW) / 2);
+    const ty = Math.round(y(day.score)) - (isToday ? 1 : 0);
+    return `<rect x="${x}" y="${ty}" width="${tickW}" height="${h}" fill="${isToday ? 'var(--bg)' : 'rgba(251,250,246,0.5)'}"/>`;
+  }).join('');
+  const svg = `<svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
+      <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
+      ${marks}
     </svg>`;
   host.innerHTML = svg;
   host.style.display = 'block';
