@@ -688,7 +688,13 @@
      and an empty baseline line leaves its own margin behind even with nothing in it. */
   /* The extra top padding is the eyes' room. They only ever come down on this tab, and
      on this tab they are always down, so the space is theirs permanently. */
-  .today-open{ background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
+  .today-open{ position:relative; background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
+  /* The last seven days of the same number, at the number's own eye level, out in the band's
+     empty right half. Placed and sized in script rather than here: how much room there is
+     depends on how wide the score itself is drawn, which is two digits some days and three
+     others, and a fixed width that clears "100" at 320px would be needlessly small the rest
+     of the time. */
+  #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:none; }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
@@ -1193,6 +1199,7 @@
         <span class="conf-chevron" id="scoreChevron">▾</span>
       </div>
     </div>
+    <div id="scoreTrace" role="img" aria-label=""></div>
     <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <div id="todayBlockContext" class="score-note" style="text-align:center; font-size:var(--fs-tag);"></div>
     </div>
@@ -4632,7 +4639,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.9';
+const APP_VERSION = '2026.08.28.10';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8733,7 +8740,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     setEyeScore(capacityResult.score);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
-    return;
+    return capacityResult.score;
   }
 
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
@@ -8753,7 +8760,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     if(!hasDuration && !hasWake && !hasHrv) label.textContent = 'No sleep data for today yet';
     else if(hasHrv && !hasDuration && !hasWake) label.textContent = 'HRV needs a baseline to score';
     else label.textContent = 'Not enough to score yet';
-    return;
+    return null;
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
   const prevNum = parseInt(out.dataset.value || out.textContent);
@@ -8770,6 +8777,108 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
   else { label.textContent='Typical'; }
+  return overall;
+}
+
+/* The same number the big one is, for any day's entry — capacity once the model has enough
+   paired days to earn it, the target/adaptive average before that. Split out of
+   updateOverallScore so the trace under the score cannot drift from the score: today's
+   point is what that function returned, and the six before it come through here. */
+async function overallScoreForEntry(entry){
+  try{
+    const cap = await getCapacityForEntry(entry);
+    if(cap && cap.available) return cap.score;
+  } catch(e){}
+  const trailing = await getTrailingAverages(entry.date);
+  const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
+  const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
+  return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
+}
+
+// The window the trace is drawn in is at least this many points wide, and wider only if the
+// week actually covers more. Measured before choosing: a real week of readings came back
+// 93, 95, 94, 99, 97, 98, 97 — over a fixed 30-100 band that is 2.6px of movement across the
+// whole week, which is a flat line. Recovery scores live in a narrow high band, so a fixed
+// domain draws nothing. A floor of 20 is the guard that a purely self-scaling sparkline
+// lacks: a three-point wobble can never fill the band, it can only ever be three twentieths
+// of it. This one is read as shape, not as value — the number itself is directly beside it.
+const TRACE_MIN_SPAN = 20;
+const TRACE_PAD = 4;            // so the highest and lowest days aren't drawn on the edges
+const TRACE_BAND = 26;          // the trace's own height
+const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
+const TRACE_GAP = 16;           // clear space between the score's digits and the trace
+async function renderScoreTrace(todayScore){
+  const host = document.getElementById('scoreTrace');
+  if(!host) return;
+  host.style.display = 'none';
+  if(todayScore == null) return;
+
+  // Six days back plus today. A day with no entry is a hole, not a zero — the path breaks
+  // across it rather than drawing a dive to the floor and back.
+  const days = [];
+  for(let d = 6; d >= 1; d--){
+    const dt = new Date(todayStr);
+    dt.setDate(dt.getDate() - d);
+    const date = localDateStr(dt);
+    let score = null;
+    try{
+      const entry = JSON.parse((await window.storage.get(keyFor(date))).value);
+      score = await overallScoreForEntry(entry);
+    } catch(e){}
+    days.push({ date, score });
+  }
+  days.push({ date: todayStr, score: todayScore });
+  if(days.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
+
+  // Width is whatever the band has left once the score's own digits are clear of it —
+  // measured, because "84" and "100" are not the same width and 320px is not 430px.
+  const band = document.querySelector('.today-open');
+  const num = document.getElementById('overallScoreOut');
+  if(!band || !num) return;
+  const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
+  const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
+  if(W < TRACE_MIN_W) return;
+
+  const vals = days.filter(x=>x.score != null).map(x=>x.score);
+  const mid = (Math.min(...vals) + Math.max(...vals)) / 2;
+  const span = Math.max(TRACE_MIN_SPAN, (Math.max(...vals) - Math.min(...vals)) + TRACE_PAD * 2);
+  let lo = mid - span / 2, hi = mid + span / 2;
+  if(hi > 100){ lo -= hi - 100; hi = 100; }
+  if(lo < 0){ hi = Math.min(100, hi - lo); lo = 0; }
+
+  const step = W / (days.length - 1);
+  const y = s => TRACE_BAND - ((clamp(s, lo, hi) - lo) / (hi - lo)) * TRACE_BAND;
+  const pts = days.map((day, i)=> day.score == null ? null : { x: Math.round(i * step), y: y(day.score) });
+  // Stepped, not sloped: a score is a reading taken once a day, and a diagonal between two
+  // of them draws hours that were never measured. Runs of consecutive readings are joined;
+  // a hole breaks the path rather than being interpolated across.
+  let d = '', i = 0;
+  while(i < pts.length){
+    if(!pts[i]){ i++; continue; }
+    let j = i;
+    while(j + 1 < pts.length && pts[j+1]) j++;
+    if(j === i){
+      // A lone reading between two holes still gets a mark. A bare moveto draws nothing,
+      // so the one day you did log would have read as another day you didn't.
+      d += ` M ${Math.max(0, pts[i].x - 2)} ${pts[i].y} H ${Math.min(W, pts[i].x + 2)}`;
+    } else {
+      d += ` M ${pts[i].x} ${pts[i].y}`;
+      for(let k = i + 1; k <= j; k++) d += ` H ${pts[k].x} V ${pts[k].y}`;
+    }
+    i = j + 1;
+  }
+  const last = pts[pts.length - 1];   // today always has a reading — we returned early if not
+  const svg = `<svg width="${W}" height="${TRACE_BAND}" viewBox="0 0 ${W} ${TRACE_BAND}" style="display:block; overflow:visible;" aria-hidden="true">
+      <path d="${d.trim()}" fill="none" stroke="rgba(251,250,246,0.42)" stroke-width="1.5" shape-rendering="crispEdges"/>
+      <rect x="${last.x - 3}" y="${last.y - 3}" width="6" height="6" fill="var(--bg)"/>
+    </svg>`;
+  host.innerHTML = svg;
+  host.style.display = 'block';
+  // Centred on the number rather than on the band: the band's own middle is empty space
+  // between the eyes and the label, and the trace belongs to the figure it is a history of.
+  host.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - TRACE_BAND) / 2) + 'px';
+  host.setAttribute('aria-label', 'Score over the last 7 days: ' +
+    days.map(x=> x.score == null ? 'no reading' : x.score).join(', '));
 }
 
 async function isRestDayComing(daysAhead){
@@ -15740,6 +15849,7 @@ async function generateRecommendations(){
   catch(e){
     container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:var(--fw-bold);">Log today\'s recovery to unlock today\'s recommendations</div>';
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
+    renderScoreTrace(null);
     refreshRecHistory();
     return;
   }
@@ -15755,7 +15865,8 @@ async function generateRecommendations(){
   plannedEx.forEach(ex=>{ if(ex.area){ (plannedExAreas[ex.area]=plannedExAreas[ex.area]||[]).push(ex.name); } });
 
   const goalT = await currentGoalThresholds();
-  updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry);
+  const overallShown = updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry);
+  renderScoreTrace(overallShown);
 
   const reduceSignals = [];
   if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
@@ -17565,6 +17676,10 @@ requestAnimationFrame(()=>{
 window.addEventListener('resize', ()=>{
   const active = document.querySelector('.tab.active');
   if(active) moveTabIndicator(active.dataset.tab, false);
+  // Both the trace's width and its height off the top of the band come from measuring the
+  // score, so a rotate has to take those measurements again.
+  const shown = parseInt(document.getElementById('overallScoreOut')?.dataset.value);
+  renderScoreTrace(isNaN(shown) ? null : shown);
 }, { passive:true });
 
 loadRecoveryEntry(todayStr);
