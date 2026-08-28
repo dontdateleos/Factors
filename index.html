@@ -893,6 +893,11 @@
   .mobility-row-info.test{ align-items:flex-start; }
   .mobility-row-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #blockEditPanel .week-ex-name{ flex:3; min-width:140px; }
+  /* Quieter than the target above it: the target is what to aim at, this is only what
+     happened. Same line height so a row with history is the same height as one without,
+     apart from the line itself. */
+  .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
+    color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
      box: they are one section among several on Function and the box is what separates
      them, while this is most of the Goals page and a run of black boxes down it was the
@@ -4793,7 +4798,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.24';
+const APP_VERSION = '2026.08.28.25';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7564,8 +7569,75 @@ async function placeBlock(date, slot, type){
   openBlockEditor(date, slot, block);
 }
 
-function openBlockEditor(date, slot, block){
+/* The editor is also the logging screen, and it had no way out. Delete or Save were the only
+   two exits: opening a session to look at it and changing your mind meant either writing
+   something you did not mean or leaving the tab. It also hides the day wheel on the way in, so
+   backing out of it left the Weekly tab without its picker until something else re-rendered.
+   Close puts both back, and if it was reached from Today's "Log this workout" it hands you
+   back to Today — in and out by the same door you came through. */
+let blockEditDirty = false;
+let blockEditReturnTab = null;
+function closeBlockEditor(){
   const panel = document.getElementById('blockEditPanel');
+  if(!panel) return;
+  panel.style.display = 'none';
+  panel.innerHTML = '';
+  blockEditDirty = false;
+  const back = blockEditReturnTab;
+  blockEditReturnTab = null;
+  renderWeekGrid();
+  if(back) activateTab(back);
+}
+function wireBlockEditorClose(panel){
+  const btn = panel.querySelector('#closeWeekBlockBtn');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    // Typed something and then reached for Close: ask, in place, rather than silently
+    // dropping it. Untouched, it just closes — a confirm on an unchanged form is noise.
+    if(blockEditDirty && !(await confirmInPlace(btn, { mode:'tap', label:'Discard?' }))) return;
+    closeBlockEditor();
+  });
+  // Delegated, so rows added after this runs are covered too.
+  ['input','change'].forEach(t=> panel.addEventListener(t, ()=>{ blockEditDirty = true; }));
+}
+
+/* The last time you did this lift, under its name. Every one of these numbers has been in
+   storage the whole time; the row that asks you to type today's just never looked back at
+   yesterday's, so the only way to know what to beat was to remember it or go and find it.
+   Built once per editor open into a map the rows read synchronously — a per-row async lookup
+   would land after the row is on screen and pop the layout under your thumb. */
+let exerciseHistory = {};
+function exHistKey(name){ return String(name || '').trim().toLowerCase(); }
+async function loadExerciseHistory(beforeDate){
+  exerciseHistory = {};
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return; }
+  sessions
+    .filter(sn => sn.type === 'strength' && sn.date < beforeDate)
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))   // later writes overwrite earlier
+    .forEach(sn => (sn.exercises || []).forEach(ex => {
+      const k = exHistKey(ex.name);
+      if(!k) return;
+      if(!(ex.weight || ex.reps || (ex.repsPerSet && ex.repsPerSet.length))) return;
+      exerciseHistory[k] = { date: sn.date, sets: ex.sets, reps: ex.reps,
+                             repsPerSet: ex.repsPerSet, weight: ex.weight };
+    }));
+}
+function lastLoggedLine(name){
+  const h = exerciseHistory[exHistKey(name)];
+  if(!h) return '';
+  // Per-set reps where they were recorded, because 5,5,4 and 5,5,5 are different sessions
+  // and an average of them is neither.
+  const reps = (h.repsPerSet && h.repsPerSet.length) ? h.repsPerSet.join(',')
+             : (h.sets ? `${h.sets}\u00d7${h.reps}` : h.reps);
+  const load = h.weight ? `${h.weight}kg \u00b7 ` : '';
+  return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}</div>`;
+}
+
+async function openBlockEditor(date, slot, block){
+  const panel = document.getElementById('blockEditPanel');
+  blockEditDirty = false;
+  blockEditReturnTab = null;
   eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
   if(!block){
@@ -7576,10 +7648,14 @@ function openBlockEditor(date, slot, block){
         <div class="type-btn" data-pick-type="strength">Strength</div>
         <div class="type-btn" data-pick-type="run">Run</div>
         <div class="type-btn" data-pick-type="mobility">Mobility</div>
+      </div>
+      <div style="display:flex; margin-top:12px;">
+        <button id="closeWeekBlockBtn" class="small outline">Close</button>
       </div>`;
     panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
       btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
     });
+    wireBlockEditorClose(panel);
     return;
   }
   panel.style.display = 'block';
@@ -7617,9 +7693,14 @@ function openBlockEditor(date, slot, block){
     ${fieldsHtml}
     <div class="score-note" style="margin-top:8px;">${logNoteByType[block.type]}</div>
     <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-      <button id="deleteWeekBlockBtn" class="small outline">Delete</button>
+      <button id="closeWeekBlockBtn" class="small outline">Close</button>
       <button id="logWeekSessionBtn" class="primary">Save</button>
+      <button id="deleteWeekBlockBtn" class="small outline" style="margin-left:auto; flex:0 0 auto;">Delete</button>
     </div>`;
+
+  // After the skeleton is in and before any row is built, so every row can read its own
+  // history synchronously and none of them arrive a frame late and shove the others down.
+  if(block.type === 'strength') await loadExerciseHistory(date);
 
   if(block.type==='strength'){
     const rowsContainer = document.getElementById('weekExerciseRows');
@@ -7656,6 +7737,7 @@ function openBlockEditor(date, slot, block){
         <span class="week-ex-evidence"></span>
         <span class="remove-row">×</span>
         ${targetLine}
+        ${lastLoggedLine(name)}
         <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
           <input type="number" class="week-ex-sets" placeholder="sets" style="max-width:56px;" title="sets actually done">
           <span style="font-size:var(--fs-tag); color:var(--dim);">×</span>
@@ -7778,6 +7860,7 @@ function openBlockEditor(date, slot, block){
     document.getElementById('addWeekStretchRow').addEventListener('click', ()=>addWeekStretchRow());
   }
 
+  wireBlockEditorClose(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
     try{
       await window.storage.delete(`weekplan:${date}:${slot}`);
@@ -8990,6 +9073,21 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
    paired days to earn it, the target/adaptive average before that. Split out of
    updateOverallScore so the trace under the score cannot drift from the score: today's
    point is what that function returned, and the six before it come through here. */
+/* How many of the four signals a day's score was actually built from. A reading off sleep
+   duration alone and one with HRV, wake time and resting heart rate behind it are not the same
+   reading, and the trace was drawing them identically — which is what made "why was Tuesday
+   odd" unanswerable without opening the day. */
+function readingDepth(entry){
+  if(!entry) return 0;
+  let n = 0;
+  if(entry.durationHrs != null) n++;
+  if((entry.wakeTimeOura ?? entry.wakeTimeGarmin) != null) n++;
+  if((entry.hrvGarmin ?? entry.hrvOura) != null && entry.hrvBaseline) n++;
+  if(entry.restingHR != null) n++;
+  return n;
+}
+const READING_FULL = 3;   // of four; below this the mark is drawn half width
+
 async function overallScoreForEntry(entry){
   try{
     const cap = await getCapacityForEntry(entry);
@@ -9035,14 +9133,17 @@ async function renderScoreTrace(todayScore){
     const dt = new Date(todayStr);
     dt.setDate(dt.getDate() - d);
     const date = localDateStr(dt);
-    let score = null;
+    let score = null, depth = 0;
     try{
       const entry = JSON.parse((await window.storage.get(keyFor(date))).value);
       score = await overallScoreForEntry(entry);
+      depth = readingDepth(entry);
     } catch(e){}
-    scoreDays.push({ date, score });
+    scoreDays.push({ date, score, depth });
   }
-  scoreDays.push({ date: todayStr, score: todayScore });
+  let todayDepth = 0;
+  try{ todayDepth = readingDepth(JSON.parse((await window.storage.get(keyFor(todayStr))).value)); } catch(e){}
+  scoreDays.push({ date: todayStr, score: todayScore, depth: todayDepth });
   scoreDayIndex = scoreDays.length - 1;
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
@@ -9089,9 +9190,13 @@ function paintScoreTrace(){
     const isToday = i === scoreDays.length - 1;
     const h = picked ? TICK_H : 2;
     const fill = picked ? 'var(--bg)' : (isToday ? 'rgba(251,250,246,0.85)' : 'rgba(251,250,246,0.5)');
-    const x = Math.round(i * slot + (slot - tickW) / 2);
+    // A thin reading gets a short mark. Not a fainter one — opacity is already carrying which
+    // day you are on and which one is today, and a third meaning stacked on it would make all
+    // three unreadable. Length is free, and "less behind it" is what less length says.
+    const w = day.depth != null && day.depth < READING_FULL ? Math.max(4, Math.round(tickW * 0.5)) : tickW;
+    const x = Math.round(i * slot + (slot - w) / 2);
     const ty = Math.round(y(day.score)) - (picked ? 1 : 0);
-    return `<rect x="${x}" y="${ty}" width="${tickW}" height="${h}" fill="${fill}"/>`;
+    return `<rect x="${x}" y="${ty}" width="${w}" height="${h}" fill="${fill}"/>`;
   }).join('');
   host.innerHTML = `<div class="trace-cap">7 days</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
@@ -9109,7 +9214,8 @@ function paintScoreTrace(){
   const showing = scoreDays[scoreDayIndex];
   host.setAttribute('aria-label',
     (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
-    'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading' : x.score).join(', '));
+    'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading'
+      : (x.depth != null && x.depth < READING_FULL ? x.score + ' partial' : x.score)).join(', '));
 }
 
 /* Swipe the block back through the week. The number, the mark and the highlighted tick all
@@ -16135,7 +16241,10 @@ async function renderTodayWorkoutSummary(){
     const found = await getTodaysBlockAndSlotForType(todaySessionType);
     activateTab('training');
     if(found){
-      setTimeout(()=> openBlockEditor(todayStr, found.slot, found.block), 150);
+      setTimeout(()=>{
+        openBlockEditor(todayStr, found.slot, found.block);
+        blockEditReturnTab = 'insights';   // set after open, which clears it
+      }, 150);
     }
   });
 }
