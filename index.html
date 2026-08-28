@@ -847,6 +847,25 @@
   .week-wheel-detail:empty{ display:none; }
   /* Sits under the day it builds, inside the same black. The selects keep their light fill
      — they are inputs, and .form-panel already gives its buttons a light one. */
+  .wk-line{ display:flex; gap:8px; align-items:baseline; font-family:var(--mono);
+    font-size:var(--fs-tag); letter-spacing:0.04em; padding:3px 0; border-bottom:1px solid var(--line); }
+  .wk-line:last-child{ border-bottom:none; }
+  .wk-line.now .wk-day{ font-weight:var(--fw-bold); }
+  .wk-day{ text-transform:uppercase; flex:0 0 34px; }
+  .wk-slot{ text-transform:uppercase; opacity:0.45; flex:0 0 24px; }
+  .wk-type{ text-transform:uppercase; flex:0 0 74px; }
+  .wk-detail{ opacity:0.6; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #areaVolume:not(:empty){ margin-top:var(--sp-4); }
+  .area-row{ display:flex; align-items:flex-end; gap:8px; margin-bottom:5px; }
+  .area-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--bg); opacity:0.75; flex:1; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .area-ticks{ display:flex; align-items:flex-end; gap:3px; height:12px; flex:0 0 auto; }
+  .area-ticks i{ display:block; width:13px; background:var(--bg); opacity:0.55; }
+  .area-ticks i:last-child{ opacity:1; }
+  .area-ticks i.none{ height:1px !important; opacity:0.22; }
+  .area-total{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.7;
+    flex:0 0 auto; min-width:52px; text-align:right; }
   #weekBlockStrip:not(:empty){ margin-top:var(--sp-4); padding-top:var(--sp-3);
     border-top:1px solid rgba(251,250,246,0.25); }
   .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
@@ -1418,6 +1437,7 @@
           <!-- The block's shape, then what builds it. Both belong with the week rather than
                scattered down the page below it. -->
           <div id="weekBlockStrip"></div>
+          <div id="areaVolume"></div>
           <div class="week-gen-row">
             <select id="programSplitOverride">
               <option value="auto">Auto split</option>
@@ -1452,6 +1472,7 @@
         <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div></div>
         <div class="fields">
           <div id="generateProgramResult" class="score-note"></div>
+          <div id="weekSessionList"></div>
         </div>
       </div>
     </div>
@@ -4851,7 +4872,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.27';
+const APP_VERSION = '2026.08.28.28';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7352,6 +7373,80 @@ function renderWeekDayPicker(dayBlocks){
   stage.addEventListener('pointercancel', endDrag);
 })();
 
+/* #4 — THE WEEK, DAY BY DAY. "Why this week" carried one paragraph about the generate that
+   produced it and nothing about the week itself, so the only way to see what was planned where
+   was to spin the wheel through seven days. This lists what is actually stored: the day, the
+   slot, the type, and the tag or run type it carries. Only what the plan records — no
+   reconstructed reasoning, because a plausible-sounding reason the generator did not actually
+   use would be worse than no reason at all. */
+async function renderWeekSessionList(){
+  const host = document.getElementById('weekSessionList');
+  if(!host) return;
+  const dates = getWeekDates();
+  const lines = [];
+  for(let i = 0; i < dates.length; i++){
+    for(const slot of ['am','pm']){
+      let block;
+      try{ block = JSON.parse((await window.storage.get(`weekplan:${dates[i]}:${slot}`)).value); } catch(e){ continue; }
+      const d = block.details || {};
+      const detail = block.type === 'strength' ? (d.workoutTag || d.plannedFocus || '')
+                   : block.type === 'run' ? [d.runType, d.distanceKm ? d.distanceKm + 'km' : ''].filter(Boolean).join(' ')
+                   : (d.stretches || []).length ? (d.stretches.length + ' stretches') : '';
+      lines.push(`<div class="wk-line${dates[i] === todayStr ? ' now' : ''}">
+        <span class="wk-day">${WEEK_DAY_LABELS[i]}</span>
+        <span class="wk-slot">${slot}</span>
+        <span class="wk-type">${block.type}</span>
+        <span class="wk-detail">${detail}</span></div>`);
+    }
+  }
+  host.innerHTML = lines.length
+    ? `<div class="score-note" style="margin:10px 0 5px;">What is planned, where</div>${lines.join('')}`
+    : '';
+}
+
+/* #3 — WHERE THE VOLUME ACTUALLY WENT. Four weeks, one row per body area, the same seven-tick
+   language the score uses. Built from logged sets rather than planned ones, because the point
+   of it is to show what you DID — the biceps gap that had to be spotted by eye would have been
+   a short row here from the first week. Areas with nothing logged in the window are left out
+   rather than drawn as four empty slots; a list of zeroes is not information. */
+const AREA_WEEKS = 4;
+const AREA_TICK_W = 13, AREA_TICK_GAP = 3, AREA_BAR_H = 12;
+async function renderAreaVolume(){
+  const host = document.getElementById('areaVolume');
+  if(!host) return;
+  host.innerHTML = '';
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return; }
+  const weeks = [];
+  for(let off = -(AREA_WEEKS - 1); off <= 0; off++) weeks.push(getWeekDatesForOffset(off));
+  const byArea = {};
+  sessions.forEach(sn=>{
+    if(sn.type !== 'strength') return;
+    const w = weeks.findIndex(dates => dates.indexOf(sn.date) >= 0);
+    if(w < 0) return;
+    (sn.exercises || []).forEach(ex=>{
+      const a = ex.area;
+      if(!a || !ex.sets) return;
+      (byArea[a] = byArea[a] || new Array(AREA_WEEKS).fill(0))[w] += ex.sets;
+    });
+  });
+  const rows = Object.keys(byArea)
+    .map(a=>({ area:a, weeks:byArea[a], total:byArea[a].reduce((x,y)=>x+y,0) }))
+    .filter(r=>r.total > 0)
+    .sort((a,b)=> b.total - a.total);
+  if(!rows.length) return;
+  const peak = Math.max(...rows.map(r=>Math.max(...r.weeks)));
+  host.innerHTML = `<div class="score-note" style="margin-bottom:5px;">Sets logged by area · last ${AREA_WEEKS} weeks</div>` +
+    rows.map(r=>`<div class="area-row">
+        <span class="area-name">${BODY_AREAS[r.area] || r.area}</span>
+        <span class="area-ticks">${r.weeks.map(n=>{
+          const h = n ? Math.max(2, Math.round((n / peak) * AREA_BAR_H)) : 0;
+          return `<i style="height:${h}px;"${n ? '' : ' class="none"'} title="${n} sets"></i>`;
+        }).join('')}</span>
+        <span class="area-total">${r.total}<i class="unit">sets</i></span>
+      </div>`).join('');
+}
+
 let weekDetailLastHtml = '';
 async function renderWeekGrid(){
   // Surface block position where the week is actually planned. Previously the whole
@@ -7486,6 +7581,8 @@ async function renderWeekGrid(){
         ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
     } catch(e){ strip.innerHTML = ''; }
   })();
+  renderAreaVolume();
+  renderWeekSessionList();
   const wheelStageEl = document.getElementById('weekWheelStage');
   if(wheelStageEl) wheelStageEl.style.display = '';
   const detailCol = document.getElementById('weekWheelDetail');
@@ -8958,7 +9055,8 @@ const REC_TYPE_SYMBOL = {
   hold:           { glyph:'=',      label:'Hold' },
   modify:         { glyph:'\u00b1', label:'Modify' },   // adjust either way, around something
   deload_suggest: { glyph:'\u2193', label:'Deload' },   // a reduce that lasts a week
-  week_review:    { glyph:'\u2211', label:'Week' }      // the week summed, not a thing to decide
+  week_review:    { glyph:'\u2211', label:'Week' },     // the week summed, not a thing to decide
+  block_review:   { glyph:'\u2261', label:'Block' }     // and the block it sat inside
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
@@ -8979,7 +9077,7 @@ function confRulerHtml(confidence){
 function buildRecCard(type, title, signals, confidence, meta){
   // A card telling you to back off is the one piece of bad news the mark should register.
   if(type === 'reduce' && anim('wince')) setTimeout(eyeWince, 250);
-  const isReview = type === 'week_review';
+  const isReview = type === 'week_review' || type === 'block_review';
   const card = document.createElement('div');
   card.className = `rec-card ${type}`;
   card.innerHTML = `
@@ -9277,6 +9375,7 @@ const TRACE_MIN_SPAN = 20;
 const TRACE_PAD = 4;            // so the highest and lowest days aren't drawn on the edges
 const TRACE_BAND = 26;          // the trace's own height, above its rail
 const TICK_H = 3;               // today's mark; the other six are 2px
+const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
 /* The week, held. renderScoreTrace gathers it; paintScoreTrace draws it; and because the
@@ -9285,6 +9384,7 @@ const TRACE_GAP = 16;           // clear space between the score's digits and th
 let scoreDays = [];        // 7 entries, oldest first, score null where nothing was logged
 let scoreDayIndex = null;  // which one the block is showing; the last scored one is today
 let scoreTodayLabel = '';  // the label today had, to put back when you return to it
+let scoreWeights = [];     // bodyweight on the same seven days, or empty if too sparse to draw
 
 async function renderScoreTrace(todayScore){
   const host = document.getElementById('scoreTrace');
@@ -9311,6 +9411,19 @@ async function renderScoreTrace(todayScore){
   let todayDepth = 0;
   try{ todayDepth = readingDepth(JSON.parse((await window.storage.get(keyFor(todayStr))).value)); } catch(e){}
   scoreDays.push({ date: todayStr, score: todayScore, depth: todayDepth });
+  // Bodyweight over the same seven days, if it was recorded on enough of them. Not carried
+  // forward from the last reading the way the form does it — a flat line drawn from one
+  // weigh-in would be a chart of nothing, and the gaps are the honest picture of how often
+  // you actually stepped on the scales.
+  scoreWeights = [];
+  try{
+    for(const d of scoreDays){
+      let w = null;
+      try{ w = JSON.parse((await window.storage.get(`bodymetrics:${d.date}`)).value).weight ?? null; } catch(e){}
+      scoreWeights.push(typeof w === 'number' && w > 0 ? w : null);
+    }
+    if(scoreWeights.filter(w=>w != null).length < 3) scoreWeights = [];
+  } catch(e){ scoreWeights = []; }
   scoreDayIndex = scoreDays.length - 1;
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
@@ -9363,11 +9476,24 @@ function paintScoreTrace(){
     const ty = Math.round(y(day.score)) - (picked ? 1 : 0);
     return `<rect x="${x}" y="${ty}" width="${w}" height="${h}" fill="${fill}"/>`;
   }).join('');
+  // The weight row is its own scale — it has nothing to do with the score's — and dimmer,
+  // because it is the second thing on this strip, not a rival to the first.
+  let wRow = '';
+  const wVals = scoreWeights.filter(v=>v != null);
+  if(wVals.length >= 3){
+    const wLo = Math.min(...wVals), wHi = Math.max(...wVals);
+    const span = Math.max(1.5, (wHi - wLo) * 1.25);          // never let a 200g wobble fill the band
+    const mid2 = (wLo + wHi) / 2, lo2 = mid2 - span / 2;
+    const wy = v => WEIGHT_BAND - ((v - lo2) / span) * (WEIGHT_BAND - 2);
+    wRow = `<svg width="${W}" height="${WEIGHT_BAND}" viewBox="0 0 ${W} ${WEIGHT_BAND}" style="display:block; margin-top:3px;" aria-hidden="true">
+      ${scoreWeights.map((v,i)=> v == null ? '' : `<rect x="${Math.round(i * slot + (slot - tickW) / 2)}" y="${Math.max(0, Math.round(wy(v)) - 1)}" width="${tickW}" height="1" fill="rgba(251,250,246,0.4)"/>`).join('')}
+    </svg>`;
+  }
   host.innerHTML = `<div class="trace-cap">7 days</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
-    </svg>`;
+    </svg>${wRow}`;
   host.style.display = 'block';
   // Centred on the number rather than on the band: the band's own middle is empty space
   // between the eyes and the label, and the trace belongs to the figure it is a history of.
@@ -9380,7 +9506,8 @@ function paintScoreTrace(){
   host.setAttribute('aria-label',
     (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
     'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading'
-      : (x.depth != null && x.depth < READING_FULL ? x.score + ' partial' : x.score)).join(', '));
+      : (x.depth != null && x.depth < READING_FULL ? x.score + ' partial' : x.score)).join(', ') +
+    (wVals.length >= 3 ? '. Bodyweight: ' + scoreWeights.map(v=> v == null ? 'not weighed' : v + 'kg').join(', ') : ''));
 }
 
 /* Swipe the block back through the week. The number, the mark and the highlighted tick all
@@ -16481,6 +16608,65 @@ document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
 // returns, so by the time this shows there is nothing left in the week to change — which
 // is exactly why it reports rather than recommends. Counted in sets as well as sessions:
 // four sessions says how often you turned up, sets says how much you actually did.
+/* #10 — THE BLOCK, CLOSED OUT. The Sunday card reports a week; this reports the thing the
+   week was part of, on the one day the block actually ends — the last day of its deload. What
+   it says is only what the logs support: sessions, sets, volume, and the lifts whose top load
+   is higher than it was when the block started. No verdict on whether the block "worked",
+   because nothing here can tell you that; the numbers can, and you can. */
+async function buildBlockReviewCard(){
+  if(new Date(todayStr).getDay() !== 0) return null;              // blocks end on the last day of a week
+  let pos;
+  try{ pos = await getBlockPosition(todayStr); } catch(e){ return null; }
+  if(!isDeloadPosition(pos.weekInBlock, pos.length)) return null; // and only on the deload week
+
+  const weeks = [];
+  for(let off = -(pos.length - 1); off <= 0; off++) weeks.push(getWeekDatesForOffset(off));
+  const inBlock = new Set(weeks.flat());
+  const sessions = (await getAllTrainingSessions()).filter(sn => inBlock.has(sn.date));
+  if(!sessions.length) return null;
+
+  let sets = 0, volume = 0;
+  const days = new Set();
+  const topInBlock = {}, topBefore = {};
+  sessions.forEach(sn=>{
+    days.add(sn.date);
+    (sn.exercises || []).forEach(ex=>{
+      sets += (ex.sets || 0);
+      volume += (ex.volume || 0);
+      const k = exHistKey(ex.name);
+      if(k && ex.weight) topInBlock[k] = Math.max(topInBlock[k] || 0, ex.weight);
+    });
+  });
+  volume = volume || sessions.reduce((t, sn)=> t + (sn.totalVolume || 0), 0);
+  (await getAllTrainingSessions()).filter(sn => !inBlock.has(sn.date) && sn.date < weeks[0][0])
+    .forEach(sn => (sn.exercises || []).forEach(ex=>{
+      const k = exHistKey(ex.name);
+      if(k && ex.weight) topBefore[k] = Math.max(topBefore[k] || 0, ex.weight);
+    }));
+  const risen = Object.keys(topInBlock)
+    .filter(k => topInBlock[k] > (topBefore[k] || 0) && topBefore[k])
+    .sort((a,b)=> (topInBlock[b] - topBefore[b]) - (topInBlock[a] - topBefore[a]))
+    .slice(0, 4);
+
+  const signals = [];
+  signals.push(`${sessions.length} session${sessions.length===1?'':'s'} over ${pos.length} weeks, across ${days.size} day${days.size===1?'':'s'}.`);
+  signals.push(`${sets} set${sets===1?'':'s'}${volume > 0 ? ` · ${Math.round(volume/1000)}k kg moved` : ''}.`);
+  if(risen.length){
+    // Named, with the number, because "you got stronger" is a claim and "Back Squat 90 to 100"
+    // is the evidence for it.
+    signals.push('Top load up: ' + risen.map(k=>{
+      const label = (sessions.flatMap(sn=>sn.exercises||[]).find(e=>exHistKey(e.name)===k) || {}).name || k;
+      return `${label} ${topBefore[k]}\u2192${topInBlock[k]}kg`;
+    }).join(' · ') + '.');
+  } else {
+    signals.push('No lift set a new top load this block — which is what a block spent building volume looks like.');
+  }
+  signals.push(`Block ${pos.blocksCompleted + 2} starts tomorrow. Loads reintroduce about 10% down; that is the plan working, not lost ground.`);
+
+  return { type:'block_review', title:`Block ${pos.blocksCompleted + 1} closed · ${pos.length} weeks`,
+           signals, confidence:null, meta:{} };
+}
+
 async function buildWeekReviewCard(){
   if(new Date(todayStr).getDay() !== 0) return null;   // 0 = Sunday
   const dates = getWeekDates();
@@ -16814,6 +17000,9 @@ const TENDINOPATHY_PROTOCOL = {
   // Everything else in this stack looks forward; this one looks back, which is why it is
   // its own type with one button instead of a judgement to make.
   const weekCard = await buildWeekReviewCard();
+  // The block closes on the same day a week does, so both can land at once; the larger one
+  // goes first, because it is the frame the week sits inside.
+  const blockCard = await buildBlockReviewCard();
 
   // "hold" cards are the engine's null result — "nothing corroborated, carry on" — stated
   // as a card you then have to accept or dismiss. Filtered at the render point rather
@@ -16821,6 +17010,7 @@ const TENDINOPATHY_PROTOCOL = {
   // is one line to undo.
   cardQueue = cardQueue.filter(c => c.type !== 'hold');
   if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
+  if(blockCard) cardQueue.unshift(blockCard);
   showNextCard();
 
   const acceptanceStats = await getAcceptanceStats();
