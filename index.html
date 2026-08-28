@@ -4768,7 +4768,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.22';
+const APP_VERSION = '2026.08.28.23';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9125,7 +9125,12 @@ function showScoreDay(idx){
   // reading and should not sit at full strength under a faded one.
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = dim; });
-  if(back && out && uiAnim('scoreGlitch')){
+  // Every landing tears, today included. It was excluded at first on the reasoning that today
+  // is the reading that is simply true — but the tear is about the SWIPE, not about the day:
+  // it is the block being repainted under your thumb, and coming home should feel like the
+  // same action as leaving. The only thing that never glitches is the first paint, which is
+  // not a swipe and does not come through here.
+  if(out && uiAnim('scoreGlitch')){
     out.classList.remove('score-glitch');
     void out.offsetWidth;                       // or the remove and the add coalesce into nothing
     out.style.setProperty('--glitch-ms', UI_ANIM.scoreGlitch.ms + 'ms');
