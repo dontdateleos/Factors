@@ -438,7 +438,10 @@
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
   .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
-  footer{ position:fixed; bottom:0; left:0; right:0; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
+  /* Above the sticky group heads (z-index 3). Without this a head level with the footer takes
+     the tap meant for Save or Clear — on Data, at the top of the page, the two buttons in
+     this footer were simply not clickable. */
+  footer{ position:fixed; bottom:0; left:0; right:0; z-index:5; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
   button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--reverse-bg); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
@@ -954,6 +957,24 @@
   #firstRunBuildBtn{ width:100%; margin-top:4px; }
   .fr-note{ margin-top:10px; }
   .today-open.today-open-empty{ padding-top:0; padding-bottom:0; margin-bottom:0; }
+  /* One line standing in for a page of optional fields. Deliberately not a .group — it is a
+     control, not a section, and reading as one would put a fifth heading on the page. */
+  .more-toggle{ display:flex; align-items:baseline; gap:8px; cursor:pointer; margin:0 -14px var(--sp-3);
+    padding:14px; background:var(--reverse-bg); color:var(--bg); font-family:var(--mono);
+    font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui);
+    text-transform:uppercase; border-top:2px solid var(--bg); border-bottom:2px solid var(--bg); }
+  .more-toggle-sub{ flex:1; min-width:0; font-weight:var(--fw-medium); letter-spacing:0.02em;
+    text-transform:none; color:rgba(251,250,246,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .more-toggle-chev{ flex:0 0 auto; transition:transform 0.15s; }
+  .more-toggle.open .more-toggle-chev{ transform:rotate(180deg); }
+  .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+    cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
+    color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
+  .cta-strip-arrow{ font-size:16px; }
+  /* The device chips name which watch a number came from. With no watch connected there is
+     one box per fact and the chip is answering a question nobody asked. */
+  body.no-devices .src-tag{ display:none; }
   /* Set on Today's own sections rather than toggling each one's display, so every section
      keeps whatever show/hide logic it already had for when the app is set up. */
   #panel-insights > [data-first-run-hidden]{ display:none !important; }
@@ -1748,7 +1769,7 @@
     </div>
 
     <div id="recoveryDataView">
-    <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in — log today's recovery data to unlock Today.</div>
+    <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in. Three numbers and today&rsquo;s plan reads them.</div>
 
     <div class="date-row">
       <input type="date" id="entryDate">
@@ -1768,10 +1789,36 @@
     <div class="score-note" style="display:none;">Adaptive compares today against your trailing 7-day average. Target compares against fixed goals (8hr sleep, ≤1 wake event, HRV at rolling baseline). Equal-weighted v1 — placeholder until backtested.</div>
     <div class="score-note" id="sleepDebtOut">Sleep debt: —</div>
 
+    <!-- THE MORNING CHECK-IN. It used to open with eighteen fields, six of which were three
+         facts asked twice — a Garmin box and an Oura box for the same sleep score, the same
+         wake time, the same HRV — and none of them marked as more or less worth filling in.
+         The three that carry the score come first and are a complete entry on their own;
+         everything else is behind one line, and opens itself if it is holding a value so
+         nothing is ever hidden AND set. -->
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Sleep</div><div class="group-sub">canonical: oura</div></div>
+      <div class="group-head"><div class="group-title">This morning</div><div class="group-sub">these three are a complete entry</div></div>
       <div class="fields">
-        <div class="field-row"><span class="field-label">Duration (hrs)</span><input type="number" step="0.1" id="durationHrs" placeholder="e.g. 7.5"></div>
+        <div class="field-row"><span class="field-label">Sleep (hrs)</span><input type="number" step="0.1" id="durationHrs" placeholder="e.g. 7.5"></div>
+        <div>
+          <div class="field-row"><span class="field-label">HRV (ms)</span><span class="src-tag garmin">GARMIN</span><input type="number" id="hrvGarmin" placeholder="ms"></div>
+          <div class="field-row" style="display:none;"><span class="field-label"></span><span class="src-tag secondary">OURA</span><input type="number" id="hrvOura" placeholder="ms"></div>
+          <div class="disagree-note" id="hrvFlag">&#9888; delta exceeds &plusmn;10ms &mdash; logged for review</div>
+        </div>
+        <div class="field-row"><span class="field-label">Resting HR</span><input type="number" id="restingHR" placeholder="bpm"></div>
+      </div>
+    </div>
+
+    <div class="more-toggle" id="recoveryMoreToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="recoveryMore">
+      <span>Everything else</span>
+      <span class="more-toggle-sub" id="recoveryMoreSummary">device readings, load, body metrics</span>
+      <span class="more-toggle-chev">&#9662;</span>
+    </div>
+
+    <div id="recoveryMore" style="display:none;">
+
+    <div class="group form-panel">
+      <div class="group-head"><div class="group-title">Sleep detail</div><div class="group-sub">from a watch or ring, if you have one</div></div>
+      <div class="fields">
         <div>
           <div class="field-row" style="display:none;"><span class="field-label">Score</span><span class="src-tag oura">OURA</span><input type="number" id="sleepScoreOura" placeholder="0-100"></div>
           <div class="field-row"><span class="field-label">Score</span><span class="src-tag secondary">GARMIN</span><input type="number" id="sleepScoreGarmin" placeholder="0-100"></div>
@@ -1786,15 +1833,9 @@
     </div>
 
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">HRV</div><div class="group-sub">canonical: garmin</div></div>
+      <div class="group-head"><div class="group-title">HRV detail</div><div class="group-sub">what your own normal is, and what the watch calls it</div></div>
       <div class="fields">
-        <div>
-          <div class="field-row"><span class="field-label">HRV (ms)</span><span class="src-tag garmin">GARMIN</span><input type="number" id="hrvGarmin" placeholder="ms"></div>
-          <div class="field-row" style="display:none;"><span class="field-label"></span><span class="src-tag secondary">OURA</span><input type="number" id="hrvOura" placeholder="ms"></div>
-          <div class="disagree-note" id="hrvFlag">⚠ delta exceeds ±10ms — logged for review</div>
-        </div>
-        <div class="field-row"><span class="field-label">Baseline (ms)</span><input type="number" id="hrvBaseline" placeholder="Garmin rolling baseline"></div>
-        <div class="field-row"><span class="field-label">Resting HR</span><input type="number" id="restingHR" placeholder="bpm"></div>
+        <div class="field-row"><span class="field-label">Baseline (ms)</span><input type="number" id="hrvBaseline" placeholder="your rolling normal"></div>
         <div class="field-row"><span class="field-label">Status</span>
           <select id="hrvStatus"><option value="">—</option><option>balanced</option><option>unbalanced</option><option>low</option><option>poor</option></select>
         </div>
@@ -1830,6 +1871,8 @@
         <button id="updateBodyMetricsBtn">Update body metrics</button>
       </div>
     </div>
+
+    </div><!-- /recoveryMore -->
 
     </div>
 
@@ -4997,7 +5040,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.36';
+const APP_VERSION = '2026.08.28.37';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6247,9 +6290,9 @@ function fillRecoveryForm(entry){
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
-  computeFlags(); computeScores(); computeSleepDebt();
+  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -14263,6 +14306,41 @@ async function applyRestDayShape(){
   note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
 }
 
+/* The morning form's second half, behind one line. Two rules keep it honest: it opens
+   itself whenever anything inside it is holding a value — a field that is both hidden and
+   set is the worst thing a form can do — and the line says how many of them are filled, so
+   collapsed never means unknown. */
+const RECOVERY_MORE_IDS = ['sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin',
+  'hrvBaseline','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery'];
+function setRecoveryMoreOpen(open){
+  const box = document.getElementById('recoveryMore');
+  const tog = document.getElementById('recoveryMoreToggle');
+  if(!box || !tog) return;
+  box.style.display = open ? 'block' : 'none';
+  tog.classList.toggle('open', open);
+  tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function syncRecoveryMore(){
+  const sum = document.getElementById('recoveryMoreSummary');
+  const filled = RECOVERY_MORE_IDS
+    .filter(id => (document.getElementById(id)?.value || '').trim()).length;
+  if(sum) sum.textContent = filled ? `${filled} filled in` : 'devices, load, body';
+  if(filled) setRecoveryMoreOpen(true);
+}
+(function wireRecoveryMore(){
+  const tog = document.getElementById('recoveryMoreToggle');
+  if(!tog) return;
+  tog.addEventListener('click', ()=>
+    setRecoveryMoreOpen(document.getElementById('recoveryMore').style.display === 'none'));
+})();
+// Chips naming which watch a reading came from, on a phone with no watch attached.
+async function markDeviceChips(){
+  let connected = false;
+  try{ connected = !!JSON.parse((await window.storage.get('oura:tokens')).value); } catch(e){}
+  document.body.classList.toggle('no-devices', !connected);
+}
+markDeviceChips();
+
 /* ---------- FIRST RUN ----------
    The app has a hard gate and it used to be invisible. The week generator needs two things:
    which days you can train (Settings > Training Setup, collapsed, last tab) and at least one
@@ -17278,7 +17356,10 @@ async function generateRecommendations(){
   let entry;
   try{ const r = await window.storage.get(keyFor(todayStr)); entry = JSON.parse(r.value); }
   catch(e){
-    container.innerHTML = '<div class="morning-banner" id="insightsLogCTA" style="cursor:pointer; text-align:center; font-weight:var(--fw-bold);">Log today\'s recovery to unlock today\'s recommendations</div>';
+    // Styled as the action it always was. It has been clickable the whole time and read as a
+    // notice, so the one next step on the page looked like a locked door rather than a way in.
+    container.innerHTML = '<div class="cta-strip" id="insightsLogCTA" role="button" tabindex="0">'
+      + '<span>Log this morning</span><span class="cta-strip-arrow" aria-hidden="true">&rarr;</span></div>';
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
     renderScoreTrace(null);
     refreshRecHistory();
