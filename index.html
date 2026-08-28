@@ -425,6 +425,12 @@
     --eye-plate-r:0px; --eye-w:4px; --eye-h:11px; --eye-r:2px; --eye-rb:2px;
     --eye-ink:currentColor; display:inline-flex; vertical-align:middle; }
   .group-head.collapsed .chevron-eyes, .collapse-chevron.collapsed .chevron-eyes{ --eye-h:2px; }
+  /* Shut, and looking down at what is shut away. The triangle these replaced pointed at the
+     content; a closed pair says the section is closed but not where the content went, and
+     the gaze is what puts that back. It is a translate of the whole pair, so it reads even
+     at two pixels of lid. */
+  .group-head.collapsed .chevron-eyes .eye-gaze,
+  .collapse-chevron.collapsed .chevron-eyes .eye-gaze{ --eye-gaze-y:2.5px; }
   .collapse-chevron{ display:inline-flex; align-items:center; }
   .empty-eyes{ --eye-box-w:26px; --eye-box-h:20px; --eye-gap:7px; --eye-plate:transparent;
     --eye-plate-r:0px; --eye-w:8px; --eye-h:20px; --eye-r:4px; --eye-rb:4px;
@@ -3075,8 +3081,11 @@ function eyeNoteActivity(){
 /* ---------- WHAT THE DAYS HAVE BEEN LIKE ----------
    A streak makes it perkier and a long absence makes the first look bleary. Both read the
    same key list, so they are one pass. */
-async function refreshEyeHistory(){
-  if(!anim('streakPerk')){ eyeCtx.streak = 0; return; }
+// How many days back the logging runs unbroken. Its own function because two things want it
+// now and they must not disagree: the mark's blink rate, and the header readout. Reading it
+// off eyeCtx meant the readout lost the number whenever the mark's own switch was off.
+let loggedStreak = 0;
+async function countLoggedStreak(){
   try{
     const res = await window.storage.list('entry:');
     const days = new Set((res && res.keys ? res.keys : []).map(k=>k.slice('entry:'.length)));
@@ -3090,8 +3099,12 @@ async function refreshEyeHistory(){
       n++; d.setDate(d.getDate() - 1);
       if(n > 400) break;
     }
-    eyeCtx.streak = n;
-  }catch(e){ eyeCtx.streak = 0; }
+    return n;
+  }catch(e){ return 0; }
+}
+async function refreshEyeHistory(){
+  loggedStreak = await countLoggedStreak();
+  eyeCtx.streak = anim('streakPerk') ? loggedStreak : 0;
 }
 // A run of logged days shortens the gap between blinks. Multiplies whatever the score band
 // already decided rather than replacing it, so the two read together.
@@ -3216,16 +3229,21 @@ function decorateEmptyStates(root){
   });
   aimEmptyStates(root);
 }
-// What would fill this block. Most of these say "plan it on the Weekly tab" rather than
-// carrying a button of their own, so the tab they name wins; otherwise it is the nearest
-// control that is actually on screen. A hidden button measures zero and would aim the pair
-// at the top-left corner, which is worse than not aiming it at all.
+// What would fill this block. A named tab wins, then the nearest control that is actually on
+// screen. A hidden button measures zero and would aim the pair at the top-left corner, which
+// is worse than not aiming it at all.
+//
+// The name is read from data-aim first and only then out of the prose. Parsing the copy was
+// the whole mechanism, which quietly made the wording load-bearing: shortening "Nothing
+// planned for strength today — plan it on the Weekly tab" to "No strength today" would have
+// left the pair with nothing to look at, and nothing in the message would have said so.
 const EYE_EMPTY_TABS = { today:'insights', weekly:'training', function:'injuries',
                          goals:'goals', data:'data', settings:'settings' };
 function emptyStateTarget(block){
-  const said = (block.textContent || '').match(/\b(Today|Weekly|Function|Goals|Data|Settings)\s+tab\b/i);
-  if(said){
-    const tab = document.querySelector(`.tab[data-tab="${EYE_EMPTY_TABS[said[1].toLowerCase()]}"]`);
+  const aim = block.dataset.aim
+    || ((block.textContent || '').match(/\b(Today|Weekly|Function|Goals|Data|Settings)\s+tab\b/i) || [])[1];
+  if(aim){
+    const tab = document.querySelector(`.tab[data-tab="${EYE_EMPTY_TABS[aim.toLowerCase()]}"]`);
     if(tab && tab.getBoundingClientRect().width) return tab;
   }
   const scope = block.closest('.group') || block.closest('.panel') || document;
@@ -3771,7 +3789,8 @@ const UI_ANIM = {
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
   tabLift:      { on:true, note:'The tab’s colour fills the page and the new one is dealt up onto it',
-                  axis:'Y', ms:440 }
+                  axis:'Y', ms:440 },
+  planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 }
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -4613,7 +4632,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.8';
+const APP_VERSION = '2026.08.28.9';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5552,6 +5571,12 @@ async function renderHeaderReadout(){
   if(eyeScore != null){
     parts.push(`<span>${Math.round(eyeScore)}</span>`);
     spoken.push(`score ${Math.round(eyeScore)}`);
+  }
+  // Stated, never celebrated. No colour, no exclamation, and it is gone at one day rather
+  // than telling you that you have logged today — which you know, because you just did it.
+  if(loggedStreak >= 2){
+    parts.push(`<span>${loggedStreak}d</span>`);
+    spoken.push(`${loggedStreak} day logging streak`);
   }
   el.innerHTML = parts.join('<span class="ro-sep">·</span>');
   // Read out as words. "B1 W1/4 · 84" is a glance, not a sentence.
@@ -7085,7 +7110,17 @@ async function renderWeekGrid(){
       // Session count alone doesn't say how hard a week is — four heavy days and four easy
       // ones look identical. Planned SETS is the number that actually varies across the
       // block, so it's what the bars are scaled to and what's shown above them.
-      let plannedByWeek = {}, setsByWeek = {}, runKmByWeek = {};
+      let plannedByWeek = {}, setsByWeek = {}, runKmByWeek = {}, doneSetsByWeek = {};
+      // Logged sets, keyed by date, in one pass — so a week's bar can be drawn as what you
+      // actually did against what was planned rather than as the plan alone.
+      const loggedSetsByDate = {};
+      try{
+        (await getAllTrainingSessions()).forEach(sn=>{
+          let n = 0;
+          (sn.exercises || []).forEach(e=>{ n += (e.sets || 0); });
+          if(n > 0) loggedSetsByDate[sn.date] = (loggedSetsByDate[sn.date] || 0) + n;
+        });
+      } catch(e){}
       try{
         for(let w=0; w<pos.length; w++){
           const offset = w - (pos.weekInBlock - 1);
@@ -7110,6 +7145,7 @@ async function renderWeekGrid(){
           plannedByWeek[w+1] = n;
           setsByWeek[w+1] = sets;
           runKmByWeek[w+1] = Math.round(km);
+          doneSetsByWeek[w+1] = wd.reduce((t,d)=> t + (loggedSetsByDate[d] || 0), 0);
         }
       } catch(e){}
       const maxSets = Math.max(1, ...Object.values(setsByWeek));
@@ -7134,6 +7170,15 @@ async function renderWeekGrid(){
           ? Math.max(10, Math.round((realSets / maxSets) * 46))
           : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
         const n = realSets > 0 ? realSets : null;
+        // The bar is the plan; the sets you have logged fill it from the bottom. An
+        // untouched week reads as an outline, a finished one as the solid bar it has
+        // always been — so the strip records the block rather than only forecasting it.
+        // Ratio is by sets both sides: filling a sets-height bar by a count of sessions
+        // would have mixed units and drawn a half-done week at the wrong height.
+        const doneSets = doneSetsByWeek[w] || 0;
+        const doneRatio = realSets > 0 ? Math.min(1, doneSets / realSets) : (doneSets > 0 ? 1 : 0);
+        const fillH = doneRatio > 0 ? Math.max(2, Math.round(h * doneRatio)) : 0;
+        const barInk = isNow ? 'var(--block-orange)' : 'var(--bg)';
         // Inside the black panel now, so the bars are cream and the week you are in is the
         // tab's own orange — the one place that colour appears below the tab bar, which is
         // what makes it findable at a glance. A difference in hue rather than one of
@@ -7146,10 +7191,12 @@ async function renderWeekGrid(){
         // The text rows hold a space when they have nothing to say, so a column with no
         // figures keeps the same height as one with them and the bars share a baseline.
         const tag = `font-family:var(--mono); font-size:${dense ? '9px' : 'var(--fs-tag)'}; white-space:nowrap;`;
-        cells.push(`<div title="Week ${w} — ${phase}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
+        cells.push(`<div title="Week ${w} — ${phase}${realSets > 0 ? ` · ${doneSets}/${realSets} sets logged` : ''}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
           <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; background:${isNow ? 'var(--block-orange)' : 'var(--bg)'};"></div>
+            <div style="width:100%; height:${h}px; position:relative; box-shadow:inset 0 0 0 1px ${barInk};">
+              <div style="position:absolute; left:0; right:0; bottom:0; height:${fillH}px; background:${barInk};"></div>
+            </div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
           <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
@@ -7172,7 +7219,7 @@ async function renderWeekGrid(){
       const headline = reintro
         ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
         : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
-      strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Planned sets per week · sessions and run km below</div>
+      strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Sets per week, filled as you log · sessions and run km below</div>
         <div style="display:flex; gap:${dense ? 3 : 5}px; align-items:flex-end;">${cells.join('')}</div>
         <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
         ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
@@ -7254,6 +7301,41 @@ async function renderWeekGrid(){
   detailCol.querySelectorAll('[data-add-date]').forEach(card=>{
     card.addEventListener('click', ()=> openBlockEditor(card.dataset.addDate, 'am', null));
   });
+}
+
+// A generated week used to appear whole: the wheel stayed on today and the only sign
+// anything had happened was a toast and a redrawn strip. Dealing it walks the picker
+// through the days that were just filled, one at a time, and settles back on today — so
+// you watch the week being laid down rather than being handed the finished thing.
+// Which days are new is a before/after diff of the stored plan rather than anything the
+// generator reports, so it stays true whatever route filled them.
+async function filledWeekDays(){
+  const out = [];
+  for(const d of getWeekDates()){
+    for(const slot of ['am','pm']){
+      try{ await window.storage.get(`weekplan:${d}:${slot}`); out.push(d); break; } catch(e){}
+    }
+  }
+  return out;
+}
+let planDealRunning = false;
+async function dealPlanThroughWeek(newDates){
+  const week = getWeekDates();
+  const stops = (newDates || []).map(d=>week.indexOf(d)).filter(i=>i>=0).sort((a,b)=>a-b);
+  if(planDealRunning || !uiAnim('planDeal') || !stops.length){ await renderWeekGrid(); return; }
+  // Always end where the wheel would have been anyway, so the deal costs you nothing:
+  // it leaves the tab in the state it was already going to be in.
+  const home = Math.max(0, week.indexOf(todayStr));
+  if(stops[stops.length-1] !== home) stops.push(home);
+  planDealRunning = true;
+  try{
+    for(const i of stops){
+      activeWheelDayIndex = i;
+      await renderWeekGrid();
+      if(anim('glanceAtDay')) eyeGlanceAtEl(document.querySelector('.week-day-item.focused'), 4);
+      await new Promise(r=>setTimeout(r, UI_ANIM.planDeal.ms));
+    }
+  } finally { planDealRunning = false; }
 }
 
 document.getElementById('deloadWeekCheckbox').addEventListener('change', async (e)=>{
@@ -8422,7 +8504,8 @@ const REC_TYPE_SYMBOL = {
   reduce:         { glyph:'\u2212', label:'Reduce' },   // a real minus, not a hyphen
   hold:           { glyph:'=',      label:'Hold' },
   modify:         { glyph:'\u00b1', label:'Modify' },   // adjust either way, around something
-  deload_suggest: { glyph:'\u2193', label:'Deload' }    // a reduce that lasts a week
+  deload_suggest: { glyph:'\u2193', label:'Deload' },   // a reduce that lasts a week
+  week_review:    { glyph:'\u2211', label:'Week' }      // the week summed, not a thing to decide
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
@@ -8433,6 +8516,7 @@ function recSymbolHtml(type){
 function buildRecCard(type, title, signals, confidence, meta){
   // A card telling you to back off is the one piece of bad news the mark should register.
   if(type === 'reduce' && anim('wince')) setTimeout(eyeWince, 250);
+  const isReview = type === 'week_review';
   const card = document.createElement('div');
   card.className = `rec-card ${type}`;
   card.innerHTML = `
@@ -8444,10 +8528,22 @@ function buildRecCard(type, title, signals, confidence, meta){
       <div class="rec-title">${title}</div>
       ${signals.map(s=>`<div class="rec-signal">${s}</div>`).join('')}
       <div class="rec-actions">
-        <button class="small accept-btn">Accept</button>
-        <button class="small outline dismiss-btn">Dismiss</button>
+        ${isReview
+          ? `<button class="small review-done-btn">Done</button>`
+          : `<button class="small accept-btn">Accept</button>
+             <button class="small outline dismiss-btn">Dismiss</button>`}
       </div>
     </div>`;
+  if(isReview){
+    // A report is not a recommendation. Accept/Dismiss on it would ask you to rule on
+    // what already happened, and would land in the acceptance stats as a decision you
+    // never made — so this one just closes.
+    card.querySelector('.review-done-btn').addEventListener('click', ()=>{
+      cardQueueIndex++;
+      playCardExit(card, 'accepted', ()=>showNextCard());
+    });
+    return card;
+  }
   card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card));
   card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card));
   return card;
@@ -14026,6 +14122,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
   result.textContent = 'Generating...';
   result.style.color = 'var(--dim)';
   const eyesDone = eyesBusy();
+  const beforeFilled = await filledWeekDays();
   try{
     const weekResults = await generateMultiWeekProgram(numWeeks, splitOverride, options);
     const first = weekResults[0];
@@ -14084,7 +14181,8 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     // section that explains the week blank while the week itself was still there.
     try{ await window.storage.set(`planSummary:${getWeekDates()[0]}`, JSON.stringify({ html: msg, at: new Date().toISOString() })); } catch(e){}
     showToast(`${numWeeks} week${numWeeks===1?'':'s'} generated`);
-    renderWeekGrid();
+    const afterFilled = await filledWeekDays();
+    dealPlanThroughWeek(afterFilled.filter(d => beforeFilled.indexOf(d) < 0));
   } catch(e){
     result.textContent = 'Generation failed — try again.';
     result.style.color = 'var(--text)';
@@ -15483,7 +15581,7 @@ async function renderTodayWorkoutSummary(){
 
   const block = await getTodaysBlockForType(todaySessionType);
   if(!block){
-    container.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Nothing planned for ${todaySessionType} today — plan it on the Weekly tab</span></div>`;
+    container.innerHTML = `<div class="empty-state" data-aim="weekly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>No ${todaySessionType} today</span></div>`;
     return;
   }
   const rows = await blockSummaryHtml(block);
@@ -15576,6 +15674,57 @@ document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
     generateWarmup().then(()=>generateMobility());
   });
 });
+
+// The week, closed out, on the day it closes. Sunday is the last date getWeekDates
+// returns, so by the time this shows there is nothing left in the week to change — which
+// is exactly why it reports rather than recommends. Counted in sets as well as sessions:
+// four sessions says how often you turned up, sets says how much you actually did.
+async function buildWeekReviewCard(){
+  if(new Date(todayStr).getDay() !== 0) return null;   // 0 = Sunday
+  const dates = getWeekDates();
+  const status = await getWeekCompletionStatus(dates);
+  const sessions = (await getAllTrainingSessions()).filter(s => dates.indexOf(s.date) >= 0);
+  if(status.plannedTotal === 0 && sessions.length === 0) return null;
+
+  let sets = 0, volume = 0;
+  const daysTrained = new Set();
+  sessions.forEach(s=>{
+    (s.exercises||[]).forEach(e=>{ sets += (e.sets||0); });
+    volume += (s.totalVolume||0);
+    daysTrained.add(s.date);
+  });
+  let plannedSets = 0;
+  for(const d of dates){
+    try{
+      const rec = JSON.parse((await window.storage.get(`planned_session:${d}`)).value);
+      (rec.exercises||[]).forEach(e=>{ plannedSets += (e.sets||0); });
+    } catch(e){}
+  }
+
+  const signals = [];
+  signals.push(`${sessions.length} of ${status.plannedTotal} planned session${status.plannedTotal===1?'':'s'} logged, across ${daysTrained.size} day${daysTrained.size===1?'':'s'}.`);
+  if(sets > 0 || plannedSets > 0){
+    signals.push(`${sets} set${sets===1?'':'s'}${plannedSets ? ` against ${plannedSets} planned` : ''}${volume > 0 ? ` · ${Math.round(volume/1000)}k kg moved` : ''}.`);
+  }
+  // Named, not counted: "2 missed" leaves you to work out which two.
+  const missedDays = [...new Set(status.missed.map(m=>m.date))].sort();
+  if(missedDays.length){
+    signals.push(`Missed: ${missedDays.map(d=>WEEK_DAY_LABELS[dates.indexOf(d)] || d).join(', ')}. Not carried forward — next week is planned from what is still necessary, not from what was skipped.`);
+  } else if(status.evaluableTotal > 0){
+    signals.push('Nothing missed.');
+  }
+  if(loggedStreak >= 2) signals.push(`${loggedStreak}-day logging streak going into next week.`);
+
+  let title = 'Week closed';
+  try{
+    const pos = await getBlockPosition(dates[0]);
+    title = isDeloadPosition(pos.weekInBlock, pos.length)
+      ? `Deload week closed · block ${pos.blocksCompleted+1}`
+      : `Week ${pos.weekInBlock} of ${pos.length} closed · block ${pos.blocksCompleted+1}`;
+  } catch(e){}
+
+  return { type:'week_review', title, signals, confidence:null, meta:{} };
+}
 
 async function generateRecommendations(){
   const container = document.getElementById('recommendationCards');
@@ -15857,11 +16006,17 @@ const TENDINOPATHY_PROTOCOL = {
     }
   }
 
+  // Sunday, and only Sunday: the week is over, so it gets reported rather than advised on.
+  // Everything else in this stack looks forward; this one looks back, which is why it is
+  // its own type with one button instead of a judgement to make.
+  const weekCard = await buildWeekReviewCard();
+
   // "hold" cards are the engine's null result — "nothing corroborated, carry on" — stated
   // as a card you then have to accept or dismiss. Filtered at the render point rather
   // than at the six places they're built, so the reasoning stays in one piece and this
   // is one line to undo.
   cardQueue = cardQueue.filter(c => c.type !== 'hold');
+  if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
   showNextCard();
 
   const acceptanceStats = await getAcceptanceStats();
@@ -16489,7 +16644,7 @@ async function generateWarmup(){
 
   const sectionIds = ['warmupSection'];
   if(ordered.length === 0){
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Save a planned session on the Weekly tab, or pick a session type above</span></div>';
+    container.innerHTML = '<div class="empty-state" data-aim="weekly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg><span>Nothing to warm up for</span></div>';
     sectionIds.forEach(id => document.getElementById(id).style.display = 'none');
     return;
   }
@@ -17398,7 +17553,7 @@ if(eyeCalmToggleEl){
 const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 if(checkUpdateBtnEl) checkUpdateBtnEl.addEventListener('click', checkForUpdate);
 renderAppVersion();
-renderHeaderReadout();
+countLoggedStreak().then(n=>{ loggedStreak = n; renderHeaderReadout(); });
 
 // The block behind the active tab is the indicator's now, so it has to be under the tab the
 // markup starts on before the first frame — otherwise Today opens with no block at all.
