@@ -734,6 +734,10 @@
      others, and a fixed width that clears "100" at 320px would be needlessly small the rest
      of the time. */
   #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:none; }
+  /* Says what the marks are without saying it twice — the number beside them is the score, so
+     the only thing left to state is how far back they go. */
+  .trace-cap{ font-family:var(--mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+    color:rgba(251,250,246,0.42); margin-bottom:4px; }
   /* A reading you have gone back to arrives torn, then settles. steps(1) so every frame is a
      hard cut — an interpolated glitch is a smear, and nothing else in this app smears. No
      colour separation either: the usual chromatic-aberration trick would put red and cyan on
@@ -4764,7 +4768,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.21';
+const APP_VERSION = '2026.08.28.22';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -9064,14 +9068,19 @@ function paintScoreTrace(){
     const ty = Math.round(y(day.score)) - (picked ? 1 : 0);
     return `<rect x="${x}" y="${ty}" width="${tickW}" height="${h}" fill="${fill}"/>`;
   }).join('');
-  host.innerHTML = `<svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
+  host.innerHTML = `<div class="trace-cap">7 days</div>
+    <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
     </svg>`;
   host.style.display = 'block';
   // Centred on the number rather than on the band: the band's own middle is empty space
   // between the eyes and the label, and the trace belongs to the figure it is a history of.
-  host.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - TRACE_BAND) / 2) + 'px';
+  // Measured after the caption is in, not computed from a guess at its height — the caption's
+  // line box depends on a font that may or may not have loaded yet.
+  host.style.top = '0px';
+  const groupH = host.offsetHeight;
+  host.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - groupH) / 2) + 'px';
   const showing = scoreDays[scoreDayIndex];
   host.setAttribute('aria-label',
     (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
@@ -9134,11 +9143,11 @@ function showScoreDay(idx){
 (function setupScoreSwipe(){
   const band = document.querySelector('.today-open');
   if(!band) return;
-  const STEP_PX = 56;   // one day per this much travel, the week picker's idiom sideways
-  let dragging = false, startX = 0, startY = 0, accumulated = 0, engaged = false, swallowClick = false;
+  const STEP_PX = 50;   // how far a swipe has to go to count as one
+  let dragging = false, startX = 0, startY = 0, engaged = false, spent = false, swallowClick = false;
   band.addEventListener('pointerdown', e=>{
     if(e.target.closest('button, input, select, a')) return;
-    dragging = true; engaged = false; accumulated = 0; swallowClick = false;
+    dragging = true; engaged = false; spent = false; swallowClick = false;
     startX = e.clientX; startY = e.clientY;
   });
   // A swipe that starts on the score's label row would otherwise end in a click on it and
@@ -9161,14 +9170,16 @@ function showScoreDay(idx){
       swallowClick = true;
       band.setPointerCapture(e.pointerId);
     }
-    const steps = Math.trunc((dx - accumulated) / STEP_PX);
-    if(!steps) return;
-    accumulated += steps * STEP_PX;
+    // One day per swipe, however far the finger keeps going. Stepping continuously meant a
+    // single flick could travel most of the week, and then the only way to read a particular
+    // day was to overshoot and come back.
+    if(spent || Math.abs(dx) < STEP_PX) return;
+    spent = true;
     // Dragging right pulls the older end of the week toward you, which is the direction the
     // trace already reads: oldest on the left, today at the right.
-    for(let n = 0; n < Math.abs(steps); n++) stepScoreDay(steps > 0 ? -1 : 1);
+    stepScoreDay(dx > 0 ? -1 : 1);
   }, { passive:true });
-  const end = ()=>{ dragging = false; engaged = false; };
+  const end = ()=>{ dragging = false; engaged = false; spent = false; };
   band.addEventListener('pointerup', end);
   band.addEventListener('pointercancel', end);
   // The same move from the keyboard, on the one thing in the band that already takes focus.
