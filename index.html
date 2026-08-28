@@ -193,6 +193,19 @@
     font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
     text-transform:uppercase; letter-spacing:0.02em; line-height:1.15; }
   .header-date span{ display:block; }
+  /* On the tab label's line, right-aligned, above the date. Placed there because that row is
+     the one that survives the collapse: the wordmark shrinks to nothing as you scroll and
+     this does not move, which is what makes it a readout rather than another heading. Its
+     top is set rather than inherited from the flow, so nothing above it can push it into the
+     date underneath. */
+  .header-brand .header-readout{ position:absolute; right:14px; top:18px; z-index:2;
+    text-align:right; white-space:nowrap; pointer-events:none;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.07em; line-height:15px;
+    color:rgba(251,250,246,0.5); }
+  .header-readout .ro-sep{ opacity:0.5; padding:0 5px; }
+  /* Colour only when something is true that you would want to know without asking. A deload
+     week is the one state here that changes what you should do today. */
+  .header-readout .ro-flag{ color:var(--warn); }
   /* The day number is the one part you read at a glance, so it carries the weight; the
      words either side of it stay quiet enough not to compete with the logo. */
   .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
@@ -1101,6 +1114,9 @@
     <div class="header-date" id="headerDate" aria-label="Today's date">
       <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
     </div>
+    <!-- Where you are in the cycle and how today came out, on every tab. The two things you
+         cannot reconstruct from whatever page you happen to be looking at. -->
+    <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
@@ -2660,6 +2676,7 @@ function setEyeScore(score){
   const changed = score !== eyeScore;
   const waking = anim('wakeOnScore') && eyeScore == null && score != null;
   eyeScore = score;
+  if(changed) renderHeaderReadout();
   if(eyesHome !== 'score') return;
   const el = document.getElementById('scoreEyes');
   if(changed) stopIdle();
@@ -4021,6 +4038,7 @@ function activateTab(name, opts){
   decorateChevrons(document);
   decorateColophon();
   eyeTabName = name;
+  renderHeaderReadout();
   eyeGlanceAtTabSoon(name);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -4457,7 +4475,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.3';
+const APP_VERSION = '2026.08.28.4';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5178,6 +5196,13 @@ function updateHeaderCollapse(){
   const { h1, mark } = headerCollapseEls;
 
   const progress = Math.max(0, Math.min(1, window.scrollY / 100));
+  // The date goes with the wordmark. It never used to, and because it is absolutely
+  // positioned it did not shrink either — so a collapsed header cut FRIDAY in half on the tab
+  // row's top edge. The readout above it is the thing that is meant to survive a scroll;
+  // letting the date fade out is what makes that read as deliberate rather than as the
+  // header having lost a line.
+  const dateEl = document.getElementById('headerDate');
+  if(dateEl) dateEl.style.opacity = (1 - progress).toFixed(3);
   const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
@@ -5370,6 +5395,29 @@ function confirmInPlace(btn, opts){
       window.addEventListener('keyup', keyUp);
     }
   });
+}
+
+/* The header readout. Block position and today's score, on every tab.
+   Both are things you cannot get from the page you are on: the score is only drawn on Today,
+   and where you sit in the block is otherwise on Weekly. Everything else the app knows is
+   already next to the thing it describes, so it stays there. */
+async function renderHeaderReadout(){
+  const el = document.getElementById('headerReadout');
+  if(!el) return;
+  const parts = [], spoken = [];
+  try{
+    const pos = await getBlockPosition(todayStr);
+    const deload = isDeloadPosition(pos.weekInBlock, pos.length);
+    parts.push(`<span class="${deload ? 'ro-flag' : ''}">B${pos.blocksCompleted + 1} W${pos.weekInBlock}/${pos.length}</span>`);
+    spoken.push(`Block ${pos.blocksCompleted + 1}, week ${pos.weekInBlock} of ${pos.length}${deload ? ', deload' : ''}`);
+  }catch(e){}
+  if(eyeScore != null){
+    parts.push(`<span>${Math.round(eyeScore)}</span>`);
+    spoken.push(`score ${Math.round(eyeScore)}`);
+  }
+  el.innerHTML = parts.join('<span class="ro-sep">·</span>');
+  // Read out as words. "B1 W1/4 · 84" is a glance, not a sentence.
+  el.setAttribute('aria-label', spoken.join('. '));
 }
 
 function flashConfirm(el){
@@ -17162,6 +17210,7 @@ if(eyeCalmToggleEl){
 const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 if(checkUpdateBtnEl) checkUpdateBtnEl.addEventListener('click', checkForUpdate);
 renderAppVersion();
+renderHeaderReadout();
 
 // The block behind the active tab is the indicator's now, so it has to be under the tab the
 // markup starts on before the first frame — otherwise Today opens with no block at all.
