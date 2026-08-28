@@ -856,12 +856,20 @@
   .wk-type{ text-transform:uppercase; flex:0 0 74px; }
   .wk-detail{ opacity:0.6; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #areaVolume:not(:empty){ margin-top:var(--sp-4); }
+  .sev-trace{ display:flex; align-items:flex-end; gap:3px; height:14px; margin-top:5px; }
+  .sev-trace i{ display:block; width:9px; background:var(--dim); opacity:0.45; }
+  .sev-trace i:last-child{ opacity:1; }
+  .sev-trace i.none{ height:1px; opacity:0.2; }
   .area-row{ display:flex; align-items:flex-end; gap:8px; margin-bottom:5px; }
   .area-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.05em;
     text-transform:uppercase; color:var(--bg); opacity:0.75; flex:1; min-width:0;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .area-ticks{ display:flex; align-items:flex-end; gap:3px; height:12px; flex:0 0 auto; }
-  .area-ticks i{ display:block; width:13px; background:var(--bg); opacity:0.55; }
+  .area-ticks i{ display:block; width:13px; background:var(--bg); opacity:0.55; position:relative; }
+  /* The planned level, as a rule across the bar rather than another bar beside it: two bars
+     invite you to compare their heights, a rule says "this is the line" and lets the bar say
+     whether it reached it. */
+  .area-ticks i b{ position:absolute; left:-2px; right:-2px; height:2px; background:var(--accent); }
   .area-ticks i:last-child{ opacity:1; }
   .area-ticks i.none{ height:1px !important; opacity:0.22; }
   .area-total{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.7;
@@ -1378,6 +1386,10 @@
 
     <div id="todayWorkoutArea" style="margin-top:14px;">
       <div id="todayWorkoutSummary"></div>
+      <!-- Where the editor sits when logging is opened from here. It is the same element,
+           moved: a second copy would be a second set of handlers and a second thing to keep
+           in step with the first. -->
+      <div id="todayEditHost"></div>
     </div>
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
@@ -1466,7 +1478,7 @@
         </div>
       </div>
 
-      <div id="blockEditPanel" style="display:none;"></div>
+      <div id="blockEditHome"><div id="blockEditPanel" style="display:none;"></div></div>
 
       <div class="group">
         <div class="group-head"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div></div>
@@ -4308,11 +4320,12 @@ function updateFooterVisibility(){
 async function startTodayLogging(){
   const found = await getTodaysBlockAndSlotForType(todaySessionType);
   if(!found){ showToast('Nothing planned to log today'); return; }
-  activateTab('training');
-  setTimeout(()=>{
-    openBlockEditor(todayStr, found.slot, found.block);
-    blockEditReturnTab = 'insights';
-  }, 150);
+  // Logging no longer costs you the tab you were on. The panel is moved here rather than the
+  // page being moved to it, so the whole session — open, type, rest, save — happens without
+  // Today ever going away underneath you.
+  await openBlockEditor(todayStr, found.slot, found.block, { host: document.getElementById('todayEditHost') });
+  const panel = document.getElementById('blockEditPanel');
+  if(panel) panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
 }
 (function setupLogStrip(){
   const strip = document.getElementById('todayLogStrip');
@@ -4828,6 +4841,7 @@ function keyFor(date){ return `entry:${date}`; }
    screen the moment you stop looking at it. A stamp is what the machine wrote down: exact,
    the same every time, and still true tomorrow. Takes an ISO date, a timestamp, or a Date. */
 const STAMP_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const EPOCH_SANE = 946684800000;   // 2000-01-01; below this a "timestamp" is not one
 function stamp(when, withTime){
   const d = when instanceof Date ? when
     : (typeof when === 'number' ? new Date(when) : new Date(String(when) + 'T00:00:00'));
@@ -4871,7 +4885,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.29';
+const APP_VERSION = '2026.08.28.30';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5837,8 +5851,12 @@ async function renderHeaderReadout(){
     spoken.push(`${loggedStreak} day logging streak`);
   }
   try{
+    // A timestamp has to be a real one. Anything imported, hand-edited or written by an older
+    // version can carry a small integer, and stamp() will render that as 01 JAN 00:00 — a
+    // readout stating something false with total confidence, which is the worst thing this
+    // one can do.
     const last = (await getAllTrainingSessions())
-      .filter(x=>x.timestamp).sort((a,b)=> b.timestamp - a.timestamp)[0];
+      .filter(x=>x.timestamp > EPOCH_SANE).sort((a,b)=> b.timestamp - a.timestamp)[0];
     if(last){
       readoutSlots.push(`LOG ${stamp(last.timestamp, true)}`);
       spoken.push(`last logged ${stamp(last.timestamp, true)}`);
@@ -7429,18 +7447,33 @@ async function renderAreaVolume(){
       (byArea[a] = byArea[a] || new Array(AREA_WEEKS).fill(0))[w] += ex.sets;
     });
   });
+  // What this week's plan asked for, by area, so the row is a check rather than only a record.
+  const plannedByArea = {};
+  for(const d of weeks[weeks.length - 1]){
+    try{
+      const rec = JSON.parse((await window.storage.get(`planned_session:${d}`)).value);
+      (rec.exercises || []).forEach(ex=>{ if(ex.area && ex.sets) plannedByArea[ex.area] = (plannedByArea[ex.area] || 0) + ex.sets; });
+    } catch(e){}
+  }
   const rows = Object.keys(byArea)
-    .map(a=>({ area:a, weeks:byArea[a], total:byArea[a].reduce((x,y)=>x+y,0) }))
+    .map(a=>({ area:a, weeks:byArea[a], total:byArea[a].reduce((x,y)=>x+y,0), planned: plannedByArea[a] || 0 }))
     .filter(r=>r.total > 0)
     .sort((a,b)=> b.total - a.total);
   if(!rows.length) return;
-  const peak = Math.max(...rows.map(r=>Math.max(...r.weeks)));
+  // The target has to be on the same scale as the bars or it says nothing, so it is part of
+  // what sets the scale — otherwise a week you have barely started draws its target off the top.
+  const peak = Math.max(...rows.map(r=>Math.max(...r.weeks, r.planned)));
   host.innerHTML = `<div class="score-note" style="margin-bottom:5px;">Sets logged by area · last ${AREA_WEEKS} weeks</div>` +
     rows.map(r=>`<div class="area-row">
         <span class="area-name">${BODY_AREAS[r.area] || r.area}</span>
-        <span class="area-ticks">${r.weeks.map(n=>{
+        <span class="area-ticks">${r.weeks.map((n, w)=>{
           const h = n ? Math.max(2, Math.round((n / peak) * AREA_BAR_H)) : 0;
-          return `<i style="height:${h}px;"${n ? '' : ' class="none"'} title="${n} sets"></i>`;
+          // The target rides on the current week only — the weeks behind it were planned
+          // against numbers that are no longer on screen, and drawing a target over them
+          // would be inviting a comparison the row cannot support.
+          const target = (w === AREA_WEEKS - 1 && r.planned)
+            ? `<b style="bottom:${Math.min(AREA_BAR_H, Math.round((r.planned / peak) * AREA_BAR_H))}px;" title="${r.planned} planned"></b>` : '';
+          return `<i style="height:${h}px;"${n ? '' : ' class="none"'} title="${n} sets">${target}</i>`;
         }).join('')}</span>
         <span class="area-total">${r.total}<i class="unit">sets</i></span>
       </div>`).join('');
@@ -7727,12 +7760,17 @@ async function placeBlock(date, slot, type){
 let blockEditDirty = false;
 let blockEditReturnTab = null;
 let blockEditDate = null;
+let blockEditHosted = false;   // true while the panel is living on Today rather than Weekly
 function closeBlockEditor(){
   const panel = document.getElementById('blockEditPanel');
   if(!panel) return;
   stopRestTimer();
   panel.style.display = 'none';
   panel.innerHTML = '';
+  // Home again, so Weekly's own editing still finds it where it expects to.
+  const home = document.getElementById('blockEditHome');
+  if(home && panel.parentElement !== home) home.appendChild(panel);
+  blockEditHosted = false;
   blockEditDirty = false;
   const back = blockEditReturnTab;
   blockEditReturnTab = null;
@@ -7835,6 +7873,22 @@ function wireBlockEditorClose(panel){
   }));
 }
 
+/* Sessions know how long they took now, so the estimate can be checked against them rather
+   than only asserted. A median, not a mean: one session you left open for eighty minutes
+   should not drag the typical figure, and with a handful of readings a mean is mostly the
+   outlier. */
+const SESSION_MIN_MINUTES = 4;    // below this it is a mis-tap, not a session
+const SESSION_MAX_MINUTES = 240;  // above it, a session left open rather than a long one
+async function typicalDurationFor(type){
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return null; }
+  const mins = sessions.filter(sn => sn.type === type && sn.durationMin > 0)
+                       .map(sn => sn.durationMin).sort((a,b)=> a - b);
+  if(mins.length < 2) return null;
+  const mid = Math.floor(mins.length / 2);
+  return mins.length % 2 ? mins[mid] : Math.round((mins[mid - 1] + mins[mid]) / 2);
+}
+
 /* The last time you did this lift, under its name. Every one of these numbers has been in
    storage the whole time; the row that asks you to type today's just never looked back at
    yesterday's, so the only way to know what to beat was to remember it or go and find it.
@@ -7878,11 +7932,14 @@ function lastLoggedLine(name){
   return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}</div>`;
 }
 
-async function openBlockEditor(date, slot, block){
+async function openBlockEditor(date, slot, block, opts){
   const panel = document.getElementById('blockEditPanel');
   blockEditDirty = false;
   blockEditReturnTab = null;
   blockEditDate = date;
+  // Moved, not copied. Its handlers, its id and its half-typed state all travel with it.
+  blockEditHosted = !!(opts && opts.host);
+  if(blockEditHosted && panel.parentElement !== opts.host) opts.host.appendChild(panel);
   eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
   if(!block){
@@ -7904,7 +7961,10 @@ async function openBlockEditor(date, slot, block){
     return;
   }
   panel.style.display = 'block';
-  const wheelStage = document.getElementById('weekWheelStage');
+  // Only hide the day picker when the editor is standing in front of it. On Today there is
+  // no picker to hide, and hiding Weekly's from here would leave that tab missing a control
+  // you never went to.
+  const wheelStage = blockEditHosted ? null : document.getElementById('weekWheelStage');
   if(wheelStage) wheelStage.style.display = 'none';
   let fieldsHtml = '';
   if(block.type === 'strength'){
@@ -8126,8 +8186,7 @@ async function openBlockEditor(date, slot, block){
       await syncPlannedSessionMirror(date);
       showToast('Block removed');
     } catch(e){ showToast('Delete failed — try again', true); }
-    panel.style.display = 'none';
-    renderWeekGrid();
+    closeBlockEditor();
   });
 
   async function saveBlockPlanEdits(block, date, slot){
@@ -8260,23 +8319,30 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       if(!anyPerformanceEntered){
         showToast('Saved — add sets/reps/weight to also log it to history');
         clearLoggingStarted(date);
-        panel.style.display = 'none';
-        renderWeekGrid();
+        closeBlockEditor();
         return;
       }
+      // How long it actually took, from the marker written when you first typed a number.
+      // Only recorded when it is plausible: a session left open overnight is not a four-hour
+      // workout, it is a session you forgot to save, and writing that down would poison every
+      // estimate that reads it.
       const session = {
         date, type:'strength', timestamp: Date.now(),
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
         notes: '', exercises, totalVolume
       };
+      const startedAt = await loggingStartedAt(date);
+      if(startedAt){
+        const mins = Math.round((Date.now() - startedAt) / 60000);
+        if(mins >= SESSION_MIN_MINUTES && mins <= SESSION_MAX_MINUTES) session.durationMin = mins;
+      }
       try{
         const result = await window.storage.set(`training:${date}:${session.timestamp}`, JSON.stringify(session));
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
         clearLoggingStarted(date);
         eyeNotePRFrom(session);
-        panel.style.display = 'none';
-        renderWeekGrid();
+        closeBlockEditor();
       } catch(e){ showToast('Log failed — try again', true); }
     } else if(block.type==='run'){
       const runType = document.getElementById('weekRunType').value;
@@ -8284,8 +8350,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       const durationMin = parseFloat(document.getElementById('weekRunActualDuration').value) || null;
       if(!distanceKm || !durationMin){
         showToast('Saved — add distance and duration to also log it to history');
-        panel.style.display = 'none';
-        renderWeekGrid();
+        closeBlockEditor();
         return;
       }
       const session = {
@@ -8298,8 +8363,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
         clearLoggingStarted(date);
-        panel.style.display = 'none';
-        renderWeekGrid();
+        closeBlockEditor();
       } catch(e){ showToast('Log failed — try again', true); }
     } else if(block.type==='mobility'){
       const stretches = [];
@@ -8337,8 +8401,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       });
       if(!anyPerformanceEntered){
         showToast('Saved — add sets/hold time to also log it to history');
-        panel.style.display = 'none';
-        renderWeekGrid();
+        closeBlockEditor();
         return;
       }
       const session = { date, type:'mobility', timestamp: Date.now(), stretches, totalHoldSeconds };
@@ -8846,6 +8909,21 @@ async function refreshInjuries(){
             : '<span class="trend-arrow up">▲ worsening</span>';
         }
       }
+      // Seven days of the decay, in the score's own language. The number says where the
+      // injury is; the row says which way it has been going, which is the thing you actually
+      // want from it and the one thing a single figure cannot carry.
+      let decay = '';
+      if(!inj.resolved){
+        const week = [];
+        for(let d = 6; d >= 0; d--) week.push(severityAtDaysAgo(inj.initialSeverity, inj.date, inj.halfLife, d));
+        if(week.filter(v=>v != null).length >= 3){
+          const peak = Math.max(...week.filter(v=>v != null), 0.1);
+          decay = `<div class="sev-trace" role="img" aria-label="Severity over the last 7 days: ${
+            week.map(v=> v == null ? 'not yet' : v.toFixed(1)).join(', ')}">${
+            week.map((v,i)=> v == null ? '<i class="none"></i>'
+              : `<i style="height:${Math.max(2, Math.round((v/peak)*14))}px;${i===6 ? `background:${sevColor};` : ''}"></i>`).join('')}</div>`;
+        }
+      }
       const card = document.createElement('div'); card.className='injury-card';
       card.innerHTML = `
         <div class="injury-head">
@@ -8859,8 +8937,9 @@ async function refreshInjuries(){
             <div class="mini-gauge-num" style="color:${sevColor};">${inj.resolved ? '✓' : sev.toFixed(1)}</div>
           </div>
           <div style="flex:1;">
-            <div class="injury-meta">onset ${inj.date} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
+            <div class="injury-meta">onset ${stamp(inj.date)} · half-life ${inj.halfLife}d · initial ${inj.initialSeverity}${inj.type && inj.type!=='general' ? ' · '+inj.type.replace('_',' ') : ''} ${trendArrow}</div>
             ${inj.notes ? `<div class="injury-note">${inj.notes}</div>` : ''}
+            ${decay}
           </div>
         </div>
         <div class="injury-actions">
@@ -16596,7 +16675,13 @@ async function renderTodayWorkoutSummary(){
     } catch(e){}
     let mins = estimateSessionDuration(block, null, null, sessionLength);
     if(mins != null) mins -= bracketAllowanceMin(block, sessionLength);
-    if(mins != null && mins > 0) planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">min</i></span>`;
+    if(mins != null && mins > 0){
+      // The estimate, and — once there is a history to check it against — what these actually
+      // take you. Two numbers side by side, because the interesting one is the difference.
+      const typical = await typicalDurationFor(block.type);
+      planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">est</i>${
+        typical ? ` · ${typical}<i class="unit">typical</i>` : ''}</span>`;
+    }
   } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
