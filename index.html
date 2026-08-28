@@ -112,6 +112,15 @@
     color:rgba(251,250,246,0.62); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
   .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
+  /* touch-action:none because this is the one strip on the page where a vertical drag is
+     ours — it sits past the end of the content, so there is nothing left to scroll. */
+  .log-strip{ background:#000000; padding:22px 14px calc(90px + env(safe-area-inset-bottom, 0px));
+    display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer;
+    touch-action:none; user-select:none; -webkit-user-select:none; }
+  .log-strip-word{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--bg); }
+  .log-strip-arrow{ font-size:16px; color:rgba(251,250,246,0.5); }
+  .log-strip.pulling .log-strip-arrow{ color:var(--bg); }
   /* Its own pair on its own clock. The real mark has somewhere to be; this one only has to
      blink, so it does it in CSS rather than through the scheduler. */
   .colophon-eyes{ --eye-box-w:15px; --eye-box-h:11px; --eye-gap:4px; --eye-plate:transparent;
@@ -877,6 +886,22 @@
   /* Quieter than the target above it: the target is what to aim at, this is only what
      happened. Same line height so a row with history is the same height as one without,
      apart from the line itself. */
+  /* A plate rather than a note: this is a state the app is in, not a remark about it. */
+  .week-ex-fail.on{ background:var(--bad); border-color:var(--bad); color:#0c0d0b; }
+  .pr-plate{ display:inline-block; font-family:var(--mono); font-size:0.86em; font-weight:var(--fw-bold);
+    letter-spacing:0.1em; background:var(--accent); color:#0c0d0b; padding:0 5px; margin-left:6px; }
+  .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .rest-clock{ font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
+    letter-spacing:0.02em; font-variant-numeric:tabular-nums; min-width:64px; }
+  .rest-clock.running{ color:var(--bad); }
+  .rest-steps{ display:flex; gap:4px; margin-left:auto; }
+  .rest-preset{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.06em;
+    text-transform:uppercase; padding:3px 7px; border:2px solid var(--border-bold);
+    background:transparent; color:var(--text); cursor:pointer; }
+  .rest-preset.on{ background:var(--reverse-bg); color:var(--bg); }
+  .logging-flag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase;
+    background:var(--warn); color:#0c0d0b; padding:2px 7px; margin-bottom:6px; }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -2084,6 +2109,12 @@
 <!-- The app opens and closes in black. Outside main so it runs the full width, with its
      text on main's own measure and left edge. -->
 <div class="app-colophon"><div class="app-colophon-inner"><b>dogfood</b> <i>(v.)</i> — to use the thing you built on yourself.</div></div>
+<!-- Today ends in the thing you do next rather than in a joke about the app. Same black
+     block, same place; the definition still closes every other tab. -->
+<div class="log-strip" id="todayLogStrip" role="button" tabindex="0" style="display:none;">
+  <span class="log-strip-word">Swipe down to log workout</span>
+  <span class="log-strip-arrow" aria-hidden="true">▾</span>
+</div>
 
 <footer id="footerRecovery">
   <button id="clearBtnRecovery" class="outline">Clear</button>
@@ -4241,7 +4272,48 @@ function updateFooterVisibility(){
   const dataActive = document.getElementById('panel-data').classList.contains('active');
   const dataSubView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view;
   footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
+  // Today closes in what you do next; every other tab still closes in the definition.
+  const onToday = document.getElementById('panel-insights').classList.contains('active');
+  const colophon = document.querySelector('.app-colophon');
+  const strip = document.getElementById('todayLogStrip');
+  if(colophon) colophon.style.display = onToday ? 'none' : '';
+  if(strip) strip.style.display = onToday ? 'flex' : 'none';
 }
+
+/* Past the end of Today, a strip that takes you into logging. A vertical drag in EITHER
+   direction counts, and so does a tap: it sits below the last of the content, so there is
+   nothing else a drag there could have meant, and requiring one particular direction on a
+   surface with no room left to scroll is a way of being wrong half the time. */
+async function startTodayLogging(){
+  const found = await getTodaysBlockAndSlotForType(todaySessionType);
+  if(!found){ showToast('Nothing planned to log today'); return; }
+  activateTab('training');
+  setTimeout(()=>{
+    openBlockEditor(todayStr, found.slot, found.block);
+    blockEditReturnTab = 'insights';
+  }, 150);
+}
+(function setupLogStrip(){
+  const strip = document.getElementById('todayLogStrip');
+  if(!strip) return;
+  const PULL_PX = 46;
+  let y0 = null, fired = false;
+  strip.addEventListener('click', ()=>{ if(!fired) startTodayLogging(); });
+  strip.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); startTodayLogging(); }
+  });
+  strip.addEventListener('pointerdown', e=>{ y0 = e.clientY; fired = false; strip.classList.add('pulling'); });
+  strip.addEventListener('pointermove', e=>{
+    if(y0 == null || fired) return;
+    if(Math.abs(e.clientY - y0) < PULL_PX) return;
+    fired = true;
+    strip.classList.remove('pulling');
+    startTodayLogging();
+  });
+  const done = ()=>{ y0 = null; strip.classList.remove('pulling'); setTimeout(()=>{ fired = false; }, 300); };
+  strip.addEventListener('pointerup', done);
+  strip.addEventListener('pointercancel', done);
+})();
 
 const TAB_BACKDROP_COLOR = {
   insights:'var(--block-lime)', training:'var(--block-orange)', goals:'var(--block-blue)',
@@ -4779,7 +4851,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.26';
+const APP_VERSION = '2026.08.28.27';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7558,17 +7630,95 @@ async function placeBlock(date, slot, type){
    back to Today — in and out by the same door you came through. */
 let blockEditDirty = false;
 let blockEditReturnTab = null;
+let blockEditDate = null;
 function closeBlockEditor(){
   const panel = document.getElementById('blockEditPanel');
   if(!panel) return;
+  stopRestTimer();
   panel.style.display = 'none';
   panel.innerHTML = '';
   blockEditDirty = false;
   const back = blockEditReturnTab;
   blockEditReturnTab = null;
+  // Discarding the edits discards the claim that a session is under way with them.
+  if(blockEditDate) clearLoggingStarted(blockEditDate);
   renderWeekGrid();
   if(back) activateTab(back);
 }
+/* Half-entered is not the same as not started, and nothing on screen said so: you could type
+   four lifts in, get called away, come back to Today and see the same untouched card. The
+   marker is written the first time a performance field is touched and cleared when the
+   session is saved or the edits are discarded, so it only ever means what it says. */
+function loggingKey(date){ return `logging:${date}`; }
+async function markLoggingStarted(date){
+  try{ await window.storage.get(loggingKey(date)); return; } catch(e){}   // already running
+  try{ await window.storage.set(loggingKey(date), JSON.stringify({ at: Date.now() })); } catch(e){}
+}
+async function clearLoggingStarted(date){
+  try{ await window.storage.delete(loggingKey(date)); } catch(e){}
+}
+async function loggingStartedAt(date){
+  try{ return JSON.parse((await window.storage.get(loggingKey(date))).value).at; } catch(e){ return null; }
+}
+
+/* The one thing a training app does DURING a session that this one did not do at all. It
+   lives in the editor because that is where you already are between sets, and it counts down
+   in mono in place rather than opening anything. The mark is told when it lands, so the app
+   tells you the set is over the way it tells you everything else. */
+const REST_PRESETS = [60, 90, 120, 180];
+const REST_DEFAULT = 120;
+function restLabel(sec){ return sec % 60 === 0 ? `${sec / 60}m` : `${sec}s`; }
+function restClockText(sec){
+  const m = Math.floor(Math.max(0, sec) / 60), r = Math.max(0, sec) % 60;
+  return `${m}:${String(r).padStart(2, '0')}`;
+}
+let restTimerId = null, restEndsAt = 0, restChosen = REST_DEFAULT;
+function stopRestTimer(){
+  clearInterval(restTimerId);
+  restTimerId = null;
+  restEndsAt = 0;
+  const go = document.getElementById('restGoBtn');
+  const clock = document.getElementById('restClock');
+  if(go) go.textContent = 'Rest';
+  if(clock){ clock.textContent = restClockText(restChosen); clock.classList.remove('running'); }
+}
+function tickRestTimer(){
+  const clock = document.getElementById('restClock');
+  if(!clock){ stopRestTimer(); return; }          // editor closed under it
+  const left = Math.round((restEndsAt - Date.now()) / 1000);
+  clock.textContent = restClockText(left);
+  if(left > 0) return;
+  stopRestTimer();
+  showToast('Rest done');
+  // Whatever the mark is doing, it looks up when the set is over.
+  try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
+}
+function wireRestTimer(panel){
+  const go = panel.querySelector('#restGoBtn');
+  if(!go) return;
+  stopRestTimer();
+  panel.querySelectorAll('.rest-preset').forEach(b=>{
+    b.classList.toggle('on', +b.dataset.rest === restChosen);
+    b.addEventListener('click', ()=>{
+      restChosen = +b.dataset.rest;
+      panel.querySelectorAll('.rest-preset').forEach(x=> x.classList.toggle('on', +x.dataset.rest === restChosen));
+      if(restTimerId){ restEndsAt = Date.now() + restChosen * 1000; tickRestTimer(); }
+      else document.getElementById('restClock').textContent = restClockText(restChosen);
+    });
+  });
+  go.addEventListener('click', ()=>{
+    if(restTimerId){ stopRestTimer(); return; }
+    restEndsAt = Date.now() + restChosen * 1000;
+    go.textContent = 'Stop';
+    const clock = document.getElementById('restClock');
+    if(clock) clock.classList.add('running');
+    // Wall-clock, not a decrementing counter: a phone that sleeps or throttles a background
+    // tab would otherwise come back with a timer that has quietly lost the minute it slept.
+    restTimerId = setInterval(tickRestTimer, 250);
+    tickRestTimer();
+  });
+}
+
 function wireBlockEditorClose(panel){
   const btn = panel.querySelector('#closeWeekBlockBtn');
   if(!btn) return;
@@ -7579,7 +7729,14 @@ function wireBlockEditorClose(panel){
     closeBlockEditor();
   });
   // Delegated, so rows added after this runs are covered too.
-  ['input','change'].forEach(t=> panel.addEventListener(t, ()=>{ blockEditDirty = true; }));
+  ['input','change'].forEach(t=> panel.addEventListener(t, e=>{
+    blockEditDirty = true;
+    // Only the performance fields count as "started". Renaming an exercise or retagging it is
+    // editing the plan, not doing the session.
+    if(e.target && e.target.matches && e.target.matches('.week-ex-sets, .week-ex-reps, .week-ex-weight, #weekRunActualDuration')){
+      markLoggingStarted(blockEditDate);
+    }
+  }));
 }
 
 /* The last time you did this lift, under its name. Every one of these numbers has been in
@@ -7600,8 +7757,13 @@ async function loadExerciseHistory(beforeDate){
       const k = exHistKey(ex.name);
       if(!k) return;
       if(!(ex.weight || ex.reps || (ex.repsPerSet && ex.repsPerSet.length))) return;
+      // Best load before this session, carried forward, so the row can say whether the last
+      // one was actually a personal best rather than just the most recent.
+      const prev = exerciseHistory[k];
+      const bestBefore = prev ? Math.max(prev.bestBefore || 0, prev.weight || 0) : 0;
       exerciseHistory[k] = { date: sn.date, sets: ex.sets, reps: ex.reps,
-                             repsPerSet: ex.repsPerSet, weight: ex.weight };
+                             repsPerSet: ex.repsPerSet, weight: ex.weight,
+                             toFailure: !!ex.toFailure, bestBefore };
     }));
 }
 function lastLoggedLine(name){
@@ -7612,13 +7774,19 @@ function lastLoggedLine(name){
   const reps = (h.repsPerSet && h.repsPerSet.length) ? h.repsPerSet.join(',')
              : (h.sets ? `${h.sets}\u00d7${h.reps}` : h.reps);
   const load = h.weight ? `${h.weight}kg \u00b7 ` : '';
-  return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}</div>`;
+  // A PR only if that session beat everything before it — "heaviest ever" and "most recent"
+  // are the same number most of the time, and marking the second as the first would make the
+  // plate meaningless within a week.
+  const pr = h.weight && h.weight > (h.bestBefore || 0) ? '<span class="pr-plate">PR</span>' : '';
+  const fail = h.toFailure ? ' \u00b7 to failure' : '';
+  return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}</div>`;
 }
 
 async function openBlockEditor(date, slot, block){
   const panel = document.getElementById('blockEditPanel');
   blockEditDirty = false;
   blockEditReturnTab = null;
+  blockEditDate = date;
   eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
   if(!block){
@@ -7677,7 +7845,12 @@ async function openBlockEditor(date, slot, block){
       <button id="closeWeekBlockBtn" class="small outline">Close</button>
       <button id="logWeekSessionBtn" class="primary">Save</button>
       <button id="deleteWeekBlockBtn" class="small outline" style="margin-left:auto; flex:0 0 auto;">Delete</button>
-    </div>`;
+    </div>
+    ${block.type === 'strength' ? `<div class="rest-timer" id="restTimer">
+      <button type="button" class="small outline rest-go" id="restGoBtn">Rest</button>
+      <span class="rest-clock" id="restClock">2:00</span>
+      <span class="rest-steps">${REST_PRESETS.map(sec=>`<button type="button" class="rest-preset" data-rest="${sec}">${restLabel(sec)}</button>`).join('')}</span>
+    </div>` : ''}`;
 
   // After the skeleton is in and before any row is built, so every row can read its own
   // history synchronously and none of them arrive a frame late and shove the others down.
@@ -7726,6 +7899,7 @@ async function openBlockEditor(date, slot, block){
           <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
           <input type="number" class="week-ex-weight" placeholder="kg" style="max-width:64px;" title="weight actually used">
           <button type="button" class="week-ex-bw small outline" style="height:26px; padding:0 8px; font-size:var(--fs-tag);" title="fill with your logged bodyweight">BW</button>
+          <button type="button" class="week-ex-fail small outline" style="height:26px; padding:0 8px; font-size:var(--fs-tag); flex:0 0 auto;" title="the last set was taken to failure">F</button>
         </div>
         <div class="ex-tags-toggle" style="flex-basis:100%; font-size:var(--fs-tag); font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
         <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
@@ -7734,6 +7908,13 @@ async function openBlockEditor(date, slot, block){
           <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
         </div>`;
       row.querySelector('.remove-row').addEventListener('click', ()=>removeRowAnimated(row));
+      // Whether a set was taken to failure is the input the effort estimate has been guessing
+      // from the rep drop-off. 5,5,4 because you failed and 5,5,4 because you stopped are
+      // different sessions, and only you know which.
+      row.querySelector('.week-ex-fail').addEventListener('click', function(){
+        this.classList.toggle('on');
+        blockEditDirty = true;
+      });
       // BW fills with the most recent logged bodyweight rather than leaving weight blank.
       // Blank silently defaults to 0 in volume-load math, which undercounts calisthenics
       // work (a pull-up genuinely moves bodyweight, that's real training stress) — one tap
@@ -7842,6 +8023,7 @@ async function openBlockEditor(date, slot, block){
   }
 
   wireBlockEditorClose(panel);
+  wireRestTimer(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
     try{
       await window.storage.delete(`weekplan:${date}:${slot}`);
@@ -7975,11 +8157,13 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         // Tag work logged during a block's test week, so the next session recalibrates
         // from the AMRAP result instead of treating it as a normal set (which would read
         // as a large rep surplus and double-increment the load).
-        exercises.push({ name, sets, reps, repsPerSet, effort, weight, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId, wasReintroSet: _isReintroWeekLog });
+        const toFailure = !!row.querySelector('.week-ex-fail')?.classList.contains('on');
+        exercises.push({ name, sets, reps, repsPerSet, effort, weight, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId, toFailure, wasReintroSet: _isReintroWeekLog });
         totalVolume += volume;
       });
       if(!anyPerformanceEntered){
         showToast('Saved — add sets/reps/weight to also log it to history');
+        clearLoggingStarted(date);
         panel.style.display = 'none';
         renderWeekGrid();
         return;
@@ -7993,6 +8177,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         const result = await window.storage.set(`training:${date}:${session.timestamp}`, JSON.stringify(session));
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
+        clearLoggingStarted(date);
         eyeNotePRFrom(session);
         panel.style.display = 'none';
         renderWeekGrid();
@@ -8016,6 +8201,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         const result = await window.storage.set(`training:${date}:${session.timestamp}`, JSON.stringify(session));
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
+        clearLoggingStarted(date);
         panel.style.display = 'none';
         renderWeekGrid();
       } catch(e){ showToast('Log failed — try again', true); }
@@ -16194,6 +16380,9 @@ async function renderTodayWorkoutSummary(){
     return;
   }
   const rows = await blockSummaryHtml(block);
+  const startedAt = await loggingStartedAt(todayStr);
+  const loggingLine = startedAt
+    ? `<div class="logging-flag">Logging \u00b7 started ${stamp(startedAt, true)}</div>` : '';
   const isDeload = (block.type==='strength' || block.type==='run') ? await isDeloadWeek(todayStr) : false;
   const deloadNote = isDeload ? `<div class="score-note" style="margin-top:-4px;">~${Math.round(DELOAD_CUT*100)}% volume — deload week</div>` : '';
   const adjustment = (block.type==='strength' || block.type==='run') ? await getTodayAdjustment() : { lever:null, delta:0 };
@@ -16230,6 +16419,7 @@ async function renderTodayWorkoutSummary(){
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">${sessionTitle(block)}${planEst}</div></div>
       <div class="fields">
+        ${loggingLine}
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
         ${adjustmentNote}
