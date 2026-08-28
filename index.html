@@ -171,6 +171,10 @@
 
   @keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
   .rec-card, .injury-card{ animation: cardIn 0.3s ease; }
+  /* Set once, when the element is made, so it never changes and the animation is never
+     started. Switching it off with a class that is later removed would only postpone it —
+     the animation would begin the moment the class went, which is the reveal. */
+  .rec-card.no-entrance, .injury-card.no-entrance{ animation:none; }
 
   @keyframes shimmer{ 0%{ background-position:-200px 0; } 100%{ background-position:200px 0; } }
   .skeleton{ height:16px; border-radius:0; margin-bottom:var(--sp-2); background:linear-gradient(90deg, var(--panel) 0%, var(--line) 50%, var(--panel) 100%); background-size:400px 100%; animation:shimmer 1.4s infinite; }
@@ -3661,6 +3665,20 @@ const UI_ANIM = {
                   axis:'Y', ms:440 }
 };
 window.UI_ANIM = UI_ANIM;
+/* Content that lands as part of a tab switch arrives inside a card that is already moving.
+   Everything it brings with it used to animate on top of that: a recommendation fading in, its
+   signal rows staggering, its chip acting out its symbol, the bars growing. Frozen at the
+   millisecond the deal finishes, five things were still going — and the card was at 74%
+   opacity, which over a lime backdrop is not a faded black card, it is an olive one, for a
+   third of a second, before resolving to black.
+
+   On arrival everything changed, so animating all of it says nothing. These same animations
+   earn their keep when content changes WITHOUT a tab switch — accepting a card, saving an
+   assessment, reordering a goal — because there the movement is what tells you what moved.
+   So they are suppressed for the length of the deal and no longer. */
+let uiArrivalUntil = 0;
+function uiArriving(){ return Math.max(0, uiArrivalUntil - performance.now()); }
+
 function uiAnim(k){
   if(!UI_ANIM[k] || !UI_ANIM[k].on) return false;
   return !eyeMotionOff();   // the same reduced-motion gate the mark uses
@@ -3701,7 +3719,7 @@ const CHIP_MOTION = {
   deload_suggest: [{ transform:'translateY(-12px)' }, { transform:'translateY(5px)', offset:0.62 }, { transform:'translateY(0)' }]
 };
 function playChipMotion(card){
-  if(!uiAnim('chipActsOut') || !card) return;
+  if(!uiAnim('chipActsOut') || !card || uiArriving()) return;
   const chip = card.querySelector('.rec-symbol');
   if(!chip) return;
   const type = [...card.classList].find(c => CHIP_MOTION[c]);
@@ -3790,7 +3808,15 @@ function growBars(root){
 function rollNumber(el, from, to, ms){
   if(!uiAnim('digitRoll') || el == null){ return false; }
   const target = String(to);
-  const source = String(isNaN(from) ? to : from).padStart(target.length, '0');
+  // From zero when there is nothing to come from. The fallback used to be the target itself,
+  // so on the first render of a session every digit rolled from its final position to its
+  // final position — which is every cold start, because dataset.value is unset and the
+  // element still holds the placeholder. The counter has never once been seen to move. The
+  // mark's wake-blink was built to land with it and has been blinking at a still number.
+  const source = String(isNaN(from) ? 0 : from).padStart(target.length, '0');
+  // And it waits for the page. Starting it under a card that is still travelling spends the
+  // roll where nobody can see it: measured, it was 97% finished at the moment the page landed.
+  const wait = uiArriving();
   // The strips are 0-9 ten times over, so the element's own text is no longer the number.
   // Two things read it: a screen reader, and the next roll looking for where to start from.
   // The label answers the first and dataset.value the second.
@@ -3808,8 +3834,8 @@ function rollNumber(el, from, to, ms){
     // Each place lands a beat after the one to its left, which is the order you read them.
     const anim = uiPlay(strip,
       [{ transform:`translateY(${-a * 10}%)` }, { transform:`translateY(${-b * 10}%)` }],
-      { duration: UI_ANIM.digitRoll.ms, delay: i * UI_ANIM.digitRoll.stagger,
-        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'forwards' });
+      { duration: UI_ANIM.digitRoll.ms, delay: wait + i * UI_ANIM.digitRoll.stagger,
+        easing:'cubic-bezier(0.2,0.9,0.2,1)', fill:'both' });
     if(!anim){ strip.style.transform = `translateY(${-b * 10}%)`; ok = false; }
   });
   return ok || true;
@@ -3826,7 +3852,7 @@ function tickLevel(row){
 /* 9 — A list that appears all at once was always there. A short stagger is the cheapest way
    to say it just arrived. Capped, because a forty-row history staggering in is a wait. */
 function staggerIn(root, selector){
-  if(!uiAnim('staggerIn') || !root) return;
+  if(!uiAnim('staggerIn') || !root || uiArriving()) return;
   const items = [...root.querySelectorAll(selector)].slice(0, UI_ANIM.staggerIn.max);
   items.forEach((el, i)=>{
     uiPlay(el, [{ opacity:0, transform:'translateY(6px)' }, { opacity:1, transform:'translateY(0)' }],
@@ -4172,6 +4198,7 @@ function transitionToTab(name){
     return;
   }
 
+  uiArrivalUntil = performance.now() + UI_ANIM.tabLift.ms;
   activateTab(name, { deferSlide:true });
   // activateTab has scrolled to the top; this is the header catching up to that in the same
   // frame, so the box measured below is the one it will settle at rather than the collapsed
@@ -4295,6 +4322,7 @@ new MutationObserver((mutations)=>{
   for(const m of mutations){
     for(const node of m.addedNodes){
       if(node.nodeType!==1) continue;
+      if(uiArriving() && node.classList) node.classList.add('no-entrance');
       if(node.matches && node.matches(A11Y_INTERACTIVE_SELECTOR)) applyA11yToInteractiveDivs(node.parentElement||document.body);
       else if(node.querySelectorAll) applyA11yToInteractiveDivs(node);
       if(node.matches && node.matches('.field-row')) applyA11yFieldLabels(node.parentElement||document.body);
@@ -4475,7 +4503,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.4';
+const APP_VERSION = '2026.08.28.5';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -8489,9 +8517,13 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   // numbers against a fixed formula. Falls back to the Adaptive/Target average before
   // that, since capacity genuinely has nothing to show yet.
   if(capacityResult && capacityResult.available){
+    // Passed through as NaN rather than substituted for the target here: the roll wants to
+    // know there is no previous value so it can come up from zero, and substituting the
+    // target is what made it animate from its final position to its final position.
     const prevNum = parseInt(out.dataset.value || out.textContent);
-    const prev = isNaN(prevNum) ? capacityResult.score : prevNum;
-    if(!rollNumber(out, prev, capacityResult.score)) animateNumber(out, prev, capacityResult.score, 500);
+    if(!rollNumber(out, prevNum, capacityResult.score)){
+      animateNumber(out, isNaN(prevNum) ? 0 : prevNum, capacityResult.score, 500);
+    }
     setEyeScore(capacityResult.score);
     const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     label.textContent = labelText;
@@ -8519,8 +8551,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   }
   const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
   const prevNum = parseInt(out.dataset.value || out.textContent);
-  const prev = isNaN(prevNum) ? overall : prevNum;
-  if(!rollNumber(out, prev, overall)) animateNumber(out, prev, overall, 500);
+  if(!rollNumber(out, prevNum, overall)) animateNumber(out, isNaN(prevNum) ? 0 : overall, overall, 500);
   setEyeScore(overall);
   if(overall < goalT.scoreLow){ label.textContent='Below typical'; }
   else if(overall > goalT.scoreHigh){ label.textContent='Above typical'; }
