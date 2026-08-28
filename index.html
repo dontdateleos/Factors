@@ -255,7 +255,9 @@
     color:rgba(251,250,246,0.56); margin-top:8px; }
   /* The day number is the one part you read at a glance, so it carries the weight; the
      words either side of it stay quiet enough not to compete with the logo. */
-  .header-date .hd-day{ -webkit-text-stroke:0.3px var(--bg); }
+  /* Measured, so mono — the same rule the readout, the strip figures and the version line
+     follow. The day number is a reading off a calendar, not a word. */
+  .header-date .hd-day{ font-family:var(--mono); -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
   h1 .logo-line{ display:block; }
   /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
@@ -937,7 +939,7 @@
      blue rather than the lime, since that is the page it sits on. */
   .rank-chip{ display:inline-flex; align-items:center; justify-content:center;
     width:46px; height:46px; border-radius:13px; background:var(--block-blue); color:var(--text);
-    font-family:var(--sans); font-weight:var(--fw-bold); font-size:26px; line-height:1;
+    font-family:var(--mono); font-weight:var(--fw-bold); font-size:24px; line-height:1;
     letter-spacing:0; flex:none; }
   /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
      mark read as the same family — and a symbol on a solid ground is legible in a way a
@@ -961,6 +963,13 @@
   .goal-row [data-goal-field="exercise"], .goal-row [data-goal-field="weight"],
   .goal-row [data-goal-field="date"]{ display:none !important; }
   .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
+  /* Confidence as a length rather than an adjective. Five segments because that is what the
+     underlying scale has room for — low, medium and high are the only values the engine
+     produces, so the ruler shows 2, 3 and 5 of 5 and never invents a precision the number
+     does not have. The word stays in the aria-label; the sighted reading is the length. */
+  .conf-ruler{ display:flex; gap:2px; margin-top:7px; }
+  .conf-ruler i{ display:block; width:9px; height:4px; background:rgba(251,250,246,0.22); }
+  .conf-ruler i.on{ background:var(--bg); }
   .rec-body{ padding:0; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
   /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
@@ -1025,6 +1034,38 @@
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
   .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
+  #appVersionOut{ font-family:var(--mono); }
+  /* The machine names the condition; the sentence under it says what to do about it. */
+  /* A stamped plate rather than coloured text. This line can land on black (under the
+     controls) or on the tab's orange (in the gap below them), and red type failed on the
+     orange — so the fault carries its own ground and reads the same on either. Ink on red,
+     which is the pairing the app already uses for anything that has gone wrong. */
+  .fault-code{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.09em; text-transform:uppercase; background:var(--bad); color:#0c0d0b;
+    padding:2px 7px; margin-bottom:6px; }
+  .fault-note{ display:block; color:var(--text); }
+  /* Cold start. The app used to arrive already finished, with nothing between the tap and a
+     full page; this is the machine stating what it is and what it holds before it hands the
+     page over. It clears itself on a CSS timer as well as in script, so a failure in the code
+     that fills it cannot leave a black sheet over the app. */
+  #bootLine{ position:fixed; inset:0; z-index:20000; background:#000000; color:var(--bg);
+    display:flex; align-items:center; padding:0 18px;
+    font-family:var(--mono); font-size:12px; font-weight:var(--fw-bold);
+    letter-spacing:0.11em; line-height:1.6; text-transform:uppercase;
+    animation:bootClear 1ms 2600ms forwards; }
+  @keyframes bootClear{ to{ visibility:hidden; pointer-events:none; } }
+  /* The caret has to sit at the end of the text, not beside the whole block — as flex
+     siblings it parked itself against the right edge the moment the line wrapped. */
+  .boot-caret{ display:inline-block; width:7px; height:11px; margin-left:6px;
+    vertical-align:-1px; background:var(--bg);
+    animation:bootBlink 0.62s steps(1,end) infinite; }
+  @keyframes bootBlink{ 0%,50%{ opacity:1; } 50.01%,100%{ opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .boot-caret{ animation:none; } }
+  /* A readout labels its own quantities. Units are set apart from the figure rather than
+     glued to it — smaller, mono, quieter — so the number stays the thing you read and the
+     unit is there when you ask what it is. */
+  .unit{ font-family:var(--mono); font-style:normal; font-size:0.72em; letter-spacing:0.08em;
+    text-transform:uppercase; opacity:0.6; margin-left:0.28em; }
   /* .group-sub takes a whole row, so a chevron written after it in the markup wrapped onto
      a third line under the subtitle. Order puts it back beside the title without moving it
      in the DOM, where it belongs for the tap target and for reading order. */
@@ -1162,6 +1203,7 @@
 </style>
 </head>
 <body>
+<div id="bootLine" aria-hidden="true"><div class="boot-body"><span id="bootText">FACTORS</span><i class="boot-caret"></i></div></div>
 
 <div id="scrollBackdrop"></div>
 <div id="toast"></div>
@@ -4611,6 +4653,21 @@ document.getElementById('updateBodyMetricsBtn').addEventListener('click', async 
 
 function keyFor(date){ return `entry:${date}`; }
 
+/* One format for every time this app has ever recorded: 28 AUG, and 28 AUG 07:41 where the
+   clock time was actually stored. Relative time ("2 hours ago", "12 days ago") is the
+   friendly register — it reads as a person telling you roughly when, and it goes stale on
+   screen the moment you stop looking at it. A stamp is what the machine wrote down: exact,
+   the same every time, and still true tomorrow. Takes an ISO date, a timestamp, or a Date. */
+const STAMP_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function stamp(when, withTime){
+  const d = when instanceof Date ? when
+    : (typeof when === 'number' ? new Date(when) : new Date(String(when) + 'T00:00:00'));
+  if(isNaN(d.getTime())) return '';
+  const day = `${String(d.getDate()).padStart(2,'0')} ${STAMP_MONTHS[d.getMonth()]}`;
+  if(!withTime) return day;
+  return `${day} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
 function toggleFlag(elId, a, b, thresh){
   const el = document.getElementById(elId);
   if(!isNaN(a) && !isNaN(b) && Math.abs(a-b) > thresh){ el.classList.add('show'); } else { el.classList.remove('show'); }
@@ -4645,7 +4702,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.12';
+const APP_VERSION = '2026.08.28.13';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5891,7 +5948,7 @@ async function refreshRecoveryLog(){
       const r = await window.storage.get(keyFor(d));
       const e = JSON.parse(r.value);
       const div = document.createElement('div'); div.className='log-entry';
-      div.innerHTML = `<span>${d}</span><span>${e.disagreements&&e.disagreements.length?'<span class="d-badge">'+e.disagreements.length+' flag(s)</span>':'clean'}</span>`;
+      div.innerHTML = `<span>${stamp(d)}</span><span>${e.disagreements&&e.disagreements.length?'<span class="d-badge">'+e.disagreements.length+' flag(s)</span>':'clean'}</span>`;
       div.addEventListener('click', ()=>{ dateInput.value=d; fillRecoveryForm(e); });
       list.appendChild(div);
     }
@@ -6812,7 +6869,7 @@ async function renderMobilityAssessment(skipCollapse){
     : assessedCount === 0
       ? 'Not assessed yet — tick what you can do in each area'
       : (staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS)
-        ? `Last rated ${staleDays} days ago — worth re-testing`
+        ? `Last rated ${stamp(existing.lastUpdated)} — worth re-testing`
         : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
   if(skipCollapse) return;
   const body = document.getElementById('mobilityAssessmentBody');
@@ -7205,14 +7262,14 @@ async function renderWeekGrid(){
         // figures keeps the same height as one with them and the bars share a baseline.
         const tag = `font-family:var(--mono); font-size:${dense ? '9px' : 'var(--fs-tag)'}; white-space:nowrap;`;
         cells.push(`<div title="Week ${w} — ${phase}${realSets > 0 ? ` · ${doneSets}/${realSets} sets logged` : ''}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
-          <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n : '&nbsp;'}</div>
+          <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n + (dense ? '' : '<i class="unit">sets</i>') : '&nbsp;'}</div>
           <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
             <div style="width:100%; height:${h}px; position:relative; box-shadow:inset 0 0 0 1px ${barInk};">
               <div style="position:absolute; left:0; right:0; bottom:0; height:${fillH}px; background:${barInk};"></div>
             </div>
           </div>
           <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
-          <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w]+'s' : '') + ((!dense && runKmByWeek[w]) ? ' '+runKmByWeek[w]+'k' : '') || '&nbsp;'}</div>
+          <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w] + (dense ? 's' : '<i class="unit">ses</i>') : '') + ((!dense && runKmByWeek[w]) ? ' ' + runKmByWeek[w] + '<i class="unit">km</i>' : '') || '&nbsp;'}</div>
         </div>`);
       }
 
@@ -7232,7 +7289,7 @@ async function renderWeekGrid(){
       const headline = reintro
         ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
         : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
-      strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Sets per week, filled as you log · sessions and run km below</div>
+      strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Planned load, filled as you log</div>
         <div style="display:flex; gap:${dense ? 3 : 5}px; align-items:flex-end;">${cells.join('')}</div>
         <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
         ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
@@ -8526,6 +8583,16 @@ function recSymbolHtml(type){
   return `<span class="rec-symbol" role="img" aria-label="${sym.label}">${sym.glyph}</span>`;
 }
 
+const CONF_STEPS = { low:2, medium:3, high:5 };
+const CONF_RULER_SEGMENTS = 5;
+function confRulerHtml(confidence){
+  const on = CONF_STEPS[confidence];
+  if(!on) return `<span class="rec-conf">${confidence} confidence</span>`;   // an unmapped value still says itself
+  const segs = Array.from({ length: CONF_RULER_SEGMENTS },
+    (_, i)=> `<i class="${i < on ? 'on' : ''}"></i>`).join('');
+  return `<span class="conf-ruler" role="img" aria-label="${confidence} confidence">${segs}</span>`;
+}
+
 function buildRecCard(type, title, signals, confidence, meta){
   // A card telling you to back off is the one piece of bad news the mark should register.
   if(type === 'reduce' && anim('wince')) setTimeout(eyeWince, 250);
@@ -8535,7 +8602,7 @@ function buildRecCard(type, title, signals, confidence, meta){
   card.innerHTML = `
     <div class="rec-head">
       ${recSymbolHtml(type)}
-      ${confidence ? `<span class="rec-conf">${confidence} confidence</span>` : ''}
+      ${confidence ? confRulerHtml(confidence) : ''}
     </div>
     <div class="rec-body">
       <div class="rec-title">${title}</div>
@@ -14141,14 +14208,29 @@ async function generateMultiWeekProgram(numWeeks, splitOverride, options){
   return weekResults;
 }
 
+/* A refusal used to be a helpful sentence and nothing else, which hid the more interesting
+   half: the generator knows exactly which condition stopped it, and that is a fact about
+   the system rather than an apology. The code goes above the sentence, not instead of it —
+   the sentence is what tells you where to go, and losing it would be a downgrade. */
+function faultLine(code, sentence){
+  return `<span class="fault-code">${code}</span><span class="fault-note">${sentence}</span>`;
+}
+const GENERATE_FAULTS = {
+  'no-setup':             'NO SETUP · AVAILABLE DAYS UNSET',
+  'no-goals':             'NO GOALS · NOTHING TO BUILD FROM',
+  'no-lift-or-run-goal':  'NO MATCHING GOAL · STRENGTH / RUN / MOBILITY',
+  'nothing-selected':     'NOTHING SELECTED · ALL SOURCES OFF'
+};
+
 function describeWeekResult(r, weekNum, isDeload){
   // Point at the right tab. Both of these said "above", but Training Setup lives on
   // Settings and goals live on Goals — neither is on the Weekly tab where this button is,
   // so a new user tapping Generate was sent looking in the wrong place on their first action.
-  if(r.error === 'no-setup') return { error: 'Set your available training days in Settings → Training Setup first.' };
-  if(r.error === 'no-goals') return { error: 'Add at least one goal on the Goals tab first.' };
-  if(r.error === 'no-lift-or-run-goal') return { error: 'No strength, running, or mobility goal found — nothing to generate from.' };
-  if(r.error === 'nothing-selected') return { error: 'Strength and running are both unchecked, and there\'s no mobility goal set — nothing to generate.' };
+  const fault = s => ({ error: s, code: GENERATE_FAULTS[r.error] });
+  if(r.error === 'no-setup') return fault('Set your available training days in Settings → Training Setup first.');
+  if(r.error === 'no-goals') return fault('Add at least one goal on the Goals tab first.');
+  if(r.error === 'no-lift-or-run-goal') return fault('No strength, running, or mobility goal found — nothing to generate from.');
+  if(r.error === 'nothing-selected') return fault('Strength and running are both unchecked, and there\'s no mobility goal set — nothing to generate.');
   const parts = [];
   if(r.liftPlaced){
     let liftPart = `${r.liftPlaced} ${r.splitLabel} session${r.liftPlaced===1?'':'s'}`;
@@ -14237,7 +14319,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
 
     if(first.result.error){
       const desc = describeWeekResult(first.result, 1, false);
-      result.textContent = desc.error;
+      result.innerHTML = faultLine(desc.code || 'GENERATE HALTED', desc.error);
       result.style.color = 'var(--text)';
       return;
     }
@@ -14245,7 +14327,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const lines = weekResults.map(wr => describeWeekResult(wr.result, wr.weekNum, wr.isDeload));
     const validLines = lines.filter(l => l.text);
     if(validLines.length===0){
-      result.textContent = 'No empty days available to generate into.';
+      result.innerHTML = faultLine('NO EMPTY DAYS · WEEK ALREADY FULL', 'Nothing to generate into — clear a day first, or clear the week.');
       result.style.color = 'var(--text)';
       renderWeekGrid();
       return;
@@ -14292,7 +14374,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const afterFilled = await filledWeekDays();
     dealPlanThroughWeek(afterFilled.filter(d => beforeFilled.indexOf(d) < 0));
   } catch(e){
-    result.textContent = 'Generation failed — try again.';
+    result.innerHTML = faultLine('GENERATE FAILED · UNCAUGHT', 'Something threw partway through. Try again — nothing was written.');
     result.style.color = 'var(--text)';
   } finally {
     eyesDone();
@@ -15723,7 +15805,7 @@ async function renderTodayWorkoutSummary(){
     } catch(e){}
     let mins = estimateSessionDuration(block, null, null, sessionLength);
     if(mins != null) mins -= bracketAllowanceMin(block, sessionLength);
-    if(mins != null && mins > 0) planEst = ` <span class="head-est">~${Math.round(mins)} min</span>`;
+    if(mins != null && mins > 0) planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">min</i></span>`;
   } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
@@ -16146,7 +16228,7 @@ async function refreshRecHistory(){
       const r = await window.storage.get(k);
       const rec = JSON.parse(r.value);
       const div = document.createElement('div'); div.className = 'log-entry';
-      div.innerHTML = `<span>${rec.date} · ${rec.type}</span><span>${rec.decision}</span>`;
+      div.innerHTML = `<span>${rec.timestamp ? stamp(rec.timestamp, true) : stamp(rec.date)} · ${rec.type}</span><span>${rec.decision}</span>`;
       list.appendChild(div);
     }
   } catch(e){ list.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span>No history yet</span></div>'; }
@@ -16815,7 +16897,7 @@ async function generateWarmup(){
   // The estimate sits in the section heading rather than on a line of its own inside it:
   // it is the one number worth seeing while the section is still closed.
   const warmEstEl = document.getElementById('warmupEstimate');
-  if(warmEstEl) warmEstEl.textContent = `~${estMinutes+3} min`;
+  if(warmEstEl) warmEstEl.innerHTML = `~${estMinutes+3}<i class="unit">min</i>`;
   const flow = document.createElement('div');
   flow.className = 'flow';
   container.innerHTML = '';
@@ -16961,7 +17043,7 @@ async function generateMobility(){
 
   mobilitySection.style.display = 'block';
   const coolEstEl = document.getElementById('cooldownEstimate');
-  if(coolEstEl) coolEstEl.textContent = `~${estMinutes} min`;
+  if(coolEstEl) coolEstEl.innerHTML = `~${estMinutes}<i class="unit">min</i>`;
   const coolFlow = document.createElement('div');
   coolFlow.className = 'flow';
   mobilityContainer.innerHTML = '';
@@ -17685,13 +17767,52 @@ loadRecoveryEntry(todayStr);
 refreshRecoveryLog();
 
 computeSleepDebt();
+/* Only what is actually true goes on the line: the version always, the span of the record
+   only if there is a record, the block only if one is running. An empty install says
+   "FACTORS · <version>" and nothing it cannot back up. */
+const BOOT_MIN_MS = 900;   // long enough to be read, short enough not to be a splash screen
+const bootStartedAt = performance.now();
+async function bootLineText(){
+  const parts = ['FACTORS', APP_VERSION];
+  try{
+    const dates = [];
+    for(const prefix of ['entry:', 'training:']){
+      const r = await window.storage.list(prefix);
+      (r && r.keys ? r.keys : []).forEach(k=>{
+        const m = k.match(/(\d{4}-\d{2}-\d{2})/);
+        if(m) dates.push(m[1]);
+      });
+    }
+    if(dates.length){
+      dates.sort();
+      const days = Math.floor((new Date(todayStr) - new Date(dates[0])) / 86400000) + 1;
+      if(days >= 1) parts.push(`${days} day${days === 1 ? '' : 's'} on record`);
+    }
+  } catch(e){}
+  try{
+    const pos = await getBlockPosition(getWeekDates()[0]);
+    if(pos) parts.push(`block ${pos.blocksCompleted + 1} w${pos.weekInBlock}/${pos.length}`);
+  } catch(e){}
+  return parts.join(' \u00b7 ');
+}
+function dismissBootLine(){
+  const el = document.getElementById('bootLine');
+  if(!el) return;
+  setTimeout(()=>el.remove(), Math.max(0, BOOT_MIN_MS - (performance.now() - bootStartedAt)));
+}
+
 loadGoalProfile().then(async ()=>{
   try{
     await window.storage.get(keyFor(todayStr));
   } catch(e){
     document.getElementById('morningBanner').style.display = 'block';
   }
+  try{
+    const t = document.getElementById('bootText');
+    if(t) t.textContent = await bootLineText();
+  } catch(e){}
   activateTab('insights');
+  dismissBootLine();
 });
 </script>
 
