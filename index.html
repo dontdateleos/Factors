@@ -4457,7 +4457,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.2';
+const APP_VERSION = '2026.08.28.3';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5260,6 +5260,118 @@ function showToast(message, isError){
 // Mechanical double-flash confirmation (filter:invert, not a fade) — works on any
 // element's existing colors automatically. Re-triggerable: removing then re-adding the
 // class via a forced reflow lets it fire again even if called again mid-animation.
+/* Destructive actions confirm on themselves. There is no dialog.
+
+   There used to be three, and they were the only places the app stopped being itself: a
+   confirm() on clearing the week, a prompt() asking you to type DELETE before wiping
+   everything, and a confirm() on the engine suite. All three handed the screen to the OS —
+   system font, rounded card, blue buttons, a dimming layer nobody designed — and blocked the
+   thread while they sat there.
+
+   The tap arms the button and the button says what to do next; the button is the dialog. Two
+   acts rather than one, which is also what makes it discoverable: a cold hold is invisible,
+   nothing tells you to keep pressing, so the tap is what puts the instruction on screen.
+
+   How hard it is to do says how bad it is. Clearing the week wants one more tap, because you
+   can regenerate it. Deleting everything wants a hold, because you cannot.
+
+   Keyboard holds the key down rather than the button — keydown to keyup, same clock — so the
+   guard is not pointer-only. Release binds to the window, never the element: a finger that
+   slides off never fires an up-event on what it left, which would strand the hold armed. */
+const CONFIRM_FILL_STEPS = 14;   // the fill advances in hard steps, like everything else here
+function confirmFill(f){
+  const q = Math.round(Math.max(0, Math.min(1, f)) * CONFIRM_FILL_STEPS) / CONFIRM_FILL_STEPS;
+  const pct = (q * 100).toFixed(3) + '%';
+  return `linear-gradient(90deg, var(--bad) ${pct}, rgba(0,0,0,0) ${pct})`;
+}
+function confirmInPlace(btn, opts){
+  opts = opts || {};
+  if(!btn || btn.dataset.arming === '1') return Promise.resolve(false);
+  const mode = opts.mode === 'tap' ? 'tap' : 'hold';
+  const holdMs = opts.holdMs || 1800;
+  const armedMs = opts.armedMs || 4000;
+  const original = btn.textContent;
+  const originalStyle = btn.getAttribute('style');
+
+  btn.dataset.arming = '1';
+  btn.textContent = opts.label || (mode === 'tap' ? 'Tap again to confirm' : 'Hold to confirm');
+  btn.style.backgroundColor = 'var(--reverse-bg)';
+  btn.style.color = 'var(--bg)';
+  btn.style.borderColor = 'var(--bad)';
+  btn.style.backgroundImage = confirmFill(0);
+  if(anim('glanceAtTab')) eyeGlanceAtEl(btn, 5);   // he looks at what is about to happen
+
+  return new Promise(resolve=>{
+    let settled = false, raf = null, holdFrom = 0;
+    const revert = ()=>{
+      btn.textContent = original;
+      // Restored as an attribute, not property by property: Clear-all-data carries its own
+      // inline border and colour in the markup, and clearing the properties would strip them.
+      if(originalStyle) btn.setAttribute('style', originalStyle); else btn.removeAttribute('style');
+      delete btn.dataset.arming;
+    };
+    const finish = (ok)=>{
+      if(settled) return;
+      settled = true;
+      clearTimeout(idle);
+      if(raf) cancelAnimationFrame(raf);
+      btn.removeEventListener('pointerdown', down);
+      btn.removeEventListener('keydown', keyDown);
+      btn.removeEventListener('click', tapAgain);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('keyup', keyUp);
+      revert();
+      resolve(ok);
+    };
+    // Armed and then left alone: put it back, say nothing.
+    const idle = setTimeout(()=>finish(false), armedMs);
+
+    const tapAgain = (e)=>{ e.preventDefault(); finish(true); };
+    const tick = ()=>{
+      const f = (performance.now() - holdFrom) / holdMs;
+      btn.style.backgroundImage = confirmFill(f);
+      if(f >= 1){ finish(true); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    const start = ()=>{
+      if(settled || holdFrom) return;
+      clearTimeout(idle);
+      holdFrom = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+    // Let go early and it drains faster than it filled, so aborting is unmistakable.
+    const release = ()=>{
+      if(settled || !holdFrom) return;
+      if(raf) cancelAnimationFrame(raf);
+      const from = Math.min(1, (performance.now() - holdFrom) / holdMs);
+      holdFrom = 0;
+      const t0 = performance.now();
+      const drain = ()=>{
+        const f = from * (1 - (performance.now() - t0) / 180);
+        if(f <= 0 || settled){ finish(false); return; }
+        btn.style.backgroundImage = confirmFill(f);
+        requestAnimationFrame(drain);
+      };
+      requestAnimationFrame(drain);
+    };
+    const down = (e)=>{ e.preventDefault(); start(); };
+    const up = ()=> release();
+    const keyDown = (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); start(); } };
+    const keyUp = (e)=>{ if(e.key === 'Enter' || e.key === ' ') release(); };
+
+    if(mode === 'tap'){
+      btn.addEventListener('click', tapAgain);
+    } else {
+      btn.addEventListener('pointerdown', down);
+      btn.addEventListener('keydown', keyDown);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
+      window.addEventListener('keyup', keyUp);
+    }
+  });
+}
+
 function flashConfirm(el){
   if(!el) return;
   el.classList.remove('flash-confirm');
@@ -6600,8 +6712,9 @@ async function syncPlannedSessionMirror(date){
   }
 }
 
-document.getElementById('clearAllWeekBtn').addEventListener('click', async ()=>{
-  if(!confirm('Clear every scheduled block this week? This cannot be undone.')) return;
+document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>{
+  // Recoverable — you can regenerate the week — so one more tap is the whole guard.
+  if(!await confirmInPlace(e.currentTarget, { mode:'tap', label:'Tap again to clear the week' })) return;
   const dates = getWeekDates();
   let cleared = 0;
   for(const date of dates){
@@ -16562,12 +16675,14 @@ document.getElementById('seedTestScenarioBtn').addEventListener('click', async (
   }
 });
 
-document.getElementById('clearAllDataBtn').addEventListener('click', async ()=>{
+document.getElementById('clearAllDataBtn').addEventListener('click', async (e)=>{
   const result = document.getElementById('clearAllDataResult');
-  const typed = prompt('This permanently deletes everything — every entry, plan, goal, injury, and setting. Type DELETE to confirm.');
-  if(typed !== 'DELETE'){
-    result.textContent = typed === null ? '' : 'Not confirmed — nothing was deleted.';
-    result.style.color = 'var(--dim)';
+  result.textContent = '';
+  // Two full seconds, because nothing here comes back. It already sits behind Settings,
+  // behind a closed section and behind a button; this is the fourth deliberate act, and the
+  // one thing a pocket cannot do.
+  if(!await confirmInPlace(e.currentTarget, { mode:'hold', holdMs:2000, label:'Hold to delete everything' })){
+    result.textContent = '';
     return;
   }
   result.textContent = 'Deleting...';
@@ -16871,9 +16986,11 @@ async function runEngineScenarioSuite(onProgress){
   return results;
 }
 
-document.getElementById('runScenarioSuiteBtn').addEventListener('click', async ()=>{
-  const confirmed = confirm(`This will wipe ALL stored data (real data included) between each of ${ENGINE_SCENARIOS.length} scenarios, and leave storage empty when finished. Export a backup first if you want to keep anything. Continue?`);
-  if(!confirmed) return;
+document.getElementById('runScenarioSuiteBtn').addEventListener('click', async (e)=>{
+  // Wipes real data between scenarios, so it holds too — shorter, because the only person
+  // who ever reaches this button already knows what it does.
+  if(!await confirmInPlace(e.currentTarget, { mode:'hold', holdMs:1400,
+      label:`Hold to wipe and run ${ENGINE_SCENARIOS.length}` })) return;
   const btn = document.getElementById('runScenarioSuiteBtn');
   const progress = document.getElementById('scenarioSuiteProgress');
   const resultsEl = document.getElementById('scenarioSuiteResults');
