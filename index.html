@@ -926,9 +926,13 @@
     text-transform:uppercase; padding:3px 7px; border:2px solid var(--border-bold);
     background:transparent; color:var(--text); cursor:pointer; }
   .rest-preset.on{ background:var(--reverse-bg); color:var(--bg); }
-  .logging-flag{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
+  .logging-row{ display:flex; align-items:stretch; gap:4px; margin-bottom:6px; }
+  .logging-flag{ font-family:var(--mono); font-size:var(--fs-tag); height:auto;
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase;
-    background:var(--warn); color:#0c0d0b; padding:2px 7px; margin-bottom:6px; }
+    background:var(--warn); color:#0c0d0b; border:2px solid var(--warn); padding:3px 8px;
+    flex:0 1 auto; cursor:pointer; }
+  .logging-drop{ font-family:var(--mono); font-size:var(--fs-md); height:auto; padding:0 9px;
+    background:transparent; color:var(--warn); border:2px solid var(--warn); flex:0 0 auto; cursor:pointer; }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -2145,7 +2149,7 @@
 <!-- Today ends in the thing you do next rather than in a joke about the app. Same black
      block, same place; the definition still closes every other tab. -->
 <div class="log-strip" id="todayLogStrip" role="button" tabindex="0" style="display:none;">
-  <span class="log-strip-word">Swipe down to log workout</span>
+  <span class="log-strip-word" id="logStripWord">Swipe down to log workout</span>
   <span class="log-strip-arrow" aria-hidden="true">▾</span>
 </div>
 
@@ -4311,6 +4315,14 @@ function updateFooterVisibility(){
   const strip = document.getElementById('todayLogStrip');
   if(colophon) colophon.style.display = onToday ? 'none' : '';
   if(strip) strip.style.display = onToday ? 'flex' : 'none';
+  if(onToday) refreshLogStripWord();
+}
+// "Log" and "resume" are different offers and the strip should not make the same one twice.
+async function refreshLogStripWord(){
+  const word = document.getElementById('logStripWord');
+  if(!word) return;
+  const started = await loggingStartedAt(todayStr);
+  word.textContent = started ? 'Swipe down to resume logging' : 'Swipe down to log workout';
 }
 
 /* Past the end of Today, a strip that takes you into logging. A vertical drag in EITHER
@@ -4885,7 +4897,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.30';
+const APP_VERSION = '2026.08.28.31';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7761,7 +7773,9 @@ let blockEditDirty = false;
 let blockEditReturnTab = null;
 let blockEditDate = null;
 let blockEditHosted = false;   // true while the panel is living on Today rather than Weekly
-function closeBlockEditor(){
+let blockEditSlot = 'am';
+function closeBlockEditor(opts){
+  const keepDraft = !!(opts && opts.keepDraft);
   const panel = document.getElementById('blockEditPanel');
   if(!panel) return;
   stopRestTimer();
@@ -7774,15 +7788,74 @@ function closeBlockEditor(){
   blockEditDirty = false;
   const back = blockEditReturnTab;
   blockEditReturnTab = null;
-  // Discarding the edits discards the claim that a session is under way with them.
-  if(blockEditDate) clearLoggingStarted(blockEditDate);
+  // Putting it away leaves the claim standing; finishing or discarding takes it down.
+  if(blockEditDate && !keepDraft){
+    clearLoggingStarted(blockEditDate);
+    clearLogDraft(blockEditDate, blockEditSlot);
+  }
   renderWeekGrid();
+  // Today holds the way back in — the marker and the strip's wording — so it has to be redrawn
+  // when the editor goes away, or closing leaves no visible trace that anything is unfinished.
+  renderTodayWorkoutSummary();
+  updateFooterVisibility();
   if(back) activateTab(back);
 }
 /* Half-entered is not the same as not started, and nothing on screen said so: you could type
    four lifts in, get called away, come back to Today and see the same untouched card. The
    marker is written the first time a performance field is touched and cleared when the
    session is saved or the edits are discarded, so it only ever means what it says. */
+/* A half-logged session survives the window being closed, and a reload. Close used to mean
+   throw it away, which made it the wrong shape for the thing people actually do between sets:
+   put the phone down. It now means put it away — the typed numbers are written to a draft,
+   the marker stays up on Today, and opening the session again finds it exactly as you left
+   it. Discarding is its own act, on the marker, not something Close does quietly.
+
+   Written on every keystroke rather than only on close, because the way a phone loses an app
+   is not by you closing anything. */
+function logDraftKey(date, slot){ return `logdraft:${date}:${slot}`; }
+function collectLogDraft(panel){
+  const rows = [...panel.querySelectorAll('.edit-row')].filter(r=>r.querySelector('.week-ex-name')).map(r=>({
+    name: r.querySelector('.week-ex-name').value,
+    sets: r.querySelector('.week-ex-sets')?.value || '',
+    reps: r.querySelector('.week-ex-reps')?.value || '',
+    weight: r.querySelector('.week-ex-weight')?.value || '',
+    fail: !!r.querySelector('.week-ex-fail')?.classList.contains('on')
+  }));
+  const runMin = panel.querySelector('#weekRunActualDuration')?.value || '';
+  return { rows, runMin };
+}
+function applyLogDraft(panel, draft){
+  if(!draft) return;
+  const rows = [...panel.querySelectorAll('.edit-row')].filter(r=>r.querySelector('.week-ex-name'));
+  (draft.rows || []).forEach(d=>{
+    // Matched by name, not by position: a row added or removed since should not shift someone
+    // else's numbers onto the wrong lift.
+    const row = rows.find(r=> exHistKey(r.querySelector('.week-ex-name').value) === exHistKey(d.name));
+    if(!row) return;
+    if(row.querySelector('.week-ex-sets')) row.querySelector('.week-ex-sets').value = d.sets || '';
+    if(row.querySelector('.week-ex-reps')) row.querySelector('.week-ex-reps').value = d.reps || '';
+    if(row.querySelector('.week-ex-weight')) row.querySelector('.week-ex-weight').value = d.weight || '';
+    if(d.fail) row.querySelector('.week-ex-fail')?.classList.add('on');
+  });
+  const run = panel.querySelector('#weekRunActualDuration');
+  if(run && draft.runMin) run.value = draft.runMin;
+}
+let logDraftTimer = null;
+function saveLogDraftSoon(){
+  clearTimeout(logDraftTimer);
+  logDraftTimer = setTimeout(async ()=>{
+    const panel = document.getElementById('blockEditPanel');
+    if(!panel || !blockEditDate || panel.style.display === 'none') return;
+    try{ await window.storage.set(logDraftKey(blockEditDate, blockEditSlot), JSON.stringify(collectLogDraft(panel))); } catch(e){}
+  }, 400);
+}
+async function loadLogDraft(date, slot){
+  try{ return JSON.parse((await window.storage.get(logDraftKey(date, slot))).value); } catch(e){ return null; }
+}
+async function clearLogDraft(date, slot){
+  try{ await window.storage.delete(logDraftKey(date, slot)); } catch(e){}
+}
+
 function loggingKey(date){ return `logging:${date}`; }
 async function markLoggingStarted(date){
   try{ await window.storage.get(loggingKey(date)); return; } catch(e){}   // already running
@@ -7857,14 +7930,18 @@ function wireBlockEditorClose(panel){
   const btn = panel.querySelector('#closeWeekBlockBtn');
   if(!btn) return;
   btn.addEventListener('click', async ()=>{
-    // Typed something and then reached for Close: ask, in place, rather than silently
-    // dropping it. Untouched, it just closes — a confirm on an unchanged form is noise.
-    if(blockEditDirty && !(await confirmInPlace(btn, { mode:'tap', label:'Discard?' }))) return;
-    closeBlockEditor();
+    // Nothing to confirm any more: closing keeps everything. What you typed is in the draft
+    // and Today says so until you save it or throw it away on purpose.
+    const p = document.getElementById('blockEditPanel');
+    if(p && blockEditDirty && blockEditDate){
+      try{ await window.storage.set(logDraftKey(blockEditDate, blockEditSlot), JSON.stringify(collectLogDraft(p))); } catch(e){}
+    }
+    closeBlockEditor({ keepDraft:true });
   });
   // Delegated, so rows added after this runs are covered too.
   ['input','change'].forEach(t=> panel.addEventListener(t, e=>{
     blockEditDirty = true;
+    saveLogDraftSoon();
     // Only the performance fields count as "started". Renaming an exercise or retagging it is
     // editing the plan, not doing the session.
     if(e.target && e.target.matches && e.target.matches('.week-ex-sets, .week-ex-reps, .week-ex-weight, #weekRunActualDuration')){
@@ -7937,6 +8014,7 @@ async function openBlockEditor(date, slot, block, opts){
   blockEditDirty = false;
   blockEditReturnTab = null;
   blockEditDate = date;
+  blockEditSlot = slot;
   // Moved, not copied. Its handlers, its id and its half-typed state all travel with it.
   blockEditHosted = !!(opts && opts.host);
   if(blockEditHosted && panel.parentElement !== opts.host) opts.host.appendChild(panel);
@@ -8178,6 +8256,7 @@ async function openBlockEditor(date, slot, block, opts){
     document.getElementById('addWeekStretchRow').addEventListener('click', ()=>addWeekStretchRow());
   }
 
+  applyLogDraft(panel, await loadLogDraft(date, slot));
   wireBlockEditorClose(panel);
   wireRestTimer(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
@@ -8319,6 +8398,8 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       if(!anyPerformanceEntered){
         showToast('Saved — add sets/reps/weight to also log it to history');
         clearLoggingStarted(date);
+        clearLogDraft(date, slot);
+        clearLogDraft(date, slot);
         closeBlockEditor();
         return;
       }
@@ -8341,6 +8422,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
         clearLoggingStarted(date);
+        clearLogDraft(date, slot);
         eyeNotePRFrom(session);
         closeBlockEditor();
       } catch(e){ showToast('Log failed — try again', true); }
@@ -8363,6 +8445,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         if(!result) throw new Error('log failed');
         showToast('Saved & logged');
         clearLoggingStarted(date);
+        clearLogDraft(date, slot);
         closeBlockEditor();
       } catch(e){ showToast('Log failed — try again', true); }
     } else if(block.type==='mobility'){
@@ -16643,8 +16726,14 @@ async function renderTodayWorkoutSummary(){
   }
   const rows = await blockSummaryHtml(block);
   const startedAt = await loggingStartedAt(todayStr);
+  // The marker is the way back in, not just a notice that there is one. Tapping it reopens
+  // the session where you left it; the cross beside it is the only thing that throws a draft
+  // away, and it asks first.
   const loggingLine = startedAt
-    ? `<div class="logging-flag">Logging \u00b7 started ${stamp(startedAt, true)}</div>` : '';
+    ? `<div class="logging-row">
+         <button type="button" class="logging-flag" id="resumeLoggingBtn">Resume \u00b7 started ${stamp(startedAt, true)}</button>
+         <button type="button" class="logging-drop" id="dropLoggingBtn" aria-label="Discard this draft">\u00d7</button>
+       </div>` : '';
   const isDeload = (block.type==='strength' || block.type==='run') ? await isDeloadWeek(todayStr) : false;
   const deloadNote = isDeload ? `<div class="score-note" style="margin-top:-4px;">~${Math.round(DELOAD_CUT*100)}% volume — deload week</div>` : '';
   const adjustment = (block.type==='strength' || block.type==='run') ? await getTodayAdjustment() : { lever:null, delta:0 };
@@ -16724,17 +16813,22 @@ async function renderTodayWorkoutSummary(){
     });
   });
 
-  const goBtn = document.getElementById('goLogWorkoutBtn');
-  if(goBtn) goBtn.addEventListener('click', async ()=>{
+  const resumeBtn = document.getElementById('resumeLoggingBtn');
+  if(resumeBtn) resumeBtn.addEventListener('click', ()=> startTodayLogging());
+  const dropBtn = document.getElementById('dropLoggingBtn');
+  if(dropBtn) dropBtn.addEventListener('click', async ()=>{
+    if(!(await confirmInPlace(dropBtn, { mode:'tap', label:'Discard?' }))) return;
     const found = await getTodaysBlockAndSlotForType(todaySessionType);
-    activateTab('training');
-    if(found){
-      setTimeout(()=>{
-        openBlockEditor(todayStr, found.slot, found.block);
-        blockEditReturnTab = 'insights';   // set after open, which clears it
-      }, 150);
-    }
+    await clearLoggingStarted(todayStr);
+    if(found) await clearLogDraft(todayStr, found.slot);
+    showToast('Draft discarded');
+    renderTodayWorkoutSummary();
+    refreshLogStripWord();   // the strip is offering to resume something that no longer exists
   });
+  // The button and the strip make the same offer and were taking two different routes — one
+  // jumped to Weekly, the other opened in place. One route.
+  const goBtn = document.getElementById('goLogWorkoutBtn');
+  if(goBtn) goBtn.addEventListener('click', ()=> startTodayLogging());
 }
 document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
