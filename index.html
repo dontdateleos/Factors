@@ -971,6 +971,20 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
+  .tissue{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-3); padding:14px; }
+  .tissue-head{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; margin-bottom:9px; }
+  .tissue-row{ display:flex; align-items:center; gap:9px; margin-bottom:5px; }
+  .tissue-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.05em;
+    text-transform:uppercase; flex:0 0 40%; min-width:0; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; opacity:0.8; }
+  .tissue-bar{ flex:1; height:10px; box-shadow:inset 0 0 0 1px rgba(251,250,246,0.4); position:relative; }
+  .tissue-bar i{ position:absolute; left:0; top:0; bottom:0; background:var(--bg); }
+  .tissue-row.low .tissue-bar i{ background:var(--bad); }
+  .tissue-num{ font-family:var(--mono); font-size:var(--fs-tag); font-variant-numeric:tabular-nums;
+    flex:0 0 auto; min-width:26px; text-align:right; }
+  .tissue-note{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
+    text-transform:none; opacity:0.6; margin-top:8px; line-height:1.45; }
   /* The device chips name which watch a number came from. With no watch connected there is
      one box per fact and the chip is answering a question nobody asked. */
   body.no-devices .src-tag{ display:none; }
@@ -1482,6 +1496,7 @@
       <div class="rest-word">Rest</div>
       <div class="rest-note" id="restDayNote"></div>
     </div>
+    <div id="tissueStrip" style="display:none;"></div>
     <div class="session-type" id="todaySessionTypePills">
       <div class="type-btn active" data-type="strength">Strength</div>
       <div class="type-btn" data-type="run">Run</div>
@@ -4577,6 +4592,7 @@ function activateTab(name, opts){
   if(name==='insights'){
     applyTodayStage();
     refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
+    renderTissueStrip();
     applyRestDayShape();
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
@@ -5119,7 +5135,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.3';
+const APP_VERSION = '2026.08.29.4';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6408,6 +6424,161 @@ async function buildSignalWindowUncached(asOfDate, days){
     observedNights, windowNights: span,
     completeness: observedNights / span
   };
+}
+
+/* ================= SCORE 2 — TISSUE READINESS, PER MUSCLE GROUP =================
+   The score no incumbent ships, and the one this app's data was already shaped for.
+
+   The reason it has to exist is the most important structural limit of any HRV-driven
+   number: cardiac autonomic outflow indexes SYSTEMIC stress, while neuromuscular fatigue
+   after eccentric or high-force work is local and mechanical — sarcomere disruption, E-C
+   coupling failure, connective-tissue microdamage. Those processes barely load the
+   cardiovascular system, peak 24-72h later when the autonomic disturbance has already
+   resolved, and are specific to the muscle group that did the work. Forty-eight hours after
+   a heavy leg session HRV can be fully normal, or elevated, while you are genuinely unable
+   to produce force — a pure-HRV score says green on exactly the day you should not sprint.
+
+   "Fresh systemically, wrecked quads" is an utterly ordinary state that a scalar cannot
+   express. This is the state, and it is what lets the app say train upper, skip legs. */
+const TR_HALFLIFE_H   = { general: 36, eccentric: 60, connective: 120 };
+// Movements whose ordinary execution carries a large eccentric component. Lunges and hinges
+// load lengthening muscle under tension far more than a press or a carry does.
+const TR_ECCENTRIC_MOVEMENTS = ['hinge', 'lunge', 'squat'];
+const TR_ECCENTRIC_MULT = 2.5;   // eccentric-biased work costs more locally than its systemic price
+const TR_NOVELTY_K      = 0.35;  // repeated-bout effect: familiar work costs progressively less
+const TR_WINDOW_DAYS    = 90;
+const TR_CAPACITY_PCTL  = 0.90;
+
+// %1RM from reps, inverted Epley. Nothing stores intensity directly, and a set of five is a
+// different local cost to a set of twenty at the same tonnage.
+function pct1RMFromReps(reps){
+  const r = Math.max(1, Math.min(30, reps || 10));
+  return 1 / (1 + r / 30);
+}
+
+/* Damage per muscle group, decayed to now. primaryVolume and secondaryVolume are already the
+   brief's c[exercise,m] contribution coefficients — the app has split direct from indirect
+   stimulus at 1.0 / 0.5 since the volume work, so no new coefficient table is needed. */
+function tissueDamage(sessions, asOfDate){
+  const now = new Date(asOfDate).getTime();
+  const damage = {}, lastHit = {};
+  // Prior exposures per exercise, for the repeated-bout term.
+  const exposures = {};
+  sessions.forEach(s=>{
+    (s.exercises || []).forEach(ex=>{
+      if(!ex.name) return;
+      const k = ex.name.trim().toLowerCase();
+      exposures[k] = (exposures[k] || 0) + 1;
+    });
+  });
+  sessions.forEach(s=>{
+    if(s.type !== 'strength') return;
+    const dtH = (now - new Date(s.date).getTime()) / 3600000;
+    if(dtH < 0 || dtH > TR_WINDOW_DAYS * 24) return;
+    (s.exercises || []).forEach(ex=>{
+      const ecc = TR_ECCENTRIC_MOVEMENTS.includes(ex.movement);
+      // A set taken to failure carries a longer tail than the same tonnage stopped short.
+      const half = ecc ? TR_HALFLIFE_H.eccentric : (ex.toFailure ? TR_HALFLIFE_H.connective : TR_HALFLIFE_H.general);
+      const decay = Math.pow(0.5, dtH / half);
+      const E = ecc ? TR_ECCENTRIC_MULT : 1;
+      const k = (ex.name || '').trim().toLowerCase();
+      // 1 + exp(-k*n): an unfamiliar lift costs about twice what a hundred-times-done one
+      // does, and converges to 1 as the repeated-bout effect takes hold.
+      const N = 1 + Math.exp(-TR_NOVELTY_K * Math.max(0, (exposures[k] || 1) - 1));
+      const intensity = 0.5 + pct1RMFromReps(ex.reps);
+      const add = (area, vol)=>{
+        if(!area || !vol) return;
+        damage[area] = (damage[area] || 0) + vol * decay * E * N * intensity;
+        if(!lastHit[area] || s.date > lastHit[area]) lastHit[area] = s.date;
+      };
+      add(ex.area, ex.primaryVolume != null ? ex.primaryVolume : ex.volume);
+      add(ex.secondaryArea, ex.secondaryVolume);
+    });
+  });
+  return { damage, lastHit };
+}
+
+async function computeTissueReadiness(asOfDate){
+  const date = asOfDate || todayStr;
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return { available:false, areas:{} }; }
+  const { damage, lastHit } = tissueDamage(sessions, date);
+  if(!Object.keys(damage).length) return { available:false, areas:{} };
+
+  // Personal capacity per group: the 90th percentile of what that group has actually carried
+  // over the window. A fixed constant would mean the same number for a beginner's chest and a
+  // powerlifter's, which is the mistake the whole app is built to avoid.
+  const daily = {};
+  for(let d = TR_WINDOW_DAYS - 1; d >= 0; d--){
+    const dt = new Date(date); dt.setDate(dt.getDate() - d);
+    const ds = localDateStr(dt);
+    const day = tissueDamage(sessions, ds).damage;
+    Object.keys(day).forEach(a=>{ (daily[a] = daily[a] || []).push(day[a]); });
+  }
+  const pctl = (arr, q)=>{
+    if(!arr.length) return null;
+    const v = [...arr].sort((x,y)=>x-y);
+    return v[Math.min(v.length - 1, Math.floor(q * v.length))];
+  };
+  // Global soreness nudges every group by the same amount, which is weaker than the brief
+  // wants — it specifies a per-group soreness item and a proper Bayesian update. This is the
+  // prior on its own until per-group reports exist, and it is deliberately gentle.
+  let soreZ = 0;
+  try{
+    const win = await buildSignalWindow(date);
+    const sore = win.subjective && win.subjective.subjSoreness;
+    if(sore && sore.available) soreZ = sore.zAcute || 0;      // already inverted: low is good
+  } catch(e){}
+  const soreMult = Math.max(0.75, Math.min(1.1, 1 + soreZ * 0.12));
+
+  const areas = {};
+  Object.keys(damage).forEach(a=>{
+    const cap = pctl(daily[a] || [], TR_CAPACITY_PCTL);
+    if(!cap || cap <= 0) return;
+    const tr = 100 * Math.exp(-damage[a] / cap);
+    areas[a] = {
+      area: a, label: BODY_AREAS[a] || a,
+      tr: Math.max(0, Math.min(100, Math.round(tr * soreMult))),
+      damage: damage[a], capacity: cap, lastHit: lastHit[a] || null
+    };
+  });
+  const list = Object.values(areas).sort((x,y)=> x.tr - y.tr);
+  return {
+    available: list.length > 0,
+    areas, list,
+    worst: list[0] || null,
+    // The threshold the prescription layer reads: below this, substitute away from the group
+    // and leave everything else at full intensity.
+    limited: list.filter(a=>a.tr < 40),
+    soreMult
+  };
+}
+
+/* Drawn only when it has something a systemic number could not have told you. A full ledger
+   of every muscle group every day is a readout; the useful moment is the one where a group is
+   down and the rest of you is not. */
+const TISSUE_SHOW_BELOW = 60;
+async function renderTissueStrip(){
+  const host = document.getElementById('tissueStrip');
+  if(!host) return;
+  let tr = null;
+  try{ tr = await computeTissueReadiness(todayStr); } catch(e){}
+  if(!tr || !tr.available || !tr.list.length){ host.style.display = 'none'; return; }
+  const down = tr.list.filter(a=>a.tr < TISSUE_SHOW_BELOW);
+  if(!down.length){ host.style.display = 'none'; return; }
+  const clear = tr.list.filter(a=>a.tr >= TISSUE_SHOW_BELOW);
+  const rows = down.map(a=>`<div class="tissue-row${a.tr < 40 ? ' low' : ''}">
+      <span class="tissue-name">${a.label}</span>
+      <span class="tissue-bar"><i style="width:${Math.max(2, a.tr)}%"></i></span>
+      <span class="tissue-num">${a.tr}</span>
+    </div>`).join('');
+  const worst = down[0];
+  const note = worst.tr < 40
+    ? `${worst.label} is still carrying the last session. Substitute away from it and leave everything else at full intensity — this is local, not systemic.`
+    : `${worst.label} is not fully recovered. Everything not listed is clear.`;
+  host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${rows}`
+    + `<div class="tissue-note">${note}${clear.length ? ` Clear: ${clear.map(a=>a.label).join(', ')}.` : ''}</div></div>`;
+  host.style.display = 'block';
 }
 
 /* ================= SCORE 1 — SYSTEMIC READINESS =================
@@ -14844,7 +15015,7 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
    training. The warm-up and cooldown sections are left alone deliberately: they hide
    themselves when they are empty, and forcing them shut here would mean deciding when to
    open them again. */
-const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup'];
+const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup', 'tissueStrip'];
 async function applyRestDayShape(){
   const plate = document.getElementById('restDayPlate');
   if(!plate) return;
