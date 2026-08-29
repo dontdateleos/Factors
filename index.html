@@ -956,6 +956,16 @@
     text-transform:none; color:rgba(251,250,246,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .more-toggle-chev{ flex:0 0 auto; transition:transform 0.15s; }
   .more-toggle.open .more-toggle-chev{ transform:rotate(180deg); }
+  .subj-row{ display:flex; flex-direction:column; gap:5px; }
+  .subj-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .subj-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:var(--track-ui);
+    text-transform:uppercase; color:rgba(251,250,246,0.85); }
+  .subj-anchor{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(251,250,246,0.45); }
+  .subj-scale{ display:flex; gap:6px; }
+  .subj-dot{ flex:1; height:36px; background:transparent; color:rgba(251,250,246,0.55);
+    border:2px solid rgba(251,250,246,0.4); font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:var(--fw-bold); cursor:pointer; padding:0; }
+  .subj-dot.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -1794,8 +1804,28 @@
          The three that carry the score come first and are a complete entry on their own;
          everything else is behind one line, and opens itself if it is holding a value so
          nothing is ever hidden AND set. -->
+    <!-- FOUR TAPS, AND THEY OUTWEIGH THE SENSORS. Saw, Main & Gastin (2016), 56 studies:
+         subjective self-report responds to training load with greater sensitivity and
+         consistency than heart rate, biochemical or immunological markers. The mechanism is
+         that perceived fatigue integrates central drive, nociception, sleep, psychosocial
+         stress, motivation and immune signalling into one output, where HRV samples only
+         cardiac autonomic outflow. Perception has the wider aperture.
+
+         Life stress is the one nobody ships: Ivarsson (2017), 48 studies, r = 0.27 with
+         injury — a larger effect than most physiological predictors, at the cost of one tap.
+
+         Four items, not six: beyond about six, compliance collapses, and compliance failure
+         destroys a series far more thoroughly than measurement error does. Fixed wording
+         forever, odd-numbered scale, and z-scored against your own rolling distribution,
+         because people use different portions of a scale and the absolute number is not
+         comparable between two people or across a change of mood about scales. -->
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">This morning</div><div class="group-sub">these three are a complete entry</div></div>
+      <div class="group-head"><div class="group-title">How are you</div><div class="group-sub">four taps &mdash; weighted above the sensors</div></div>
+      <div class="fields" id="subjectiveFields"></div>
+    </div>
+
+    <div class="group form-panel">
+      <div class="group-head"><div class="group-title">Last night</div><div class="group-sub">the sensor half &mdash; three numbers is plenty</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Sleep (hrs)</span><input type="number" step="0.1" id="durationHrs" placeholder="e.g. 7.5"></div>
         <div>
@@ -4886,7 +4916,54 @@ tabs.forEach(t=>{
 /* ---------- RECOVERY ---------- */
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
 const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
-  'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery'];
+  'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery',
+  'subjEnergy','subjSoreness','subjStress','subjMotivation'];
+
+/* Fixed wording, forever. Changing an item's text silently changes what the series means, and
+   the whole value of self-report is that it is the same question every day. `good` says which
+   end is the good end — soreness and stress read backwards from energy and motivation. */
+const SUBJECTIVE_ITEMS = [
+  { id:'subjEnergy',     name:'Energy',     low:'flat',      high:'fresh',  good:'high' },
+  { id:'subjSoreness',   name:'Soreness',   low:'none',      high:'severe', good:'low'  },
+  { id:'subjStress',     name:'Life stress',low:'calm',      high:'heavy',  good:'low'  },
+  { id:'subjMotivation', name:'Motivation', low:'no desire', high:'keen',   good:'high' }
+];
+(function buildSubjectiveFields(){
+  const host = document.getElementById('subjectiveFields');
+  if(!host) return;
+  SUBJECTIVE_ITEMS.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'subj-row';
+    row.innerHTML = `<div class="subj-head"><span class="subj-name">${item.name}</span>`
+      + `<span class="subj-anchor">1 ${item.low} &middot; 5 ${item.high}</span></div>`
+      + `<div class="subj-scale">${[1,2,3,4,5].map(n=>
+          `<button type="button" class="subj-dot" data-v="${n}" aria-label="${item.name} ${n}">${n}</button>`).join('')}</div>`
+      + `<input type="hidden" id="${item.id}">`;
+    const input = row.querySelector('input');
+    row.querySelectorAll('.subj-dot').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        // Tapping the selected value again clears it — a mis-tap should not become a
+        // permanent reading you cannot take back.
+        const same = input.value === btn.dataset.v;
+        input.value = same ? '' : btn.dataset.v;
+        paintSubjectiveRow(row, input.value);
+        input.dispatchEvent(new Event('input', { bubbles:true }));
+      });
+    });
+    host.appendChild(row);
+  });
+})();
+function paintSubjectiveRow(row, value){
+  row.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(value)));
+}
+function paintSubjectiveFields(){
+  const host = document.getElementById('subjectiveFields');
+  if(!host) return;
+  [...host.children].forEach(row=>{
+    const input = row.querySelector('input');
+    if(input) paintSubjectiveRow(row, input.value);
+  });
+}
 
 const dateInput = document.getElementById('entryDate');
 // Uses local-time getters, not toISOString() — toISOString() always returns
@@ -5042,7 +5119,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.1';
+const APP_VERSION = '2026.08.29.2';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6241,9 +6318,28 @@ async function buildSignalWindow(asOfDate, days){
     // Minutes awake in the night: more is worse, so the sign flips.
     wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true })
   };
+  // Each item against its own rolling distribution, then averaged — not a raw mean of the
+  // five-point taps. People use different portions of a scale, and someone who never says 5
+  // would otherwise read as permanently tired.
+  const subjective = {};
+  SUBJECTIVE_ITEMS.forEach(item=>{
+    subjective[item.id] = normaliseChannel(pick(e=>e[item.id]), { invert: item.good === 'low' });
+  });
+  const subjParts = Object.values(subjective).filter(c=>c.available);
+  const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
+  channels.subjective = subjParts.length ? {
+    available: true,
+    n:      Math.max(...subjParts.map(c=>c.n)),
+    nEff:   avg(subjParts, c=>c.nEff),
+    M:      avg(subjParts, c=>c.M),
+    z:      avg(subjParts, c=>c.z),
+    zAcute: avg(subjParts, c=>c.zAcute),
+    zUsed:  avg(subjParts, c=>c.zUsed || 0),
+    items:  subjParts.length
+  } : { available:false, n:0, nEff:0, M:0, z:0, zAcute:0, zUsed:0, items:0 };
   const observedNights = present.length;
   return {
-    dates, entries, channels,
+    dates, entries, channels, subjective,
     hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
     hrvBaseline: hrvBaselineFrom(hrvSeries),
     rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
@@ -6487,9 +6583,9 @@ function fillRecoveryForm(entry){
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
-  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore();
+  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -9964,11 +10060,14 @@ function readingDepth(entry){
   let n = 0;
   if(entry.durationHrs != null) n++;
   if((entry.wakeTimeOura ?? entry.wakeTimeGarmin) != null) n++;
-  if((entry.hrvGarmin ?? entry.hrvOura) != null && entry.hrvBaseline) n++;
+  // No longer requires a hand-typed baseline: the baseline is computed now, so an HRV
+  // reading counts as an HRV reading.
+  if((entry.hrvGarmin ?? entry.hrvOura) != null) n++;
   if(entry.restingHR != null) n++;
+  if(SUBJECTIVE_ITEMS.some(i=>entry[i.id] != null)) n++;
   return n;
 }
-const READING_FULL = 3;   // of four; below this the mark is drawn half width
+const READING_FULL = 3;   // of five; below this the mark is drawn half width
 
 async function overallScoreForEntry(entry){
   try{
