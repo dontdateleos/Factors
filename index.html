@@ -858,25 +858,10 @@
   .wk-slot{ text-transform:uppercase; opacity:0.45; flex:0 0 24px; }
   .wk-type{ text-transform:uppercase; flex:0 0 74px; }
   .wk-detail{ opacity:0.6; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #areaVolume:not(:empty){ margin-top:var(--sp-4); }
   .sev-trace{ display:flex; align-items:flex-end; gap:3px; height:14px; margin-top:5px; }
   .sev-trace i{ display:block; width:9px; background:var(--dim); opacity:0.45; }
   .sev-trace i:last-child{ opacity:1; }
   .sev-trace i.none{ height:1px; opacity:0.2; }
-  .area-row{ display:flex; align-items:flex-end; gap:8px; margin-bottom:5px; }
-  .area-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.05em;
-    text-transform:uppercase; color:var(--bg); opacity:0.75; flex:1; min-width:0;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .area-ticks{ display:flex; align-items:flex-end; gap:3px; height:12px; flex:0 0 auto; }
-  .area-ticks i{ display:block; width:13px; background:var(--bg); opacity:0.55; position:relative; }
-  /* The planned level, as a rule across the bar rather than another bar beside it: two bars
-     invite you to compare their heights, a rule says "this is the line" and lets the bar say
-     whether it reached it. */
-  .area-ticks i b{ position:absolute; left:-2px; right:-2px; height:2px; background:var(--accent); }
-  .area-ticks i:last-child{ opacity:1; }
-  .area-ticks i.none{ height:1px !important; opacity:0.22; }
-  .area-total{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.7;
-    flex:0 0 auto; min-width:52px; text-align:right; }
   #weekBlockStrip:not(:empty){ margin-top:var(--sp-4); padding-top:var(--sp-3);
     border-top:1px solid rgba(251,250,246,0.25); }
   .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
@@ -1557,7 +1542,6 @@
           <!-- The block's shape, then what builds it. Both belong with the week rather than
                scattered down the page below it. -->
           <div id="weekBlockStrip"></div>
-          <div id="areaVolume"></div>
           <div class="week-gen-row">
             <select id="programSplitOverride">
               <option value="auto">Auto split</option>
@@ -5040,7 +5024,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.37';
+const APP_VERSION = '2026.08.28.38';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7578,64 +7562,6 @@ async function renderWeekSessionList(){
     : '';
 }
 
-/* #3 — WHERE THE VOLUME ACTUALLY WENT. Four weeks, one row per body area, the same seven-tick
-   language the score uses. Built from logged sets rather than planned ones, because the point
-   of it is to show what you DID — the biceps gap that had to be spotted by eye would have been
-   a short row here from the first week. Areas with nothing logged in the window are left out
-   rather than drawn as four empty slots; a list of zeroes is not information. */
-const AREA_WEEKS = 4;
-const AREA_TICK_W = 13, AREA_TICK_GAP = 3, AREA_BAR_H = 12;
-async function renderAreaVolume(){
-  const host = document.getElementById('areaVolume');
-  if(!host) return;
-  host.innerHTML = '';
-  let sessions = [];
-  try{ sessions = await getAllTrainingSessions(); } catch(e){ return; }
-  const weeks = [];
-  for(let off = -(AREA_WEEKS - 1); off <= 0; off++) weeks.push(getWeekDatesForOffset(off));
-  const byArea = {};
-  sessions.forEach(sn=>{
-    if(sn.type !== 'strength') return;
-    const w = weeks.findIndex(dates => dates.indexOf(sn.date) >= 0);
-    if(w < 0) return;
-    (sn.exercises || []).forEach(ex=>{
-      const a = ex.area;
-      if(!a || !ex.sets) return;
-      (byArea[a] = byArea[a] || new Array(AREA_WEEKS).fill(0))[w] += ex.sets;
-    });
-  });
-  // What this week's plan asked for, by area, so the row is a check rather than only a record.
-  const plannedByArea = {};
-  for(const d of weeks[weeks.length - 1]){
-    try{
-      const rec = JSON.parse((await window.storage.get(`planned_session:${d}`)).value);
-      (rec.exercises || []).forEach(ex=>{ if(ex.area && ex.sets) plannedByArea[ex.area] = (plannedByArea[ex.area] || 0) + ex.sets; });
-    } catch(e){}
-  }
-  const rows = Object.keys(byArea)
-    .map(a=>({ area:a, weeks:byArea[a], total:byArea[a].reduce((x,y)=>x+y,0), planned: plannedByArea[a] || 0 }))
-    .filter(r=>r.total > 0)
-    .sort((a,b)=> b.total - a.total);
-  if(!rows.length) return;
-  // The target has to be on the same scale as the bars or it says nothing, so it is part of
-  // what sets the scale — otherwise a week you have barely started draws its target off the top.
-  const peak = Math.max(...rows.map(r=>Math.max(...r.weeks, r.planned)));
-  host.innerHTML = `<div class="score-note" style="margin-bottom:5px;">Sets logged by area · last ${AREA_WEEKS} weeks</div>` +
-    rows.map(r=>`<div class="area-row">
-        <span class="area-name">${BODY_AREAS[r.area] || r.area}</span>
-        <span class="area-ticks">${r.weeks.map((n, w)=>{
-          const h = n ? Math.max(2, Math.round((n / peak) * AREA_BAR_H)) : 0;
-          // The target rides on the current week only — the weeks behind it were planned
-          // against numbers that are no longer on screen, and drawing a target over them
-          // would be inviting a comparison the row cannot support.
-          const target = (w === AREA_WEEKS - 1 && r.planned)
-            ? `<b style="bottom:${Math.min(AREA_BAR_H, Math.round((r.planned / peak) * AREA_BAR_H))}px;" title="${r.planned} planned"></b>` : '';
-          return `<i style="height:${h}px;"${n ? '' : ' class="none"'} title="${n} sets">${target}</i>`;
-        }).join('')}</span>
-        <span class="area-total">${r.total}<i class="unit">sets</i></span>
-      </div>`).join('');
-}
-
 let weekDetailLastHtml = '';
 async function renderWeekGrid(){
   // Surface block position where the week is actually planned. Previously the whole
@@ -7770,7 +7696,6 @@ async function renderWeekGrid(){
         ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
     } catch(e){ strip.innerHTML = ''; }
   })();
-  renderAreaVolume();
   renderWeekSessionList();
   const wheelStageEl = document.getElementById('weekWheelStage');
   if(wheelStageEl) wheelStageEl.style.display = '';
