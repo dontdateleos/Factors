@@ -2153,6 +2153,18 @@
     <!-- Readouts, so they sit after the forms rather than between them. Version and Legal
          are not black, and standing mid-run they cut the settings form into stripes of
          tab colour the way Recent entries did on Data. -->
+    <div class="group form-panel">
+      <div class="group-head collapsible" data-collapse="blinding" style="cursor:pointer;"><div class="group-title">Blind days <span class="head-est" id="blindingSummary"></span></div><div class="group-sub">the only way to know the score is telling the truth</div><span class="collapse-chevron" data-collapse="blinding">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="blinding" style="display:none;">
+        <label class="week-deload" for="blindingToggle" style="margin-bottom:10px;">
+          <input type="checkbox" id="blindingToggle">
+          <span>Hide the score on one day in five, until I have logged</span>
+        </label>
+        <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. On a blinded day the number is held back until the session is logged, which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
+        <div class="score-note" id="blindingStats" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
     <div class="group form-panel dev-only" id="eyesDevGroup">
       <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
@@ -4649,6 +4661,7 @@ function activateTab(name, opts){
   // fills both tabs' rows — the queries don't care which panel is showing — so it runs for
   // either, and each tab renders what it actually displays.
   if(name==='goals'){ loadCurrentGoals(); renderExerciseProgression(); }
+  if(name==='settings') renderBlindingStats();
   if(name==='injuries'){
     loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
     refreshInjuries();
@@ -5194,7 +5207,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.8';
+const APP_VERSION = '2026.08.29.9';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6538,6 +6551,78 @@ async function buildSignalWindowUncached(asOfDate, days){
   };
 }
 
+/* ---------- RANDOMISED SCORE-BLINDING ----------
+   Nobody in the industry does this, and it is the only route to a score that can ever be
+   checked. Two things fall out of hiding the number on a random fifth of days.
+
+   First, uncontaminated labels: on a blinded day the session result was not influenced by
+   the prediction, so it is the only kind of day whose outcome can honestly be used to test
+   whether the weights are any good. Every incumbent's score is unvalidated partly because
+   they have no such day.
+
+   Second, it measures your own nocebo effect directly — comparing blinded to unblinded days
+   says how much seeing a red number makes you perform worse. That is a real documented
+   phenomenon (a 2023 JMIR experiment found deflated step counts alone worsened mood,
+   self-esteem and blood pressure) and no wearable company has published its own.
+
+   The choice is deterministic per date, so it cannot be rerolled by reloading until the
+   number appears — which would defeat the whole point. */
+const BLIND_RATE = 0.2;
+let blindingOn = false;
+function blindHash(date){
+  let h = 2166136261;
+  for(let i = 0; i < date.length; i++){ h ^= date.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 1000) / 1000;
+}
+function isBlindDay(date){ return blindingOn && blindHash(date || todayStr) < BLIND_RATE; }
+async function loggedToday(date){
+  try{
+    const res = await window.storage.list('training:' + (date || todayStr));
+    return !!(res && res.keys && res.keys.length);
+  } catch(e){ return false; }
+}
+async function scoreIsHeld(){
+  if(!isBlindDay(todayStr)) return false;
+  return !(await loggedToday(todayStr));
+}
+async function renderBlindingStats(){
+  const el = document.getElementById('blindingStats');
+  if(!el) return;
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){}
+  const tagged = sessions.filter(s=>s.scoreBlinded != null);
+  if(tagged.length < 6){ el.textContent = tagged.length ? `${tagged.length} sessions tagged so far — a comparison needs a few more.` : ''; return; }
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0) / a.length : null;
+  const rpeOf = g => mean(g.filter(s=>s.sessionRpe).map(s=>s.sessionRpe));
+  const volOf = g => mean(g.filter(s=>s.totalVolume).map(s=>s.totalVolume));
+  const blind = tagged.filter(s=>s.scoreBlinded), seen = tagged.filter(s=>!s.scoreBlinded);
+  if(blind.length < 3 || seen.length < 3){ el.textContent = `${blind.length} blinded, ${seen.length} seen — not enough on one side yet.`; return; }
+  const bits = [`${blind.length} blinded vs ${seen.length} seen.`];
+  const bv = volOf(blind), sv = volOf(seen);
+  if(bv && sv) bits.push(`Volume ${Math.round(bv)} vs ${Math.round(sv)} kg.`);
+  const br = rpeOf(blind), sr2 = rpeOf(seen);
+  if(br && sr2) bits.push(`Effort ${br.toFixed(1)} vs ${sr2.toFixed(1)}.`);
+  bits.push('A gap between them is the score changing your behaviour rather than describing it.');
+  el.textContent = bits.join(' ');
+}
+(function wireBlinding(){
+  const t = document.getElementById('blindingToggle');
+  if(!t) return;
+  window.storage.get('settings:blinding').then(r=>{
+    blindingOn = r.value === 'true';
+    t.checked = blindingOn;
+    const sum = document.getElementById('blindingSummary');
+    if(sum) sum.textContent = blindingOn ? 'on' : 'off';
+  }).catch(()=>{});
+  t.addEventListener('change', async ()=>{
+    blindingOn = t.checked;
+    try{ await window.storage.set('settings:blinding', String(blindingOn)); } catch(e){}
+    const sum = document.getElementById('blindingSummary');
+    if(sum) sum.textContent = blindingOn ? 'on' : 'off';
+    generateRecommendations();
+  });
+})();
+
 /* ---------- THE PRESCRIPTION LAYER ----------
    Mapped onto the app's existing Reduce / Modify / Add taxonomy. Every output above has to
    move a set, a zone or an exercise, or it should not ship — a number that cannot change a
@@ -7289,6 +7374,7 @@ async function computeSystemicReadiness(asOfDate){
   const half = (sigma && nEff >= 2) ? 1.96 * sigma / Math.sqrt(nEff) : null;
 
   const score = Math.max(0, Math.min(100, Math.round(today.raw * gate)));
+  const held = await scoreIsHeld();
   // The headline is the percentile, so the interval has to be too — a range in raw units
   // printed under a percentile is two different scales pretending to be one reading.
   const pctOf = (raw)=>{
@@ -7302,7 +7388,7 @@ async function computeSystemicReadiness(asOfDate){
     available: enough && today.weightPresent > 0,
     refused: !enough && today.weightPresent > 0,
     score, raw: today.raw, z: today.z, percentile,
-    gate, gateReason, drinkNote, illness, saturated: hrvSaturated(win),
+    gate, gateReason, drinkNote, illness, held, saturated: hrvSaturated(win),
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
@@ -9957,9 +10043,14 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       // workout, it is a session you forgot to save, and writing that down would poison every
       // estimate that reads it.
       const rpe = parseFloat(document.getElementById('sessionRpe')?.value);
+      // The label the learning engine needs: was the score visible while this was done. A
+      // session logged on a blinded day is the only kind whose outcome the prediction cannot
+      // have influenced.
+      const wasBlind = isBlindDay(date);
       const session = {
         date, type:'strength', timestamp: Date.now(),
         sessionRpe: isNaN(rpe) ? null : rpe,
+        scoreBlinded: wasBlind,
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
         notes: '', exercises, totalVolume
       };
@@ -10410,6 +10501,11 @@ function renderReadinessConfidence(sr){
   const el = document.getElementById('baselineStatus');
   if(!el || !sr) return false;
   const bits = [];
+  if(sr.held){
+    el.innerHTML = `<div>Blinded day — the score is computed and held back until you have logged, so today's result is an honest label rather than a self-fulfilling one.</div>`;
+    el.dataset.readiness = '1';
+    return true;
+  }
   if(sr.available){
     if(sr.ciLow != null && sr.ciHigh != null && sr.ciHigh - sr.ciLow >= 2) bits.push(`${sr.shown} (${sr.ciLow}–${sr.ciHigh})`);
     else bits.push(`${sr.shown}`);
@@ -11032,6 +11128,15 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   // commit — chiefly that it was fitted against today's volume over the mean of the last five
   // sessions, which on a Push/Pull/Legs split compares a chest day to a leg day, and which
   // halves on a deload week by design.
+  if(srResult && srResult.held){
+    // The number exists and is deliberately not shown. Said plainly, because a blank score
+    // that looks broken would spend exactly the trust this is meant to build.
+    out.innerHTML = SCORE_PLACEHOLDER_SVG;
+    delete out.dataset.value;
+    setEyeScore(null);
+    label.textContent = 'Held until you log';
+    return null;
+  }
   if(srResult && srResult.available){
     const prevNum = parseInt(out.dataset.value || out.textContent);
     // The percentile of your own days is the honest headline: it cannot saturate, and "68"
@@ -11176,7 +11281,7 @@ async function renderScoreTrace(todayScore){
   let srSeries = {};
   try{
     const sr = await computeSystemicReadiness(todayStr);
-    if(sr && sr.available) srSeries = sr.shownSeries || {};
+    if(sr && sr.available && !sr.held) srSeries = sr.shownSeries || {};
   } catch(e){}
   for(let d = 6; d >= 1; d--){
     const dt = new Date(todayStr);
