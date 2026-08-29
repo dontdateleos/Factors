@@ -1843,6 +1843,13 @@
       <div class="group-head"><div class="group-title">Last night</div><div class="group-sub">the sensor half &mdash; three numbers is plenty</div></div>
       <div class="fields">
         <div class="field-row"><span class="field-label">Sleep (hrs)</span><input type="number" step="0.1" id="durationHrs" placeholder="e.g. 7.5"></div>
+        <!-- One field, two things nothing else could give us. Windred (2023, n=60,977) found
+             sleep REGULARITY predicts all-cause mortality about as well as duration does
+             (SRI HR 0.70 vs duration 0.76) and independently of it — and the app stored
+             minutes-awake, which cannot see regularity at all. And Facer-Childs (2018): peak
+             force tracks hours-since-wake rather than clock time, so habitual wake time alone
+             predicts the daily performance window, with no chronotype questionnaire. -->
+        <div class="field-row"><span class="field-label">Woke at</span><input type="time" id="wakeClock"></div>
         <div>
           <div class="field-row"><span class="field-label">HRV (ms)</span><span class="src-tag garmin">GARMIN</span><input type="number" id="hrvGarmin" placeholder="ms"></div>
           <div class="field-row" style="display:none;"><span class="field-label"></span><span class="src-tag secondary">OURA</span><input type="number" id="hrvOura" placeholder="ms"></div>
@@ -4933,7 +4940,7 @@ tabs.forEach(t=>{
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
 const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery',
-  'subjEnergy','subjSoreness','subjStress','subjMotivation'];
+  'subjEnergy','subjSoreness','subjStress','subjMotivation','wakeClock'];
 
 /* Fixed wording, forever. Changing an item's text silently changes what the series means, and
    the whole value of self-report is that it is the same question every day. `good` says which
@@ -5135,7 +5142,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.4';
+const APP_VERSION = '2026.08.29.5';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6367,12 +6374,53 @@ async function buildSignalWindowUncached(asOfDate, days){
     return e[hrvRec.source] ?? null;
   });
   const rhrSeries = pick(e=>e.restingHR);
+  // Wake time as minutes past midnight, unwrapped around the median so a 00:30 riser and a
+  // 23:30 riser are not read as twenty-three hours apart.
+  const wakeMin = pick(e=>{
+    if(!e.wakeClock || typeof e.wakeClock !== 'string') return null;
+    const [h, m] = e.wakeClock.split(':').map(Number);
+    return (isNaN(h) || isNaN(m)) ? null : h * 60 + m;
+  });
+  const wakeObs = wakeMin.filter(v=>v != null);
+  const wakeMedian = medianOf(wakeObs);
+  const unwrapped = wakeMin.map(v=>{
+    if(v == null || wakeMedian == null) return null;
+    let d = v - wakeMedian;
+    if(d > 720) d -= 1440; else if(d < -720) d += 1440;
+    return wakeMedian + d;
+  });
+  /* Regularity is an ABSOLUTE construct, unlike every other channel here. Z-scoring your own
+     spread against your own history answers "is today unusual for me", which for a reliably
+     chaotic sleeper is always no — the reading would sit at zero however irregular they are.
+     Windred's SRI is absolute, so this is too: the rolling SD of wake time over a fortnight,
+     against a stated convention of 30 minutes as good and 90 as poor. A convention, not a
+     fitted value, and named as one. */
+  const REG_MID_MIN = 50, REG_SCALE_MIN = 25;   // 25 min SD reads +1, 50 neutral, 75 reads -1
+  const regSeries = unwrapped.map((v, i)=>{
+    const back = unwrapped.slice(Math.max(0, i - 13), i + 1).filter(x=>x != null);
+    if(back.length < 4) return null;
+    const m = back.reduce((a,b)=>a+b,0) / back.length;
+    const sd = Math.sqrt(back.reduce((a,b)=>a + (b-m)*(b-m), 0) / (back.length - 1));
+    return Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (REG_MID_MIN - sd) / REG_SCALE_MIN));
+  });
   const channels = {
     hrv:      normaliseChannel(hrvSeries, { log:true }),
     rhr:      normaliseChannel(rhrSeries, { twoSided:true }),
     sleep:    normaliseChannel(pick(e=>e.durationHrs), {}),
     // Minutes awake in the night: more is worse, so the sign flips.
-    wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true })
+    wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true }),
+    // NOT z-scored. Every other channel asks "is today unusual for you", which for a
+    // reliably chaotic sleeper always answers no — the reading would sit at zero however
+    // irregular they were. Regularity is absolute, like Windred's SRI, so it is used on its
+    // own stated scale and maturity comes from how many nights have been observed.
+    regularity: (()=>{
+      const obs = regSeries.filter(v=>v != null);
+      if(!obs.length) return { n:0, nEff:0, M:0, z:0, zAcute:0, zUsed:0, available:false };
+      const last = [...regSeries].reverse().find(v=>v != null);
+      const M = Math.min(1, obs.length / 14);
+      return { n:obs.length, nEff:obs.length, M, z:last, zAcute:last, zUsed: M * last,
+               available:true, zSeries: regSeries, zAcuteSeries: regSeries };
+    })()
   };
   // Each item against its own rolling distribution, then averaged — not a raw mean of the
   // five-point taps. People use different portions of a scale, and someone who never says 5
@@ -6420,10 +6468,77 @@ async function buildSignalWindowUncached(asOfDate, days){
     dates, entries, channels, subjective,
     hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
     hrvBaseline: hrvBaselineFrom(hrvSeries),
+    wakeMedianMin: wakeMedian, wakeMinutes: wakeMin,
     rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
     observedNights, windowNights: span,
     completeness: observedNights / span
   };
+}
+
+/* ================= SCORE 3 — CNS / COGNITIVE READINESS =================
+   Governs skill work, technical quality, maximal singles, plyometrics — anything where a
+   lapse has a consequence. Computed, never asked, and that is not a stylistic choice: under
+   chronic sleep restriction subjective sleepiness PLATEAUS while performance keeps
+   degrading, so self-report is a broken gauge for exactly this. Van Dongen's people rated
+   themselves as mildly tired while performing like they had been awake for two days.
+
+   The circadian term is the part no competitor ships. Facer-Childs (2018) measured peak
+   voluntary contraction at 6.7h after waking in early types and 12.6h in late types, and
+   late types swing 10.1% across the day against 3.8% for early types. So habitual wake time
+   alone predicts your performance window — no questionnaire, no extra sensor.
+
+   Caffeine and alcohol residuals are in the brief's formula and are absent here: nothing
+   logs intake yet. Their weight is not redistributed, same rule as everywhere else. */
+const CR_WEIGHTS = { sleepDebt:0.32, sleepLastNight:0.22, regularity:0.16, circadian:0.20 };
+const CR_EARLY_PEAK_H = 6.7, CR_LATE_PEAK_H = 12.6;
+// Chronotype from habitual wake time: 05:00 or earlier reads fully early, 10:00 or later
+// fully late, linear between.
+const CR_EARLY_WAKE_MIN = 5 * 60, CR_LATE_WAKE_MIN = 10 * 60;
+
+function chronotypeIndex(wakeMedianMin){
+  if(wakeMedianMin == null) return null;
+  const t = (wakeMedianMin - CR_EARLY_WAKE_MIN) / (CR_LATE_WAKE_MIN - CR_EARLY_WAKE_MIN);
+  return Math.max(0, Math.min(1, t));
+}
+function circadianTerm(win, now){
+  const idx = chronotypeIndex(win.wakeMedianMin);
+  if(idx == null) return { z:null, available:false };
+  const todayWake = [...win.wakeMinutes].reverse().find(v=>v != null);
+  if(todayWake == null) return { z:null, available:false };
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  let sinceWake = (nowMin - todayWake) / 60;
+  if(sinceWake < 0) sinceWake += 24;
+  // Before your usual waking hour the wrap makes it look like twenty-three hours awake. There
+  // is no performance window to report to somebody who has not got up yet.
+  if(sinceWake > 20) return { z:null, available:false, notYetAwake:true };
+  const peak = CR_EARLY_PEAK_H + idx * (CR_LATE_PEAK_H - CR_EARLY_PEAK_H);
+  // A cosine centred on the peak, one full swing over sixteen hours awake.
+  const z = Math.max(-1, Math.min(1, Math.cos(Math.PI * (sinceWake - peak) / 8)));
+  return { z, available:true, sinceWake, peak, chronotype: idx,
+           hoursToPeak: Math.round((peak - sinceWake) * 10) / 10 };
+}
+
+async function computeCognitiveReadiness(asOfDate, now){
+  const win = await buildSignalWindow(asOfDate || todayStr);
+  const debtZ = sleepDebtZ(win);
+  const circ  = circadianTerm(win, now || new Date());
+  const parts = {
+    sleepDebt:      debtZ.available ? debtZ.z : null,
+    sleepLastNight: win.channels.sleep.available ? win.channels.sleep.zAcute : null,
+    regularity:     win.channels.regularity.available ? win.channels.regularity.z : null,
+    circadian:      circ.available ? circ.z : null
+  };
+  let sum = 0, present = 0;
+  Object.keys(CR_WEIGHTS).forEach(k=>{
+    if(parts[k] == null || isNaN(parts[k])) return;
+    sum += CR_WEIGHTS[k] * parts[k];
+    present += CR_WEIGHTS[k];
+  });
+  if(!present) return { available:false, parts, circadian:circ };
+  const score = Math.max(0, Math.min(100, Math.round(50 + 50 * Math.tanh(SR_TANH_K * sum))));
+  return { available:true, score, parts, weightPresent:present, circadian:circ,
+           // Below this the brief defers skill and technical work rather than reducing volume.
+           limited: score < 40 };
 }
 
 /* ================= SCORE 2 — TISSUE READINESS, PER MUSCLE GROUP =================
@@ -6563,9 +6678,23 @@ async function renderTissueStrip(){
   if(!host) return;
   let tr = null;
   try{ tr = await computeTissueReadiness(todayStr); } catch(e){}
-  if(!tr || !tr.available || !tr.list.length){ host.style.display = 'none'; return; }
+  if(!tr || !tr.available || !tr.list.length){
+    const cns = await cnsNoteHtml();
+    if(!cns){ host.style.display = 'none'; return; }
+    host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${cns}</div>`;
+    host.style.display = 'block';
+    return;
+  }
   const down = tr.list.filter(a=>a.tr < TISSUE_SHOW_BELOW);
-  if(!down.length){ host.style.display = 'none'; return; }
+  if(!down.length){
+    // Nothing local to report, but the CNS line may still have something worth saying.
+    const cns = await cnsNoteHtml();
+    if(!cns){ host.style.display = 'none'; return; }
+    host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>`
+      + `<div class="tissue-note">Every muscle group is clear.</div>${cns}</div>`;
+    host.style.display = 'block';
+    return;
+  }
   const clear = tr.list.filter(a=>a.tr >= TISSUE_SHOW_BELOW);
   const rows = down.map(a=>`<div class="tissue-row${a.tr < 40 ? ' low' : ''}">
       <span class="tissue-name">${a.label}</span>
@@ -6577,8 +6706,28 @@ async function renderTissueStrip(){
     ? `${worst.label} is still carrying the last session. Substitute away from it and leave everything else at full intensity — this is local, not systemic.`
     : `${worst.label} is not fully recovered. Everything not listed is clear.`;
   host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${rows}`
-    + `<div class="tissue-note">${note}${clear.length ? ` Clear: ${clear.map(a=>a.label).join(', ')}.` : ''}</div></div>`;
+    + `<div class="tissue-note">${note}${clear.length ? ` Clear: ${clear.map(a=>a.label).join(', ')}.` : ''}</div>`
+    + (await cnsNoteHtml()) + `</div>`;
   host.style.display = 'block';
+}
+
+/* The sentence no competitor can produce, because none of them know when you woke up. */
+async function cnsNoteHtml(){
+  let cr = null;
+  try{ cr = await computeCognitiveReadiness(todayStr, new Date()); } catch(e){}
+  if(!cr || !cr.available) return '';
+  const c = cr.circadian;
+  const bits = [];
+  if(cr.limited){
+    bits.push('Sharpness is down — no maximal singles, no plyometrics, nothing you have not done before. Technical work keeps better until tomorrow.');
+  }
+  if(c.available && c.hoursToPeak != null){
+    if(c.hoursToPeak >= 1.5) bits.push(`Your strongest window is about ${Math.round(c.hoursToPeak)}h away.`);
+    else if(c.hoursToPeak <= -3) bits.push('You are past your strongest window for today by a few hours.');
+    else bits.push('You are in your strongest window now.');
+  }
+  if(!bits.length) return '';
+  return `<div class="tissue-note" style="margin-top:10px;"><b style="opacity:0.85;">CNS ${cr.score}</b> &middot; ${bits.join(' ')}</div>`;
 }
 
 /* ================= SCORE 1 — SYSTEMIC READINESS =================
@@ -6603,7 +6752,8 @@ const SR_WEIGHTS = {
   sleep:       0.12,   // acute and largely behavioural, so below the physiology
   hrvAcute:    0.08,   // damped, so one catastrophic night registers without noise driving it
   sleepDebt:   0.08,   // Van Dongen — accrues linearly, no adaptation
-  wake:        0.05    // fragmentation; stands in for part of the sleep-quality weight
+  wake:        0.05,   // fragmentation
+  regularity:  0.05    // Windred 2023 — predicts independently of duration, near-zero cost
 };
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
@@ -6651,7 +6801,8 @@ function srComponentsAt(win, i, debtZ){
     hrvAcute:   saturated ? 0 : (at(win.channels.hrv, 'zAcuteSeries') != null
                   ? at(win.channels.hrv, 'zAcuteSeries') * SR_HRV_ACUTE_DAMP : null),
     sleepDebt:  debtZ && debtZ.available ? debtZ.z : null,
-    wake:       at(win.channels.wake, 'zSeries')
+    wake:       at(win.channels.wake, 'zSeries'),
+    regularity: at(win.channels.regularity, 'zSeries')
   };
 }
 function srRawFrom(parts, maturity){
@@ -6965,7 +7116,8 @@ function collectRecoveryEntry(){
   const entry = {};
   recoveryFieldIds.forEach(id=>{
     const el = document.getElementById(id);
-    entry[id] = el.value === '' ? null : (el.tagName==='SELECT' ? el.value : parseFloat(el.value));
+    const isText = el.tagName === 'SELECT' || el.type === 'time';
+    entry[id] = el.value === '' ? null : (isText ? el.value : parseFloat(el.value));
   });
   entry.date = dateInput.value;
   entry.disagreements = [];
