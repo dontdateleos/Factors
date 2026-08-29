@@ -5042,7 +5042,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.40';
+const APP_VERSION = '2026.08.29.1';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6071,6 +6071,203 @@ async function getAllTrainingSessions(){
 
 // capacityIndex: today's output vs trailing baseline of same session type, computed from
 // the most recent prior sessions of that type (up to 5). >1 = above your typical output.
+/* ================= LAYER 0 — THE SIGNAL LAYER =================
+   Every metric normalises the same way, which is the only thing that makes weighting them
+   against each other defensible. Four rules, all from the research brief's §04:
+
+   1. ln-transform rMSSD before anything. It is right-skewed with SD scaling to the mean, so
+      a raw z-score treats a good night and a bad night asymmetrically. RHR, temperature and
+      respiratory rate stay linear.
+   2. Level is a 7-day EWMA, not last night. Averaging ~7 observations cuts the standard
+      error by sqrt(7) ~ 2.6x; Plews' finding is that single-day HRV is uninterpretable on
+      its own. The acute deviation is kept SEPARATELY rather than folded in — Schneider 2019
+      showed smoothing improves the weekly estimate while actively harming detection of
+      individual short-term responses, so you need both and must not confuse them.
+   3. Dispersion is median/MAD, not mean/SD. One sensor glitch should not set the scale.
+   4. Shrink toward zero while the baseline is immature. Daily physiological series are
+      autocorrelated at rho ~ 0.4-0.6, so n_eff = n(1-rho)/(1+rho) — 30 days of HRV is
+      about 10 effective observations, and a naive confidence interval is ~1.7x too narrow.
+      Scoring confidently in week one is the thing every commercial score does wrong. */
+const SIG_TAU        = 7;                          // days
+const SIG_ALPHA      = 1 - Math.exp(-1 / SIG_TAU); // 0.1331
+const SIG_BASE_DAYS  = 60;                         // trailing window for mu and sigma
+const SIG_MATURITY_N = 40;                         // effective observations for a mature baseline
+const SIG_CLAMP      = 3;                          // z is winsorised here, both directions
+// Bumped whenever the maths below changes meaning. Stored on every entry, because a silent
+// algorithm change corrupts every long-range comparison and none of the vendors record it.
+const SCORE_ALGO_VERSION = 2;
+
+function medianOf(a){
+  if(!a.length) return null;
+  const v = [...a].sort((x,y)=>x-y), m = v.length >> 1;
+  return v.length % 2 ? v[m] : (v[m-1] + v[m]) / 2;
+}
+// 1.4826 rescales MAD to be a consistent estimator of sigma for normal data.
+function madSigma(a){
+  const mu = medianOf(a);
+  if(mu == null) return null;
+  const d = medianOf(a.map(x=>Math.abs(x - mu)));
+  return d == null ? null : 1.4826 * d;
+}
+// Series oldest-first. Gaps are skipped rather than imputed: missingness in self-monitoring
+// is not random — the skipped days are disproportionately the bad ones (travelling, drinking,
+// ill), so carrying the last observation forward biases the whole series optimistic.
+function ewmaLast(series, alpha){
+  let acc = null;
+  for(const v of series){ if(v == null || isNaN(v)) continue; acc = acc == null ? v : acc + alpha * (v - acc); }
+  return acc;
+}
+function lag1Autocorr(a){
+  const v = a.filter(x=>x != null && !isNaN(x));
+  if(v.length < 4) return 0.5;                     // literature default while thin
+  const m = v.reduce((x,y)=>x+y,0) / v.length;
+  let num = 0, den = 0;
+  for(let i=0;i<v.length;i++){ const d = v[i] - m; den += d*d; if(i) num += d * (v[i-1] - m); }
+  if(den === 0) return 0.5;
+  // Capped well below 1: a near-perfectly autocorrelated series really does carry almost no
+  // independent information, but letting rho reach 0.95 divides n_eff by 39 and the baseline
+  // would never mature at all. 0.85 is the floor on n_eff at n/12.
+  return Math.max(0, Math.min(0.85, num / den));
+}
+function effectiveN(n, rho){ return n * (1 - rho) / (1 + rho); }
+
+/* One channel's normalisation. `values` is oldest-first over the trailing window, with nulls
+   where nothing was observed. Returns the smoothed level, the acute deviation, and how much
+   of the baseline actually exists yet. */
+function normaliseChannel(values, opts){
+  const o = opts || {};
+  const obs = values.filter(v=>v != null && !isNaN(v));
+  if(!obs.length) return { n:0, nEff:0, M:0, z:0, zAcute:0, level:null, mu:null, sigma:null, available:false };
+  const tx  = o.log ? (v=>Math.log(v)) : (v=>v);
+  const t   = values.map(v=> v == null || isNaN(v) ? null : tx(v));
+  const tObs= t.filter(v=>v != null);
+  const level = ewmaLast(t, SIG_ALPHA);
+  const mu    = medianOf(tObs);
+  let sigma   = madSigma(tObs);
+  // MAD collapses to zero when most readings are identical; fall through to a spread that
+  // exists rather than dividing by nothing.
+  if(!sigma || sigma < 1e-9){
+    const m = tObs.reduce((a,b)=>a+b,0) / tObs.length;
+    sigma = Math.sqrt(tObs.reduce((a,b)=>a + (b-m)*(b-m), 0) / Math.max(1, tObs.length - 1)) || null;
+  }
+  if(!sigma) return { n:tObs.length, nEff:0, M:0, z:0, zAcute:0, level, mu, sigma:null, available:false };
+  const clamp = v => Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, v));
+  const last  = [...t].reverse().find(v=>v != null);
+  const rho   = lag1Autocorr(tObs);
+  const nEff  = effectiveN(tObs.length, rho);
+  const M     = Math.min(1, nEff / SIG_MATURITY_N);
+  let z       = clamp((level - mu) / sigma);
+  let zAcute  = clamp((last  - mu) / sigma);
+  // Two-sided channels have an optimum rather than a direction: resting HR is penalised
+  // above baseline AND well below it, because an abnormally low nocturnal HR alongside high
+  // HRV is the documented parasympathetic-overreaching signature, not freshness. Implemented
+  // as -(|z| - deadband) so a normal day scores zero rather than being punished for drift.
+  if(o.twoSided){
+    const dead = o.deadband == null ? 0.5 : o.deadband;
+    z      = -Math.max(0, Math.abs(z) - dead);
+    zAcute = -Math.max(0, Math.abs(zAcute) - dead);
+  }
+  // Illness channels can lower a score and never raise it. Oura does this for temperature and
+  // it is the one one-sided term they document.
+  if(o.negativeOnly){ z = Math.min(0, z); zAcute = Math.min(0, zAcute); }
+  if(o.invert){ z = -z; zAcute = -zAcute; }
+  return { n:tObs.length, nEff, M, z, zAcute, zUsed: M * z, level, mu, sigma, available:true };
+}
+
+/* ---------- ONE CANONICAL HRV SOURCE ----------
+   Oura's rMSSD carries a systematic -15ms bias against ECG with limits of agreement spanning
+   ~58ms (Cao 2022); Apple reports SDNN, which is a different statistic entirely; Garmin
+   samples the whole night where WHOOP samples five minutes of slow-wave sleep. Absolute
+   values are not comparable across any of them, so `hrvGarmin ?? hrvOura` was quietly
+   splicing two different measurements into one baseline and reading the join as physiology.
+   One source wins, chosen by which one you actually have more of, and a change of source is
+   a baseline reset rather than a data point. */
+const HRV_SOURCE_KEY = 'settings:hrvSource';
+async function resolveHrvSource(entries){
+  const count = k => entries.filter(e=>e[k] != null).length;
+  const g = count('hrvGarmin'), o = count('hrvOura');
+  const best = (g === 0 && o === 0) ? null : (o > g ? 'hrvOura' : 'hrvGarmin');
+  let rec = null;
+  try{ rec = JSON.parse((await window.storage.get(HRV_SOURCE_KEY)).value); } catch(e){}
+  if(!best) return rec || { source:null, since:null };
+  if(!rec){
+    // First time we have ever had HRV. Nothing switched, so the whole history counts.
+    rec = { source: best, since: null };
+    try{ await window.storage.set(HRV_SOURCE_KEY, JSON.stringify(rec)); } catch(e){}
+  } else if(rec.source !== best){
+    // A genuine switch of device. Absolute values are not comparable across sources, so the
+    // baseline restarts here rather than absorbing the step change as physiology.
+    rec = { source: best, since: todayStr };
+    try{ await window.storage.set(HRV_SOURCE_KEY, JSON.stringify(rec)); } catch(e){}
+  }
+  return rec;
+}
+// The rolling normal, computed rather than typed. hrvBaseline was a manual field holding a
+// number copied off a watch; if it was blank the HRV channel dropped out of the model
+// entirely, which is how the best-evidenced input in the system ended up absent by default.
+function hrvBaselineFrom(values){
+  const obs = values.filter(v=>v != null && !isNaN(v));
+  return obs.length >= 3 ? Math.exp(medianOf(obs.map(v=>Math.log(v)))) : null;
+}
+
+/* Reads the trailing window once and hands back every channel, normalised. */
+async function buildSignalWindow(asOfDate, days){
+  const span = days || SIG_BASE_DAYS;
+  const dates = [];
+  for(let d = span - 1; d >= 0; d--){
+    const dt = new Date(asOfDate); dt.setDate(dt.getDate() - d);
+    dates.push(localDateStr(dt));
+  }
+  const entries = [];
+  for(const date of dates){
+    let e = null;
+    try{ e = JSON.parse((await window.storage.get(keyFor(date))).value); } catch(err){}
+    entries.push(e ? { ...e, date } : null);
+  }
+  const present = entries.filter(Boolean);
+  const hrvRec = await resolveHrvSource(present);
+  const pick = (fn)=> entries.map(e=> e ? fn(e) : null);
+  // Only readings from the canonical source, and only since the source last changed.
+  const hrvSeries = entries.map(e=>{
+    if(!e || !hrvRec.source) return null;
+    if(hrvRec.since && e.date < hrvRec.since) return null;
+    return e[hrvRec.source] ?? null;
+  });
+  const rhrSeries = pick(e=>e.restingHR);
+  const channels = {
+    hrv:      normaliseChannel(hrvSeries, { log:true }),
+    rhr:      normaliseChannel(rhrSeries, { twoSided:true }),
+    sleep:    normaliseChannel(pick(e=>e.durationHrs), {}),
+    // Minutes awake in the night: more is worse, so the sign flips.
+    wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true })
+  };
+  const observedNights = present.length;
+  return {
+    dates, entries, channels,
+    hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
+    hrvBaseline: hrvBaselineFrom(hrvSeries),
+    rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
+    observedNights, windowNights: span,
+    completeness: observedNights / span
+  };
+}
+
+/* ---------- THE SATURATION GUARD ----------
+   In very fit, very bradycardic athletes the vagal-rMSSD relationship stops being monotone:
+   Le Meur showed overreached endurance athletes with INCREASED vagal indices and decreased
+   performance. So high HRV on its own is not evidence of freshness. Require rMSSD and
+   resting HR to agree in direction before a high reading is allowed to count as good. */
+function hrvSaturated(win){
+  const h = win.channels.hrv, r = win.channels.rhr;
+  if(!h.available || !r.available) return false;
+  if(win.rhrBaseline == null || win.rhrBaseline >= 45) return false;
+  // rhr's z is already two-sided and negative-going, so read the raw direction instead.
+  const lastRhr = [...win.entries].reverse().find(e=>e && e.restingHR != null);
+  if(!lastRhr) return false;
+  const rhrLow = lastRhr.restingHR <= win.rhrBaseline;
+  return h.z >= 1 && !rhrLow;
+}
+
 function computeCapacityIndices(sessions){
   const byType = { strength: [], run: [] };
   sessions.forEach(s=>{ if(byType[s.type]) byType[s.type].push(s); });
@@ -6307,6 +6504,11 @@ async function loadRecoveryEntry(date){
 
 async function saveRecoveryEntry(){
   const entry = collectRecoveryEntry();
+  // Which version of the maths was current when this was written. Vendors silently re-cut
+  // their algorithms (Apple re-banded every Sleep Score in watchOS 26.2; WHOOP's 2026 HR
+  // update shifted Strain) and none of them record it, which quietly corrupts every
+  // long-range comparison. One field costs nothing and makes a re-scoring pass auditable.
+  entry.algoVersion = SCORE_ALGO_VERSION;
   const status = document.getElementById('loadStatus');
   try{
     const result = await window.storage.set(keyFor(entry.date), JSON.stringify(entry));
