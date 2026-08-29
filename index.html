@@ -5194,7 +5194,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.7';
+const APP_VERSION = '2026.08.29.8';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6538,6 +6538,67 @@ async function buildSignalWindowUncached(asOfDate, days){
   };
 }
 
+/* ---------- THE PRESCRIPTION LAYER ----------
+   Mapped onto the app's existing Reduce / Modify / Add taxonomy. Every output above has to
+   move a set, a zone or an exercise, or it should not ship — a number that cannot change a
+   prescription is instrumentation pretending to be advice.
+
+   The three Modify rows are the point. "Systemically fine, quads wrecked" and "fresh but
+   four hours off your window" are ordinary states that a single number cannot express, and
+   they call for a different session rather than a smaller one. */
+async function buildPrescription(sr){
+  let tr = null, cr = null;
+  try{ tr = await computeTissueReadiness(todayStr); } catch(e){}
+  try{ cr = await computeCognitiveReadiness(todayStr, new Date()); } catch(e){}
+  const lines = [];
+  let kind = null, title = null;
+
+  const p = sr && sr.available ? sr.shown : null;
+  const gated = !!(sr && sr.gateReason);
+
+  if(gated || (p != null && p < 20)){
+    kind = 'reduce';
+    title = gated ? 'Hold the plan — this is not a training-load reading' : 'Take today down';
+    lines.push('Aerobic work or rest. Nothing novel, nothing maximal.');
+    lines.push('Lifting: technique work only, four or more reps in reserve.');
+  } else if(p != null && p < 40){
+    kind = 'reduce';
+    title = 'Trim today rather than skip it';
+    lines.push('One fewer hard set per muscle group, and drop the last accessory.');
+    lines.push('Lifting: add one rep in reserve to every working set.');
+    lines.push('Running: hold threshold work a little easier than planned.');
+  } else if(p != null && p >= 70){
+    kind = 'add';
+    title = 'Room to push today';
+    lines.push('Up to one extra hard set per muscle group, if the block calls for it.');
+    lines.push('Reps in reserve as planned — this is the day to spend them.');
+  }
+
+  // Modify states are checked after, and can convert a "do less" into a "do differently".
+  const limited = tr && tr.available ? tr.limited : [];
+  if(limited.length){
+    const names = limited.map(a=>a.label).join(' and ');
+    if(!kind || kind === 'add'){
+      kind = 'modify';
+      title = `Train around ${names}`;
+    }
+    lines.push(`${names} ${limited.length > 1 ? 'are' : 'is'} still carrying the last session — substitute away from ${limited.length > 1 ? 'them' : 'it'} and keep everything else at full intensity. This is local, not systemic.`);
+  }
+  if(cr && cr.available && cr.limited){
+    if(!kind){ kind = 'modify'; title = 'Move the technical work'; }
+    lines.push('No maximal singles, no plyometrics, nothing you have not done before — sharpness is the part that is down, not strength.');
+    const c = cr.circadian;
+    if(c && c.available && c.hoursToPeak != null && c.hoursToPeak >= 1.5){
+      lines.push(`Your strongest window is about ${Math.round(c.hoursToPeak)} hours away, if the session can wait.`);
+    }
+  }
+  if(!kind) return null;
+  const TITLES = { reduce:'Reduce', modify:'Modify', add:'Add' };
+  return { type:'prescription_' + kind, title, signals: lines,
+           confidence: sr && sr.available ? (sr.maturity > 0.7 ? 'high' : 'medium') : 'low',
+           meta:{ taxonomy: TITLES[kind] } };
+}
+
 /* ================= SCORE 5 — LOAD, IN THREE CURRENCIES =================
    No ratio, no sweet spot, no colour band on a number that has been formally refuted. This is
    what replaces the ACWR signal that was deleted earlier.
@@ -6894,6 +6955,7 @@ const TR_ECCENTRIC_MULT = 2.5;   // eccentric-biased work costs more locally tha
 const TR_NOVELTY_K      = 0.35;  // repeated-bout effect: familiar work costs progressively less
 const TR_WINDOW_DAYS    = 90;
 const TR_CAPACITY_PCTL  = 0.90;
+const TR_MIN_LOADED_DAYS = 5;   // loaded days on record before a group can be scored at all
 
 // %1RM from reps, inverted Epley. Nothing stores intensity directly, and a set of five is a
 // different local cost to a set of twenty at the same tonnage.
@@ -6979,7 +7041,13 @@ async function computeTissueReadiness(asOfDate){
 
   const areas = {};
   Object.keys(damage).forEach(a=>{
-    const cap = pctl(daily[a] || [], TR_CAPACITY_PCTL);
+    const hist = daily[a] || [];
+    // With one or two loaded days on record, "your 90th percentile" IS the session you just
+    // did, so the ratio self-normalises and every group reads the same middling number
+    // however hard the work was. Below this there is no distribution to place today in, and
+    // saying nothing is better than saying 37 to everyone.
+    if(hist.length < TR_MIN_LOADED_DAYS) return;
+    const cap = pctl(hist, TR_CAPACITY_PCTL);
     if(!cap || cap <= 0) return;
     const tr = 100 * Math.exp(-damage[a] / cap);
     areas[a] = {
@@ -18657,9 +18725,17 @@ async function generateRecommendations(){
   renderScoreTrace(overallShown);
 
   const reduceSignals = [];
-  if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
-  if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow) reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`);
-  if(capacityLabel === 'below typical') reduceSignals.push('Predicted Capacity: below typical');
+  // Readiness speaks first when it is available; the older scores stay as the fallback for
+  // anyone whose baseline is not built yet.
+  if(srResult && srResult.available){
+    if(srResult.shown < 20) reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`);
+    else if(srResult.shown < 40) reduceSignals.push(`Readiness ${srResult.shown} — below your usual`);
+    if(srResult.gateReason) reduceSignals.push(srResult.gateReason);
+  } else {
+    if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
+    if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow) reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`);
+    if(capacityLabel === 'below typical') reduceSignals.push('Predicted Capacity: below typical');
+  }
   // Cross-modal: a stacked hard-running window can contribute even when strength-specific
   // load ratio looks normal in isolation — the two systems shouldn't stay fully unaware
   // of each other (hybrid training research, section 6.4).
@@ -18672,9 +18748,13 @@ async function generateRecommendations(){
   if(recentHardRun) reduceSignals.push('Hard/quality run in the last 48h — contributing recovery load independent of strength-specific volume');
 
   const addSignals = [];
-  if(targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
-  if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh) addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`);
-  if(capacityLabel === 'above typical') addSignals.push('Predicted Capacity: above typical');
+  if(!(srResult && srResult.available) && targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
+  if(srResult && srResult.available){
+    if(srResult.shown >= 70 && !srResult.gateReason) addSignals.push(`Readiness ${srResult.shown} — top third of your own days`);
+  } else {
+    if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh) addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`);
+    if(capacityLabel === 'above typical') addSignals.push('Predicted Capacity: above typical');
+  }
   if(['productive','maintaining'].includes(entry.trainingStatus)) addSignals.push(`Training status: ${entry.trainingStatus}`);
 
   cardQueue = [];
@@ -18682,6 +18762,13 @@ async function generateRecommendations(){
   lastDecisionKey = null;
   lastDecisionIndex = null;
   document.getElementById('undoDecisionBtn').style.display = 'none';
+
+  // The prescription. Everything above this is instrumentation; this is the only part that
+  // changes what you do. Three of its six states change the session WITHOUT reducing it,
+  // which is the difference between a readiness score and a readiness system — the
+  // incumbents can only ever tell you to do less.
+  const rx = await buildPrescription(srResult);
+  if(rx) cardQueue.push(rx);
 
   if(reduceSignals.length >= 2 && addSignals.length >= 2){
     // Genuine conflict: recovery-side signals and workload-side signals corroborated in
