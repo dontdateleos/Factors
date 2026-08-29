@@ -962,9 +962,10 @@
     text-transform:uppercase; color:rgba(251,250,246,0.85); }
   .subj-anchor{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(251,250,246,0.45); }
   .subj-scale{ display:flex; gap:6px; }
-  .subj-dot{ flex:1; height:36px; background:transparent; color:rgba(251,250,246,0.55);
+  .subj-dot{ flex:1; min-width:0; height:36px; background:transparent; color:rgba(251,250,246,0.55);
     border:2px solid rgba(251,250,246,0.4); font-family:var(--mono); font-size:var(--fs-tag);
-    font-weight:var(--fw-bold); cursor:pointer; padding:0; }
+    font-weight:var(--fw-bold); cursor:pointer; padding:0 4px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
   .subj-dot.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
@@ -1837,6 +1838,19 @@
     <div class="group form-panel">
       <div class="group-head"><div class="group-title">How are you</div><div class="group-sub">four taps &mdash; weighted above the sensors</div></div>
       <div class="fields" id="subjectiveFields"></div>
+    </div>
+
+    <div class="group form-panel">
+      <div class="group-head"><div class="group-title">Last night&rsquo;s context</div><div class="group-sub">so it is attributed, not read as fatigue</div></div>
+      <div class="fields"><div class="subj-row">
+        <div class="subj-head"><span class="subj-name">Alcohol</span></div>
+        <div class="subj-scale" id="alcoholScale">
+          <button type="button" class="subj-dot" data-v="0">None</button>
+          <button type="button" class="subj-dot" data-v="1">A drink or two</button>
+          <button type="button" class="subj-dot" data-v="2">More</button>
+        </div>
+        <input type="hidden" id="alcohol">
+      </div></div>
     </div>
 
     <div class="group form-panel">
@@ -4940,7 +4954,7 @@ tabs.forEach(t=>{
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
 const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery',
-  'subjEnergy','subjSoreness','subjStress','subjMotivation','wakeClock'];
+  'subjEnergy','subjSoreness','subjStress','subjMotivation','wakeClock','alcohol'];
 
 /* Fixed wording, forever. Changing an item's text silently changes what the series means, and
    the whole value of self-report is that it is the same question every day. `good` says which
@@ -4976,6 +4990,25 @@ const SUBJECTIVE_ITEMS = [
     host.appendChild(row);
   });
 })();
+(function wireAlcohol(){
+  const box = document.getElementById('alcoholScale');
+  const input = document.getElementById('alcohol');
+  if(!box || !input) return;
+  box.addEventListener('click', e=>{
+    const btn = e.target.closest('.subj-dot');
+    if(!btn) return;
+    const same = input.value === btn.dataset.v;
+    input.value = same ? '' : btn.dataset.v;
+    box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', !same && b === btn));
+    input.dispatchEvent(new Event('input', { bubbles:true }));
+  });
+})();
+function paintAlcohol(){
+  const box = document.getElementById('alcoholScale');
+  const input = document.getElementById('alcohol');
+  if(!box || !input) return;
+  box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(input.value)));
+}
 function paintSubjectiveRow(row, value){
   row.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(value)));
 }
@@ -5142,7 +5175,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.5';
+const APP_VERSION = '2026.08.29.6';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6240,7 +6273,12 @@ function normaliseChannel(values, opts){
   if(!obs.length) return { n:0, nEff:0, M:0, z:0, zAcute:0, level:null, mu:null, sigma:null, available:false };
   const tx  = o.log ? (v=>Math.log(v)) : (v=>v);
   const t   = values.map(v=> v == null || isNaN(v) ? null : tx(v));
-  const tObs= t.filter(v=>v != null);
+  // A night you drank is a real reading and a false baseline. It still gets scored — the drop
+  // is genuine — but it must not move what "normal" means, or a fortnight of good weekends
+  // quietly redefines your own sober average downward and every sober night starts reading
+  // high. Context re-baselines; it does not score.
+  const mask = o.baselineMask || null;
+  const tObs= t.filter((v, i)=> v != null && (!mask || !mask[i]));
   const level = ewmaLast(t, SIG_ALPHA);
   const mu    = medianOf(tObs);
   let sigma   = madSigma(tObs);
@@ -6250,7 +6288,7 @@ function normaliseChannel(values, opts){
     const m = tObs.reduce((a,b)=>a+b,0) / tObs.length;
     sigma = Math.sqrt(tObs.reduce((a,b)=>a + (b-m)*(b-m), 0) / Math.max(1, tObs.length - 1)) || null;
   }
-  if(!sigma) return { n:tObs.length, nEff:0, M:0, z:0, zAcute:0, level, mu, sigma:null, available:false };
+  if(!sigma || !tObs.length) return { n:tObs.length, nEff:0, M:0, z:0, zAcute:0, level, mu, sigma:null, available:false };
   const clamp = v => Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, v));
   const last  = [...t].reverse().find(v=>v != null);
   const rho   = lag1Autocorr(tObs);
@@ -6403,10 +6441,15 @@ async function buildSignalWindowUncached(asOfDate, days){
     const sd = Math.sqrt(back.reduce((a,b)=>a + (b-m)*(b-m), 0) / (back.length - 1));
     return Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (REG_MID_MIN - sd) / REG_SCALE_MIN));
   });
+  // Nights flagged as drinking are excluded from every baseline. Oura's own n>600k analysis:
+  // HRV -15.6%, lowest resting HR +8.2%, REM -15 min, sleep score -6.8% — the largest
+  // single-night modifier of overnight HRV there is, larger than most training sessions, and
+  // it attacks four contributors at once.
+  const drinkMask = entries.map(e=> !!(e && e.alcohol && +e.alcohol > 0));
   const channels = {
-    hrv:      normaliseChannel(hrvSeries, { log:true }),
-    rhr:      normaliseChannel(rhrSeries, { twoSided:true }),
-    sleep:    normaliseChannel(pick(e=>e.durationHrs), {}),
+    hrv:      normaliseChannel(hrvSeries, { log:true, baselineMask:drinkMask }),
+    rhr:      normaliseChannel(rhrSeries, { twoSided:true, baselineMask:drinkMask }),
+    sleep:    normaliseChannel(pick(e=>e.durationHrs), { baselineMask:drinkMask }),
     // Minutes awake in the night: more is worse, so the sign flips.
     wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true }),
     // NOT z-scored. Every other channel asks "is today unusual for you", which for a
@@ -6467,12 +6510,70 @@ async function buildSignalWindowUncached(asOfDate, days){
   return {
     dates, entries, channels, subjective,
     hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
-    hrvBaseline: hrvBaselineFrom(hrvSeries),
-    wakeMedianMin: wakeMedian, wakeMinutes: wakeMin,
+    hrvBaseline: hrvBaselineFrom(hrvSeries.filter((v, i)=> !drinkMask[i])),
+    wakeMedianMin: wakeMedian, wakeMinutes: wakeMin, drinkMask,
+    drankLastNight: !!drinkMask[drinkMask.length - 1],
     rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
     observedNights, windowNights: span,
     completeness: observedNights / span
   };
+}
+
+/* ================= SCORE 7 — ILLNESS RADAR =================
+   A direct replication of what the published wearable-detection work actually used, rather
+   than something invented: a one-sided CUSUM per channel, alarm when the cumulative sum
+   exceeds h sigma, fire when two channels alarm on two consecutive days.
+
+   Published performance for comparable designs: NightSignal 80% sensitivity / 87.7%
+   specificity at a median three days before symptoms; TemPredict AUC 0.819, 82%/63%, mean
+   2.75 days early. Both used respiratory rate and skin temperature, which this app has no
+   channel for — so this runs on resting HR and HRV only, and is correspondingly weaker.
+
+   It is named for what it is. Alavi's own numbers show the same alert firing for stress,
+   alcohol and travel, just less often, so this is a non-specific physiological-disturbance
+   detector and the copy says so. Either way the gate suspends training-load interpretation,
+   which is the point: the dominant error mode is reading illness as fatigue and prescribing
+   rest, and during heat acclimatisation that is exactly backwards. */
+const CUSUM_K = 0.5, CUSUM_H = 4, ILLNESS_MIN_CHANNELS = 2, ILLNESS_PERSIST_DAYS = 2;
+const ILLNESS_GATE = 0.4;
+
+function cusumAlarms(series, mu, sigma){
+  // One-sided: only excursions in the bad direction accumulate.
+  const out = [];
+  let S = 0;
+  series.forEach(v=>{
+    if(v == null || mu == null || !sigma){ out.push(false); return; }
+    S = Math.max(0, S + (v - mu - CUSUM_K * sigma));
+    out.push(S > CUSUM_H * sigma);
+  });
+  return out;
+}
+function illnessRadar(win){
+  const ch = [];
+  // Resting HR rising is the strongest single channel: +7 bpm median, detected 3-4 days
+  // before symptoms in the published cohorts.
+  const rhr = win.entries.map(e=> e && e.restingHR != null ? e.restingHR : null);
+  const rhrObs = rhr.filter((v,i)=> v != null && !win.drinkMask[i]);
+  if(rhrObs.length >= 10) ch.push({ name:'resting HR', alarms: cusumAlarms(rhr, medianOf(rhrObs), madSigma(rhrObs)) });
+  // HRV falling, so the sign is flipped to make a fall an excursion upward.
+  const hrvRaw = win.entries.map((e, i)=>{
+    if(!e || !win.hrvSource) return null;
+    const v = e[win.hrvSource];
+    return v == null ? null : -Math.log(v);
+  });
+  const hrvObs = hrvRaw.filter((v,i)=> v != null && !win.drinkMask[i]);
+  if(hrvObs.length >= 10) ch.push({ name:'HRV', alarms: cusumAlarms(hrvRaw, medianOf(hrvObs), madSigma(hrvObs)) });
+  if(ch.length < ILLNESS_MIN_CHANNELS) return { available:false, firing:false };
+
+  const n = win.dates.length;
+  const countAt = i => ch.filter(c=>c.alarms[i]).length;
+  let firing = true;
+  for(let d = 0; d < ILLNESS_PERSIST_DAYS; d++){
+    const i = n - 1 - d;
+    if(i < 0 || countAt(i) < ILLNESS_MIN_CHANNELS){ firing = false; break; }
+  }
+  return { available:true, firing, channels: ch.map(c=>c.name),
+           firingChannels: ch.filter(c=>c.alarms[n-1]).map(c=>c.name) };
 }
 
 /* ================= SCORE 3 — CNS / COGNITIVE READINESS =================
@@ -6841,13 +6942,23 @@ async function computeSystemicReadiness(asOfDate){
   // Gates multiply rather than adding another weighted term, because illness and acute injury
   // are not "a bit more fatigue" — they are a reason to stop interpreting training load.
   let gate = 1, gateReason = null;
+  const illness = illnessRadar(win);
+  if(illness.firing){
+    gate = ILLNESS_GATE;
+    gateReason = 'Something is disturbing your physiology. If you have been drinking or travelling that is probably it; otherwise consider that you may be getting ill. Either way this is not a training-load reading.';
+  }
   try{
     const injuries = await getActiveInjuries();
     if(injuries.some(i=>i.currentSeverity >= REC_THRESH.injurySevereBlock)){
-      gate = 0.5;
-      gateReason = 'An active injury is above the blocking threshold — this is not a training-load reading.';
+      gate = Math.min(gate, 0.5);
+      gateReason = gateReason || 'An active injury is above the blocking threshold — this is not a training-load reading.';
     }
   } catch(e){}
+  // Attribution rather than a gate. The drop after a drink is real, so the score is allowed
+  // to fall — what changes is that it is named instead of being filed as training fatigue.
+  const drinkNote = win.drankLastNight
+    ? 'You logged a drink last night — a good part of any drop is that, not training.'
+    : null;
 
   // The same score for every day in the window, so today can be ranked against your own
   // recent days rather than against a fixed 0-100 that saturates. 75 + 18z pinned at 100 by
@@ -6893,7 +7004,7 @@ async function computeSystemicReadiness(asOfDate){
     available: enough && today.weightPresent > 0,
     refused: !enough && today.weightPresent > 0,
     score, raw: today.raw, z: today.z, percentile,
-    gate, gateReason, saturated: hrvSaturated(win),
+    gate, gateReason, drinkNote, illness, saturated: hrvSaturated(win),
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
@@ -7140,9 +7251,9 @@ function fillRecoveryForm(entry){
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
-  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields();
+  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -9984,6 +10095,7 @@ function renderReadinessConfidence(sr){
   } else return false;
   let html = `<div>${bits.join(' · ')}</div>`;
   if(sr.gateReason) html += `<div style="color:var(--warn); margin-top:2px;">${sr.gateReason}</div>`;
+  if(sr.drinkNote) html += `<div style="margin-top:2px; opacity:0.75;">${sr.drinkNote}</div>`;
   if(sr.saturated) html += `<div style="color:var(--warn); margin-top:2px;">High HRV with a heart rate that does not agree — read as unclear, not fresh.</div>`;
   el.innerHTML = html;
   el.dataset.readiness = '1';
