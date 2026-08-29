@@ -5119,7 +5119,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.2';
+const APP_VERSION = '2026.08.29.3';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6235,10 +6235,31 @@ function normaliseChannel(values, opts){
   const M     = Math.min(1, nEff / SIG_MATURITY_N);
   let z       = clamp((level - mu) / sigma);
   let zAcute  = clamp((last  - mu) / sigma);
+  // The same two numbers for every day in the window, against the same mu and sigma, so a
+  // score can be ranked against your own recent days without rebuilding the window per day.
+  let acc = null;
+  const zSeries = [], zAcuteSeries = [];
+  for(const v of t){
+    if(v == null){ zSeries.push(acc == null ? null : clamp((acc - mu)/sigma)); zAcuteSeries.push(null); continue; }
+    acc = acc == null ? v : acc + SIG_ALPHA * (v - acc);
+    zSeries.push(clamp((acc - mu)/sigma));
+    zAcuteSeries.push(clamp((v - mu)/sigma));
+  }
   // Two-sided channels have an optimum rather than a direction: resting HR is penalised
   // above baseline AND well below it, because an abnormally low nocturnal HR alongside high
   // HRV is the documented parasympathetic-overreaching signature, not freshness. Implemented
   // as -(|z| - deadband) so a normal day scores zero rather than being punished for drift.
+  const shape = (v)=>{
+    if(v == null) return null;
+    let out = v;
+    if(o.twoSided){
+      const dead = o.deadband == null ? 0.5 : o.deadband;
+      out = -Math.max(0, Math.abs(out) - dead);
+    }
+    if(o.negativeOnly) out = Math.min(0, out);
+    if(o.invert) out = -out;
+    return out;
+  };
   if(o.twoSided){
     const dead = o.deadband == null ? 0.5 : o.deadband;
     z      = -Math.max(0, Math.abs(z) - dead);
@@ -6248,7 +6269,8 @@ function normaliseChannel(values, opts){
   // it is the one one-sided term they document.
   if(o.negativeOnly){ z = Math.min(0, z); zAcute = Math.min(0, zAcute); }
   if(o.invert){ z = -z; zAcute = -zAcute; }
-  return { n:tObs.length, nEff, M, z, zAcute, zUsed: M * z, level, mu, sigma, available:true };
+  return { n:tObs.length, nEff, M, z, zAcute, zUsed: M * z, level, mu, sigma, available:true,
+           zSeries: zSeries.map(shape), zAcuteSeries: zAcuteSeries.map(shape) };
 }
 
 /* ---------- ONE CANONICAL HRV SOURCE ----------
@@ -6287,8 +6309,26 @@ function hrvBaselineFrom(values){
   return obs.length >= 3 ? Math.exp(medianOf(obs.map(v=>Math.log(v)))) : null;
 }
 
-/* Reads the trailing window once and hands back every channel, normalised. */
+/* Reads the trailing window once and hands back every channel, normalised.
+   Memoised: the score, the seven-day trace and the swipe all want a window for a date, and
+   each build is sixty storage reads. Cleared whenever an entry is written. */
+const _sigWindowCache = new Map();
+// Short-lived on purpose. Entries are written from several places — the save button, the
+// Oura sync, the Apple Health import — and an invalidation hook on each of them is a hook
+// somebody will forget. A two-second life collapses a render's worth of calls into one read
+// and cannot outlive the render that made it.
+const SIG_CACHE_MS = 2000;
+function invalidateSignalWindows(){ _sigWindowCache.clear(); }
 async function buildSignalWindow(asOfDate, days){
+  const span = days || SIG_BASE_DAYS;
+  const cacheKey = `${asOfDate}|${span}`;
+  const hit = _sigWindowCache.get(cacheKey);
+  if(hit && (Date.now() - hit.at) < SIG_CACHE_MS) return hit.win;
+  const built = await buildSignalWindowUncached(asOfDate, span);
+  _sigWindowCache.set(cacheKey, { at: Date.now(), win: built });
+  return built;
+}
+async function buildSignalWindowUncached(asOfDate, days){
   const span = days || SIG_BASE_DAYS;
   const dates = [];
   for(let d = span - 1; d >= 0; d--){
@@ -6327,14 +6367,36 @@ async function buildSignalWindow(asOfDate, days){
   });
   const subjParts = Object.values(subjective).filter(c=>c.available);
   const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
+  // Per-day too: the composite has to rank against your own days like every other channel.
+  const meanAcross = (key)=> dates.map((_, i)=>{
+    const vals = subjParts.map(c=> c[key] ? c[key][i] : null).filter(v=>v != null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+  });
+  // Averaging four independent z-scores halves the spread, so a composite built that way
+  // swings about half as far as any single channel and its 0.28 weight would quietly buy less
+  // influence than the number says. Re-standardised against its own distribution so the
+  // weights mean what they claim.
+  const rescale = (arr)=>{
+    const obs = arr.filter(v=>v != null);
+    if(obs.length < 4) return arr;
+    const m = obs.reduce((a,b)=>a+b,0) / obs.length;
+    const sd = Math.sqrt(obs.reduce((a,b)=>a + (b-m)*(b-m), 0) / (obs.length - 1));
+    if(!sd || sd < 1e-9) return arr;
+    return arr.map(v=> v == null ? null : Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (v - m) / sd)));
+  };
+  const subjZ = rescale(meanAcross('zSeries'));
+  const subjA = rescale(meanAcross('zAcuteSeries'));
+  const lastOf = (arr)=>{ const v = [...arr].reverse().find(x=>x != null); return v == null ? 0 : v; };
   channels.subjective = subjParts.length ? {
     available: true,
     n:      Math.max(...subjParts.map(c=>c.n)),
     nEff:   avg(subjParts, c=>c.nEff),
     M:      avg(subjParts, c=>c.M),
-    z:      avg(subjParts, c=>c.z),
-    zAcute: avg(subjParts, c=>c.zAcute),
-    zUsed:  avg(subjParts, c=>c.zUsed || 0),
+    z:      lastOf(subjZ),
+    zAcute: lastOf(subjA),
+    zUsed:  avg(subjParts, c=>c.M) * lastOf(subjZ),
+    zSeries:      subjZ,
+    zAcuteSeries: subjA,
     items:  subjParts.length
   } : { available:false, n:0, nEff:0, M:0, z:0, zAcute:0, zUsed:0, items:0 };
   const observedNights = present.length;
@@ -6345,6 +6407,178 @@ async function buildSignalWindow(asOfDate, days){
     rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
     observedNights, windowNights: span,
     completeness: observedNights / span
+  };
+}
+
+/* ================= SCORE 1 — SYSTEMIC READINESS =================
+   What the incumbents call "readiness": how much total systemic stress can you absorb today.
+
+   The weights are the research brief's, and they are priors from the literature rather than
+   anything fitted — the honest framing is that no validated model of daily readiness exists,
+   in the literature or in any product. What separates this from a sealed vendor number is not
+   that these weights are right. It is that they are visible, the uncertainty is stated, the
+   context is attributed, and every output moves a prescription.
+
+   Two of the brief's eight components have no data channel in this app: respiratory rate and
+   skin temperature (0.07), and sleep regularity (0.05), which needs bedtimes and we only
+   store minutes-awake. Their weight is NOT redistributed. A missing component contributes
+   zero, which pulls the composite toward a typical day — that is the intended behaviour, and
+   the confidence readout is what says so out loud. */
+const SR_WEIGHTS = {
+  subjective:  0.28,   // Saw 2016 — highest sensitivity of any category, and the only channel
+                       // that sees psychosocial load at all
+  hrvTrend:    0.18,   // the stable autonomic signal, insensitive to single nights by design
+  rhr:         0.14,   // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  sleep:       0.12,   // acute and largely behavioural, so below the physiology
+  hrvAcute:    0.08,   // damped, so one catastrophic night registers without noise driving it
+  sleepDebt:   0.08,   // Van Dongen — accrues linearly, no adaptation
+  wake:        0.05    // fragmentation; stands in for part of the sleep-quality weight
+};
+const SR_HRV_ACUTE_DAMP = 0.5;
+const SR_TANH_K   = 0.8;
+const SR_MIN_COMPLETENESS = 0.40;   // below this, show components and refuse to composite
+const SR_MIN_MATURITY     = 0.30;
+
+/* Van Dongen: 14 nights at 6h is roughly equivalent to one to two nights of total
+   deprivation, and there is no adaptation. Debt accrues faster than it repays, so a surplus
+   night pays back at half rate. Returned as a z-like number so it can join the others. */
+function sleepDebtZ(win){
+  const TARGET = 8, REPAY = 0.5;
+  let debt = 0, n = 0;
+  win.entries.slice(-14).forEach(e=>{
+    if(!e || e.durationHrs == null) return;
+    n++;
+    const d = TARGET - e.durationHrs;
+    debt += d > 0 ? d : d * REPAY;
+  });
+  if(!n) return { z:0, available:false, hours:0 };
+  // Six hours of accumulated debt is roughly one full night lost; call that one SD down.
+  return { z: Math.max(-3, Math.min(0, -debt / 6)), available:true, hours: Math.round(debt*10)/10, n };
+}
+
+/* One day's composite from the channel set. `i` indexes the window; the last day is today. */
+function srComponentsAt(win, i, debtZ){
+  const last = i == null ? null : i;
+  const at = (ch, series)=>{
+    if(!ch || !ch.available) return null;
+    if(last == null) return ch[series === 'zSeries' ? 'z' : 'zAcute'];
+    const arr = ch[series];
+    return arr ? arr[last] : null;
+  };
+  const saturated = hrvSaturated(win);
+  return {
+    subjective: at(win.channels.subjective, 'zSeries'),
+    // The guard does not merely discount a saturated HRV reading, it refuses to read it as
+    // positive: high vagal tone with a heart rate that does not agree is the documented
+    // overreaching signature, not freshness.
+    hrvTrend:   saturated ? 0 : at(win.channels.hrv, 'zSeries'),
+    // Last night's value, not the smoothed level. Resting HR earns its weight as the most
+    // robust illness and alcohol channel, and both of those are single-night events — an
+    // EWMA of a noisy series sits on its own median and never leaves the two-sided deadband.
+    rhr:        at(win.channels.rhr, 'zAcuteSeries'),
+    sleep:      at(win.channels.sleep, 'zSeries'),
+    hrvAcute:   saturated ? 0 : (at(win.channels.hrv, 'zAcuteSeries') != null
+                  ? at(win.channels.hrv, 'zAcuteSeries') * SR_HRV_ACUTE_DAMP : null),
+    sleepDebt:  debtZ && debtZ.available ? debtZ.z : null,
+    wake:       at(win.channels.wake, 'zSeries')
+  };
+}
+function srRawFrom(parts, maturity){
+  let sum = 0, present = 0;
+  Object.keys(SR_WEIGHTS).forEach(k=>{
+    const v = parts[k];
+    if(v == null || isNaN(v)) return;
+    sum += SR_WEIGHTS[k] * v;
+    present += SR_WEIGHTS[k];
+  });
+  // Maturity shrinks the whole composite, not each term twice — the channels already carry
+  // their own M, and this is the model-level version of the same refusal to be confident.
+  const z = sum * (maturity == null ? 1 : maturity);
+  return { raw: 50 + 50 * Math.tanh(SR_TANH_K * z), z, weightPresent: present };
+}
+
+/* ---------- SCORE 4 — CONFIDENCE ----------
+   Not a metric about your body; a metric about the other three, shipped beside them. Every
+   commercial score displays a reading built from 3 of 14 nights identically to one built from
+   14 of 14. Two rules follow from the brief and both are enforced here: never impute forward,
+   because the skipped days are disproportionately the bad ones and carrying the last
+   observation forward biases the series optimistic; and below ~40% completeness or ~30%
+   maturity, show the components and refuse to composite at all. */
+async function computeSystemicReadiness(asOfDate){
+  const win = await buildSignalWindow(asOfDate || todayStr);
+  const debtZ = sleepDebtZ(win);
+  const chans = Object.keys(SR_WEIGHTS)
+    .map(k=> k === 'hrvTrend' || k === 'hrvAcute' ? win.channels.hrv
+           : k === 'sleepDebt' ? null : win.channels[k])
+    .filter(Boolean);
+  const maturity = chans.length ? chans.reduce((a,c)=>a + (c.M||0), 0) / chans.length : 0;
+
+  const partsToday = srComponentsAt(win, win.dates.length - 1, debtZ);
+  const today = srRawFrom(partsToday, maturity);
+
+  // Gates multiply rather than adding another weighted term, because illness and acute injury
+  // are not "a bit more fatigue" — they are a reason to stop interpreting training load.
+  let gate = 1, gateReason = null;
+  try{
+    const injuries = await getActiveInjuries();
+    if(injuries.some(i=>i.currentSeverity >= REC_THRESH.injurySevereBlock)){
+      gate = 0.5;
+      gateReason = 'An active injury is above the blocking threshold — this is not a training-load reading.';
+    }
+  } catch(e){}
+
+  // The same score for every day in the window, so today can be ranked against your own
+  // recent days rather than against a fixed 0-100 that saturates. 75 + 18z pinned at 100 by
+  // about 1.4 SD, which is why a good week read as 99, 100, 100.
+  const series = win.dates.map((d, i)=>{
+    if(!win.entries[i]) return null;
+    const p = srComponentsAt(win, i, debtZ);
+    const anyPresent = Object.keys(SR_WEIGHTS).some(k=> p[k] != null && !isNaN(p[k]));
+    return anyPresent ? srRawFrom(p, maturity).raw : null;
+  });
+  const observed = series.filter(v=>v != null);
+  const pctRank = (raw)=> observed.length ? Math.round(100 * observed.filter(v=> v < raw).length / observed.length) : null;
+  let percentile = null;
+  if(observed.length >= 8) percentile = pctRank(today.raw);
+  // Every day in the window on the displayed scale, so the seven-day trace can be drawn from
+  // one window build instead of one per day — six extra days each rebuilding a sixty-day
+  // window was four hundred storage reads for a strip of ticks.
+  const shownSeries = {};
+  win.dates.forEach((d, i)=>{
+    if(series[i] == null) return;
+    shownSeries[d] = percentile != null ? pctRank(series[i])
+                   : Math.max(0, Math.min(100, Math.round(series[i] * gate)));
+  });
+
+  const sigma = observed.length >= 3
+    ? Math.sqrt(observed.reduce((a,v)=>{ const m = observed.reduce((x,y)=>x+y,0)/observed.length; return a + (v-m)*(v-m); }, 0) / (observed.length - 1))
+    : null;
+  const rho  = lag1Autocorr(observed);
+  const nEff = effectiveN(observed.length, rho);
+  const half = (sigma && nEff >= 2) ? 1.96 * sigma / Math.sqrt(nEff) : null;
+
+  const score = Math.max(0, Math.min(100, Math.round(today.raw * gate)));
+  // The headline is the percentile, so the interval has to be too — a range in raw units
+  // printed under a percentile is two different scales pretending to be one reading.
+  const pctOf = (raw)=>{
+    if(!observed.length) return null;
+    return Math.round(100 * observed.filter(v=> v < raw).length / observed.length);
+  };
+  const shownLow  = half == null ? null : (percentile != null ? pctOf(today.raw - half) : Math.max(0, Math.round(score - half)));
+  const shownHigh = half == null ? null : (percentile != null ? pctOf(today.raw + half) : Math.min(100, Math.round(score + half)));
+  const enough = win.completeness >= SR_MIN_COMPLETENESS && maturity >= SR_MIN_MATURITY;
+  return {
+    available: enough && today.weightPresent > 0,
+    refused: !enough && today.weightPresent > 0,
+    score, raw: today.raw, z: today.z, percentile,
+    gate, gateReason, saturated: hrvSaturated(win),
+    maturity, completeness: win.completeness,
+    observedNights: win.observedNights, windowNights: win.windowNights,
+    weightPresent: today.weightPresent,
+    shown: percentile != null ? percentile : score,
+    shownSeries,
+    ciLow: shownLow, ciHigh: shownHigh,
+    parts: partsToday, debt: debtZ, win
   };
 }
 
@@ -6600,6 +6834,7 @@ async function loadRecoveryEntry(date){
 
 async function saveRecoveryEntry(){
   const entry = collectRecoveryEntry();
+  invalidateSignalWindows();
   // Which version of the maths was current when this was written. Vendors silently re-cut
   // their algorithms (Apple re-banded every Sleep Score in watchOS 26.2; WHOOP's 2026 HR
   // update shifted Strain) and none of them record it, which quietly corrupts every
@@ -9402,7 +9637,38 @@ async function getSystemConfidence(){
 // Deliberately not a permanent panel: the Today tab has been trimmed repeatedly and this
 // is reference information, not something to read before every session.
 let confidenceExpanded = false;
+/* Shipped beside the score, always. Every commercial readiness number displays a reading
+   built from 3 of 14 nights identically to one built from 14 of 14 — Doherty (2025) audited
+   14 composite scores across 10 manufacturers and not one disclosed its weighting or stated
+   its uncertainty. "64 (55-73) · 11 of 14 nights · baseline 71% mature" is a more useful
+   sentence than "64", and it spends no trust to say it. */
+function renderReadinessConfidence(sr){
+  const el = document.getElementById('baselineStatus');
+  if(!el || !sr) return false;
+  const bits = [];
+  if(sr.available){
+    if(sr.ciLow != null && sr.ciHigh != null && sr.ciHigh - sr.ciLow >= 2) bits.push(`${sr.shown} (${sr.ciLow}–${sr.ciHigh})`);
+    else bits.push(`${sr.shown}`);
+    bits.push(`${sr.observedNights}/${sr.windowNights} nights`);
+    bits.push(`baseline ${Math.round(sr.maturity * 100)}% mature`);
+    if(sr.weightPresent < 0.9) bits.push(`${Math.round(sr.weightPresent * 100)}% of inputs`);
+  } else if(sr.refused){
+    // Below 40% completeness or 30% maturity the brief's rule is to show the components and
+    // refuse to composite. A confident wrong number costs more trust than an honest gap.
+    bits.push('Not enough history to score yet');
+    bits.push(`${sr.observedNights} of ${sr.windowNights} nights`);
+    bits.push(`baseline ${Math.round(sr.maturity * 100)}% mature`);
+  } else return false;
+  let html = `<div>${bits.join(' · ')}</div>`;
+  if(sr.gateReason) html += `<div style="color:var(--warn); margin-top:2px;">${sr.gateReason}</div>`;
+  if(sr.saturated) html += `<div style="color:var(--warn); margin-top:2px;">High HRV with a heart rate that does not agree — read as unclear, not fresh.</div>`;
+  el.innerHTML = html;
+  el.dataset.readiness = '1';
+  return true;
+}
 async function renderSystemConfidence(){
+  // The readiness confidence line owns this slot when it has something to say.
+  if(document.getElementById('baselineStatus')?.dataset.readiness === '1') return;
   const el = document.getElementById('baselineStatus');
   if(!el) return;
   const c = await getSystemConfidence();
@@ -9988,7 +10254,7 @@ async function checkReturnToRunRule(){
   return null;
 }
 
-function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry){
+function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
 
@@ -9996,6 +10262,25 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   // personalized, correlation-weighted read on today's numbers, not just today's
   // numbers against a fixed formula. Falls back to the Adaptive/Target average before
   // that, since capacity genuinely has nothing to show yet.
+  // Systemic Readiness takes the number when it has earned it. The old capacity model is left
+  // in place below as the fallback, and the reasons it is no longer the headline are in the
+  // commit — chiefly that it was fitted against today's volume over the mean of the last five
+  // sessions, which on a Push/Pull/Legs split compares a chest day to a leg day, and which
+  // halves on a deload week by design.
+  if(srResult && srResult.available){
+    const prevNum = parseInt(out.dataset.value || out.textContent);
+    // The percentile of your own days is the honest headline: it cannot saturate, and "68"
+    // means "better than 68% of the days you have logged" rather than 68 of an invented 100.
+    const shown = srResult.shown;
+    if(!rollNumber(out, prevNum, shown)) animateNumber(out, isNaN(prevNum) ? 0 : prevNum, shown, 500);
+    setEyeScore(shown);
+    label.textContent = srResult.gateReason ? 'Not a training read'
+      : shown >= 70 ? 'Ready to train'
+      : shown >= 40 ? 'On track'
+      : shown >= 20 ? 'Ease into it'
+      : 'Back off today';
+    return shown;
+  }
   if(capacityResult && capacityResult.available){
     // Passed through as NaN rather than substituted for the target here: the roll wants to
     // know there is no previous value so it can come up from zero, and substituting the
@@ -10070,6 +10355,11 @@ function readingDepth(entry){
 const READING_FULL = 3;   // of five; below this the mark is drawn half width
 
 async function overallScoreForEntry(entry){
+  // Same score the headline shows, so swiping back through the week compares like with like.
+  try{
+    const sr = await computeSystemicReadiness(entry.date);
+    if(sr && sr.available) return sr.shown;
+  } catch(e){}
   try{
     const cap = await getCapacityForEntry(entry);
     if(cap && cap.available) return cap.score;
@@ -10112,6 +10402,17 @@ async function renderScoreTrace(todayScore){
 
   // Six days back plus today. A day with no entry is a hole, not a zero — it simply has no
   // mark, and the swipe steps over it rather than landing on nothing.
+  // One readiness pass for the whole strip. Each day used to call overallScoreForEntry, which
+  // now builds a sixty-day signal window — six days of that is four hundred storage reads to
+  // draw seven ticks, and the trace was timing out before it could paint.
+  // Only when readiness is the number actually on screen. While it is still refused the
+  // headline comes from the older model, and mixing the two would draw six days on one scale
+  // and today on another.
+  let srSeries = {};
+  try{
+    const sr = await computeSystemicReadiness(todayStr);
+    if(sr && sr.available) srSeries = sr.shownSeries || {};
+  } catch(e){}
   for(let d = 6; d >= 1; d--){
     const dt = new Date(todayStr);
     dt.setDate(dt.getDate() - d);
@@ -10119,7 +10420,7 @@ async function renderScoreTrace(todayScore){
     let score = null, depth = 0;
     try{
       const entry = JSON.parse((await window.storage.get(keyFor(date))).value);
-      score = await overallScoreForEntry(entry);
+      score = srSeries[date] != null ? srSeries[date] : await overallScoreForEntry(entry);
       depth = readingDepth(entry);
     } catch(e){}
     scoreDays.push({ date, score, depth });
@@ -17620,6 +17921,10 @@ async function generateRecommendations(){
   const container = document.getElementById('recommendationCards');
   container.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div><div class="skeleton short"></div>';
 
+  // Released each pass so the readiness line can reclaim the slot, or hand it back when it
+  // has nothing to say — otherwise the first render would own it permanently.
+  const statusEl = document.getElementById('baselineStatus');
+  if(statusEl) delete statusEl.dataset.readiness;
   // Replaces the old single dim line. Same footprint when collapsed, but it now reports
   // every subsystem rather than recovery days alone — and, crucially, what unlocks next,
   // so the app stops asking for data without ever saying what the data buys.
@@ -17649,7 +17954,9 @@ async function generateRecommendations(){
   plannedEx.forEach(ex=>{ if(ex.area){ (plannedExAreas[ex.area]=plannedExAreas[ex.area]||[]).push(ex.name); } });
 
   const goalT = await currentGoalThresholds();
-  const overallShown = updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry);
+  const srResult = await computeSystemicReadiness(todayStr);
+  renderReadinessConfidence(srResult);
+  const overallShown = updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult);
   renderScoreTrace(overallShown);
 
   const reduceSignals = [];
