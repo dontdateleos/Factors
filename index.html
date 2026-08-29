@@ -5042,7 +5042,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.39';
+const APP_VERSION = '2026.08.28.40';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5683,10 +5683,27 @@ syncPendingAppleHealthData().then(result => {
 }); // check automatically on load, since data accumulates while the app isn't open
 
 /* ---------- GOAL PROFILE ---------- */
+/* No loadRatioHigh any more. The acute:chronic workload ratio is the strongest consensus
+   AGAINST a widely-adopted sports-science metric in the last decade, and this app was
+   pushing a "reduce" card off a sweet-spot band built on it.
+
+   The acute window sits inside the chronic window, so load appears in both numerator and
+   denominator — that produces correlation under pure random data (Lolli 2017) and caps the
+   ratio at 4. An athlete injured mid-week accrues artificially low acute load, manufacturing
+   the "low ratio, high injury" association the whole idea rests on (Wang 2020). Sedeaud
+   (2020) found 83.3% of injuries in pentathletes occurred INSIDE the sweet spot. And
+   Impellizzeri (2020, IJSPP), verbatim: "There is no evidence supporting the use of ACWR in
+   training-load-management systems or for training recommendations aimed at reducing injury
+   risk."
+
+   The coaching principle survives — don't add too much too soon. The metric does not. What
+   should replace it is absolute chronic load, week-over-week change in absolute units, and a
+   flag when that change is high against your own history. A ratio throws away the magnitude
+   that matters: 200 to 300 and 2000 to 3000 are both "1.5". */
 const GOAL_PROFILES = {
-  perform:    { scoreLow:35, scoreHigh:65, loadRatioHigh:1.7 },
-  balanced:   { scoreLow:40, scoreHigh:70, loadRatioHigh:1.5 },
-  longevity:  { scoreLow:45, scoreHigh:75, loadRatioHigh:1.3 }
+  perform:    { scoreLow:35, scoreHigh:65 },
+  balanced:   { scoreLow:40, scoreHigh:70 },
+  longevity:  { scoreLow:45, scoreHigh:75 }
 };
 const profileSelect = document.getElementById('goalProfile');
 async function loadGoalProfile(){
@@ -5697,30 +5714,11 @@ profileSelect.addEventListener('change', async ()=>{
   await window.storage.set('settings:goalProfile', profileSelect.value);
   renderSettingsSummaries();
 });
+// The personal-tolerance adjustment that used to live here tuned loadRatioHigh and nothing
+// else, so it goes with the threshold. computeTrainingTolerance() itself stays — the deload
+// check and the volume readout both still use it.
 async function currentGoalThresholds(){
-  const base = GOAL_PROFILES[profileSelect.value] || GOAL_PROFILES.balanced;
-  // Personal tolerance adjustment: computeTrainingTolerance() already correlates this
-  // person's own weekly volume against their own following-week recovery, gated behind
-  // real baseline history — but until now nothing ever read its output, so everyone on
-  // the same goal profile got an identical fixed threshold regardless of what their own
-  // data actually showed. Deliberately one-directional: only ever tightens the threshold
-  // when someone's own data shows a real decline at higher volume, never loosens it for
-  // apparent good tolerance — absence of a decline signal isn't strong evidence someone
-  // can safely push further, same safety-first asymmetry used throughout this app.
-  try{
-    const tolerance = await computeTrainingTolerance();
-    if(!tolerance.insufficientData && tolerance.flagged && tolerance.n >= 4){
-      // Their own recovery gap between low/high volume weeks scales how much to trust
-      // the adjustment — a bigger demonstrated gap moves the threshold further, but
-      // capped at +/-20% of the fixed default so personalization can't run away to an
-      // extreme off a handful of noisy weeks.
-      const gap = Math.abs(tolerance.avgRecoveryLower - tolerance.avgRecoveryUpper);
-      const adjustPct = Math.min(0.20, (gap/100));
-      return { ...base, loadRatioHigh: Math.round((base.loadRatioHigh * (1 - adjustPct)) * 100) / 100,
-        personalized: true, personalNote: `Adjusted from ${base.loadRatioHigh} based on your own volume/recovery history (${tolerance.n} weeks, recovery drops ~${gap}pts at higher volume).` };
-    }
-  } catch(e){}
-  return base;
+  return GOAL_PROFILES[profileSelect.value] || GOAL_PROFILES.balanced;
 }
 
 /* ---------- STRENGTH/RUNNING LEVEL ----------
@@ -17357,7 +17355,6 @@ async function generateRecommendations(){
   if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
   if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow) reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`);
   if(capacityLabel === 'below typical') reduceSignals.push('Predicted Capacity: below typical');
-  if(entry.loadRatio!=null && entry.loadRatio > goalT.loadRatioHigh) reduceSignals.push(`Load ratio ${entry.loadRatio} (above ${goalT.loadRatioHigh})`);
   // Cross-modal: a stacked hard-running window can contribute even when strength-specific
   // load ratio looks normal in isolation — the two systems shouldn't stay fully unaware
   // of each other (hybrid training research, section 6.4).
@@ -17435,10 +17432,6 @@ async function generateRecommendations(){
     const parts = entry.disagreements.map(d => `${metricLabel[d.metric]||d.metric} (Oura ${d.ouraValue} vs Garmin ${d.garminValue})`);
     cardQueue[0].signals.push(`Today's devices disagreed on ${parts.join(', ')} — treat today's score with a bit more caution than usual.`);
   }
-  if(goalT.personalized && cardQueue.length){
-    cardQueue[0].signals.push(goalT.personalNote);
-  }
-
   const deloadSignal = await checkDeloadSignal();
   if(deloadSignal){
     cardQueue.push({ type:'deload_suggest', title:'Consider a deload week', signals:[deloadSignal.reason],
