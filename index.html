@@ -404,6 +404,10 @@
   .evidence-badge.strong{ background:var(--reverse-bg); color:var(--bg); }
   .evidence-badge.moderate{ background:transparent; border:1.5px solid var(--text); color:var(--text); }
   .evidence-badge.practical{ background:transparent; border:1px solid var(--dim); color:var(--dim); }
+  .evidence-badge[data-evidence]{ cursor:pointer; }
+  /* flex-basis so it takes its own line inside the log row rather than squeezing the name. */
+  .evidence-note{ flex-basis:100%; width:100%; font-family:var(--sans); font-size:var(--fs-tag);
+    color:var(--dim); letter-spacing:0.02em; line-height:1.45; margin-top:4px; }
   .field-label{ font-family:var(--sans); font-size:var(--fs-md); color:var(--dim); width:112px; flex-shrink:0; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
   .src-tag{ font-family:var(--mono); font-size:var(--fs-tag); padding:2px 6px; border-radius:0; color:var(--on-light); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:var(--fw-bold); }
   .src-tag.oura{ background:var(--block-purple); }
@@ -963,6 +967,8 @@
   /* Set on Today's own sections rather than toggling each one's display, so every section
      keeps whatever show/hide logic it already had for when the app is set up. */
   #panel-insights > [data-first-run-hidden]{ display:none !important; }
+  .log-toggle-row{ flex-basis:100%; display:flex; gap:6px; margin-top:6px; }
+  .log-toggle-row button{ height:28px; padding:0 10px; font-size:var(--fs-tag); flex:0 0 auto; }
   .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
     color:var(--dim); flex:1; text-align:center; }
@@ -1224,9 +1230,18 @@
   .trend-flag.down{ border-left-color:var(--bad); }
   /* --toast-from is which way it comes in: up from below when you tapped low, down from
      above when you tapped high. */
-  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(var(--toast-from, 20px)); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100; white-space:nowrap; }
+  /* left/right 0 with an auto margin rather than left:50% — a fixed box laid out from the
+     halfway point only has half the screen to shrink-to-fit into, so a wrapping toast came
+     out a third of the width it was allowed and three lines tall. */
+  #toast{ position:fixed; left:0; right:0; margin:0 auto; width:fit-content; bottom:90px;
+    display:flex; align-items:center;
+    transform:translateY(var(--toast-from, 20px)); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100;
+    max-width:min(320px, calc(100vw - 36px)); white-space:normal; line-height:1.4; }
+  /* Flex so the mark stays beside a message that now wraps instead of being pushed onto a
+     line of its own above it. */
+  #toast > *{ flex:none; }
   @media (prefers-reduced-motion: reduce){ #toast{ transition:opacity 0.1s linear; } }
-  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.show{ opacity:1; transform:translateY(0); }
   #toast.error{ background:var(--bad); color:var(--text); }
   /* ---------- APP MOTION: SECOND BATCH ----------
      The JS half of these lives beside UI_ANIM; this is the part the browser can do on its
@@ -1470,7 +1485,7 @@
           <div id="warmupCards"></div>
           <details class="glossary">
             <summary>what the stages mean</summary>
-            <div class="gloss-item"><span class="gloss-term">POTENTIATE</span>Ramp-up sets on the first lift itself — same movement, building toward your working weight, so the nervous system is ready for it.</div>
+            <div class="gloss-item"><span class="gloss-term">RAMP UP</span>Sets on the first lift itself — same movement, building toward your working weight, so the nervous system is ready for it. Called potentiation.</div>
             <div class="gloss-item"><span class="gloss-term">×8-10</span>Reps. <span class="gloss-term">30s</span> is a hold. <span class="gloss-term">/side</span> means that each way, not in total.</div>
           </details>
         </div>
@@ -1493,8 +1508,8 @@
           <details class="glossary">
             <summary>what the stages mean</summary>
             <div class="gloss-item"><span class="gloss-term">ROLL</span>Foam roller or ball on the tissue — slow, pausing where it is sore. Takes the edge off before you move it.</div>
-            <div class="gloss-item"><span class="gloss-term">DYN</span>Dynamic: move through the range under your own control, no holding. Restores the range the session used up.</div>
-            <div class="gloss-item"><span class="gloss-term">HOLD</span>Static: settle into the stretch and stay there for the time given. This is the one that adds range, and the reason it comes last.</div>
+            <div class="gloss-item"><span class="gloss-term">MOVE</span>Through the range under your own control, no holding. Restores the range the session used up. Called dynamic stretching.</div>
+            <div class="gloss-item"><span class="gloss-term">HOLD</span>Settle into the stretch and stay there for the time given. This is the one that adds range, and the reason it comes last. Called static stretching.</div>
           </details>
         </div>
       </div>
@@ -3521,8 +3536,11 @@ function eyeRareBeat(){
    sizing rather than a site, since it never moves and never wears an expression. */
 function toastEyesHtml(isError){
   if(!anim('toastEyes')) return null;
-  return `<span class="toast-eyes eyes ${isError ? 'shake' : 'nod'}" aria-hidden="true">`
-       + `<span class="eye-gaze"><span class="eye-motion"><span></span><span></span></span></span></span>`;
+  // The same inner markup every other mark uses. Built out of spans here, `.eyes span` —
+  // which is meant for the two eyes — also matched the gaze and motion wrappers and gave
+  // them display:block, collapsing the flex row that separates the eyes. The toast mark has
+  // been drawing both eyes on top of each other, which is why it read as one.
+  return `<span class="toast-eyes eyes ${isError ? 'shake' : 'nod'}" aria-hidden="true">${EYE_INNER_HTML}</span>`;
 }
 
 /* ---------- EMPTY BLOCKS ----------
@@ -5024,7 +5042,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.28.38';
+const APP_VERSION = '2026.08.28.39';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6357,16 +6375,34 @@ const VOLUME_SPLIT = { primary: 1.0, secondary: 0.5 };
 // as good/bad — coaching_consensus is real, useful guidance, just a different tier of
 // evidence, not a worse recommendation.
 const EVIDENCE_BADGE_INFO = {
-  meta_analysis: { label:'META-ANALYSIS', tier:'strong' },
-  systematic_review: { label:'REVIEW', tier:'strong' },
-  rct: { label:'RCT', tier:'moderate' },
-  coaching_consensus: { label:'CONSENSUS', tier:'practical' }
+  meta_analysis: { label:'META-ANALYSIS', tier:'strong',
+    note:'Backed by a pooled analysis of many studies \u2014 the strongest evidence here.' },
+  systematic_review: { label:'REVIEW', tier:'strong',
+    note:'Backed by a formal review of the published research.' },
+  rct: { label:'RCT', tier:'moderate',
+    note:'Backed by a randomised controlled trial \u2014 one good study rather than many.' },
+  coaching_consensus: { label:'CONSENSUS', tier:'practical',
+    note:'What coaches broadly agree on, rather than a lab finding. Useful, just a different kind of evidence.' }
 };
+/* The badge names a tier of research and nothing said what the tier meant, so on the row
+   where you record a lift it read as a word you were expected to already know. It answers
+   for itself now: one tap, one sentence, tap again to put it away. */
 function evidenceBadgeHtml(evidence){
   const info = EVIDENCE_BADGE_INFO[evidence];
   if(!info) return ''; // untagged — omit rather than imply a source that isn't there
-  return `<span class="evidence-badge ${info.tier}">${info.label}</span>`;
+  return `<span class="evidence-badge ${info.tier}" role="button" tabindex="0"`
+    + ` data-evidence="${evidence}" aria-label="${info.label} \u2014 what this means">${info.label}</span>`;
 }
+document.addEventListener('click', e=>{
+  const badge = e.target.closest && e.target.closest('.evidence-badge[data-evidence]');
+  if(!badge) return;
+  const open = badge.nextElementSibling && badge.nextElementSibling.classList.contains('evidence-note');
+  if(open){ badge.nextElementSibling.remove(); return; }
+  const note = document.createElement('div');
+  note.className = 'evidence-note';
+  note.textContent = (EVIDENCE_BADGE_INFO[badge.dataset.evidence] || {}).note || '';
+  badge.insertAdjacentElement('afterend', note);
+});
 
 function areaOptionsHtml(selected, allowBlank){
   return (allowBlank!==false ? '<option value="">area</option>' : '') + Object.keys(BODY_AREAS).map(k=>
@@ -8332,8 +8368,13 @@ async function openBlockEditor(date, slot, block, opts){
           <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="reps" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
           <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
           <input type="number" class="week-ex-weight" placeholder="kg" style="max-width:64px;" title="weight actually used">
-          <button type="button" class="week-ex-bw small outline" style="height:26px; padding:0 8px; font-size:var(--fs-tag);" title="fill with your logged bodyweight">BW</button>
-          <button type="button" class="week-ex-fail small outline" style="height:26px; padding:0 8px; font-size:var(--fs-tag); flex:0 0 auto;" title="the last set was taken to failure">F</button>
+        </div>
+        <!-- BW and F were two unlabelled letters on the row you touch more than any other in
+             the app, with their meanings in title attributes that a phone never shows. One
+             lift is on screen at a time now, so there is room to say the words. -->
+        <div class="log-toggle-row">
+          <button type="button" class="week-ex-bw small outline" title="fill the weight box with your logged bodyweight">Bodyweight</button>
+          <button type="button" class="week-ex-fail small outline" title="mark that the last set was taken to failure">To failure</button>
         </div>
         <div class="ex-tags-toggle" style="flex-basis:100%; font-size:var(--fs-tag); font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
         <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
@@ -8359,7 +8400,9 @@ async function openBlockEditor(date, slot, block, opts){
         if(metrics && metrics.weight != null){
           weightInput.value = metrics.weight;
         } else {
-          showToast('No bodyweight logged yet — add it in Settings → Body Metrics');
+          // Body metrics are on Data, not Settings. Sending someone to the wrong tab is
+          // worse than not answering: they go, they do not find it, and the app was wrong.
+          showToast('No bodyweight saved yet — Data tab, under Everything else');
         }
       });
       const tagsToggle = row.querySelector('.ex-tags-toggle');
@@ -15485,11 +15528,14 @@ async function generateMultiWeekProgram(numWeeks, splitOverride, options){
 function faultLine(code, sentence){
   return `<span class="fault-code">${code}</span><span class="fault-note">${sentence}</span>`;
 }
+/* Both halves of a fault line were the machine's report of its own state: NO GOALS ·
+   NOTHING TO BUILD FROM says the same thing twice and neither time is it a next move. The
+   code still names what happened; the half after the middle dot is now what to do about it. */
 const GENERATE_FAULTS = {
-  'no-setup':             'NO SETUP · AVAILABLE DAYS UNSET',
-  'no-goals':             'NO GOALS · NOTHING TO BUILD FROM',
-  'no-lift-or-run-goal':  'NO MATCHING GOAL · STRENGTH / RUN / MOBILITY',
-  'nothing-selected':     'NOTHING SELECTED · ALL SOURCES OFF'
+  'no-setup':             'NO SETUP \u00b7 SET YOUR TRAINING DAYS',
+  'no-goals':             'NO GOALS \u00b7 ADD ONE FIRST',
+  'no-lift-or-run-goal':  'NO MATCHING GOAL \u00b7 ADD A STRENGTH, RUN OR MOBILITY GOAL',
+  'nothing-selected':     'NOTHING SELECTED \u00b7 TURN ONE BACK ON'
 };
 
 function describeWeekResult(r, weekNum, isDeload){
@@ -15589,7 +15635,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
 
     if(first.result.error){
       const desc = describeWeekResult(first.result, 1, false);
-      result.innerHTML = faultLine(desc.code || 'GENERATE HALTED', desc.error);
+      result.innerHTML = faultLine(desc.code || 'GENERATE HALTED \u00b7 SEE BELOW', desc.error);
       result.style.color = 'var(--text)';
       return;
     }
@@ -15597,7 +15643,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const lines = weekResults.map(wr => describeWeekResult(wr.result, wr.weekNum, wr.isDeload));
     const validLines = lines.filter(l => l.text);
     if(validLines.length===0){
-      result.innerHTML = faultLine('NO EMPTY DAYS · WEEK ALREADY FULL', 'Nothing to generate into — clear a day first, or clear the week.');
+      result.innerHTML = faultLine('NO EMPTY DAYS \u00b7 CLEAR ONE FIRST', 'Generate only fills days that are empty. Clear a day, or clear the week.');
       result.style.color = 'var(--text)';
       renderWeekGrid();
       return;
@@ -15644,7 +15690,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const afterFilled = await filledWeekDays();
     dealPlanThroughWeek(afterFilled.filter(d => beforeFilled.indexOf(d) < 0));
   } catch(e){
-    result.innerHTML = faultLine('GENERATE FAILED · UNCAUGHT', 'Something threw partway through. Try again — nothing was written.');
+    result.innerHTML = faultLine('GENERATE FAILED \u00b7 TRY AGAIN', 'Something threw partway through. Nothing was written.');
     result.style.color = 'var(--text)';
   } finally {
     eyesDone();
@@ -17088,8 +17134,10 @@ async function renderTodayWorkoutSummary(){
       // The estimate, and — once there is a history to check it against — what these actually
       // take you. Two numbers side by side, because the interesting one is the difference.
       const typical = await typicalDurationFor(block.type);
-      planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">est</i>${
-        typical ? ` · ${typical}<i class="unit">typical</i>` : ''}</span>`;
+      // "est" and "typical" as bare units read as abbreviations you have failed to learn,
+      // and the warm-up two sections below says "min" for the same kind of number.
+      planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">min</i>${
+        typical ? ` \u00b7 usually ${typical}` : ''}</span>`;
     }
   } catch(e){}
   container.innerHTML = `
@@ -18325,7 +18373,7 @@ async function generateWarmup(){
   // Potentiate closes the sequence: it names the ramp-up sets for the specific lift you are
   // about to do, which no drill in the list covers.
   flow.innerHTML = `<span class="flow-seg">${drillParts.join(' \u00b7 ')}</span>`
-    + `<span class="flow-seg"><span class="flow-area">Potentiate</span>ramp-up sets toward your first working weight</span>`;
+    + `<span class="flow-seg"><span class="flow-area">Ramp up</span>sets on the first lift, building toward your working weight</span>`;
 }
 
 // Auto-generated alongside the warm-up and workout when the Today tab renders — no
@@ -18424,8 +18472,11 @@ async function generateMobility(){
   // tissue was described four times. You roll everything, then move everything, then hold
   // everything \u2014 so the section says that once, in that order, and the body-part labels
   // come off with it: each entry already names the tissue it is for.
-  const buckets = { Roll:[], Dyn:[], Hold:[] };
-  const coolSeen = { Roll:new Set(), Dyn:new Set(), Hold:new Set() };
+  // Move, not Dyn. The glossary below explains the three stages, but it sits under the thing
+  // it decodes, so until you find it the instruction is unreadable. A label that needs no
+  // glossary is better than a glossary.
+  const buckets = { Roll:[], Move:[], Hold:[] };
+  const coolSeen = { Roll:new Set(), Move:new Set(), Hold:new Set() };
   const push = (bucket, text, cls)=>{
     const k = text.toLowerCase();
     if(!text || coolSeen[bucket].has(k)) return;
@@ -18438,7 +18489,7 @@ async function generateMobility(){
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
     const skipNote = stretchingNotesByArea[area];
     push('Roll', tighten(trim('foam roll', proto.foamRoll)), r.cls);
-    push('Dyn', tighten(trim('dynamic', proto.dynamic)), r.cls);
+    push('Move', tighten(trim('dynamic', proto.dynamic)), r.cls);
     // An area whose static work is already covered by a lift you did today drops out of
     // the hold list rather than adding an "optional" entry to it.
     if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls);
