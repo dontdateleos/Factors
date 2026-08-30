@@ -1088,10 +1088,10 @@
   /* Ten across a phone leaves about 28px each, so the padding the numbered version needed
      goes and the face fills the box. Same fill-on-choose as everywhere else the mark is a
      control: chosen is solid, and the eyes inside it invert with it. */
-  .rpe-face{ padding:0; height:34px; }
+  .rpe-face{ padding:0; height:40px; }
   .rpe-face .eyes{ pointer-events:none; }
   .rpe-face.on .eyes{ --eye-ink:var(--bg); }
-  .rpe-scale{ display:flex; gap:4px; }
+  .rpe-scale{ display:flex; gap:6px; }
   .rpe-scale .subj-dot{ height:32px; border-color:var(--border-bold); color:var(--on-light-dim);
     background:var(--panel); padding:0 2px; }
   .rpe-scale .subj-dot.on{ background:var(--reverse-bg); color:var(--bg); border-color:var(--reverse-bg); }
@@ -5439,7 +5439,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.23';
+const APP_VERSION = '2026.08.30.24';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10430,24 +10430,34 @@ function tickRestTimer(){
   // Whatever the mark is doing, it looks up when the set is over.
   try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
 }
-/* HOW HARD WAS THAT, IN THE SAME FACES.
+/* HOW HARD WAS THAT, IN THE SAME FIVE FACES.
 
-   Ten buttons with the digits 1 to 10 on them become ten faces — and they run the OTHER WAY
-   from the row on Today, because this scale means the opposite thing. Up there a wide-open
-   eye is you saying you are fresh; down here a wide-open eye is a session that barely touched
-   you, and 10 out of 10 is a face with its eyes shut. That inversion is the whole reason the
-   icon works here: what a hard session does to you is exactly what the mark draws.
+   Five, not ten, so it is the same gesture as the row on Today — and they run the OTHER WAY,
+   because this scale means the opposite thing. Up there a wide-open eye is you saying you are
+   fresh; down here it is a session that barely touched you, and the hardest one is a face
+   with its eyes shut. That inversion is the whole reason the icon works here: what a hard
+   session does to you is what the mark draws.
 
-   Still ten steps, not five. Foster's session-RPE is validated on Borg CR-10 and the
-   granularity is the instrument; eyeStateAt interpolates between the five drawn states so
-   each of the ten gets a face of its own rather than five faces used twice.
+   What is STORED is still the Borg CR-10 value — 2, 4, 6, 8, 10. Foster's session-RPE is
+   validated on that scale and every consumer of this field is built on it: perceived load is
+   minutes times RPE, the block comparisons average it, and there is history already written
+   in those units. Five buttons that quietly wrote 1 to 5 would halve every load figure in the
+   app and silently break comparisons against every session logged before today. So the choice
+   narrows and the units do not.
 
-   No colour ramp, deliberately. Red at 10 would read as "that was bad", and a session that
-   took everything out of you is usually the point of the session. */
-function rpeFaceHtml(n){
-  const st = eyeStateAt((10 - n) / 9);
-  return `<button type="button" class="subj-dot rpe-face" data-v="${n}" aria-label="${n} of 10">`
-    + faceEyesHtml(st, 0.42, 'currentColor') + `</button>`;
+   The cost, plainly: five steps where there were ten. Foster's granularity is part of the
+   instrument, and odd values can no longer be expressed. Against that, an RPE nobody fills in
+   is worth less than a coarse one they do — and a scale that matches the one they already use
+   every morning is the one they will use.
+
+   No colour ramp, deliberately. Red at the top would read as "that was bad", and a session
+   that took everything out of you is usually the point of the session. */
+const RPE_STEPS = [2, 4, 6, 8, 10];
+function rpeFaceHtml(v, i){
+  const st = EYE_STATES[EYE_STATES.length - 1 - i];
+  const words = ['barely felt it','easy','moderate','hard','all out'];
+  return `<button type="button" class="subj-dot rpe-face" data-v="${v}" aria-label="${words[i]} — ${v} of 10">`
+    + faceEyesHtml(st, 0.52, 'currentColor') + `</button>`;
 }
 function wireSessionRpe(panel){
   const box = panel.querySelector('#rpeScale');
@@ -10704,8 +10714,8 @@ async function openBlockEditor(date, slot, block, opts){
          a hard session the heart rate missed. Borg CR-10, collected at the end rather than
          during, which is how it was validated. -->
     <div class="rpe-row" id="sessionRpeRow">
-      <div class="subj-head"><span class="subj-name">How hard was that</span><span class="subj-anchor">1 easy &middot; 10 all out</span></div>
-      <div class="rpe-scale" id="rpeScale">${[1,2,3,4,5,6,7,8,9,10].map(rpeFaceHtml).join('')}</div>
+      <div class="subj-head"><span class="subj-name">How hard was that</span><span class="subj-anchor">easy &middot; all out</span></div>
+      <div class="rpe-scale" id="rpeScale">${RPE_STEPS.map(rpeFaceHtml).join('')}</div>
       <input type="hidden" id="sessionRpe">
     </div>
     <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
