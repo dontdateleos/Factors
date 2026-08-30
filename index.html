@@ -4800,7 +4800,13 @@ async function refreshLogStripWord(){
   const word = document.getElementById('logStripWord');
   if(!word) return;
   const started = await loggingStartedAt(todayStr);
-  word.textContent = started ? 'Swipe down to resume logging' : 'Swipe down to log workout';
+  // A day whose session is already in the book offers to change it rather than to log it
+  // again — the wording is the promise that going back in is safe.
+  let logged = false;
+  try{ logged = !!(await findLoggedSession(todayStr, null, 'strength')); } catch(e){}
+  word.textContent = logged ? 'Swipe down to edit today\u2019s session'
+                   : started ? 'Swipe down to resume logging'
+                   : 'Swipe down to log workout';
 }
 
 /* Past the end of Today, a strip that takes you into logging. A vertical drag in EITHER
@@ -5463,7 +5469,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.28';
+const APP_VERSION = '2026.08.30.29';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10252,6 +10258,68 @@ function closeBlockEditor(opts){
    Written on every keystroke rather than only on close, because the way a phone loses an app
    is not by you closing anything. */
 function logDraftKey(date, slot){ return `logdraft:${date}:${slot}`; }
+/* A SESSION YOU CAN GO BACK INTO.
+
+   Saving wrote `training:<date>:<Date.now()>` — a brand new key every time. So the second
+   save of the same workout did not correct the first, it logged the workout AGAIN: two
+   sessions, double the volume, two rows in every load figure that reads them. The only safe
+   thing to do with a session was to get it right first time, which is why it closed behind
+   you and never invited you back.
+
+   It reopens now. The editor looks for a session already logged for this day and slot, loads
+   what you saved into the rows, and remembers the key so Save overwrites it — same key, same
+   timestamp, one session however many times you go back in. The next day is a new day and
+   starts clean, which is the only "closing" this needs.
+
+   Matched on date and slot. Sessions written before this carry no slot, so they fall back to
+   matching on type alone — a day with an AM and a PM session logged the old way could adopt
+   the wrong one, which is a great deal better than silently doubling it. */
+let blockEditLoggedKey = null, blockEditLoggedTs = null;
+async function findLoggedSession(date, slot, type){
+  try{
+    const res = await window.storage.list(`training:${date}`);
+    let fallback = null;
+    for(const k of (res && res.keys) || []){
+      let sn = null;
+      try{ sn = JSON.parse((await window.storage.get(k)).value); } catch(e){ continue; }
+      if(!sn || sn.type !== type || sn.date !== date) continue;
+      // No slot asked for means "is there one at all" — which is what Today's strip needs to
+      // know before it offers to edit rather than to log.
+      if(!slot || sn.slot === slot) return { key:k, session:sn };
+      if(!sn.slot && !fallback) fallback = { key:k, session:sn };
+    }
+    return fallback;
+  } catch(e){ return null; }
+}
+// Onto the rows by name, because the rows are built from the PLAN and the plan is what you
+// logged against. Anything logged that the plan does not have — a lift you added and then
+// removed from the plan — is left out rather than invented back in.
+function applyLoggedSession(session){
+  if(!session || !Array.isArray(session.exercises)) return;
+  const rows = logExRows();
+  session.exercises.forEach(ex=>{
+    const row = rows.find(r=>{
+      const el = r.querySelector('.week-ex-name');
+      return el && exHistKey(el.value) === exHistKey(ex.name);
+    });
+    if(!row) return;
+    const setEl = row.querySelector('.week-ex-sets');
+    const repEl = row.querySelector('.week-ex-reps');
+    const wEl   = row.querySelector('.week-ex-weight');
+    if(setEl && ex.sets) setEl.value = ex.sets;
+    if(repEl) repEl.value = (Array.isArray(ex.repsPerSet) && ex.repsPerSet.length)
+      ? ex.repsPerSet.join(',') : (ex.reps || '');
+    if(wEl && ex.weight) wEl.value = ex.weight;
+    const fail = row.querySelector('.week-ex-fail');
+    if(fail) fail.classList.toggle('on', !!ex.toFailure);
+  });
+  const rpe = document.getElementById('sessionRpe');
+  if(rpe && session.sessionRpe != null){
+    rpe.value = session.sessionRpe;
+    document.querySelectorAll('#rpeScale .subj-dot').forEach(btn=>
+      btn.classList.toggle('on', +btn.dataset.v === +session.sessionRpe));
+  }
+}
 function collectLogDraft(panel){
   const rows = [...panel.querySelectorAll('.edit-row')].filter(r=>r.querySelector('.week-ex-name')).map(r=>({
     name: r.querySelector('.week-ex-name').value,
@@ -10410,7 +10478,8 @@ function logExRows(){
    when they are all in front of you.
 
    showLogExercise survives as a scroll rather than a filter — the callers that used it to put
-   you back where the work is still mean that, they just no longer need to hide anything. */
+   you back where the work is still mean that, they just no longer need to hide anything to
+   do it. */
 function showLogExercise(i){
   const rows = logExRows();
   if(!rows.length) return;
@@ -11035,6 +11104,17 @@ async function openBlockEditor(date, slot, block, opts){
     document.getElementById('addWeekStretchRow').addEventListener('click', ()=>addWeekStretchRow());
   }
 
+  // The logged session first, the draft on top: a draft is unsaved work and is therefore
+  // always the more recent of the two.
+  blockEditLoggedKey = null; blockEditLoggedTs = null;
+  if(block.type === 'strength'){
+    const already = await findLoggedSession(date, slot, 'strength');
+    if(already){
+      blockEditLoggedKey = already.key;
+      blockEditLoggedTs = already.session.timestamp || null;
+      applyLoggedSession(already.session);
+    }
+  }
   applyLogDraft(panel, await loadLogDraft(date, slot));
   // Open on the first lift with nothing entered — coming back to a session should put you
   // where the work is, not at the top of a list you have already been through.
@@ -11205,7 +11285,11 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       // have influenced.
       const wasBlind = isBlindDay(date);
       const session = {
-        date, type:'strength', timestamp: Date.now(),
+        // The same session however many times you go back into it: the key and the timestamp
+        // are the ones it was first written with, so a correction corrects rather than
+        // logging the workout a second time. Slot goes in so tomorrow's reopen can find it.
+        date, slot, type:'strength',
+        timestamp: blockEditLoggedTs || Date.now(),
         sessionRpe: isNaN(rpe) ? null : rpe,
         scoreBlinded: wasBlind,
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
@@ -11216,10 +11300,16 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         const mins = Math.round((Date.now() - startedAt) / 60000);
         if(mins >= SESSION_MIN_MINUTES && mins <= SESSION_MAX_MINUTES) session.durationMin = mins;
       }
+      const wasEdit = !!blockEditLoggedKey;
       try{
-        const result = await window.storage.set(`training:${date}:${session.timestamp}`, JSON.stringify(session));
+        const key = blockEditLoggedKey || `training:${date}:${session.timestamp}`;
+        const result = await window.storage.set(key, JSON.stringify(session));
         if(!result) throw new Error('log failed');
-        showToast('Saved & logged');
+        blockEditLoggedKey = key;
+        blockEditLoggedTs = session.timestamp;
+        // Said differently for an edit, because "logged" a second time is exactly the thing
+        // that used to happen and exactly the thing you would want to know had not.
+        showToast(wasEdit ? 'Session updated' : 'Saved & logged');
         clearLoggingStarted(date);
         clearLogDraft(date, slot);
         eyeNotePRFrom(session);
