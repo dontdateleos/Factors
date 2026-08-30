@@ -5329,7 +5329,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.16';
+const APP_VERSION = '2026.08.30.17';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -11337,12 +11337,37 @@ let confidenceExpanded = false;
    14 composite scores across 10 manufacturers and not one disclosed its weighting or stated
    its uncertainty. "64 (55-73) · 11 of 14 nights · baseline 71% mature" is a more useful
    sentence than "64", and it spends no trust to say it. */
+/* THE LINE UNDER THE SCORE IS BEHIND THE CHEVRON, WHERE IT SAID IT WAS.
+
+   The label row has carried role="button", aria-expanded and aria-controls="baselineStatus"
+   since the disclosure was built, and renderSystemConfidence renders nothing at all while it
+   is collapsed. But this function ran first, wrote the readiness line unconditionally, and
+   stamped dataset.readiness so renderSystemConfidence bailed out before its own collapsed
+   check — so the strip was always open, the chevron always said "closed", and tapping it did
+   nothing at all. One state, three components disagreeing about it.
+
+   Collapsed now means collapsed. The one exception is a blinded day: there the number is
+   replaced by a placeholder and the label reads "Held until you log", and without the
+   sentence underneath that is a screen that looks broken rather than one being careful. */
+let lastReadinessSr = null;
 function renderReadinessConfidence(sr){
+  lastReadinessSr = sr || null;
+  return paintReadinessConfidence();
+}
+function paintReadinessConfidence(){
+  const sr = lastReadinessSr;
   const el = document.getElementById('baselineStatus');
   if(!el || !sr) return false;
   const bits = [];
   if(sr.held){
     el.innerHTML = `<div>Blinded day — the score is computed and held back until you have logged, so today's result is an honest label rather than a self-fulfilling one.</div>`;
+    el.dataset.readiness = '1';
+    return true;
+  }
+  // Readiness still owns the slot either way, so the system-confidence panel does not move
+  // into it the moment this one is folded away.
+  if(!confidenceExpanded){
+    el.innerHTML = '';
     el.dataset.readiness = '1';
     return true;
   }
@@ -11425,7 +11450,14 @@ async function renderSystemConfidence(){
 (function bindScoreDisclosure(){
   const toggle = document.getElementById('scoreToggle');
   if(!toggle) return;
-  const flip = ()=>{ confidenceExpanded = !confidenceExpanded; renderSystemConfidence(); };
+  const flip = ()=>{
+    confidenceExpanded = !confidenceExpanded;
+    toggle.setAttribute('aria-expanded', String(confidenceExpanded));
+    // Whichever of the two owns the slot has to be the one redrawn, or opening the chevron
+    // on a readiness day would call the panel that readiness has already locked out.
+    if(paintReadinessConfidence()) return;
+    renderSystemConfidence();
+  };
   toggle.addEventListener('click', flip);
   toggle.addEventListener('keydown', e=>{
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); flip(); }
