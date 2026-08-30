@@ -2583,7 +2583,10 @@ const EYE_ANIM = {
   thinkBeforeCard:{ on:true, note:'A beat of looking away before a recommendation lands' },
   lookAtPanel:    { on:true, note:'Looks at a panel that opens over the page' },
   tabWander:      { on:true, note:'Glances at the tab bar if you sit on one tab a long time', afterMs:180000, everyMs:120000 },
-  glitch:         { on:true, note:'Now and then the pair tears for a moment, the way it blinks', ms:200, chance:0.07 }
+  glitch:         { on:true, note:'Now and then the pair tears for a moment, the way it blinks', ms:200, chance:0.07 },
+
+  // — Sixth.
+  mirrorYourFace: { on:true, note:'Wears the face you just tapped, then settles onto whatever the score makes of it', ms:900 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -2591,7 +2594,7 @@ window.EYE_ANIM = EYE_ANIM;
    `keep` survive it — the ones that are a control, an icon, or feedback you asked for.
    Everything else is character, and character is what calm mode turns down. */
 const EYE_CALM_KEEP = ['plateIsHome','toastEyes','nodOnSave','busyEverywhere','wakeOnScore',
-                       'blinkByScore','wince','widenOnPR'];
+                       'blinkByScore','wince','widenOnPR','mirrorYourFace'];
 let eyeCalm = false;
 try{ eyeCalm = localStorage.getItem('eyes:calm') === '1'; }catch(e){}
 /* Only the rows you have actually changed are stored, as a sparse map of key -> false.
@@ -3264,6 +3267,14 @@ function eyeRollThroughStates(score, delayMs, ms){
   if(!anim('rollWithScore')) return;
   const el = document.getElementById('scoreEyes');
   if(!el) return;
+  // Strand any lid work already in flight. eyeLidPulse captures the height it is going to
+  // restore at the moment it starts and puts it back when it ends, and a pulse that began
+  // before the count — a card landing, a wince — outlives the whole roll and then restores
+  // the face the mark was wearing BEFORE the score changed. The count lands correctly and is
+  // overwritten a beat later, which is why the mark could sit two states off the number
+  // beside it. blinkSeq is the existing way to say "that gesture is superseded"; the roll
+  // simply never said it.
+  blinkSeq++;
   const land = eyeStateForScore(score);
   const seq = EYE_STATES.slice();
   if(seq[seq.length - 1] !== land) seq.push(land);
@@ -3272,6 +3283,7 @@ function eyeRollThroughStates(score, delayMs, ms){
   const done = ()=>{
     el.style.removeProperty('--eye-morph');
     eyeRollTimer = null;
+    blinkSeq++;                // and again, for anything that started mid-count
     applyEyeState(el, land);   // whatever happened, it ends on the day's face
   };
   const advance = ()=>{
@@ -5276,7 +5288,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.8';
+const APP_VERSION = '2026.08.30.9';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6902,6 +6914,33 @@ async function setDayFace(date, value){
   const hidden = document.getElementById('subjOverall');
   if(hidden && dateInput && dateInput.value === date) hidden.value = value == null ? '' : value;
 }
+/* THE MARK WEARS WHAT YOU JUST SAID, THEN ANSWERS.
+
+   The pair above the score is drawn from the same five states these buttons are, so tapping
+   one and having the big mark take that face is not a new gesture — it is the same mark,
+   agreeing with you. It holds only until the score comes back, and then the count runs and
+   settles onto whatever the score makes of it. So the sequence reads as a sentence: you said
+   this, and this is where it lands.
+
+   That second half matters more than it looks. The rating only reaches the number once the
+   baseline is mature enough for Systemic Readiness to be released, which takes about a
+   month. Before then the tap is banked, not spent, and the mark taking your face and then
+   returning to the one it already had is the honest picture of exactly that: something
+   happened, and the score did not move. */
+function eyeMirrorFace(n){
+  if(!anim('mirrorYourFace')) return false;
+  const el = eyesDocked();
+  if(!el || eyesHome !== 'score' || eyeRollTimer) return false;
+  stopIdle();
+  blinkSeq++;                  // same reason the roll does it
+  el.style.setProperty('--eye-morph', '200ms');
+  applyEyeState(el, EYE_STATES[n - 1]);
+  // The morph override comes off on its own even if the recompute never lands, or the next
+  // expression change would inherit a speed that was meant for one gesture.
+  setTimeout(()=>{ el.style.removeProperty('--eye-morph'); }, 260);
+  scheduleIdle(EYE_ANIM.mirrorYourFace.ms + 700);
+  return true;
+}
 let faceSaving = false;
 async function onFaceTap(n){
   const date = faceDate();
@@ -6911,9 +6950,17 @@ async function onFaceTap(n){
   const next = faceValues[date] === n ? null : n;
   faceValues[date] = next == null ? undefined : next;
   paintTodayFaces();                       // the tap lands before the score catches up
+  // Only on a day the mark is actually reporting. Browsing back through the week, the pair
+  // is wearing that day's score, and taking your face there would be a claim about a day you
+  // are only looking at.
+  const mirrored = next != null && date === todayStr && eyeMirrorFace(next);
   faceSaving = true;
   try{
     await setDayFace(date, next);
+    // Long enough to be read before the count runs over it. Without the wait the recompute
+    // lands within a couple of hundred milliseconds and the roll starts from face one, so
+    // the mark never visibly wore what you tapped.
+    if(mirrored) await new Promise(r=> setTimeout(r, EYE_ANIM.mirrorYourFace.ms));
     // The score above it is the reason this exists, so it is re-read, not left stale. The
     // browsed day is put back afterwards — a tap on Wednesday should not walk you home — and
     // it is handed to the rebuild rather than restored here, because generateRecommendations
