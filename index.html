@@ -5469,7 +5469,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.30';
+const APP_VERSION = '2026.08.30.31';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -12102,6 +12102,7 @@ let lastDecisionKey = null;
 let lastDecisionIndex = null;
 let lastDecisionType = null;
 let lastDecisionOutcome = null;
+let lastDecisionPin = null;
 
 // Signal count -> tier -> which single lever gets adjusted, never more than one at
 // once. Grounded in the recommendation engine's own existing pattern: 2 signals is
@@ -12167,6 +12168,43 @@ async function getTodayAdjustment(){
 }
 async function clearTodayAdjustment(){
   try{ await window.storage.delete(`todayAdjustment:${todayStr}`); } catch(e){}
+}
+
+// Accepting a mobility card pins that area into today's warm-up and post-session work.
+// Before this, the card recorded a decision and changed nothing: it pointed at Suggested
+// Mobility on the Warm-up tab, which was already generated from the same
+// computeWarmupAreas() call the card itself was built from. A card whose entire payload
+// is "go and look at the screen that already knows this" is the failure the brief names —
+// a recommendation that cannot move a set, a zone or an exercise should not be on screen.
+// A pin behaves like an injury flag for one day: it goes to the front of the priority
+// order and survives the time budget, so the area is actually placed rather than rotated
+// out behind three others.
+async function getMobilityPins(date){
+  try{
+    const r = await window.storage.get(`mobilityPin:${date || todayStr}`);
+    const rec = JSON.parse(r.value);
+    return new Set((rec && rec.areas) || []);
+  } catch(e){ return new Set(); }
+}
+async function pinMobilityArea(area){
+  if(!area) return;
+  const pins = await getMobilityPins();
+  pins.add(area);
+  await window.storage.set(`mobilityPin:${todayStr}`, JSON.stringify({ date: todayStr, areas: Array.from(pins) }));
+}
+async function unpinMobilityArea(area){
+  if(!area) return;
+  const pins = await getMobilityPins();
+  pins.delete(area);
+  if(pins.size) await window.storage.set(`mobilityPin:${todayStr}`, JSON.stringify({ date: todayStr, areas: Array.from(pins) }));
+  else try{ await window.storage.delete(`mobilityPin:${todayStr}`); } catch(e){}
+}
+// The warm-up and stretching sections live on another tab, so an accepted pin has to
+// rebuild them rather than wait for the tab to be visited — otherwise "accepted" and
+// "the plan changed" are separated by a navigation the user may never make.
+async function refreshMobilityPlacements(){
+  try{ if(document.getElementById('warmupCards')) await generateWarmup(); } catch(e){}
+  try{ if(document.getElementById('mobilityCards')) await generateMobility(); } catch(e){}
 }
 
 // One word painted twice and clipped at the panel's edge — black above it, the panel's
@@ -12346,6 +12384,13 @@ async function logRecDecision(type, meta, decision, card, title){
     // is the only thing that tells two cards of the same kind apart.
     const result = await window.storage.set(key, JSON.stringify({ date: todayStr, type, title, meta, decision, timestamp: Date.now() }));
     if(!result) throw new Error('save failed');
+    // A mobility card is the one modify that now moves something: accepting pins the area
+    // into today's warm-up and post-session work rather than pointing at the tab that
+    // would have suggested it anyway.
+    if(decision==='accepted' && meta && meta.mobilityArea){
+      await pinMobilityArea(meta.mobilityArea);
+      await refreshMobilityPlacements();
+    }
     if(type==='deload_suggest' && decision==='accepted'){
       const weekDates = getWeekDates();
       await window.storage.set(`weekmeta:${weekDates[0]}`, JSON.stringify({ deload: true }));
@@ -12377,6 +12422,7 @@ async function logRecDecision(type, meta, decision, card, title){
     lastDecisionIndex = cardQueueIndex;
     lastDecisionType = type;
     lastDecisionOutcome = decision;
+    lastDecisionPin = (decision==='accepted' && meta && meta.mobilityArea) ? meta.mobilityArea : null;
     document.getElementById('undoDecisionBtn').style.display = 'block';
   } catch(e){ showToast('Save failed — try again', true); console.error(e); }
   cardQueueIndex++;
@@ -12393,6 +12439,11 @@ document.getElementById('undoDecisionBtn').addEventListener('click', async ()=>{
     if(lastDecisionOutcome==='accepted' && (lastDecisionType==='reduce' || lastDecisionType==='add')){
       await clearTodayAdjustment();
       renderTodayWorkoutSummary();
+    }
+    if(lastDecisionPin){
+      await unpinMobilityArea(lastDecisionPin);
+      await refreshMobilityPlacements();
+      lastDecisionPin = null;
     }
     cardQueueIndex = lastDecisionIndex;
     lastDecisionKey = null;
@@ -20603,10 +20654,11 @@ const TENDINOPATHY_PROTOCOL = {
     !stretchAreas.doneTrailing7.has(a)
   );
   flaggedForStretch.forEach(area=>{
-    const r = areaReason(area, stretchAreas.injuryByArea, stretchAreas.loadFlagged, stretchAreas.runFlagged);
+    const r = areaReason(area, stretchAreas.injuryByArea, stretchAreas.loadFlagged, stretchAreas.runFlagged, stretchAreas.squatAnkleFlag, stretchAreas.pinnedAreas);
     cardQueue.push({ type:'modify', title:`Mobility work suggested: ${BODY_AREAS[area]}`,
-      signals:[r.text, 'No logged stretching for this area in the past week — see Suggested Mobility on the Warm-up tab'],
-      confidence:null, meta:{} });
+      signals:[r.text, 'No logged stretching for this area in the past week',
+        `Accept and ${BODY_AREAS[area].toLowerCase()} goes into today's warm-up and post-session stretching, ahead of the time budget`],
+      confidence:null, meta:{ mobilityArea: area } });
   });
 
   // Deload check — flags if no deload-sized volume drop has occurred in ~6 weeks
@@ -21219,16 +21271,31 @@ async function computeWarmupAreas(){
 
   const { doneToday, doneTrailing7 } = await getMobilityCoverage();
 
+  // An area you accepted a mobility card for outranks everything, including an injury:
+  // you were asked and you said yes, which is a stronger signal than any flag the app
+  // raised on its own.
+  const pinnedAreas = await getMobilityPins();
+  pinnedAreas.forEach(a=>allAreas.add(a));
+
   const ordered = Array.from(allAreas).sort((a,b)=>{
-    const score = a2=> injuryByArea[a2] ? 3 : (loadFlagged[a2] ? 2 : (runFlagged[a2] ? 1 : 0));
+    const score = a2=> pinnedAreas.has(a2) ? 4 : (injuryByArea[a2] ? 3 : (loadFlagged[a2] ? 2 : (runFlagged[a2] ? 1 : 0)));
     return score(b) - score(a);
   });
 
-  return { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, doneToday, doneTrailing7, squatAnkleFlag };
+  // What selectWithinBudget must never trim. Injuries were always non-negotiable; a pin
+  // joins them, or accepting the card would place the area only when the budget happened
+  // to have room for it.
+  const mustKeep = Object.assign({}, injuryByArea);
+  pinnedAreas.forEach(a=>{ if(!mustKeep[a]) mustKeep[a] = { pinned:true }; });
+
+  return { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, doneToday, doneTrailing7, squatAnkleFlag, pinnedAreas, mustKeep };
 }
 
-function areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag){
+function areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas){
   runFlagged = runFlagged || {};
+  if(pinnedAreas && pinnedAreas.has(area) && !injuryByArea[area]){
+    return { cls:'planned', reasonCls:'', text:'You accepted the mobility card for this area today' };
+  }
   if(injuryByArea[area]){
     return { cls:'injury', reasonCls:'injury', text:`Injury flagged — ${injuryByArea[area].part}, severity ${injuryByArea[area].currentSeverity.toFixed(1)}` };
   } else if(loadFlagged[area]){
@@ -21271,9 +21338,8 @@ async function computePostExerciseAreas(){
   });
 
   const ordered = Array.from(workedAreas).sort((a,b)=>{
-    const aScore = base.injuryByArea[a] ? 2 : (base.loadFlagged[a] ? 1 : 0);
-    const bScore = base.injuryByArea[b] ? 2 : (base.loadFlagged[b] ? 1 : 0);
-    return bScore - aScore;
+    const score = x=> base.pinnedAreas.has(x) ? 3 : (base.injuryByArea[x] ? 2 : (base.loadFlagged[x] ? 1 : 0));
+    return score(b) - score(a);
   });
 
   return { ...base, ordered, ranToday, alreadyStretched };
@@ -21292,13 +21358,14 @@ const MOBILITY_STATIC_SHARE_PER_AREA = 5;
 // training transiently reduces force output, and RAMP's Raise/Activate/Mobilise phases
 // are movement prep by design. Zero, not a token minute.
 const WARMUP_STATIC_SHARE_PER_AREA = 0;
-// Always keeps injury-flagged areas (non-negotiable); trims everything else to fit
+// Always keeps the must-keep areas — injuries, and areas you pinned by accepting a
+// mobility card (non-negotiable); trims everything else to fit
 // the time budget, taking `ordered` (already priority-sorted) from the top down.
-function selectWithinBudget(ordered, injuryByArea, cap, perAreaCost){
+function selectWithinBudget(ordered, mustKeep, cap, perAreaCost){
   const selected = [];
   let running = 0;
   ordered.forEach(area=>{
-    const isInjury = !!injuryByArea[area];
+    const isInjury = !!mustKeep[area];
     if(isInjury || running + perAreaCost <= cap){
       selected.push(area);
       running += perAreaCost;
@@ -21320,7 +21387,7 @@ async function generateWarmup(){
 
   await window.storage.set(`plan:${todayStr}`, JSON.stringify({ date: todayStr, planTypes: Array.from(selectedPlanTypes) }));
 
-  const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, squatAnkleFlag } = await computeWarmupAreas();
+  const { ordered, injuryByArea, loadFlagged, runFlagged, exercisesByArea, squatAnkleFlag, pinnedAreas, mustKeep } = await computeWarmupAreas();
 
   const sectionIds = ['warmupSection'];
   if(ordered.length === 0){
@@ -21360,12 +21427,12 @@ async function generateWarmup(){
       (MOBILITY_SKILL_TARGET_AREAS[sg.skill]||[]).forEach(a=>_goalAreasW.add(a));
     });
   } catch(e){}
-  const _needW = rotatedBase.filter(a => injuryByArea[a] || _goalAreasW.has(a) || (_ledgerW[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
+  const _needW = rotatedBase.filter(a => mustKeep[a] || _goalAreasW.has(a) || (_ledgerW[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
   // If everything has hit target, fall back to the full list rather than emptying the
   // warm-up entirely — being at the ROM ceiling is no reason to skip movement prep.
   const rotated = (_needW.length ? _needW : rotatedBase)
     .slice().sort((a, b) => (_ledgerW[a] || 0) - (_ledgerW[b] || 0));
-  const { selected, estMinutes } = selectWithinBudget(rotated, injuryByArea, warmupCap, WARMUP_TIME_PER_AREA);
+  const { selected, estMinutes } = selectWithinBudget(rotated, mustKeep, warmupCap, WARMUP_TIME_PER_AREA);
 
   // Persist which areas actually got warmed up today — previously this was computed
   // fresh on every view and thrown away, meaning "did warm-ups already cover this area
@@ -21442,7 +21509,7 @@ async function generateWarmup(){
   const drillParts = [];
   const seen = new Set();
   selected.forEach(area=>{
-    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag);
+    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas);
     getWarmupDrills(area).map(shortDose).forEach(d=>{
       const k = d.toLowerCase();
       if(seen.has(k)) return;   // two areas can draw the same drill from the library
@@ -21473,7 +21540,7 @@ async function generateMobility(){
   // content is the news that it has none.
   const mobilityContainer = document.getElementById('mobilityCards');
   mobilityContainer.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
-  const { ordered, injuryByArea, loadFlagged, runFlagged, ranToday, alreadyStretched } = await computePostExerciseAreas();
+  const { ordered, injuryByArea, loadFlagged, runFlagged, ranToday, alreadyStretched, pinnedAreas, mustKeep } = await computePostExerciseAreas();
   const remaining = ordered.filter(a=> !alreadyStretched[a]);   // skip areas already addressed today — don't spend budget on them
   if(remaining.length === 0){
     mobilitySection.style.display = 'none';
@@ -21499,10 +21566,10 @@ async function generateMobility(){
       (MOBILITY_SKILL_TARGET_AREAS[sg.skill]||[]).forEach(a=>_goalAreasM.add(a));
     });
   } catch(e){}
-  const _needM = remainingBase.filter(a => injuryByArea[a] || _goalAreasM.has(a) || (_ledgerM[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
+  const _needM = remainingBase.filter(a => mustKeep[a] || _goalAreasM.has(a) || (_ledgerM[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
   const remainingRot = (_needM.length ? _needM : remainingBase)
     .slice().sort((a, b) => (_ledgerM[a] || 0) - (_ledgerM[b] || 0));
-  const { selected, estMinutes } = selectWithinBudget(remainingRot, injuryByArea, mobilityCap, MOBILITY_TIME_PER_AREA);
+  const { selected, estMinutes } = selectWithinBudget(remainingRot, mustKeep, mobilityCap, MOBILITY_TIME_PER_AREA);
 
   // Same reasoning as the warm-up log: post-session stretching is real time under stretch
   // and has to count toward the weekly per-muscle-group ceiling, or the ceiling is
@@ -21566,7 +21633,7 @@ async function generateMobility(){
   selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
     if(!proto) return;
-    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged);
+    const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, null, pinnedAreas);
     const skipNote = stretchingNotesByArea[area];
     push('Roll', tighten(trim('foam roll', proto.foamRoll)), r.cls);
     push('Move', tighten(trim('dynamic', proto.dynamic)), r.cls);
