@@ -5335,11 +5335,15 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.14';
+const APP_VERSION = '2026.08.30.15';
 
-// Registration is deliberately optional. If sw.js hasn't been deployed alongside
-// index.html the register() call rejects and is swallowed — the app carries on exactly
-// as before, just without the offline fallback and update handling.
+/* Registration is optional in the sense that it degrades quietly — but it was optional in
+   practice too, for a long time, because sw.js did not exist in the repository. Every
+   register() call 404'd, rejected, and was swallowed exactly as designed, which left nothing
+   at all between a home-screen install and iOS's own HTML cache. That is why a build could
+   be pushed and never arrive. The worker is a real file now, and it serves the document
+   network-first: a page load asks the network and only falls back to the cached copy when
+   the network is genuinely gone. */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -5349,7 +5353,17 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       document.addEventListener('visibilitychange', ()=>{
         if(!document.hidden) reg.update().catch(()=>{});
       });
+      reg.update().catch(()=>{});
     }).catch(()=>{});
+    // A worker that has taken over mid-session means the document you are looking at is not
+    // the one it would serve now. Say so rather than waiting for the next foreground.
+    let swSwapped = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(swSwapped) return;
+      swSwapped = true;
+      lastUpdateCheck = 0;
+      passiveUpdateCheck();
+    });
   });
 }
 
@@ -5372,6 +5386,18 @@ async function passiveUpdateCheck(){
   } catch(e){ /* offline or blocked — silent by design */ }
 }
 
+/* Drop the worker's cached document before navigating, so the reload cannot be answered from
+   the very copy you are trying to leave. Then go to a URL the HTTP cache has never seen,
+   rather than location.reload(), which on iOS frequently re-serves the same document. */
+function applyUpdate(version){
+  const go = ()=> location.replace(location.pathname + '?v=' + version);
+  try{
+    const ctl = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if(!ctl) return go();
+    ctl.postMessage({ type:'dropCache' });
+    setTimeout(go, 120);
+  } catch(e){ go(); }
+}
 function showUpdateBanner(version){
   if(document.getElementById('updateBanner')) return;
   const bar = document.createElement('div');
@@ -5381,13 +5407,16 @@ function showUpdateBanner(version){
     + `<span class="update-banner-actions"><button class="small" id="updateBannerGo">Reload</button>`
     + `<span id="updateBannerDismiss" class="update-banner-x">×</span></span>`;
   document.body.appendChild(bar);
-  document.getElementById('updateBannerGo').addEventListener('click', ()=>{
-    location.replace(location.pathname + '?v=' + version);
-  });
+  document.getElementById('updateBannerGo').addEventListener('click', ()=> applyUpdate(version));
   document.getElementById('updateBannerDismiss').addEventListener('click', ()=> bar.remove());
 }
 
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) passiveUpdateCheck(); });
+/* And once on load. The check only ever ran on a visibility transition, which sounds like it
+   covers a home-screen app — it is resumed rather than started — but it means a cold launch
+   checks nothing, and if you open the app, look at it, and close it again, the banner has no
+   moment to appear. Deferred so it cannot compete with the first paint. */
+setTimeout(()=>{ passiveUpdateCheck(); }, 2500);
 
 async function checkForUpdate(){
   const out = document.getElementById('updateCheckResult');
@@ -5412,11 +5441,7 @@ async function checkForUpdate(){
       out.innerHTML = `Version ${latest} is available — you're on ${APP_VERSION}. `
         + `<span id="applyUpdateLink" style="text-decoration:underline; cursor:pointer; color:var(--text); font-weight:700;">Reload now</span>`;
       const link = document.getElementById('applyUpdateLink');
-      if(link) link.addEventListener('click', ()=>{
-        // Navigate to a URL the cache has never seen, rather than location.reload(),
-        // which on iOS frequently re-serves the same cached document.
-        location.replace(location.pathname + '?v=' + latest);
-      });
+      if(link) link.addEventListener('click', ()=> applyUpdate(latest));
     }
     return { current: APP_VERSION, latest, updateAvailable: true };
   } catch(e){
