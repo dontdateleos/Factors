@@ -751,8 +751,18 @@
   #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:none; }
   /* Says what the marks are without saying it twice — the number beside them is the score, so
      the only thing left to state is how far back they go. */
-  .trace-cap{ font-family:var(--mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
-    color:rgba(251,250,246,0.42); margin-bottom:4px; }
+  /* 10px rather than 9. The column cannot get any WIDER — it is bounded by the score's own
+     right edge, and at 320px there are 94 pixels between the digits and the screen — so the
+     size it can gain is here and in the heights below. Measured before choosing: at 10px
+     "LAST 7 DAYS" is 82px and "HOW ARE YOU?" is 89, both of which clear 94. "HOW ARE YOU
+     FEELING?" is 148 and never fitted at any size, which is why the shorter question. */
+  .trace-cap{ font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color:rgba(251,250,246,0.42); margin-bottom:5px;
+    /* Never allowed to set the size of the block it labels. #scoreTrace has no width of its
+       own — it is right-anchored and as wide as its widest child — so the moment a caption
+       grew past the marks under it, the caption became the column and the trace shifted out
+       from under the chip. It is clipped to whatever the column is instead. */
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* A reading you have gone back to arrives torn, then settles. steps(1) so every frame is a
      hard cut — an interpolated glitch is a smear, and nothing else in this app smears. No
      colour separation either: the usual chromatic-aberration trick would put red and cyan on
@@ -986,12 +996,11 @@
      measured width, same 9px caption over a short band. The two of them are one column — what
      you say about today, and what the last seven came to — at the score's own eye level. */
   #todayFaceRow{ position:absolute; right:14px; display:none; }
-  #todayFaceRow .trace-cap{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    color:var(--face-said, rgba(251,250,246,0.42)); }
+  #todayFaceRow .trace-cap{ color:var(--face-said, rgba(251,250,246,0.42)); }
   .subj-faces{ display:flex; gap:3px; }
   /* Outlined in its own colour, filled in it when chosen: colour is always on the page so the
      scale reads at a glance, but only one of them is ever loud. */
-  .subj-face{ flex:1; min-width:0; height:22px; background:transparent; color:var(--face-c);
+  .subj-face{ flex:1; min-width:0; height:26px; background:transparent; color:var(--face-c);
     border:1px solid var(--face-c); cursor:pointer; padding:0; position:relative;
     display:flex; align-items:center; justify-content:center;
     transition:background 0.12s linear, opacity 0.12s linear; }
@@ -1558,7 +1567,7 @@
     <!-- The one thing on this page you are asked for, drawn at the trace's size and sat
          directly on top of it. -->
     <div id="todayFaceRow">
-      <div class="trace-cap" id="todayFaceCap">Ready for it</div>
+      <div class="trace-cap" id="todayFaceCap">How are you?</div>
       <div class="subj-faces" id="todayFaces"></div>
     </div>
     <div id="scoreTrace" role="img" aria-label=""></div>
@@ -5130,7 +5139,7 @@ const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
 // same number rather than five values guessed to look about right. The gap and the widths go
 // down with the heights, which is the whole difference between a small drawing of a face and
 // a normal one squashed.
-const FACE_SCALE = 0.32;
+const FACE_SCALE = 0.38;
 // The docked chip is the same drawing, larger: it is one thing now rather than one of five,
 // and it has to hold its own beside a 58px number.
 const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 2, DOCK_SCALE = 0.55;
@@ -5329,7 +5338,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.17';
+const APP_VERSION = '2026.08.30.18';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -6938,7 +6947,7 @@ function paintTodayFaces(){
   // either way, which is all the column has room for. In the chosen face's own colour, so
   // the word and the mark are obviously the same statement.
   if(cap){
-    cap.textContent = v == null ? 'Ready for it' : SUBJECTIVE_WORDS[v - 1];
+    cap.textContent = v == null ? 'How are you?' : SUBJECTIVE_WORDS[v - 1];
     cap.style.setProperty('--face-said', v == null ? '' : `var(--face-${v})`);
   }
   if(dock){
@@ -12176,7 +12185,7 @@ async function overallScoreForEntry(entry){
 // of it. This one is read as shape, not as value — the number itself is directly beside it.
 const TRACE_MIN_SPAN = 20;
 const TRACE_PAD = 4;            // so the highest and lowest days aren't drawn on the edges
-const TRACE_BAND = 26;          // the trace's own height, above its rail
+const TRACE_BAND = 30;          // the trace's own height, above its rail
 const TICK_H = 3;               // today's mark; the other six are 2px
 const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
@@ -12341,7 +12350,12 @@ function paintScoreTrace(){
       ${scoreWeights.map((v,i)=> v == null ? '' : `<rect x="${Math.round(i * slot + (slot - tickW) / 2)}" y="${Math.max(0, Math.round(wy(v)) - 1)}" width="${tickW}" height="1" fill="rgba(251,250,246,0.4)"/>`).join('')}
     </svg>`;
   }
-  host.innerHTML = `<div class="trace-cap">7 days</div>
+  // Said in full where there is room for it, and shortened rather than truncated where there
+  // is not — on a 320px screen with the chip docked the column is 60px, and "LAST 7 D…" is
+  // worse than the label this has always had.
+  const cap = W >= 86 ? 'Last 7 days' : '7 days';
+  host.style.width = W + 'px';
+  host.innerHTML = `<div class="trace-cap">${cap}</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
