@@ -5207,7 +5207,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.3';
+const APP_VERSION = '2026.08.30.4';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7457,6 +7457,7 @@ async function computeSystemicReadiness(asOfDate){
     refused: !enough && today.weightPresent > 0,
     score, raw: today.raw, z: today.z, percentile,
     gate, gateReason, drinkNote, illness, held, saturated: hrvSaturated(win),
+    variability: hrvVariability(win), shift: baselineShift(win),
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
@@ -7464,6 +7465,73 @@ async function computeSystemicReadiness(asOfDate){
     shownSeries,
     ciLow: shownLow, ciHigh: shownHigh,
     parts: partsToday, debt: debtZ, win
+  };
+}
+
+/* ---------- TWO READINGS THE NIGHTLY SERIES ALREADY SUPPORTS ----------
+
+   1. HRV COEFFICIENT OF VARIATION. Week-to-week variability of ln rMSSD carries information
+      independent of the level, correlating around r = -0.50 with performance: instability is
+      a signal even when the average looks fine.
+
+      The direction is genuinely contested and this does NOT go into the score because of
+      that. The commonly cited pattern runs baseline ~2.8% to functionally overreached ~8.1%
+      to non-functionally overreached ~14.2%, but Plews' own 2012 case had CV FALLING in the
+      overreached athlete. So it is reported, flagged against the person's own usual spread
+      rather than a population figure, and labelled as the convention it is. Folding a
+      contested direction into a weighted sum would assert more than the evidence carries.
+
+   2. CHANGE-POINT DETECTION, kept separate from the daily deviation. "Today is 1.8 SD low"
+      and "your baseline has been 0.6 SD lower for nine days" have completely different
+      implications and every consumer score collapses them into one number. A daily dip is
+      noise or a bad night; a shifted baseline is a change in you. */
+const CV_RECENT_DAYS = 14, CV_MIN_OBS = 8;
+const SHIFT_RECENT_DAYS = 10, SHIFT_PRIOR_DAYS = 30, SHIFT_MIN_SD = 0.4;
+
+function hrvVariability(win){
+  const src = win.hrvSource;
+  if(!src) return { available:false };
+  const series = win.entries.map((e, i)=> (e && !win.drinkMask[i] && e[src] != null) ? Math.log(e[src]) : null);
+  const cvOf = (arr)=>{
+    const v = arr.filter(x=>x != null);
+    if(v.length < CV_MIN_OBS) return null;
+    const m = v.reduce((a,b)=>a+b,0) / v.length;
+    if(!m) return null;
+    const sd = Math.sqrt(v.reduce((a,b)=>a + (b-m)*(b-m), 0) / (v.length - 1));
+    return 100 * sd / Math.abs(m);
+  };
+  const recent = cvOf(series.slice(-CV_RECENT_DAYS));
+  const baseline = cvOf(series.slice(0, Math.max(0, series.length - CV_RECENT_DAYS)));
+  if(recent == null || baseline == null) return { available:false, recent };
+  return {
+    available: true,
+    recent: Math.round(recent * 100) / 100,
+    baseline: Math.round(baseline * 100) / 100,
+    // Half again as unstable as your own usual is the convention. Named as one.
+    elevated: recent > baseline * 1.5
+  };
+}
+
+function baselineShift(win){
+  const src = win.hrvSource;
+  if(!src) return { available:false };
+  const series = win.entries.map((e, i)=> (e && !win.drinkMask[i] && e[src] != null) ? Math.log(e[src]) : null);
+  const recent = series.slice(-SHIFT_RECENT_DAYS).filter(v=>v != null);
+  const prior  = series.slice(-(SHIFT_RECENT_DAYS + SHIFT_PRIOR_DAYS), -SHIFT_RECENT_DAYS).filter(v=>v != null);
+  if(recent.length < 5 || prior.length < 12) return { available:false };
+  const mean = a => a.reduce((x,y)=>x+y,0) / a.length;
+  const mr = mean(recent), mp = mean(prior);
+  const sd = Math.sqrt(prior.reduce((a,b)=>a + (b-mp)*(b-mp), 0) / (prior.length - 1));
+  if(!sd) return { available:false };
+  const shift = (mr - mp) / sd;
+  return {
+    available: true,
+    shift: Math.round(shift * 100) / 100,
+    days: recent.length,
+    // A sustained move, not a dip: this reads the last ten days as a block against the
+    // thirty before them, so a single bad night cannot produce it.
+    moved: Math.abs(shift) >= SHIFT_MIN_SD,
+    direction: shift < 0 ? 'down' : 'up'
   };
 }
 
@@ -10591,6 +10659,14 @@ function renderReadinessConfidence(sr){
   if(sr.gateReason) html += `<div style="color:var(--warn); margin-top:2px;">${sr.gateReason}</div>`;
   if(sr.drinkNote) html += `<div style="margin-top:2px; opacity:0.75;">${sr.drinkNote}</div>`;
   if(sr.saturated) html += `<div style="color:var(--warn); margin-top:2px;">High HRV with a heart rate that does not agree — read as unclear, not fresh.</div>`;
+  // Reported next to the score rather than inside it. A shifted baseline and a bad night are
+  // different events and the number cannot say which it is looking at.
+  if(sr.shift && sr.shift.moved){
+    html += `<div style="margin-top:2px; opacity:0.8;">Your HRV baseline has been ${sr.shift.direction} for about ${sr.shift.days} days — that is a change in you, not a bad night.</div>`;
+  }
+  if(sr.variability && sr.variability.elevated){
+    html += `<div style="margin-top:2px; opacity:0.8;">Night-to-night HRV is ${sr.variability.recent}% against your usual ${sr.variability.baseline}% — instability carries its own signal, though the research disagrees on which way it points.</div>`;
+  }
   el.innerHTML = html;
   el.dataset.readiness = '1';
   return true;
