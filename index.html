@@ -1574,7 +1574,11 @@
     <!-- Where the answer comes to rest: at the number's right edge, tucked behind it. -->
     <button type="button" id="todayFaceDock"></button>
     <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
-    <div id="todayBlockContext" class="score-note" style="text-align:center; font-size:var(--fs-tag);"></div>
+    <!-- The block position line used to sit here — "Block 1 · week 1/4 · accumulation". It is
+         true and it is not urgent: the same thing is on Weekly, where you go to look at the
+         block. Today opens on a number and a plan now. The element stays so the swipe through
+         the week can still write into it; it is display:none until something needs it. -->
+    <div id="todayBlockContext" class="score-note" style="display:none; text-align:center; font-size:var(--fs-tag);"></div>
     </div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
@@ -5365,7 +5369,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.19';
+const APP_VERSION = '2026.08.30.20';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -16848,9 +16852,10 @@ async function applyTodayStage(){
   const seen = await hasAnyRecoveryEntry();
   const gauge = panel.querySelector('.gauge-wrap');
   const trace = document.getElementById('scoreTrace');
-  const ctx = document.getElementById('todayBlockContext');
   const faces = document.getElementById('todayFaceRow');
-  [gauge, trace, ctx, faces].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
+  // todayBlockContext is deliberately not in this list any more: it is hidden for good, and
+  // handing it back a display of '' here would have undone that on the first render.
+  [gauge, trace, faces].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
   // The band is the score's own ground. Emptied but still standing it is a black hole at the
   // top of the page, so it collapses with what it was holding.
   const band = panel.querySelector('.today-open');
