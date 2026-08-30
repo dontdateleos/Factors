@@ -2700,26 +2700,41 @@ function anim(k){
    drawn at the 16px the rating row uses, the middle three are a few pixels of eyelid apart
    and the two ends look like each other. Every axis the mark has now moves together:
 
-   HEIGHT is still the spine of it, but the bottom goes lower (4px, a slit rather than a
-   short eye) and the steps between are uneven — most of the change happens in the bottom
+   WIDTH, and this is the one that was missing. Height alone makes a tired eye a SMALL eye,
+   and a small version of a thing still reads as that thing — which is why the middle three
+   went on looking like each other however far apart their heights were. A closing eye does
+   not shrink, it FLATTENS: it keeps its width and loses its height, and at the end it is a
+   line wider than the open eye ever was. So the aspect ratio now runs 6.0 : 1.9 : 0.9 : 0.6 :
+   0.5, from a wide flat line to a tall narrow capsule. Nothing else here separates them like
+   that does.
+
+   HEIGHT is still the spine of it: 3, 9, 17, 26, 32, with most of the change in the bottom
    half, which is where fatigue actually shows on a face.
 
-   DROOP (rot) now peaks at the BOTTOM rather than in the middle. The old table had its
-   heaviest tilt at state 2 and none at all at state 1, so the most wrecked face was the one
-   sitting perfectly level — the only truly upright eye in the set was the exhausted one.
+   THE GAP closes as the eyes widen, which does two things at once: it keeps the pair exactly
+   42px across at every state, so a widening eye can never spill out of its own box, and a
+   squint drawing inward is what a squint does anyway.
+
+   CORNER RADIUS goes with the width. A 3px line with a 7.5px radius is a lozenge; at 1.5px
+   it is a line. The top radius is per-state now for the same reason the width is.
+
+   DROOP (rot) peaks at the BOTTOM rather than in the middle. The old table had its heaviest
+   tilt at state 2 and none at all at state 1, so the most wrecked face was the only perfectly
+   upright eye in the set.
 
    THE NOTCH (bl, a corner clipped off the lid) is what says half-closed rather than small,
-   and it now runs to 44% at the bottom and cleanly to nothing at the top.
+   and it runs to 52% at the second state and cleanly to nothing at the top.
 
-   GAZE is new, and it is the one that carries at small sizes: the dozy faces look down, the
-   awake ones look level and the top one a touch up. It is applied on the drawn faces only —
-   the score's own mark has its own gaze behaviours and this would fight them. */
+   GAZE, as a fraction of the box rather than a fixed offset, so it scales with whatever size
+   the mark is drawn at: the dozy faces sit low and look down, the awake ones sit level and
+   the top one a touch high. Applied on the drawn faces only — the score's own mark has gaze
+   behaviours of its own and this would fight them. */
 const EYE_STATES = [
-  { h:'4px',  rb:'2px',   bl:'0%',  rot:'-18deg', gy:3.5 },   // shut and drooping
-  { h:'11px', rb:'1.5px', bl:'44%', rot:'-13deg', gy:2.4 },   // half-lidded, heavy
-  { h:'20px', rb:'4px',   bl:'18%', rot:'-6deg',  gy:0.8 },   // level
-  { h:'28px', rb:'7px',   bl:'5%',  rot:'-2deg',  gy:0    },  // open
-  { h:'32px', rb:'8px',   bl:'0%',  rot:'0deg',   gy:-1.2 }   // wide, straight up
+  { h:'3px',  w:'18px', g:'6px',  r:'1.5px', rb:'1.5px', bl:'0%',  rot:'-20deg', gy:0.30 },
+  { h:'9px',  w:'17px', g:'8px',  r:'3px',   rb:'2px',   bl:'52%', rot:'-14deg', gy:0.19 },
+  { h:'17px', w:'15px', g:'12px', r:'6px',   rb:'4px',   bl:'24%', rot:'-7deg',  gy:0.07 },
+  { h:'26px', w:'15px', g:'12px', r:'7.5px', rb:'7px',   bl:'6%',  rot:'-2deg',  gy:0     },
+  { h:'32px', w:'15px', g:'12px', r:'7.5px', rb:'8px',   bl:'0%',  rot:'0deg',   gy:-0.05 }
 ];
 /* Anywhere between them, for a scale with more than five steps on it. Every numeric property
    is carried across, so a ten-point row gets ten faces that are all genuinely different
@@ -2729,8 +2744,8 @@ function eyeStateAt(t){
   const i = Math.min(EYE_STATES.length - 2, Math.floor(x));
   const f = x - i, a = EYE_STATES[i], b = EYE_STATES[i + 1];
   const mix = (p, unit)=> (parseFloat(a[p]) + (parseFloat(b[p]) - parseFloat(a[p])) * f).toFixed(2) + unit;
-  return { h:mix('h','px'), rb:mix('rb','px'), bl:mix('bl','%'), rot:mix('rot','deg'),
-           gy: a.gy + (b.gy - a.gy) * f };
+  return { h:mix('h','px'), w:mix('w','px'), g:mix('g','px'), r:mix('r','px'), rb:mix('rb','px'),
+           bl:mix('bl','%'), rot:mix('rot','deg'), gy: a.gy + (b.gy - a.gy) * f };
 }
 const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
 const EYE_FLIGHT_MS = 640;
@@ -2751,6 +2766,12 @@ function applyEyeState(el, st){
   el.style.setProperty('--eye-rb', st.rb);
   el.style.setProperty('--eye-bl', st.bl);
   el.style.setProperty('--eye-rot', st.rot);
+  // Width and top radius are per-state now, so the mark flattens as it closes instead of
+  // shrinking. Only ever applied at the score site — the header's mark is a different size
+  // and never goes through here — so absolute pixels are safe.
+  if(st.w) el.style.setProperty('--eye-w', st.w);
+  if(st.r) el.style.setProperty('--eye-r', st.r);
+  if(st.g) el.style.setProperty('--eye-gap', st.g);
   applyEyeMood(el);
 }
 
@@ -5226,12 +5247,13 @@ function faceEyesHtml(st, k, ink, alive){
   // transition off on the lids themselves, since an inline style on .eyes never reaches the
   // spans that actually carry the height. The docked one is a face, and a face that never
   // moves is a sticker, so it keeps its morph and blinks with it.
-  const style = `--eye-box-w:${facePx('42px', k)}; --eye-box-h:${facePx('32px', k)}; --eye-gap:${facePx('12px', k)};`
-    + ` --eye-w:${facePx('15px', k)}; --eye-r:${facePx('7.5px', k)};`
+  const style = `--eye-box-w:${facePx('42px', k)}; --eye-box-h:${facePx('32px', k)}; --eye-gap:${facePx(st.g || '12px', k)};`
+    + ` --eye-w:${facePx(st.w || '15px', k)}; --eye-r:${facePx(st.r || '7.5px', k)};`
     + ` --eye-h:${facePx(st.h, k)}; --eye-rb:${facePx(st.rb, k)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
     + ` --eye-ink:${ink}; --eye-plate:transparent;${alive ? '' : ' transition:none;'}`;
-  // The gaze rides on the inner wrapper, which is where eyeGaze puts it on the live mark.
-  const gaze = st.gy ? ` style="--eye-gaze-y:${(st.gy * (k || FACE_SCALE) * 2.4).toFixed(2)}px;"` : '';
+  // The gaze rides on the inner wrapper, which is where eyeGaze puts it on the live mark. A
+  // fraction of the box, so it holds at any size the face is drawn.
+  const gaze = st.gy ? ` style="--eye-gaze-y:${(st.gy * 32 * (k || FACE_SCALE)).toFixed(2)}px;"` : '';
   const inner = gaze ? EYE_INNER_HTML.replace('<div class="eye-gaze"', `<div class="eye-gaze"${gaze}`) : EYE_INNER_HTML;
   return `<span class="eyes" style="${style}" aria-hidden="true">${inner}</span>`;
 }
@@ -5417,7 +5439,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.22';
+const APP_VERSION = '2026.08.30.23';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
