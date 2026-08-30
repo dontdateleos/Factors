@@ -2611,7 +2611,8 @@ const EYE_ANIM = {
   // — Sixth.
   mirrorYourFace: { on:true, note:'Wears the face you just tapped, then settles onto whatever the score makes of it', ms:900 },
   chipBlinks:     { on:true, note:'The docked face blinks on its own clock — set by what you told it, not by what the score says' },
-  chipAndMark:    { on:true, note:'The pair and the docked face notice each other now and then, and what passes between them depends on whether they agree', chance:0.22, restMs:24000 }
+  chipAndMark:    { on:true, note:'The pair and the docked face notice each other now and then, and what passes between them depends on whether they agree', chance:0.22, restMs:24000 },
+  tearOnFlight:   { on:true, note:'The mark tears as it lands, going up to the wordmark or back down to the score', px:6 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -3047,7 +3048,10 @@ function idleBeat(el){
   // in the same roster as everything else, so it can never talk over a blink or a glance.
   // Two pixels of throw, because the pair is forty across — the score gets seven.
   if(anim('glitch') && r < EYE_ANIM.glitch.chance){
-    playGlitch(el, 'markGlitch', 2);
+    // Six pixels, not two. Two was chosen to keep it proportional to a 42px pair against the
+    // score's 72 — but the score's tear is a thing you notice and the mark's was not, and a
+    // tear nobody sees is not a quieter version of the effect, it is the effect missing.
+    playGlitch(el, 'markGlitch', 6);
     scheduleIdle(); return;
   }
   if(anim('saccade') && r < 0.09){
@@ -3132,6 +3136,11 @@ function moveEyes(dest, from){
     }
     startEyeIdle();
     eyeNoteActivity();
+    // It arrives torn. The flight is the one moment the mark is somewhere it was not a beat
+    // ago, which is exactly what the tear says everywhere else in this app — a reading that
+    // has jumped rather than moved. The glance down at the number still runs; the tear goes
+    // over the top of it.
+    if(anim('tearOnFlight')) playGlitch(dest === 'header' ? header : score, 'markGlitch', EYE_ANIM.tearOnFlight.px);
     if(dest === 'header' && anim('popOnArrival')) eyePop();
     // A look down at the number it just landed above, so the arrival has a point.
     if(dest === 'score' && anim('glanceAtNumber')) setTimeout(()=>{ eyeGaze(0, 5, 240, 620); eyeConvergeFor(40); }, 160);
@@ -4302,7 +4311,7 @@ const UI_ANIM = {
   digitRoll:    { on:true, note:'The score rolls its digits like a counter', ms:620, stagger:70 },
   digitStep:    { on:true, note:'…and the counter ticks between digits rather than sliding through them' },
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
-  markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:200 },
+  markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:320 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -5326,7 +5335,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.13';
+const APP_VERSION = '2026.08.30.14';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7124,9 +7133,11 @@ function chipSaid(){ const v = faceValues[faceDate()]; return v == null ? null :
 function chipTiming(){
   const said = chipSaid();
   const b = BLINK_BY_BAND[said == null ? 2 : said - 1];
-  // The lids travel about half as far at this size, so the same durations would read as a
-  // slow blink rather than a small one.
-  return { gap:b.gap, span:b.span, shut:Math.round(b.shut * 0.7), open:Math.round(b.open * 0.7) };
+  // Full durations, not scaled down. The first version shortened them on the reasoning that
+  // a smaller lid should take less time — but the lid here travels 17px against the mark's
+  // 32, so the same duration already makes the movement gentler, and cutting it to 0.7 took
+  // a blink you could see and made it a flicker you could not.
+  return b;
 }
 function chipBlinkOnce(then){
   const el = chipEyes();
@@ -11960,7 +11971,6 @@ async function checkReturnToRunRule(){
    an ABSOLUTE scale, where 1 of 5 is a bad morning by definition and needs no history at all.
    So the fallback blends it in flat, at the same 0.28 it will carry once the real model takes
    over, and the changeover is therefore a change of method rather than a jump in weight.
-   Measured at seven days: 64 / 78 / 92 for wrecked / ok / raring, against 89 with no rating.
 
    Never applied on top of Systemic Readiness: that already contains the rating, and adding it
    again would count it twice. */
