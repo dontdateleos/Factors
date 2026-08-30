@@ -1085,6 +1085,12 @@
     text-transform:none; opacity:0.5; white-space:nowrap; }
   .rpe-row{ margin-top:12px; display:flex; flex-direction:column; gap:5px; }
   .rpe-row .subj-name, .rpe-row .subj-anchor{ color:var(--on-light); opacity:0.75; }
+  /* Ten across a phone leaves about 28px each, so the padding the numbered version needed
+     goes and the face fills the box. Same fill-on-choose as everywhere else the mark is a
+     control: chosen is solid, and the eyes inside it invert with it. */
+  .rpe-face{ padding:0; height:34px; }
+  .rpe-face .eyes{ pointer-events:none; }
+  .rpe-face.on .eyes{ --eye-ink:var(--bg); }
   .rpe-scale{ display:flex; gap:4px; }
   .rpe-scale .subj-dot{ height:32px; border-color:var(--border-bold); color:var(--on-light-dim);
     background:var(--panel); padding:0 2px; }
@@ -2687,13 +2693,45 @@ function anim(k){
   return !eyeMotionOff();
 }
 
+/* FIVE FACES THAT ARE ACTUALLY FIVE DIFFERENT FACES.
+
+   These used to differ almost entirely in height — 7, 15, 22, 29, 32 — with a little
+   rotation on the middle three and the same shape at both ends. Drawn at 42px that reads;
+   drawn at the 16px the rating row uses, the middle three are a few pixels of eyelid apart
+   and the two ends look like each other. Every axis the mark has now moves together:
+
+   HEIGHT is still the spine of it, but the bottom goes lower (4px, a slit rather than a
+   short eye) and the steps between are uneven — most of the change happens in the bottom
+   half, which is where fatigue actually shows on a face.
+
+   DROOP (rot) now peaks at the BOTTOM rather than in the middle. The old table had its
+   heaviest tilt at state 2 and none at all at state 1, so the most wrecked face was the one
+   sitting perfectly level — the only truly upright eye in the set was the exhausted one.
+
+   THE NOTCH (bl, a corner clipped off the lid) is what says half-closed rather than small,
+   and it now runs to 44% at the bottom and cleanly to nothing at the top.
+
+   GAZE is new, and it is the one that carries at small sizes: the dozy faces look down, the
+   awake ones look level and the top one a touch up. It is applied on the drawn faces only —
+   the score's own mark has its own gaze behaviours and this would fight them. */
 const EYE_STATES = [
-  { h:'7px',  rb:'1px',   bl:'0%',  rot:'0deg'   },
-  { h:'15px', rb:'1.5px', bl:'22%', rot:'-13deg' },
-  { h:'22px', rb:'3px',   bl:'15%', rot:'-9deg'  },
-  { h:'29px', rb:'6.5px', bl:'6%',  rot:'-4deg'  },
-  { h:'32px', rb:'7.5px', bl:'0%',  rot:'0deg'   }
+  { h:'4px',  rb:'2px',   bl:'0%',  rot:'-18deg', gy:3.5 },   // shut and drooping
+  { h:'11px', rb:'1.5px', bl:'44%', rot:'-13deg', gy:2.4 },   // half-lidded, heavy
+  { h:'20px', rb:'4px',   bl:'18%', rot:'-6deg',  gy:0.8 },   // level
+  { h:'28px', rb:'7px',   bl:'5%',  rot:'-2deg',  gy:0    },  // open
+  { h:'32px', rb:'8px',   bl:'0%',  rot:'0deg',   gy:-1.2 }   // wide, straight up
 ];
+/* Anywhere between them, for a scale with more than five steps on it. Every numeric property
+   is carried across, so a ten-point row gets ten faces that are all genuinely different
+   rather than five drawn twice. */
+function eyeStateAt(t){
+  const x = Math.max(0, Math.min(1, t)) * (EYE_STATES.length - 1);
+  const i = Math.min(EYE_STATES.length - 2, Math.floor(x));
+  const f = x - i, a = EYE_STATES[i], b = EYE_STATES[i + 1];
+  const mix = (p, unit)=> (parseFloat(a[p]) + (parseFloat(b[p]) - parseFloat(a[p])) * f).toFixed(2) + unit;
+  return { h:mix('h','px'), rb:mix('rb','px'), bl:mix('bl','%'), rot:mix('rot','deg'),
+           gy: a.gy + (b.gy - a.gy) * f };
+}
 const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
 const EYE_FLIGHT_MS = 640;
 // The two wrappers inside every copy of the mark. .eye-gaze carries a sustained offset —
@@ -5182,8 +5220,8 @@ const FACE_SCALE = 0.38;
 // and it has to hold its own beside a 58px number.
 const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 2, DOCK_SCALE = 0.55;
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
-function faceEyesHtml(n, k, ink, alive){
-  const st = EYE_STATES[n - 1];
+function faceEyesHtml(st, k, ink, alive){
+  if(typeof st === 'number') st = EYE_STATES[st - 1];
   // The five in the row are a scale to read, so they hold still: .subj-face pins the
   // transition off on the lids themselves, since an inline style on .eyes never reaches the
   // spans that actually carry the height. The docked one is a face, and a face that never
@@ -5192,7 +5230,10 @@ function faceEyesHtml(n, k, ink, alive){
     + ` --eye-w:${facePx('15px', k)}; --eye-r:${facePx('7.5px', k)};`
     + ` --eye-h:${facePx(st.h, k)}; --eye-rb:${facePx(st.rb, k)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
     + ` --eye-ink:${ink}; --eye-plate:transparent;${alive ? '' : ' transition:none;'}`;
-  return `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span>`;
+  // The gaze rides on the inner wrapper, which is where eyeGaze puts it on the live mark.
+  const gaze = st.gy ? ` style="--eye-gaze-y:${(st.gy * (k || FACE_SCALE) * 2.4).toFixed(2)}px;"` : '';
+  const inner = gaze ? EYE_INNER_HTML.replace('<div class="eye-gaze"', `<div class="eye-gaze"${gaze}`) : EYE_INNER_HTML;
+  return `<span class="eyes" style="${style}" aria-hidden="true">${inner}</span>`;
 }
 function faceButtonHtml(n){
   // The mark at the state this rating means, drawn small and static, in that step's colour.
@@ -5376,7 +5417,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.21';
+const APP_VERSION = '2026.08.30.22';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10367,6 +10408,25 @@ function tickRestTimer(){
   // Whatever the mark is doing, it looks up when the set is over.
   try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
 }
+/* HOW HARD WAS THAT, IN THE SAME FACES.
+
+   Ten buttons with the digits 1 to 10 on them become ten faces — and they run the OTHER WAY
+   from the row on Today, because this scale means the opposite thing. Up there a wide-open
+   eye is you saying you are fresh; down here a wide-open eye is a session that barely touched
+   you, and 10 out of 10 is a face with its eyes shut. That inversion is the whole reason the
+   icon works here: what a hard session does to you is exactly what the mark draws.
+
+   Still ten steps, not five. Foster's session-RPE is validated on Borg CR-10 and the
+   granularity is the instrument; eyeStateAt interpolates between the five drawn states so
+   each of the ten gets a face of its own rather than five faces used twice.
+
+   No colour ramp, deliberately. Red at 10 would read as "that was bad", and a session that
+   took everything out of you is usually the point of the session. */
+function rpeFaceHtml(n){
+  const st = eyeStateAt((10 - n) / 9);
+  return `<button type="button" class="subj-dot rpe-face" data-v="${n}" aria-label="${n} of 10">`
+    + faceEyesHtml(st, 0.42, 'currentColor') + `</button>`;
+}
 function wireSessionRpe(panel){
   const box = panel.querySelector('#rpeScale');
   const input = panel.querySelector('#sessionRpe');
@@ -10623,7 +10683,7 @@ async function openBlockEditor(date, slot, block, opts){
          during, which is how it was validated. -->
     <div class="rpe-row" id="sessionRpeRow">
       <div class="subj-head"><span class="subj-name">How hard was that</span><span class="subj-anchor">1 easy &middot; 10 all out</span></div>
-      <div class="rpe-scale" id="rpeScale">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="subj-dot" data-v="${n}">${n}</button>`).join('')}</div>
+      <div class="rpe-scale" id="rpeScale">${[1,2,3,4,5,6,7,8,9,10].map(rpeFaceHtml).join('')}</div>
       <input type="hidden" id="sessionRpe">
     </div>
     <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
