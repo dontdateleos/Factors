@@ -2612,7 +2612,7 @@ const EYE_ANIM = {
   mirrorYourFace: { on:true, note:'Wears the face you just tapped, then settles onto whatever the score makes of it', ms:900 },
   chipBlinks:     { on:true, note:'The docked face blinks on its own clock — set by what you told it, not by what the score says' },
   chipAndMark:    { on:true, note:'The pair and the docked face notice each other now and then, and what passes between them depends on whether they agree', chance:0.22, restMs:24000 },
-  tearOnFlight:   { on:true, note:'The mark tears as it lands, going up to the wordmark or back down to the score', px:6 }
+  tearOnFlight:   { on:true, note:'The mark tears as it lands — flying between the wordmark and the score, and perching as you scroll past it', px:6 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -3106,7 +3106,10 @@ function whenHeaderSettled(fn){
 // VIEWPORT coordinates, not page ones — collapsing the header shortens the document, so a
 // page position taken while scrolled is up to 99px out by the time activateTab has scrolled
 // back to the top and the header has sprung open again.
-function moveEyes(dest, from){
+/* `snap` skips the flight entirely and goes straight to the landing — which already plays
+   the tear, so the move reads as a cut rather than a trip. It is what the perch uses: a
+   scroll is a continuous gesture, and a 640ms arc chasing your thumb is always behind it. */
+function moveEyes(dest, from, snap){
   const header = document.querySelector('.header-mark');
   const score = document.getElementById('scoreEyes');
   if(!header || !score) return;
@@ -3116,8 +3119,8 @@ function moveEyes(dest, from){
   stopEyeIdle();
   eyeGazeResetAll();
   // Look where it is about to go before it goes. The wipe and the header settling buy
-  // 300-400ms here, so the glance costs the flight nothing.
-  if(anim('lookBeforeLeaving')) eyeGaze(0, dest === 'score' ? 4 : -4, 200);
+  // 300-400ms here, so the glance costs the flight nothing. Snapping, there is no before.
+  if(!snap && anim('lookBeforeLeaving')) eyeGaze(0, dest === 'score' ? 4 : -4, 200);
   eyesHome = dest;
 
   const land = ()=>{
@@ -3148,6 +3151,7 @@ function moveEyes(dest, from){
     eyeRareBeat();
     scheduleIdle(dest === 'score' ? 1100 : 2600);
   };
+  if(snap){ land(); return; }
 
   // Nothing to fly if the eyes were behind the header or below the fold when we left —
   // they were not on screen, so a flight in from off-screen reads as a glitch.
@@ -4112,7 +4116,6 @@ function eyeMarkPressEnd(which){
    perches back up in the wordmark rather than leaving the app without a face, and drops
    again when the score comes back. The perch is a state settleEyes has to know about, or
    it would send the mark straight back down on the next tab switch. */
-let eyePerchTimer = null;
 function updateEyePerch(){
   if(!anim('stayVisible') || eyeFlightTimer) return;
   const header = document.querySelector('header');
@@ -4143,40 +4146,21 @@ function updateEyePerch(){
 
   if(!onToday || !score){
     // Nowhere to fly from and nowhere to fly to — the mark is already in the header on these
-    // tabs, so this is the same move updateHeaderCollapse would make anyway, animated. Read
-    // where it is, let the collapse rewrite it, then play it from where it was.
+    // tabs, so this is the same move updateHeaderCollapse would make anyway. It used to be
+    // played as a 380ms hop from where the mark had been; it tears instead, for the same
+    // reason the perch on Today does.
     const mark = document.querySelector('.header-mark');
-    const before = mark ? mark.getBoundingClientRect() : null;
     updateHeaderCollapse();
-    if(mark && before && before.width) eyePerchHop(mark, before);
+    if(mark && anim('tearOnFlight')) playGlitch(mark, 'markGlitch', EYE_ANIM.tearOnFlight.px);
     return;
   }
 
   const r = score.getBoundingClientRect();
   // The header the mark is perching into has collapsed to nothing by the time this fires,
   // and its own geometry is written from the wordmark's size — which is zero. Move it to
-  // the perch first, so the flight has somewhere real to land.
+  // the perch first, so the landing has somewhere real to be.
   updateHeaderCollapse();
-  moveEyes(want ? 'header' : 'score', want ? { x:r.left, y:r.top, offscreen:false } : null);
-}
-// The hop up to the perch, and back down again. updateHeaderCollapse has already written the
-// destination, so this plays the trip from where the mark was to where it now is — with a
-// little past the mark and back, because a thing that jumps overshoots.
-function eyePerchHop(mark, before){
-  if(eyeMotionOff()) return;
-  const after = mark.getBoundingClientRect();
-  if(!after.width) return;
-  const dx = before.left - after.left, dy = before.top - after.top;
-  if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-  const base = after.width / EYE_PERCH_SCALE;      // the mark's own unscaled width
-  const settled = mark.style.transform || 'none';
-  try{
-    mark.animate([
-      { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${(before.width / base).toFixed(3)})` },
-      { transform: `translate(${(dx * 0.12).toFixed(1)}px, -7px) ${settled}`, offset:0.62 },
-      { transform: settled }
-    ], { duration: 380, easing:'cubic-bezier(0.3,1.05,0.4,1)' });
-  }catch(e){}
+  moveEyes(want ? 'header' : 'score', want ? { x:r.left, y:r.top, offscreen:false } : null, true);
 }
 // Beside the tab's name, on the one row the collapsed header still has. Measured off the
 // text itself rather than the block, which is full width and would put the mark off-screen.
@@ -4197,9 +4181,19 @@ function eyePerchSpot(){
   const size = 40 * EYE_PERCH_SCALE;   // the header form is 40px square
   return { left: textRight - br.left + 9, top: (lr.top - br.top) + (lr.height - size)/2 };
 }
+/* This was debounced by 90ms — and a debounce RESETS on every scroll event, so the perch did
+   not fire 90ms into the scroll, it fired 90ms after the scroll STOPPED. Scroll continuously
+   and the mark stayed where it was the whole way down, then moved once you let go. Add the
+   640ms flight that used to follow and the gap between the score leaving the screen and the
+   mark arriving in the header was most of a second.
+
+   Throttled to one check a frame instead, so it fires the moment the threshold is crossed.
+   Two rect reads per frame while scrolling, and only when the state actually flips does
+   anything else run. */
+let eyePerchRaf = 0;
 window.addEventListener('scroll', ()=>{
-  clearTimeout(eyePerchTimer);
-  eyePerchTimer = setTimeout(updateEyePerch, 90);
+  if(eyePerchRaf) return;
+  eyePerchRaf = requestAnimationFrame(()=>{ eyePerchRaf = 0; updateEyePerch(); });
 }, { passive:true });
 
 /* 2 — The colophon is the app signing its name, so the mark is on it. Its own pair rather
@@ -5335,7 +5329,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.15';
+const APP_VERSION = '2026.08.30.16';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
