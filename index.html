@@ -2543,14 +2543,14 @@ const EYE_ANIM = {
   breathe:        { on:true, note:'…and swells a percent on the same loop', scale:0.022 },
   lookAround:     { on:true, note:'Glances off to one side and back, as if scanning', px:3.5 },
   saccade:        { on:true, note:'A one-pixel flick. Rare. Alive rather than paused', px:1.5 },
-  sleepAtNight:   { on:true, note:'Past bedtime the lids sit heavy', fromHour:22, toHour:5, lid:0.55 },
+  sleepAtNight:   { on:true, note:'Past bedtime the lids sit heavy', fromHour:22, toHour:5, lid:0.72 },
 
   // — What the data is telling it.
   wakeOnScore:    { on:true, note:'Shut, then opens to the band as the number counts up' },
   widenOnPR:      { on:true, note:'A beat of surprise when a logged lift beats your best' },
   wince:          { on:true, note:'A squint when you log an injury, or a REDUCE card lands' },
-  deloadFatigue:  { on:true, note:'Lids get heavier as a deload week wears on', perDay:0.05, floor:0.62 },
-  restDayFace:    { on:true, note:'Lids sit lower on a rest day', lid:0.5 },
+  deloadFatigue:  { on:true, note:'Lids get heavier as a deload week wears on', perDay:0.05, floor:0.76 },
+  restDayFace:    { on:true, note:'Lids sit lower on a rest day', lid:0.78 },
 
   // — Reacting to you.
   blinkOnTap:     { on:true, note:'Tap the mark and it blinks back' },
@@ -2601,7 +2601,7 @@ const EYE_ANIM = {
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:true, note:'The collapse chevrons are the mark, shut when the section is' },
-  sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.62 },
+  sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
   holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 },
 
@@ -2770,8 +2770,23 @@ function eyeLidScale(){
   }
   return k;
 }
-// Always called straight after a clean write of --eye-h, never on top of itself, or the
-// scaling would compound every time anything re-applied the form.
+/* THE LIDS WERE SET TOO LOW TO BE A FACE.
+
+   The eye is 15px wide and its tallest state is 32px, so a mood multiplier of 0.5 landed the
+   top band on 16px — a 15px-wide shape 16px tall, with a 7.5px radius, is a CIRCLE. On a rest
+   day, at a score of 90, the mark was two dots. Every band collapsed toward round and the
+   expression went with it; the one thing the mark exists to say, it could not say.
+
+   These are hints, not halvings. At 0.78 a rest day takes the top band to 25px, which still
+   reads as visibly lower without crossing the width. Night is heavier than a rest day at
+   0.72, which is the right order. idleSleep keeps its 0.16 — that one is genuinely asleep and
+   should look it.
+
+   Circles at the LOW bands are correct and were always there: state 1 is 15px against a 15px
+   width, so it is round by construction. The fault was the top band arriving there too.
+
+   Always called straight after a clean write of --eye-h, never on top of itself, or the
+   scaling would compound every time anything re-applied the form. */
 function applyEyeMood(el){
   const k = eyeLidScale();
   if(k >= 1) return;
@@ -3000,9 +3015,21 @@ function blinkTiming(){
 // and a wink is a thing you do AT someone — too pointed for a mark that blinks all day.
 function blinkOnce(el, then){
   const open = (el.style.getPropertyValue('--eye-h') || getComputedStyle(el).getPropertyValue('--eye-h')).trim();
-  // Already shut — the lowest score band IS a closed lid, and blinking it does nothing but
-  // twitch. Let it sit.
-  if(!open || parseFloat(open) <= parseFloat(EYE_STATES[0].h)){ if(then) then(); return; }
+  // The lowest band is already a closed lid, and shutting it further is a twitch rather than
+  // a blink — so it used to do nothing at all, and a mark that never moves reads as broken
+  // rather than as tired. It matters more now than it did: the rating reaching the score on
+  // day one means a bottom-band reading is a tap away rather than a rare event. It opens a
+  // little and settles back instead, slowly, which is what a heavy eye actually does.
+  if(!open || parseFloat(open) <= parseFloat(EYE_STATES[0].h)){
+    const base = parseFloat(open);
+    if(base >= 2 && !eyeMotionOff()){
+      const t = blinkTiming();
+      eyeLidPulse(Math.round(base * 2.4), Math.round(t.open * 1.3), 300, then);
+      return;
+    }
+    if(then) then();
+    return;
+  }
   const t = blinkTiming();
   // A blink reopens to the height it closed from, so a score landing mid-blink would be
   // undone by a timer set before it. The sequence number strands those timers instead.
@@ -5338,7 +5365,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.18';
+const APP_VERSION = '2026.08.30.19';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -7213,6 +7240,11 @@ function chipExchange(){
   const gap = shownBand - saidBand;
   const full = eyeFullOpen('score');
   stopIdle();
+  // Unconditionally, not through the branches' own callbacks. Every one of those callbacks
+  // is guarded by a blinkSeq check, so anything that bumps the sequence mid-gesture strands
+  // it — and with it the only scheduleIdle on that path, which stops the mark blinking for
+  // good. The rearm does not belong somewhere it can be skipped.
+  scheduleIdle(2200);
   if(Math.abs(gap) <= 0.22){
     // They agree. A nod, together — quick on a good day, heavy on a bad one.
     if(shownBand >= 0.55){
