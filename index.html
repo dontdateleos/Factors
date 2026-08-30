@@ -756,6 +756,15 @@
      size it can gain is here and in the heights below. Measured before choosing: at 10px
      "LAST 7 DAYS" is 82px and "HOW ARE YOU?" is 89, both of which clear 94. "HOW ARE YOU
      FEELING?" is 148 and never fitted at any size, which is why the shorter question. */
+  /* The seven days again, one row down: what each of them cost. Same cells as the ticks
+     above, so a day lines up with its own reading. */
+  .trace-sessions{ display:flex; margin-top:6px; }
+  .ts-cell{ flex:1; min-width:0; display:flex; align-items:center; justify-content:center;
+    color:rgba(251,250,246,0.45); }
+  .ts-cell.on{ color:var(--bg); }
+  .ts-cell .eyes{ pointer-events:none; }
+  .ts-none{ display:block; width:5px; height:1px; background:rgba(251,250,246,0.22); }
+  .ts-cell.on .ts-none{ background:var(--bg); }
   .trace-cap{ font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
     color:rgba(251,250,246,0.42); margin-bottom:5px;
     /* Never allowed to set the size of the block it labels. #scoreTrace has no width of its
@@ -5439,7 +5448,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.24';
+const APP_VERSION = '2026.08.30.25';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -12401,6 +12410,8 @@ let scoreDayIndex = null;  // which one the block is showing; the last scored on
 let scoreTodayLabel = '';  // the label today had, to put back when you return to it
 let scoreWeights = [];     // bodyweight on the same seven days, or empty if too sparse to draw
 let pendingScoreDate = null;   // a browsed day to land back on once the strip is rebuilt
+let scoreSessions = {};        // date -> the hardest session RPE logged that day
+const SESSION_FACE_SCALE = 0.30;
 
 async function renderScoreTrace(todayScore){
   const host = document.getElementById('scoreTrace');
@@ -12461,6 +12472,22 @@ async function renderScoreTrace(todayScore){
     }
     if(scoreWeights.filter(w=>w != null).length < 3) scoreWeights = [];
   } catch(e){ scoreWeights = []; }
+  /* WHAT YOU DID, UNDER WHAT IT COST. The trace has always been seven readings of the score
+     — a number about your body — with nothing about the training that produced it, so swiping
+     back through the week told you how a Tuesday felt and never that Tuesday was the hardest
+     session of it. The session's own face goes under its day, on the same seven slots.
+     The hardest of the day where there are two: a day with a heavy session and a walk is
+     characterised by the heavy session. */
+  scoreSessions = {};
+  try{
+    const want = new Set(scoreDays.map(d=>d.date));
+    (await getAllTrainingSessions()).forEach(sn=>{
+      if(!sn || !want.has(sn.date)) return;
+      const r = +sn.sessionRpe;
+      if(!r || isNaN(r)) return;
+      scoreSessions[sn.date] = Math.max(scoreSessions[sn.date] || 0, r);
+    });
+  } catch(e){ scoreSessions = {}; }
   scoreDayIndex = scoreDays.length - 1;
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
@@ -12536,11 +12563,25 @@ function paintScoreTrace(){
   // worse than the label this has always had.
   const cap = W >= 86 ? 'Last 7 days' : '7 days';
   host.style.width = W + 'px';
+  // Drawn from the same states as everything else, inverted the way the rating row is: a hard
+  // session shuts the eyes. A day with nothing logged gets a dash rather than a blank, so the
+  // row reads as seven days either way.
+  const anySession = scoreDays.some(d=> scoreSessions[d.date]);
+  const sRow = !anySession ? '' : `<div class="trace-sessions">` + scoreDays.map((day, i)=>{
+    const r = scoreSessions[day.date];
+    // The browsed day is marked whether or not it has a session — otherwise swiping onto a
+    // rest day loses your place in the row entirely.
+    const here = i === scoreDayIndex ? ' on' : '';
+    if(!r) return `<span class="ts-cell${here}"><i class="ts-none"></i></span>`;
+    const st = eyeStateAt(1 - (clamp(r, 1, 10) - 1) / 9);
+    return `<span class="ts-cell${here}">`
+      + faceEyesHtml(st, SESSION_FACE_SCALE, 'currentColor') + `</span>`;
+  }).join('') + `</div>`;
   host.innerHTML = `<div class="trace-cap">${cap}</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
-    </svg>${wRow}`;
+    </svg>${wRow}${sRow}`;
   host.style.display = 'block';
   host.style.top = '0px';
   layoutBandColumn(true);
@@ -12549,7 +12590,8 @@ function paintScoreTrace(){
     (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
     'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading'
       : (x.depth != null && x.depth < READING_FULL ? x.score + ' partial' : x.score)).join(', ') +
-    (wVals.length >= 3 ? '. Bodyweight: ' + scoreWeights.map(v=> v == null ? 'not weighed' : v + 'kg').join(', ') : ''));
+    (wVals.length >= 3 ? '. Bodyweight: ' + scoreWeights.map(v=> v == null ? 'not weighed' : v + 'kg').join(', ') : '') +
+    (anySession ? '. Session effort: ' + scoreDays.map(d=> scoreSessions[d.date] ? scoreSessions[d.date] + ' of 10' : 'nothing logged').join(', ') : ''));
 }
 
 /* Swipe the block back through the week. The number, the mark and the highlighted tick all
