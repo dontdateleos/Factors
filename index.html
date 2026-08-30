@@ -5207,7 +5207,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.2';
+const APP_VERSION = '2026.08.30.3';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -5646,6 +5646,13 @@ async function syncOuraDataForDate(date){
     updated.hrvOura = mainSleep.average_hrv ?? existing.hrvOura;
     updated.restingHR = mainSleep.lowest_heart_rate ?? existing.restingHR;
     updated.wakeTimeOura = mainSleep.awake_time!=null ? Math.round(mainSleep.awake_time/60) : existing.wakeTimeOura; // seconds -> minutes
+    // What time you actually got up, which the sleep regularity and circadian terms both
+    // need. bedtime_end was already being read here to decide which day a sleep belongs to;
+    // it was one slice away from removing a field people had to type every morning.
+    if(mainSleep.bedtime_end){
+      const m = String(mainSleep.bedtime_end).match(/T(\d{2}:\d{2})/);
+      if(m) updated.wakeClock = m[1];
+    }
     // Sleep stages and quality metrics — not part of the manual-entry form
     // (recoveryFieldIds), stored as extra properties for display/future use.
     updated.deepSleepMin = mainSleep.deep_sleep_duration!=null ? Math.round(mainSleep.deep_sleep_duration/60) : existing.deepSleepMin;
@@ -6366,6 +6373,28 @@ function normaliseChannel(values, opts){
            zSeries: zSeries.map(shape), zAcuteSeries: zAcuteSeries.map(shape) };
 }
 
+/* The two illness channels, built directly rather than through the z-scorer.
+   Deliberately not standardised: the brief gives their deadbands in the metric's own units
+   — one breath, 0.20 C — because those are physiologically meaningful amounts, and a z-score
+   would turn them into "unusual for you", which for someone with a very steady respiratory
+   rate makes a third of a breath look like a fever. Anything inside the band reads zero.
+   Beyond it, each further `scale` of the metric counts as one unit down. Negative only,
+   following Oura's own one documented one-sided term: these can lower a score, never raise
+   it. `centre` defaults to the series median, or is given where the metric is already a
+   deviation. */
+function bandedChannel(values, band, scale, mask, centre){
+  const obs = values.filter((v, i)=> v != null && !isNaN(v) && (!mask || !mask[i]));
+  if(obs.length < 5) return { n:obs.length, nEff:0, M:0, z:0, zAcute:0, zUsed:0, available:false };
+  const mu = centre != null ? centre : medianOf(obs);
+  const shaped = values.map(v=> v == null || isNaN(v) ? null
+    : Math.max(-SIG_CLAMP, -Math.max(0, Math.abs(v - mu) - band) / scale));
+  const last = [...shaped].reverse().find(v=>v != null);
+  const M = Math.min(1, obs.length / 14);
+  return { n:obs.length, nEff:obs.length, M, z:last == null ? 0 : last,
+           zAcute:last == null ? 0 : last, zUsed: M * (last || 0), available:true,
+           zSeries: shaped, zAcuteSeries: shaped, mu };
+}
+
 /* ---------- ONE CANONICAL HRV SOURCE ----------
    Oura's rMSSD carries a systematic -15ms bias against ECG with limits of agreement spanning
    ~58ms (Cao 2022); Apple reports SDNN, which is a different statistic entirely; Garmin
@@ -6484,6 +6513,16 @@ async function buildSignalWindowUncached(asOfDate, days){
     sleep:    normaliseChannel(pick(e=>e.durationHrs), { baselineMask:drinkMask }),
     // Minutes awake in the night: more is worse, so the sign flips.
     wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true }),
+    /* Respiratory rate and skin temperature. Both have been synced from Oura since before
+       any of this — average_breath and temperature_deviation — and neither was ever read.
+       They are the illness channels, so they follow Oura's own one documented one-sided
+       rule: they can lower a score and never raise it. Deadbands from the brief, one breath
+       and 0.20 C, because normal night-to-night variation in both is real and a score that
+       twitches at it is noise. */
+    resp:     bandedChannel(pick(e=>e.respiratoryRate), 1.0, 1.0, drinkMask),
+    // temperature_deviation is already a deviation from Oura's own baseline, so its centre
+    // is zero rather than a median of the series.
+    temp:     bandedChannel(pick(e=>e.temperatureDeviation), 0.20, 0.30, drinkMask, 0),
     // NOT z-scored. Every other channel asks "is today unusual for you", which for a
     // reliably chaotic sleeper always answers no — the reading would sit at zero however
     // irregular they were. Regularity is absolute, like Windred's SRI, so it is used on its
@@ -6944,6 +6983,16 @@ function illnessRadar(win){
   });
   const hrvObs = hrvRaw.filter((v,i)=> v != null && !win.drinkMask[i]);
   if(hrvObs.length >= 10) ch.push({ name:'HRV', alarms: cusumAlarms(hrvRaw, medianOf(hrvObs), madSigma(hrvObs)) });
+  // Respiratory rate and skin temperature, both rising. These are what the published work
+  // actually used — NightSignal and TemPredict are built on temperature and heart rate — so
+  // with all four this is the design they validated rather than a two-channel approximation
+  // of it. Both come from the Oura sync and needed no new input.
+  [['respiratory rate', e=>e.respiratoryRate], ['skin temperature', e=>e.temperatureDeviation]]
+    .forEach(([name, get])=>{
+      const raw = win.entries.map(e=> e ? (get(e) ?? null) : null);
+      const obs = raw.filter((v,i)=> v != null && !win.drinkMask[i]);
+      if(obs.length >= 10) ch.push({ name, alarms: cusumAlarms(raw, medianOf(obs), madSigma(obs)) });
+    });
   if(ch.length < ILLNESS_MIN_CHANNELS) return { available:false, firing:false };
 
   const n = win.dates.length;
@@ -7238,11 +7287,15 @@ const SR_WEIGHTS = {
                        // that sees psychosocial load at all
   hrvTrend:    0.18,   // the stable autonomic signal, insensitive to single nights by design
   rhr:         0.14,   // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  // Duration and fragmentation together — the brief defines this component as duration
+  // against personal need times an efficiency term, and minutes-awake is that term. It was
+  // briefly a ninth component of its own, which pushed the weights to 1.05 and quietly
+  // diluted every other one.
   sleep:       0.12,   // acute and largely behavioural, so below the physiology
   hrvAcute:    0.08,   // damped, so one catastrophic night registers without noise driving it
   sleepDebt:   0.08,   // Van Dongen — accrues linearly, no adaptation
-  wake:        0.05,   // fragmentation
-  regularity:  0.05    // Windred 2023 — predicts independently of duration, near-zero cost
+  regularity:  0.05,   // Windred 2023 — predicts independently of duration, near-zero cost
+  illnessCh:   0.07    // respiratory rate and skin temperature, negative-only
 };
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
@@ -7286,12 +7339,22 @@ function srComponentsAt(win, i, debtZ){
     // robust illness and alcohol channel, and both of those are single-night events — an
     // EWMA of a noisy series sits on its own median and never leaves the two-sided deadband.
     rhr:        at(win.channels.rhr, 'zAcuteSeries'),
-    sleep:      at(win.channels.sleep, 'zSeries'),
+    sleep:      (()=>{
+      const dur = at(win.channels.sleep, 'zSeries');
+      const frag = at(win.channels.wake, 'zSeries');
+      if(dur == null) return frag;
+      return frag == null ? dur : (dur * 0.7 + frag * 0.3);
+    })(),
     hrvAcute:   saturated ? 0 : (at(win.channels.hrv, 'zAcuteSeries') != null
                   ? at(win.channels.hrv, 'zAcuteSeries') * SR_HRV_ACUTE_DAMP : null),
     sleepDebt:  debtZ && debtZ.available ? debtZ.z : null,
-    wake:       at(win.channels.wake, 'zSeries'),
-    regularity: at(win.channels.regularity, 'zSeries')
+    regularity: at(win.channels.regularity, 'zSeries'),
+    // One component from two channels: whichever of the pair is present, averaged. Both are
+    // acute by nature — a fever does not announce itself in a seven-day average.
+    illnessCh:  (()=>{
+      const vals = ['resp','temp'].map(k=> at(win.channels[k], 'zAcuteSeries')).filter(v=>v != null);
+      return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+    })()
   };
 }
 function srRawFrom(parts, maturity){
