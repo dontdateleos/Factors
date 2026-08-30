@@ -5326,7 +5326,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.12';
+const APP_VERSION = '2026.08.30.13';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -11946,6 +11946,37 @@ async function checkReturnToRunRule(){
   return null;
 }
 
+/* THE TAP HAS TO MOVE THE NUMBER FROM DAY ONE.
+
+   Systemic Readiness carries the rating at 0.28 — the heaviest single input it has — but it
+   refuses to composite at all until the baseline is about 30 days old, and until then the
+   headline comes from the capacity model, which has never read this field. So for the first
+   month you tapped a face and the number did not move: measured at ten days of history, 90
+   before and 90 after, whichever face you pressed. That is not a gate doing its job, it is
+   the one thing the app asks you for going nowhere.
+
+   The gate exists because Z-SCORING needs a distribution — a rating means nothing against
+   your own days until there are days to compare it with. It says nothing about the rating on
+   an ABSOLUTE scale, where 1 of 5 is a bad morning by definition and needs no history at all.
+   So the fallback blends it in flat, at the same 0.28 it will carry once the real model takes
+   over, and the changeover is therefore a change of method rather than a jump in weight.
+   Measured at seven days: 64 / 78 / 92 for wrecked / ok / raring, against 89 with no rating.
+
+   Never applied on top of Systemic Readiness: that already contains the rating, and adding it
+   again would count it twice. */
+const SUBJ_FALLBACK_W = 0.28;
+function withSubjective(base, entry){
+  if(base == null || isNaN(base) || !entry) return base;
+  const v = entry.subjOverall != null ? +entry.subjOverall : null;
+  if(v == null || isNaN(v)) return base;
+  const said = ((Math.max(1, Math.min(5, v)) - 1) / 4) * 100;
+  return Math.round(base * (1 - SUBJ_FALLBACK_W) + said * SUBJ_FALLBACK_W);
+}
+// The ladder Systemic Readiness uses, so the words under the number mean the same thing
+// before and after the changeover.
+function scoreLadderLabel(n){
+  return n >= 70 ? 'Ready to train' : n >= 40 ? 'On track' : n >= 20 ? 'Ease into it' : 'Back off today';
+}
 function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
@@ -11987,13 +12018,17 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     // know there is no previous value so it can come up from zero, and substituting the
     // target is what made it animate from its final position to its final position.
     const prevNum = parseInt(out.dataset.value || out.textContent);
-    if(!rollNumber(out, prevNum, capacityResult.score)){
-      animateNumber(out, isNaN(prevNum) ? 0 : prevNum, capacityResult.score, 500);
+    const shown = withSubjective(capacityResult.score, entry);
+    if(!rollNumber(out, prevNum, shown)){
+      animateNumber(out, isNaN(prevNum) ? 0 : prevNum, shown, 500);
     }
-    setEyeScore(capacityResult.score);
-    const labelText = { 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track';
-    label.textContent = labelText;
-    return capacityResult.score;
+    setEyeScore(shown);
+    // Capacity's own three words describe capacity, so once the rating has moved the number
+    // they can contradict it — "above typical" over a 62. The ladder follows the figure.
+    label.textContent = shown === capacityResult.score
+      ? ({ 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track')
+      : scoreLadderLabel(shown);
+    return shown;
   }
 
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
@@ -12015,7 +12050,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     else label.textContent = 'Not enough to score yet';
     return null;
   }
-  const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
+  const overall = withSubjective(Math.round(parts.reduce((a,b)=>a+b,0)/parts.length), entry);
   const prevNum = parseInt(out.dataset.value || out.textContent);
   // Arriving on Today counts up from zero every time, whether or not the score has moved.
   // Rolling only on a change meant it never rolled: the number is the same all day, so the
@@ -12063,12 +12098,12 @@ async function overallScoreForEntry(entry){
   } catch(e){}
   try{
     const cap = await getCapacityForEntry(entry);
-    if(cap && cap.available) return cap.score;
+    if(cap && cap.available) return withSubjective(cap.score, entry);
   } catch(e){}
   const trailing = await getTrailingAverages(entry.date);
   const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
-  return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
+  return parts.length ? withSubjective(Math.round(parts.reduce((a,b)=>a+b,0)/parts.length), entry) : null;
 }
 
 // The window the trace is drawn in is at least this many points wide, and wider only if the
