@@ -966,12 +966,44 @@
     font-weight:var(--fw-bold); cursor:pointer; padding:0 4px; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
   .subj-dot.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
-  .subj-faces{ display:flex; gap:6px; }
-  .subj-face{ flex:1; min-width:0; height:46px; background:transparent; color:rgba(251,250,246,0.5);
-    border:2px solid rgba(251,250,246,0.35); cursor:pointer; padding:0;
-    display:flex; align-items:center; justify-content:center; }
+  /* THE DAY'S OWN MARK. Five faces at the top of the band, above the score they feed. It
+     used to be a field on the Data tab, behind a tab switch and a Save button, shown only on
+     days the app decided to ask — which is a quiz however politely it is worded. Here it is
+     simply present: the first thing on the page you open every morning, one tap, saved on
+     the tap. Nothing asks, and nothing is hidden on the days it does not ask.
+     Colour is the second axis, because five faces alone are five shades of the same idea and
+     the differences between EYE_STATES 2, 3 and 4 are a few pixels of eyelid. Four of the
+     five are colours the app already owns — --bad, --block-orange, --block-yellow, --accent —
+     and only the top green is new, which is the one position the palette had nothing for. */
+  :root{
+    --face-1:#e8391a;   /* --bad */
+    --face-2:#ff9442;   /* --block-orange */
+    --face-3:#f0c419;   /* --block-yellow */
+    --face-4:#c9da4a;   /* --accent */
+    --face-5:#6fcf85;   /* the all-clear, the only new value */
+  }
+  /* Sized and placed to match the trace exactly, directly above it: same right edge, same
+     measured width, same 9px caption over a short band. The two of them are one column — what
+     you say about today, and what the last seven came to — at the score's own eye level. */
+  #todayFaceRow{ position:absolute; right:14px; display:none; }
+  #todayFaceRow .trace-cap{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    color:var(--face-said, rgba(251,250,246,0.42)); }
+  .subj-faces{ display:flex; gap:3px; }
+  /* Outlined in its own colour, filled in it when chosen: colour is always on the page so the
+     scale reads at a glance, but only one of them is ever loud. */
+  .subj-face{ flex:1; min-width:0; height:22px; background:transparent; color:var(--face-c);
+    border:1px solid var(--face-c); cursor:pointer; padding:0; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    transition:background 0.12s linear, opacity 0.12s linear; }
   .subj-face .eyes{ pointer-events:none; }
-  .subj-face.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
+  .subj-face.on{ background:var(--face-c); color:#000000; }
+  /* The drawn box is small enough to sit beside the trace. What a thumb has to hit is not:
+     this extends the target well past the border. Vertically only — the neighbours are all
+     horizontal, and widening it would have each face stealing taps from the next. */
+  .subj-face::after{ content:''; position:absolute; left:0; right:0; top:-10px; bottom:-10px; }
+  /* Once one is chosen the other four step back — the answer should read as an answer, not
+     as five options with one of them ticked. */
+  .subj-faces.picked .subj-face:not(.on){ opacity:0.38; }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -1501,6 +1533,12 @@
         <span class="conf-chevron" id="scoreChevron">▾</span>
       </div>
     </div>
+    <!-- The one thing on this page you are asked for, drawn at the trace's size and sat
+         directly on top of it. -->
+    <div id="todayFaceRow">
+      <div class="trace-cap" id="todayFaceCap">Ready for it</div>
+      <div class="subj-faces" id="todayFaces"></div>
+    </div>
     <div id="scoreTrace" role="img" aria-label=""></div>
     <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <div id="todayBlockContext" class="score-note" style="text-align:center; font-size:var(--fs-tag);"></div>
@@ -1863,10 +1901,11 @@
          forever, odd-numbered scale, and z-scored against your own rolling distribution,
          because people use different portions of a scale and the absolute number is not
          comparable between two people or across a change of mood about scales. -->
-    <div class="group form-panel" id="subjectiveGroup">
-      <div class="group-head"><div class="group-title">How are you</div><div class="group-sub" id="subjectiveSub">one tap &mdash; weighted above the sensors</div></div>
-      <div class="fields" id="subjectiveFields"></div>
-    </div>
+    <!-- The rating itself now lives at the top of Today, where it is tapped rather than
+         asked. The field stays here, hidden, for one reason: saveRecoveryEntry rebuilds the
+         whole entry from this form, so a day edited here with no subjOverall input would
+         silently erase the rating tapped on Today. -->
+    <input type="hidden" id="subjOverall">
 
     <div class="group form-panel">
       <div class="group-head"><div class="group-title">Last night&rsquo;s context</div><div class="group-sub">so it is attributed, not read as fatigue</div></div>
@@ -5026,8 +5065,13 @@ const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wak
    Five faces rather than five numbers, and the faces are the app's own mark. It already
    carries exactly five expressions on a 0-100 band — squinting shut at the bottom, wide open
    at the top — so the scale is drawn in the app's own iconography instead of borrowing
-   somebody else's emoji, and the thing you tap looks back at you. */
-const SUBJECTIVE_OVERALL = { id:'subjOverall', name:'Ready for it', low:'wrecked', high:'raring' };
+   somebody else's emoji, and the thing you tap looks back at you. Each in its own colour,
+   because at the size these are drawn the difference between states 2, 3 and 4 is a few
+   pixels of eyelid, and hue carries the scale where the shape alone would not.
+
+   The value is stored as `subjOverall` on the day's entry. It is written straight from the
+   tap on Today; the hidden field of the same id on the Data tab exists only so an edit
+   there round-trips it rather than erasing it. */
 // Kept for reading history written before the four items became one. Nothing writes them now.
 const SUBJECTIVE_ITEMS = [
   { id:'subjEnergy',     name:'Energy',     good:'high' },
@@ -5035,37 +5079,29 @@ const SUBJECTIVE_ITEMS = [
   { id:'subjStress',     name:'Life stress',good:'low'  },
   { id:'subjMotivation', name:'Motivation', good:'high' }
 ];
+// What each face means, said in a word once it is chosen. Five faces are five shades of one
+// idea and the middle three differ by a few pixels of eyelid, so the word is what makes the
+// reading unambiguous — and it only appears after you have answered, so it never leads you.
+const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
+// One factor, so the mark stays the mark: every dimension of the full-size pair scaled by the
+// same number rather than five values guessed to look about right. The gap and the widths go
+// down with the heights, which is the whole difference between a small drawing of a face and
+// a normal one squashed.
+const FACE_SCALE = 0.32;
+const facePx = v => (parseFloat(v) * FACE_SCALE).toFixed(2) + 'px';
 function faceButtonHtml(n){
-  // The mark at the state this rating means, drawn small and static.
+  // The mark at the state this rating means, drawn small and static, in that step's colour.
+  // .eyes declares its own defaults for every --eye-* property, so they have to be set ON it:
+  // an inherited value from the button would lose to the class's own declaration.
   const st = EYE_STATES[n - 1];
-  const style = `--eye-box-w:26px; --eye-box-h:22px; --eye-gap:6px; --eye-w:5px;`
-    + ` --eye-h:${st.h}; --eye-r:2.5px; --eye-rb:${st.rb}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
-    + ` --eye-ink:currentColor; --eye-plate:transparent;`;
-  return `<button type="button" class="subj-face" data-v="${n}" aria-label="${SUBJECTIVE_OVERALL.name} ${n} of 5">`
+  const style = `--eye-box-w:${facePx('42px')}; --eye-box-h:${facePx('32px')}; --eye-gap:${facePx('12px')};`
+    + ` --eye-w:${facePx('15px')}; --eye-r:${facePx('7.5px')};`
+    + ` --eye-h:${facePx(st.h)}; --eye-rb:${facePx(st.rb)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
+    + ` --eye-ink:currentColor; --eye-plate:transparent; transition:none;`;
+  return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n});"`
+    + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
     + `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span></button>`;
 }
-(function buildSubjectiveFields(){
-  const host = document.getElementById('subjectiveFields');
-  if(!host) return;
-  const row = document.createElement('div');
-  row.className = 'subj-row';
-  row.innerHTML = `<div class="subj-head"><span class="subj-name">${SUBJECTIVE_OVERALL.name}</span>`
-    + `<span class="subj-anchor">${SUBJECTIVE_OVERALL.low} &middot; ${SUBJECTIVE_OVERALL.high}</span></div>`
-    + `<div class="subj-faces">${[1,2,3,4,5].map(faceButtonHtml).join('')}</div>`
-    + `<input type="hidden" id="${SUBJECTIVE_OVERALL.id}">`;
-  const input = row.querySelector('input');
-  row.querySelectorAll('.subj-face').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      // Tapping the chosen face again clears it — a mis-tap should not become a permanent
-      // reading you cannot take back.
-      const same = input.value === btn.dataset.v;
-      input.value = same ? '' : btn.dataset.v;
-      paintSubjectiveRow(row, input.value);
-      input.dispatchEvent(new Event('input', { bubbles:true }));
-    });
-  });
-  host.appendChild(row);
-})();
 (function wireAlcohol(){
   const box = document.getElementById('alcoholScale');
   const input = document.getElementById('alcohol');
@@ -5084,17 +5120,6 @@ function paintAlcohol(){
   const input = document.getElementById('alcohol');
   if(!box || !input) return;
   box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(input.value)));
-}
-function paintSubjectiveRow(row, value){
-  row.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', b.dataset.v === String(value)));
-}
-function paintSubjectiveFields(){
-  const host = document.getElementById('subjectiveFields');
-  if(!host) return;
-  [...host.children].forEach(row=>{
-    const input = row.querySelector('input');
-    if(input) paintSubjectiveRow(row, input.value);
-  });
 }
 
 const dateInput = document.getElementById('entryDate');
@@ -5251,7 +5276,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.7';
+const APP_VERSION = '2026.08.30.8';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6794,33 +6819,131 @@ async function learnWeights(asOfDate){
    safe in a way that "ask when you feel like it" never is. About one rest day in five is
    added on top, picked by a hash of the date rather than by you, so the baseline is not
    built purely from days you were going to train anyway — which would be its own quiet bias. */
-const CHECKIN_REST_RATE = 0.2;
-async function isCheckinDay(date){
-  const d = date || todayStr;
-  if(d !== todayStr) return true;         // editing an older entry: always allow
-  for(const slot of ['am','pm']){
-    try{ await window.storage.get(`weekplan:${d}:${slot}`); return true; } catch(e){}
+/* THE DAY'S FACE, ON TODAY.
+
+   The rating used to be gated: shown on days with a planned session plus a hashed fifth of
+   rest days, and hidden behind an "answer anyway" link otherwise. That was the right answer
+   to the wrong question. The cost of asking was never which days it appeared on — it was
+   that it appeared as a QUESTION, on a form, on another tab, behind a Save button. Moved to
+   the top of the page you already open every morning, and saved on the tap, it costs one
+   tap and no decision, so there is nothing left to ration. It is always there.
+
+   And because the band swipes back through the week, so does this: land on Wednesday and
+   the row shows Wednesday's face and will set it. A day you missed is one swipe and one tap
+   away, which the gated version could never offer.
+
+   Compliance is still the thing that matters — Plews 2014 is explicit that three days a week
+   is enough for a trained individual, and that only SYSTEMATIC missingness is fatal. What
+   makes missingness systematic is self-selection, and nothing here selects: the row is on
+   every day, identical. */
+function faceDate(){
+  const d = scoreDays.length && scoreDayIndex != null ? scoreDays[scoreDayIndex] : null;
+  return d ? d.date : todayStr;
+}
+let faceValues = {};      // date -> 1..5, what the row is currently showing
+function paintTodayFaces(){
+  const host = document.getElementById('todayFaces');
+  const cap = document.getElementById('todayFaceCap');
+  if(!host) return;
+  const v = faceValues[faceDate()];
+  host.classList.toggle('picked', v != null);
+  host.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', +b.dataset.v === v));
+  // The caption is the question until it is answered, and the answer after — one 9px line
+  // either way, which is all the column has room for. In the chosen face's own colour, so
+  // the word and the mark are obviously the same statement.
+  if(cap){
+    cap.textContent = v == null ? 'Ready for it' : SUBJECTIVE_WORDS[v - 1];
+    cap.style.setProperty('--face-said', v == null ? '' : `var(--face-${v})`);
   }
-  return blindHash(d + '|checkin') < CHECKIN_REST_RATE;
 }
-/* The block hides itself on days it would not be used, and says so rather than vanishing —
-   a section that silently disappears reads as a bug. It can still be opened. */
-async function applyCheckinVisibility(){
-  const fields = document.getElementById('subjectiveFields');
-  const sub = document.getElementById('subjectiveSub');
-  if(!fields) return;
-  const answered = (document.getElementById('subjOverall') || {}).value;
-  const asking = (await isCheckinDay(todayStr)) || !!answered;
-  fields.style.display = asking ? '' : 'none';
-  if(sub) sub.innerHTML = asking
-    ? 'one tap &mdash; weighted above the sensors'
-    : '<span id="checkinOpen" role="button" tabindex="0" style="cursor:pointer; text-decoration:underline;">nothing planned today &mdash; tap to answer anyway</span>';
-  const open = document.getElementById('checkinOpen');
-  if(open) open.addEventListener('click', ()=>{
-    fields.style.display = '';
-    if(sub) sub.textContent = 'one tap — weighted above the sensors';
+/* The faces and the trace are one column, sharing a right edge, a measured width and a
+   vertical centre — and the centre is the score's, not the band's, because the band's own
+   middle is empty space between the eyes and the label. Both are laid out here so the two
+   can never drift apart, and so the faces still land when the trace has nothing to draw. */
+const FACE_TRACE_GAP = 9;
+function layoutBandColumn(traceShown){
+  const row = document.getElementById('todayFaceRow');
+  const host = document.getElementById('scoreTrace');
+  const band = document.querySelector('.today-open');
+  const num = document.getElementById('overallScoreOut');
+  if(!row || !band || !num) return;
+  // Before the first morning is logged the whole gauge is taken away and the band collapses;
+  // there is no score for this column to sit beside, so it goes with it.
+  const gauge = band.querySelector('.gauge-wrap');
+  if(gauge && gauge.style.display === 'none'){ row.style.display = 'none'; return; }
+  const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
+  const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
+  if(W < TRACE_MIN_W){ row.style.display = 'none'; return; }
+  row.style.width = W + 'px';
+  row.style.display = 'block';
+  row.style.top = '0px';
+  // Measured, not computed: the caption's line box depends on a font that may not have
+  // loaded yet, which is the same reason the trace measures itself rather than adding up.
+  const faceH = row.offsetHeight;
+  const traceH = traceShown && host ? host.offsetHeight : 0;
+  const groupH = faceH + (traceH ? FACE_TRACE_GAP + traceH : 0);
+  const top = Math.round(numRect.top - bandRect.top + (numRect.height - groupH) / 2);
+  row.style.top = top + 'px';
+  if(traceH) host.style.top = (top + faceH + FACE_TRACE_GAP) + 'px';
+}
+/* Read-modify-write rather than a form save: the entry may hold a night of sensor data this
+   row knows nothing about, and rebuilding it from five buttons would throw all of it away. */
+async function setDayFace(date, value){
+  let entry = null;
+  try{ entry = JSON.parse((await window.storage.get(keyFor(date))).value); } catch(e){}
+  if(!entry || typeof entry !== 'object') entry = { date, disagreements: [] };
+  if(value == null) delete entry.subjOverall; else entry.subjOverall = value;
+  entry.date = date;
+  entry.algoVersion = SCORE_ALGO_VERSION;
+  await window.storage.set(keyFor(date), JSON.stringify(entry));
+  invalidateSignalWindows();
+  // Keep the Data form honest if it happens to be sitting on the same day, or its next save
+  // would write back the value it loaded before the tap.
+  const hidden = document.getElementById('subjOverall');
+  if(hidden && dateInput && dateInput.value === date) hidden.value = value == null ? '' : value;
+}
+let faceSaving = false;
+async function onFaceTap(n){
+  const date = faceDate();
+  if(faceSaving) return;
+  // Tapping the chosen face again clears it — a mis-tap should not become a permanent
+  // reading you cannot take back.
+  const next = faceValues[date] === n ? null : n;
+  faceValues[date] = next == null ? undefined : next;
+  paintTodayFaces();                       // the tap lands before the score catches up
+  faceSaving = true;
+  try{
+    await setDayFace(date, next);
+    // The score above it is the reason this exists, so it is re-read, not left stale. The
+    // browsed day is put back afterwards — a tap on Wednesday should not walk you home — and
+    // it is handed to the rebuild rather than restored here, because generateRecommendations
+    // does not await renderScoreTrace: doing it on this side would set the day back and then
+    // watch the trace finish and reset it to today.
+    pendingScoreDate = date;
+    await generateRecommendations();
+  } catch(e){ pendingScoreDate = null; console.error(e); showToast('Could not save that — try again', true); }
+  faceSaving = false;
+}
+/* Seven days of ratings, read once alongside the trace rather than per tap. */
+async function loadFaceValues(dates){
+  faceValues = {};
+  for(const d of dates){
+    try{
+      const e = JSON.parse((await window.storage.get(keyFor(d))).value);
+      if(e && e.subjOverall != null) faceValues[d] = +e.subjOverall;
+    } catch(e){}
+  }
+  paintTodayFaces();
+}
+(function buildTodayFaces(){
+  const host = document.getElementById('todayFaces');
+  if(!host) return;
+  host.innerHTML = [1,2,3,4,5].map(faceButtonHtml).join('');
+  host.addEventListener('click', e=>{
+    const btn = e.target.closest('.subj-face');
+    if(btn) onFaceTap(+btn.dataset.v);
   });
-}
+})();
 
 /* ---------- RANDOMISED SCORE-BLINDING ----------
    Nobody in the industry does this, and it is the only route to a score that can ever be
@@ -8058,10 +8181,9 @@ function fillRecoveryForm(entry){
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
-  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol();
-  applyCheckinVisibility();
+  computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintAlcohol();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol(); applyCheckinVisibility(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintAlcohol(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -11706,6 +11828,7 @@ let scoreDays = [];        // 7 entries, oldest first, score null where nothing 
 let scoreDayIndex = null;  // which one the block is showing; the last scored one is today
 let scoreTodayLabel = '';  // the label today had, to put back when you return to it
 let scoreWeights = [];     // bodyweight on the same seven days, or empty if too sparse to draw
+let pendingScoreDate = null;   // a browsed day to land back on once the strip is rebuilt
 
 async function renderScoreTrace(todayScore){
   const host = document.getElementById('scoreTrace');
@@ -11713,7 +11836,17 @@ async function renderScoreTrace(todayScore){
   host.style.display = 'none';
   scoreDays = [];
   scoreDayIndex = null;
-  if(todayScore == null) return;
+  // The face row is not the trace and does not wait on it: it is there on a first-ever
+  // morning, with no score to draw and nothing logged, which is exactly the morning it most
+  // needs to be tappable.
+  const faceWindow = [];
+  for(let d = 6; d >= 0; d--){
+    const dt = new Date(todayStr); dt.setDate(dt.getDate() - d);
+    faceWindow.push(localDateStr(dt));
+  }
+  await loadFaceValues(faceWindow);
+  layoutBandColumn(false);
+  if(todayScore == null){ pendingScoreDate = null; return; }
 
   // Six days back plus today. A day with no entry is a hole, not a zero — it simply has no
   // mark, and the swipe steps over it rather than landing on nothing.
@@ -11761,8 +11894,13 @@ async function renderScoreTrace(todayScore){
     .forEach(el=>{ if(el) el.style.opacity = ''; });
   const lbl = document.getElementById('overallScoreLabel');
   scoreTodayLabel = lbl ? lbl.textContent : '';
-  if(scoreDays.filter(d=>d.score != null).length < 3) return;   // two points is a slope, not a history
+  if(scoreDays.filter(d=>d.score != null).length < 3){ pendingScoreDate = null; layoutBandColumn(false); return; }   // two points is a slope, not a history
   paintScoreTrace();
+  if(pendingScoreDate){
+    const i = scoreDays.findIndex(d=> d.date === pendingScoreDate);
+    pendingScoreDate = null;
+    if(i >= 0 && i !== scoreDayIndex && scoreDays[i].score != null) showScoreDay(i);
+  }
 }
 
 function paintScoreTrace(){
@@ -11775,10 +11913,10 @@ function paintScoreTrace(){
   if(!band || !num) return;
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
   const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
-  if(W < TRACE_MIN_W){ host.style.display = 'none'; return; }
+  if(W < TRACE_MIN_W){ host.style.display = 'none'; layoutBandColumn(false); return; }
 
   const vals = scoreDays.filter(x=>x.score != null).map(x=>x.score);
-  if(vals.length < 3){ host.style.display = 'none'; return; }
+  if(vals.length < 3){ host.style.display = 'none'; layoutBandColumn(false); return; }
   const mid = (Math.min(...vals) + Math.max(...vals)) / 2;
   const span = Math.max(TRACE_MIN_SPAN, (Math.max(...vals) - Math.min(...vals)) + TRACE_PAD * 2);
   let lo = mid - span / 2, hi = mid + span / 2;
@@ -11827,13 +11965,8 @@ function paintScoreTrace(){
       ${marks}
     </svg>${wRow}`;
   host.style.display = 'block';
-  // Centred on the number rather than on the band: the band's own middle is empty space
-  // between the eyes and the label, and the trace belongs to the figure it is a history of.
-  // Measured after the caption is in, not computed from a guess at its height — the caption's
-  // line box depends on a font that may or may not have loaded yet.
   host.style.top = '0px';
-  const groupH = host.offsetHeight;
-  host.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - groupH) / 2) + 'px';
+  layoutBandColumn(true);
   const showing = scoreDays[scoreDayIndex];
   host.setAttribute('aria-label',
     (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
@@ -11944,6 +12077,8 @@ function showScoreDay(idx){
   // was stating this week's position regardless — a small lie, but the block position is
   // exactly the context that makes an old score readable, so it is worth getting right.
   renderTodayBlockContext(scoreDays[idx].date);
+  // The row belongs to the day the band is showing, not to today.
+  paintTodayFaces();
   paintScoreTrace();
 }
 
@@ -16284,7 +16419,8 @@ async function applyTodayStage(){
   const gauge = panel.querySelector('.gauge-wrap');
   const trace = document.getElementById('scoreTrace');
   const ctx = document.getElementById('todayBlockContext');
-  [gauge, trace, ctx].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
+  const faces = document.getElementById('todayFaceRow');
+  [gauge, trace, ctx, faces].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
   // The band is the score's own ground. Emptied but still standing it is a black hole at the
   // top of the page, so it collapses with what it was holding.
   const band = panel.querySelector('.today-open');
