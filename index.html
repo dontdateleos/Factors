@@ -2168,6 +2168,13 @@
       </div>
     </div>
 
+    <div class="group form-panel">
+      <div class="group-head collapsible" data-collapse="weights" style="cursor:pointer;"><div class="group-title">What the score is made of</div><div class="group-sub">the weights, and how they have moved for you</div><span class="collapse-chevron" data-collapse="weights">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="weights" style="display:none;">
+        <div id="learnedWeights"></div>
+      </div>
+    </div>
+
     <div class="group form-panel dev-only" id="eyesDevGroup">
       <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
@@ -5210,7 +5217,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.5';
+const APP_VERSION = '2026.08.30.6';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6593,6 +6600,148 @@ async function buildSignalWindowUncached(asOfDate, days){
   };
 }
 
+/* ================= THE LEARNING ENGINE =================
+   The v1 weights are literature priors. This is what tests them against your own outcomes,
+   and the small-sample constraints here are brutal enough that the whole design is about
+   restraint rather than fitting.
+
+   Scoring eight metrics daily is roughly 2,900 tests a year; at alpha 0.05 that is about 146
+   false flags, one every two and a half days. And daily physiological series are
+   autocorrelated at rho around 0.5, so thirty days is about ten effective observations and a
+   naive confidence interval is 1.7x too narrow. Unconstrained per-component refitting on
+   that would produce confident nonsense.
+
+   So: shrink toward the prior, never replace it. A component's learned weight only moves in
+   proportion to how much evidence there actually is, and the correlation it moves on is
+   itself shrunk by its own standard error using n_eff rather than n. A component that shows
+   nothing for you fades toward zero FOR YOU while staying in the prior for anyone starting
+   out. Nothing is ever dropped outright.
+
+   THE OUTCOME. Blinded days are the honest ones: the session result on those days cannot
+   have been influenced by having seen the score, which is what makes them usable as labels
+   at all. Unblinded days are still used, at a quarter of the weight, because otherwise the
+   engine needs a year to see anything — and the brief is explicit that session completion is
+   the most contaminated of the ground-truth candidates. */
+const LEARN_MIN_SESSIONS = 12;      // below this the priors stand untouched
+const LEARN_FULL_AT = 60;           // effective observations for maximum movement
+const LEARN_MAX_SHIFT = 0.6;        // a learned weight can never move more than this far
+const LEARN_UNBLINDED_WEIGHT = 0.25;
+
+/* Did you do the work, and did it feel like it should have. Completion alone is the most
+   contaminated candidate in the brief's own table; pairing it with effort is the closest
+   this app can get to achieved-versus-planned reps in reserve, which is the one it ranks
+   above it. */
+async function sessionOutcome(session){
+  if(!session || session.type !== 'strength') return null;
+  let planned = null;
+  try{
+    const rec = JSON.parse((await window.storage.get(`planned_session:${session.date}`)).value);
+    planned = (rec.exercises || []).reduce((t, ex)=>{
+      const mid = ex.repLow != null && ex.repHigh != null ? (ex.repLow + ex.repHigh) / 2 : (ex.reps || 8);
+      return t + (ex.sets || 0) * mid;
+    }, 0);
+  } catch(e){}
+  const achieved = (session.exercises || []).reduce((t, ex)=>{
+    const reps = Array.isArray(ex.repsPerSet) && ex.repsPerSet.length
+      ? ex.repsPerSet.reduce((a,b)=>a+b,0) : (ex.sets || 0) * (ex.reps || 0);
+    return t + reps;
+  }, 0);
+  if(!planned || !achieved) return null;
+  return { completion: achieved / planned, rpe: session.sessionRpe || null,
+           blinded: !!session.scoreBlinded, date: session.date };
+}
+
+/* Pairs each session outcome with the readiness components as they stood that morning, then
+   moves each weight a little way toward what the pairing shows. Returns null — meaning "use
+   the priors" — whenever there is not enough to say anything. */
+let _learnedCache = null;
+async function learnWeights(asOfDate){
+  const date = asOfDate || todayStr;
+  if(_learnedCache && _learnedCache.date === date && (Date.now() - _learnedCache.at) < 60000){
+    return _learnedCache.value;
+  }
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){ return null; }
+
+  const outcomes = [];
+  for(const s of sessions.filter(x=>x.type === 'strength')){
+    const out = await sessionOutcome(s);
+    if(out) outcomes.push(out);
+  }
+  if(outcomes.length < LEARN_MIN_SESSIONS){
+    _learnedCache = { date, at:Date.now(), value:null };
+    return null;
+  }
+
+  // Both halves of the outcome standardised against their own spread, then combined: more of
+  // the plan completed is good, and a higher effort for it is not.
+  const zs = (vals)=>{
+    const v = vals.filter(x=>x != null);
+    if(v.length < 4) return null;
+    const m = v.reduce((a,b)=>a+b,0) / v.length;
+    const sd = Math.sqrt(v.reduce((a,b)=>a + (b-m)*(b-m), 0) / (v.length - 1));
+    return sd ? (x)=> x == null ? null : Math.max(-3, Math.min(3, (x - m) / sd)) : null;
+  };
+  const zComp = zs(outcomes.map(o=>o.completion));
+  const zRpe  = zs(outcomes.map(o=>o.rpe));
+  if(!zComp){ _learnedCache = { date, at:Date.now(), value:null }; return null; }
+  outcomes.forEach(o=>{
+    const c = zComp(o.completion);
+    const r = zRpe ? zRpe(o.rpe) : null;
+    o.y = r == null ? c : (c - r) / 2;
+    o.w = o.blinded ? 1 : LEARN_UNBLINDED_WEIGHT;
+  });
+
+  // The components as they stood on each of those mornings.
+  const win = await buildSignalWindow(date, 365);
+  const debtZ = sleepDebtZ(win);
+  const idxOf = {};
+  win.dates.forEach((d, i)=>{ idxOf[d] = i; });
+  const keys = Object.keys(SR_WEIGHTS);
+  const paired = outcomes.map(o=>{
+    const i = idxOf[o.date];
+    if(i == null || !win.entries[i]) return null;
+    return { y:o.y, w:o.w, parts: srComponentsAt(win, i, debtZ) };
+  }).filter(Boolean);
+  if(paired.length < LEARN_MIN_SESSIONS){
+    _learnedCache = { date, at:Date.now(), value:null };
+    return null;
+  }
+
+  const learned = {}, detail = {};
+  keys.forEach(k=>{
+    const pts = paired.filter(p=> p.parts[k] != null && !isNaN(p.parts[k]));
+    if(pts.length < LEARN_MIN_SESSIONS){ learned[k] = SR_WEIGHTS[k]; return; }
+    const xs = pts.map(p=>p.parts[k]), ys = pts.map(p=>p.y);
+    let r = pearson(xs, ys);
+    // n_eff, not n. Autocorrelated daily series make a naive interval far too narrow, and
+    // the whole point of this is not to be confidently wrong.
+    const rho = lag1Autocorr(xs);
+    const nEff = Math.max(2, effectiveN(pts.length, rho));
+    // Only the part of the correlation bigger than its own error bar counts.
+    const se = (1 - r * r) / Math.sqrt(nEff - 1);
+    const shrunk = Math.sign(r) * Math.max(0, Math.abs(r) - se);
+    // How far the prior is allowed to move, from how much evidence there is.
+    const lambda = Math.min(1, nEff / LEARN_FULL_AT) * LEARN_MAX_SHIFT;
+    // A component that shows nothing fades toward zero; one that shows a real positive
+    // relationship gains. Never inverted — a negative correlation on this little data is
+    // noise, and letting it flip a sign would have the app rewarding bad sleep.
+    const factor = 1 + lambda * (Math.max(0, shrunk) * 2 - 1);
+    learned[k] = Math.max(0, SR_WEIGHTS[k] * factor);
+    detail[k] = { r: Math.round(r * 100) / 100, shrunk: Math.round(shrunk * 100) / 100,
+                  n: pts.length, nEff: Math.round(nEff * 10) / 10,
+                  weight: Math.round(learned[k] * 1000) / 1000 };
+  });
+  // Renormalised so the composite stays on the same scale as the priors.
+  const total = Object.values(learned).reduce((a,b)=>a+b, 0);
+  const priorTotal = Object.values(SR_WEIGHTS).reduce((a,b)=>a+b, 0);
+  if(total > 0) keys.forEach(k=>{ learned[k] = learned[k] * priorTotal / total; });
+  const value = { weights: learned, detail, n: paired.length,
+                  blinded: outcomes.filter(o=>o.blinded).length };
+  _learnedCache = { date, at:Date.now(), value };
+  return value;
+}
+
 /* ---------- RANDOMISED SCORE-BLINDING ----------
    Nobody in the industry does this, and it is the only route to a score that can ever be
    checked. Two things fall out of hiding the number on a random fifth of days.
@@ -6646,6 +6795,37 @@ async function renderBlindingStats(){
   if(br && sr2) bits.push(`Effort ${br.toFixed(1)} vs ${sr2.toFixed(1)}.`);
   bits.push('A gap between them is the score changing your behaviour rather than describing it.');
   el.textContent = bits.join(' ');
+  renderLearnedWeights();
+}
+
+/* What the engine has actually concluded, shown rather than applied silently. The whole
+   difference between this and a sealed vendor score is that the weights are visible. */
+const SR_COMPONENT_LABELS = {
+  subjective:'How you feel', hrvTrend:'HRV trend', rhr:'Resting HR', sleep:'Sleep',
+  hrvAcute:'HRV last night', sleepDebt:'Sleep debt', regularity:'Sleep regularity',
+  illnessCh:'Breathing & temp'
+};
+async function renderLearnedWeights(){
+  const el = document.getElementById('learnedWeights');
+  if(!el) return;
+  let L = null;
+  try{ L = await learnWeights(todayStr); } catch(e){}
+  if(!L){
+    el.innerHTML = '<div class="score-note">Still using the starting weights. They move once there are a dozen or so logged sessions to check them against.</div>';
+    return;
+  }
+  const rows = Object.keys(SR_WEIGHTS).map(k=>{
+    const now = L.weights[k], prior = SR_WEIGHTS[k];
+    const d = L.detail[k];
+    const pct = Math.round(now * 100);
+    const delta = now > prior * 1.05 ? 'up' : (now < prior * 0.95 ? 'down' : 'level');
+    const arrow = delta === 'up' ? '↑' : delta === 'down' ? '↓' : '–';
+    return `<div class="load-row" style="color:var(--text);">
+      <span class="load-name" style="opacity:0.75;">${SR_COMPONENT_LABELS[k] || k}</span>
+      <span class="load-val">${pct}%<i class="unit">of the score</i></span>
+      <span class="load-delta">${arrow}${d ? ` r=${d.r}` : ' no data'}</span></div>`;
+  }).join('');
+  el.innerHTML = rows + `<div class="score-note" style="margin-top:8px;">From ${L.n} logged sessions, ${L.blinded} of them blinded. Correlations are shrunk by their own error bar and by how much independent information the run of days actually carries, so a weight moves slowly and never inverts — a negative on this little data is noise, and letting it flip would have the app rewarding bad sleep.</div>`;
 }
 (function wireBlinding(){
   const t = document.getElementById('blindingToggle');
@@ -7374,12 +7554,13 @@ function srComponentsAt(win, i, debtZ){
     })()
   };
 }
-function srRawFrom(parts, maturity){
+function srRawFrom(parts, maturity, weights){
+  const W = weights || SR_WEIGHTS;
   let sum = 0, present = 0;
   Object.keys(SR_WEIGHTS).forEach(k=>{
     const v = parts[k];
     if(v == null || isNaN(v)) return;
-    sum += SR_WEIGHTS[k] * v;
+    sum += (W[k] != null ? W[k] : SR_WEIGHTS[k]) * v;
     present += SR_WEIGHTS[k];
   });
   // Maturity shrinks the whole composite, not each term twice — the channels already carry
@@ -7404,8 +7585,13 @@ async function computeSystemicReadiness(asOfDate){
     .filter(Boolean);
   const maturity = chans.length ? chans.reduce((a,c)=>a + (c.M||0), 0) / chans.length : 0;
 
+  // Learned weights where they exist, priors otherwise.
+  let learned = null;
+  try{ learned = await learnWeights(asOfDate || todayStr); } catch(e){}
+  const W = learned ? learned.weights : null;
+
   const partsToday = srComponentsAt(win, win.dates.length - 1, debtZ);
-  const today = srRawFrom(partsToday, maturity);
+  const today = srRawFrom(partsToday, maturity, W);
 
   // Gates multiply rather than adding another weighted term, because illness and acute injury
   // are not "a bit more fatigue" — they are a reason to stop interpreting training load.
@@ -7435,7 +7621,7 @@ async function computeSystemicReadiness(asOfDate){
     if(!win.entries[i]) return null;
     const p = srComponentsAt(win, i, debtZ);
     const anyPresent = Object.keys(SR_WEIGHTS).some(k=> p[k] != null && !isNaN(p[k]));
-    return anyPresent ? srRawFrom(p, maturity).raw : null;
+    return anyPresent ? srRawFrom(p, maturity, W).raw : null;
   });
   const observed = series.filter(v=>v != null);
   const pctRank = (raw)=> observed.length ? Math.round(100 * observed.filter(v=> v < raw).length / observed.length) : null;
@@ -7474,7 +7660,7 @@ async function computeSystemicReadiness(asOfDate){
     refused: !enough && today.weightPresent > 0,
     score, raw: today.raw, z: today.z, percentile,
     gate, gateReason, drinkNote, illness, held, saturated: hrvSaturated(win),
-    variability: hrvVariability(win), shift: baselineShift(win),
+    variability: hrvVariability(win), shift: baselineShift(win), learned,
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
