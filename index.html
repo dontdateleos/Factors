@@ -1009,20 +1009,6 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
-  .tissue{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-3); padding:14px; }
-  .tissue-head{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:var(--track-ui); text-transform:uppercase; margin-bottom:9px; }
-  .tissue-row{ display:flex; align-items:center; gap:9px; margin-bottom:5px; }
-  .tissue-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.05em;
-    text-transform:uppercase; flex:0 0 40%; min-width:0; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis; opacity:0.8; }
-  .tissue-bar{ flex:1; height:10px; box-shadow:inset 0 0 0 1px rgba(251,250,246,0.4); position:relative; }
-  .tissue-bar i{ position:absolute; left:0; top:0; bottom:0; background:var(--bg); }
-  .tissue-row.low .tissue-bar i{ background:var(--bad); }
-  .tissue-num{ font-family:var(--mono); font-size:var(--fs-tag); font-variant-numeric:tabular-nums;
-    flex:0 0 auto; min-width:26px; text-align:right; }
-  .tissue-note{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
-    text-transform:none; opacity:0.6; margin-top:8px; line-height:1.45; }
   #loadPanel:not(:empty){ margin-top:var(--sp-4); padding-top:var(--sp-3);
     border-top:1px solid rgba(251,250,246,0.25); }
   .load-head{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.6;
@@ -1562,7 +1548,6 @@
       <div class="rest-word">Rest</div>
       <div class="rest-note" id="restDayNote"></div>
     </div>
-    <div id="tissueStrip" style="display:none;"></div>
     <div class="session-type" id="todaySessionTypePills">
       <div class="type-btn active" data-type="strength">Strength</div>
       <div class="type-btn" data-type="run">Run</div>
@@ -4711,7 +4696,6 @@ function activateTab(name, opts){
   if(name==='insights'){
     applyTodayStage();
     refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
-    renderTissueStrip();
     applyRestDayShape();
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
@@ -5288,7 +5272,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.9';
+const APP_VERSION = '2026.08.30.10';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -7131,26 +7115,24 @@ async function buildPrescription(sr){
     lines.push('Reps in reserve as planned — this is the day to spend them.');
   }
 
-  // Modify states are checked after, and can convert a "do less" into a "do differently".
+  // Local readiness does not get a card or a sentence — it acts on the plan, at the lifts it
+  // applies to, and each of those says why where it happened. The one thing it does here is
+  // negative: it withholds a "room to push" on a day a group is down, because advice that
+  // contradicts the flags underneath it is worse than no advice at all.
   const limited = tr && tr.available ? tr.limited : [];
-  if(limited.length){
-    const names = limited.map(a=>a.label).join(' and ');
-    if(!kind || kind === 'add'){
-      kind = 'modify';
-      title = `Train around ${names}`;
-    }
-    // Says what the app actually does now: cut volume on that group, hold its load, and
-    // leave every other lift alone. Not "substitute" — there is no squat that is not a quad
-    // exercise, so a swap would keep loading the tissue that is down.
-    lines.push(`${names} ${limited.length > 1 ? 'are' : 'is'} still carrying the last session. Anything loading ${limited.length > 1 ? 'them' : 'it'} is flagged on the plan below — take the set off, or skip the lift. Everything else stays at full intensity: this is local, not systemic.`);
-  }
+  if(limited.length && kind === 'add'){ kind = null; title = null; lines.length = 0; }
   if(cr && cr.available && cr.limited){
     if(!kind){ kind = 'modify'; title = 'Move the technical work'; }
     lines.push('No maximal singles, no plyometrics, nothing you have not done before — sharpness is the part that is down, not strength.');
-    const c = cr.circadian;
-    if(c && c.available && c.hoursToPeak != null && c.hoursToPeak >= 1.5){
-      lines.push(`Your strongest window is about ${Math.round(c.hoursToPeak)} hours away, if the session can wait.`);
-    }
+    // Attributed rather than left as an unexplained dip. Alcohol costs REM, and REM is the
+    // sleep technical work depends on.
+    if(cr.drank) lines.push('Last night\'s drink is part of that.');
+  }
+  // The window is worth saying whether or not sharpness is flagged: it is the one piece of
+  // timing advice in the app, and it only exists because this knows when you woke up.
+  if(cr && cr.available && kind){
+    const win = cnsWindowLine(cr);
+    if(win) lines.push(win);
   }
   if(!kind) return null;
   const TITLES = { reduce:'Reduce', modify:'Modify', add:'Add' };
@@ -7653,68 +7635,31 @@ async function computeTissueReadiness(asOfDate){
   };
 }
 
-/* Drawn only when it has something a systemic number could not have told you. A full ledger
-   of every muscle group every day is a readout; the useful moment is the one where a group is
-   down and the rest of you is not. */
-const TISSUE_SHOW_BELOW = 60;
-async function renderTissueStrip(){
-  const host = document.getElementById('tissueStrip');
-  if(!host) return;
-  let tr = null;
-  try{ tr = await computeTissueReadiness(todayStr); } catch(e){}
-  if(!tr || !tr.available || !tr.list.length){
-    const cns = await cnsNoteHtml();
-    if(!cns){ host.style.display = 'none'; return; }
-    host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${cns}</div>`;
-    host.style.display = 'block';
-    return;
-  }
-  const down = tr.list.filter(a=>a.tr < TISSUE_SHOW_BELOW);
-  if(!down.length){
-    // Nothing local to report, but the CNS line may still have something worth saying.
-    const cns = await cnsNoteHtml();
-    if(!cns){ host.style.display = 'none'; return; }
-    host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>`
-      + `<div class="tissue-note">Every muscle group is clear.</div>${cns}</div>`;
-    host.style.display = 'block';
-    return;
-  }
-  const clear = tr.list.filter(a=>a.tr >= TISSUE_SHOW_BELOW);
-  const rows = down.map(a=>`<div class="tissue-row${a.tr < 40 ? ' low' : ''}">
-      <span class="tissue-name">${a.label}</span>
-      <span class="tissue-bar"><i style="width:${Math.max(2, a.tr)}%"></i></span>
-      <span class="tissue-num">${a.tr}</span>
-    </div>`).join('');
-  const worst = down[0];
-  const note = worst.tr < 40
-    ? `${worst.label} is still carrying the last session. Its lifts are flagged on the plan below and its load is held; everything else stays at full intensity — this is local, not systemic.`
-    : `${worst.label} is not fully recovered. Everything not listed is clear.`;
-  host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${rows}`
-    + `<div class="tissue-note">${note}${clear.length ? ` Clear: ${clear.map(a=>a.label).join(', ')}.` : ''}</div>`
-    + (await cnsNoteHtml()) + `</div>`;
-  host.style.display = 'block';
-}
+/* LOCAL READINESS, BEHIND THE SCENES.
+
+   This used to draw a panel on Today: a bar and a number per muscle group, under the heading
+   "Local readiness". That was a readout — a second score to interpret, reporting on a system
+   you cannot act on directly. Every group is either fine, in which case the panel said so at
+   length, or it is down, in which case the thing you actually need is on the plan.
+
+   So it acts instead of reporting. Below TISSUE_FLAG_REDUCE a lift loses a set; below
+   TISSUE_FLAG_SKIP it is flagged to skip; below TISSUE_HOLD_LOAD a load increase is held.
+   Each of those says why at the lift it happened to, which is both the moment you can do
+   something about it and the only place the number was ever going to mean anything. It also
+   silently withholds a "room to push" prescription on a day a group is down — advice that
+   contradicts the flags below it is worse than no advice.
+
+   The one thing the strip carried that was not local readiness at all was the CNS line, and
+   that has moved onto the prescription card, which is where the rest of the cognitive
+   readiness output already was. */
 
 /* The sentence no competitor can produce, because none of them know when you woke up. */
-async function cnsNoteHtml(){
-  let cr = null;
-  try{ cr = await computeCognitiveReadiness(todayStr, new Date()); } catch(e){}
-  if(!cr || !cr.available) return '';
-  const c = cr.circadian;
-  const bits = [];
-  if(cr.limited){
-    bits.push('Sharpness is down — no maximal singles, no plyometrics, nothing you have not done before. Technical work keeps better until tomorrow.');
-    // Attributed rather than left as an unexplained dip. Alcohol costs REM, and REM is the
-    // sleep technical work depends on.
-    if(cr.drank) bits.push('Last night\'s drink is part of that.');
-  }
-  if(c.available && c.hoursToPeak != null){
-    if(c.hoursToPeak >= 1.5) bits.push(`Your strongest window is about ${Math.round(c.hoursToPeak)}h away.`);
-    else if(c.hoursToPeak <= -3) bits.push('You are past your strongest window for today by a few hours.');
-    else bits.push('You are in your strongest window now.');
-  }
-  if(!bits.length) return '';
-  return `<div class="tissue-note" style="margin-top:10px;"><b style="opacity:0.85;">CNS ${cr.score}</b> &middot; ${bits.join(' ')}</div>`;
+function cnsWindowLine(cr){
+  const c = cr && cr.circadian;
+  if(!c || !c.available || c.hoursToPeak == null) return null;
+  if(c.hoursToPeak >= 1.5) return `Your strongest window is about ${Math.round(c.hoursToPeak)}h away, if the session can wait.`;
+  if(c.hoursToPeak <= -3) return 'You are past your strongest window for today by a few hours.';
+  return 'You are in your strongest window now.';
 }
 
 /* ================= SCORE 1 — SYSTEMIC READINESS =================
@@ -16341,7 +16286,7 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
    training. The warm-up and cooldown sections are left alone deliberately: they hide
    themselves when they are empty, and forcing them shut here would mean deciding when to
    open them again. */
-const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup', 'tissueStrip'];
+const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup'];
 async function applyRestDayShape(){
   const plate = document.getElementById('restDayPlate');
   if(!plate) return;
