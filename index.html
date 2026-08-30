@@ -5207,7 +5207,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.29.9';
+const APP_VERSION = '2026.08.30.1';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6681,7 +6681,9 @@ async function buildPrescription(sr){
   const TITLES = { reduce:'Reduce', modify:'Modify', add:'Add' };
   return { type:'prescription_' + kind, title, signals: lines,
            confidence: sr && sr.available ? (sr.maturity > 0.7 ? 'high' : 'medium') : 'low',
-           meta:{ taxonomy: TITLES[kind] } };
+           // How many corroborating reasons there were picks the lever: reps first, then
+           // sets, and weight only on a strong signal.
+           meta:{ taxonomy: TITLES[kind], signalCount: lines.length } };
 }
 
 /* ================= SCORE 5 — LOAD, IN THREE CURRENCIES =================
@@ -10894,6 +10896,11 @@ const REC_TYPE_SYMBOL = {
   reduce:         { glyph:'\u2212', label:'Reduce' },   // a real minus, not a hyphen
   hold:           { glyph:'=',      label:'Hold' },
   modify:         { glyph:'\u00b1', label:'Modify' },   // adjust either way, around something
+  // The readiness prescription reuses the same three shapes. Without these it fell through
+  // to the two-letter fallback and every one of them rendered as "PR".
+  prescription_reduce: { glyph:'\u2212', label:'Reduce' },
+  prescription_modify: { glyph:'\u00b1', label:'Modify' },
+  prescription_add:    { glyph:'+',      label:'Add' },
   deload_suggest: { glyph:'\u2193', label:'Deload' },   // a reduce that lasts a week
   week_review:    { glyph:'\u2211', label:'Week' },     // the week summed, not a thing to decide
   block_review:   { glyph:'\u2261', label:'Block' }     // and the block it sat inside
@@ -10995,11 +11002,19 @@ async function logRecDecision(type, meta, decision, card){
     // lever gets touched — comes from how many signals corroborated the recommendation,
     // using the same meta.signals array already built and shown on the card itself, not
     // a separately-invented count.
-    if(decision==='accepted' && (type==='reduce' || type==='add')){
-      const signalCount = (meta && meta.signals) ? meta.signals.length : 2;
+    // prescription_reduce / prescription_add are the readiness engine's version of the same
+    // two verdicts, so they drive the same lever. Accepting one used to log a decision and
+    // change nothing at all, which is the exact failure the brief warns about: a number that
+    // cannot move a set, a zone or an exercise should not be on screen.
+    const direction = type === 'reduce' || type === 'prescription_reduce' ? 'reduce'
+                    : type === 'add'    || type === 'prescription_add'    ? 'add' : null;
+    if(decision==='accepted' && direction){
+      // Signals live on the card for the prescription types; meta.signals for the older ones.
+      const signalCount = (meta && meta.signals) ? meta.signals.length
+                        : (meta && meta.signalCount) ? meta.signalCount : 2;
       const tier = getAdjustmentTier(signalCount);
       const lever = getAdjustmentLever(tier, todaySessionType);
-      const delta = getAdjustmentDelta(lever, type, tier);
+      const delta = getAdjustmentDelta(lever, direction, tier);
       await applyTodayAdjustment(lever, delta);
       renderTodayWorkoutSummary();
     }
