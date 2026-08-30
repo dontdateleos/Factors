@@ -1245,10 +1245,14 @@
   /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
      mark read as the same family — and a symbol on a solid ground is legible in a way a
      bare minus at display size is not. */
+  /* Square, like every other box in the app. The 13px radius made this the one rounded
+     rectangle in the whole interface, which is its own kind of off-key before you get to
+     what was inside it. */
   .rec-symbol{ display:inline-flex; align-items:center; justify-content:center;
-    width:46px; height:46px; border-radius:13px; background:var(--block-lime); color:var(--text);
-    font-family:var(--sans); font-weight:var(--fw-bold); font-size:30px; line-height:1;
-    letter-spacing:0; padding-bottom:2px; }
+    width:46px; height:46px; border-radius:0; background:var(--block-lime); color:var(--text); }
+  .rec-symbol svg{ display:block; width:30px; height:30px; }
+  .rec-symbol-text{ font-family:var(--mono); font-weight:var(--fw-bold); font-size:16px;
+    letter-spacing:0.04em; }
   /* Chip and tag side by side rather than stacked: the number no longer needs a whole
      line to itself, and the row is shorter for it. */
   .goal-row-panel .goal-priority-badge{ display:flex; align-items:center; gap:10px; flex:1; }
@@ -5448,7 +5452,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.25';
+const APP_VERSION = '2026.08.30.26';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -11968,24 +11972,58 @@ async function clearTodayAdjustment(){
    indistinguishable from a rule, and the whole point of a symbol here is that it reads at
    a glance. The chip also gives the five a shared footprint, which a bar and an arrow do
    not have on their own. */
+/* THE CARD SYMBOLS, DRAWN RATHER THAN BORROWED.
+
+   These were seven glyphs lifted out of a maths font — + − = ± ↓ ∑ ≡ — on the only
+   rounded-rectangle container in an app whose every other box has square corners. Two
+   problems with that, and the second is the worse one.
+
+   The first is that the app does not use mathematical notation anywhere else. Its language is
+   a drawn mark, hard-edged geometry and one monospace face; ∑ and ≡ read as a spreadsheet.
+
+   The second is that two of them said nothing. ∑ means "sum" and a week review is not a sum
+   of anything; ≡ means "identical to" and a block review is not an identity. They were chosen
+   because they looked different from each other, which is not the same as meaning anything.
+
+   So they are bars now, on a baseline — the shape the app already draws for the trace, the
+   confidence ruler and the block bars, and the one it has taught you to read. Each is a
+   profile of what the card is asking for, which means the two that said nothing now describe
+   themselves: a week is seven ticks on a rail, and a block is four weeks with the last one
+   short, because that is what a block is. */
+function recBarsSvg(heights, o){
+  const O = Object.assign({ w:3, gap:2, base:19, rail:false }, o || {});
+  const span = heights.length * O.w + (heights.length - 1) * O.gap;
+  const x0 = (24 - span) / 2;
+  const bars = heights.map((h, i)=>
+    `<rect x="${(x0 + i * (O.w + O.gap)).toFixed(2)}" y="${(O.base - h).toFixed(2)}" width="${O.w}" height="${h}"/>`).join('');
+  // The rail is the trace's own: seven marks read as a week because they sit on one.
+  const rail = O.rail
+    ? `<rect x="${x0.toFixed(2)}" y="${(O.base + 1.6).toFixed(2)}" width="${span.toFixed(2)}" height="1.2" opacity="0.5"/>`
+    : '';
+  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${bars}${rail}</svg>`;
+}
 const REC_TYPE_SYMBOL = {
-  add:            { glyph:'+',      label:'Add' },
-  reduce:         { glyph:'\u2212', label:'Reduce' },   // a real minus, not a hyphen
-  hold:           { glyph:'=',      label:'Hold' },
-  modify:         { glyph:'\u00b1', label:'Modify' },   // adjust either way, around something
+  add:            { label:'Add',    svg: recBarsSvg([4, 7, 10, 14]) },    // climbing
+  reduce:         { label:'Reduce', svg: recBarsSvg([14, 10, 7, 4]) },    // coming down
+  hold:           { label:'Hold',   svg: recBarsSvg([9, 9, 9, 9]) },      // level, unchanged
+  // Train around something: the row stands, one of it drops out. Not less work — work
+  // moved, which is exactly what the card says.
+  modify:         { label:'Modify', svg: recBarsSvg([11, 3, 11, 11]) },
   // The readiness prescription reuses the same three shapes. Without these it fell through
   // to the two-letter fallback and every one of them rendered as "PR".
-  prescription_reduce: { glyph:'\u2212', label:'Reduce' },
-  prescription_modify: { glyph:'\u00b1', label:'Modify' },
-  prescription_add:    { glyph:'+',      label:'Add' },
-  deload_suggest: { glyph:'\u2193', label:'Deload' },   // a reduce that lasts a week
-  week_review:    { glyph:'\u2211', label:'Week' },     // the week summed, not a thing to decide
-  block_review:   { glyph:'\u2261', label:'Block' }     // and the block it sat inside
+  prescription_reduce: { label:'Reduce', svg: recBarsSvg([14, 10, 7, 4]) },
+  prescription_modify: { label:'Modify', svg: recBarsSvg([11, 3, 11, 11]) },
+  prescription_add:    { label:'Add',    svg: recBarsSvg([4, 7, 10, 14]) },
+  // A cliff and then flat, where reduce is a ramp — a deload is not a smaller day, it is a
+  // week held down. Five bars rather than four for the same reason: it is a longer thing.
+  deload_suggest: { label:'Deload', svg: recBarsSvg([14, 14, 4, 4, 4], { w:2.6, gap:1.8 }) },
+  week_review:    { label:'Week',   svg: recBarsSvg([5, 9, 6, 11, 8, 10, 7], { w:2, gap:1.4, rail:true }) },
+  block_review:   { label:'Block',  svg: recBarsSvg([10, 13, 15, 6], { w:4, gap:2 }) }
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
-  if(!sym) return `<span class="rec-symbol">${String(type).slice(0,2).toUpperCase()}</span>`;
-  return `<span class="rec-symbol" role="img" aria-label="${sym.label}">${sym.glyph}</span>`;
+  if(!sym) return `<span class="rec-symbol rec-symbol-text">${String(type).slice(0,2).toUpperCase()}</span>`;
+  return `<span class="rec-symbol" role="img" aria-label="${sym.label}">${sym.svg}</span>`;
 }
 
 const CONF_STEPS = { low:2, medium:3, high:5 };
