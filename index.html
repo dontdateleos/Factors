@@ -1107,9 +1107,11 @@
   .log-toggle-row{ flex-basis:100%; display:flex; gap:6px; margin-top:6px; }
   .log-toggle-row button{ height:28px; padding:0 10px; font-size:var(--fs-tag); flex:0 0 auto; }
   .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  /* Pushed to the far end of the stepper row: it is about the whole session, not about the
-     lift the arrows are moving between. */
   .log-fill{ margin-left:auto; flex:0 0 auto; }
+  /* Every lift is on the page, so the rows need a line between them or a nine-lift session
+     reads as one long form rather than nine things. */
+  #weekExerciseRows > .edit-row + .edit-row{ border-top:1px solid var(--line);
+    padding-top:12px; margin-top:12px; }
   .ex-target-tap{ cursor:pointer; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .ex-target-hint{ text-decoration:underline; white-space:nowrap; }
   /* A filled row says so for a moment. Without it a tap at the far end of the stepper row
@@ -5461,7 +5463,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.27';
+const APP_VERSION = '2026.08.30.28';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10396,17 +10398,31 @@ let logExIndex = 0;
 function logExRows(){
   return [...document.querySelectorAll('#weekExerciseRows .edit-row')].filter(r=>r.querySelector('.week-ex-name'));
 }
+/* EVERY LIFT ON THE PAGE.
+
+   One lift at a time was meant to make the session feel smaller, and it did — but it also
+   made it eight swipes long, and it hid the other eight rows from the one control that could
+   have finished them. Filling the whole session in a tap and then paging through nine screens
+   to check the tap worked is not less work, it is the same work rearranged.
+
+   The whole session is on one page now: fill it, scroll it, correct what differed, save. The
+   count stays as a heading, because knowing there are nine of them is worth something even
+   when they are all in front of you.
+
+   showLogExercise survives as a scroll rather than a filter — the callers that used it to put
+   you back where the work is still mean that, they just no longer need to hide anything. */
 function showLogExercise(i){
   const rows = logExRows();
   if(!rows.length) return;
   logExIndex = Math.max(0, Math.min(rows.length - 1, i));
-  rows.forEach((r, n)=>{ r.style.display = n === logExIndex ? '' : 'none'; });
   const pos = document.getElementById('logPos');
-  if(pos) pos.textContent = `${logExIndex + 1} / ${rows.length}`;
-  const prev = document.getElementById('logPrev'), next = document.getElementById('logNext');
-  if(prev) prev.disabled = logExIndex === 0;
-  if(next) next.disabled = logExIndex === rows.length - 1;
+  if(pos) pos.textContent = `${rows.length} lift${rows.length === 1 ? '' : 's'}`;
   updateLogBar();
+}
+function scrollToLogExercise(i){
+  const rows = logExRows();
+  const row = rows[Math.max(0, Math.min(rows.length - 1, i))];
+  if(row && i > 0) row.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'center' });
 }
 /* LOGGING A SESSION THAT WENT TO PLAN SHOULD NOT COST TWENTY-SEVEN TAPS.
 
@@ -10770,9 +10786,7 @@ async function openBlockEditor(date, slot, block, opts){
   let fieldsHtml = '';
   if(block.type === 'strength'){
     fieldsHtml = `<div class="log-step" id="logStep">
-        <button type="button" class="log-step-arrow" id="logPrev" aria-label="Previous exercise">\u2039</button>
         <span class="log-step-pos" id="logPos"></span>
-        <button type="button" class="log-step-arrow" id="logNext" aria-label="Next exercise">\u203a</button>
         <button type="button" class="small outline log-fill" id="logFillAll">As planned</button>
       </div>
       <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
@@ -10946,8 +10960,6 @@ async function openBlockEditor(date, slot, block, opts){
       addWeekExRow();
       showLogExercise(logExRows().length - 1);   // land on the one you just asked for
     });
-    document.getElementById('logPrev').addEventListener('click', ()=> showLogExercise(logExIndex - 1));
-    document.getElementById('logNext').addEventListener('click', ()=> showLogExercise(logExIndex + 1));
     const fillAll = document.getElementById('logFillAll');
     if(fillAll) fillAll.addEventListener('click', ()=> fillLogAsPlanned());
   }
@@ -11031,6 +11043,9 @@ async function openBlockEditor(date, slot, block, opts){
     const firstBlank = rows.findIndex(r=> !['sets','reps','weight']
       .some(k=> (r.querySelector('.week-ex-' + k)?.value || '').trim()));
     showLogExercise(firstBlank < 0 ? 0 : firstBlank);
+    // Coming back to a half-done session still puts you where the work is — by scrolling to
+    // it now rather than by hiding everything else.
+    setTimeout(()=> scrollToLogExercise(firstBlank < 0 ? 0 : firstBlank), 260);
   }
   wireBlockEditorClose(panel);
   wireBlockEditorGrab(panel);
