@@ -1001,6 +1001,42 @@
      this extends the target well past the border. Vertically only — the neighbours are all
      horizontal, and widening it would have each face stealing taps from the next. */
   .subj-face::after{ content:''; position:absolute; left:0; right:0; top:-10px; bottom:-10px; }
+  /* THE ANSWER, DOCKED.
+
+     Answered, the row has nothing left to ask, so it goes — and what it was asking for comes
+     to rest at the number's right edge, tucked about seven pixels behind the digits. The
+     column then holds the trace alone and re-centres on the number, which is a real move
+     upward rather than a gap left where the row was.
+
+     It arrives by tearing rather than travelling. Every other transition in this app is a
+     straight line or a hard cut; a curve or an arc would be the one smear in a page that has
+     none. The face tears where it stood, cuts, and tears back in already docked — the same
+     gesture the score itself makes when you swipe to another day.
+
+     Tap it and the five come back, so an answer is never a door that shuts. */
+  #todayFaceDock{ position:absolute; display:none; width:30px; height:36px; padding:0;
+    border:0; border-radius:0; background:var(--face-c); color:#000000; cursor:pointer;
+    align-items:center; justify-content:center; z-index:1; flex:none;
+    transition:left 0.2s cubic-bezier(.2,.7,.2,1); }
+  #todayFaceDock .eyes{ pointer-events:none; }
+  /* Reads out from under the chip, in the chip's own colour, so the word and the mark are
+     obviously one statement. Positioned off the chip rather than the band, so it rides with
+     it when a three-digit score pushes the number's edge right. */
+  #todayFaceDock .dock-word{ position:absolute; left:0; top:100%; margin-top:3px;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--face-c); white-space:nowrap; pointer-events:none; }
+  /* The digits sit over the chip. Their own stacking context, so "behind" is a fact rather
+     than a source-order accident — chip 1, digits 2, and the column above both, because the
+     gauge is a full-width flex box whose empty half lies right across the row and would
+     otherwise take every tap meant for a face. */
+  /* …and the gauge takes no taps of its own. It is a full-width flex box with a lot of empty
+     space in it, and putting it over the chip to get the digits in front would otherwise mean
+     the chip could never be pressed. Only the two things inside it that are actually controls
+     take pointer events back. */
+  .today-open .gauge-wrap{ position:relative; z-index:2; pointer-events:none; }
+  .today-open .gauge-wrap #scoreToggle,
+  .today-open .gauge-wrap .score-eyes{ pointer-events:auto; }
+  #todayFaceRow, #scoreTrace{ z-index:3; }
   /* Once one is chosen the other four step back — the answer should read as an answer, not
      as five options with one of them ticked. */
   .subj-faces.picked .subj-face:not(.on){ opacity:0.38; }
@@ -1526,6 +1562,8 @@
       <div class="subj-faces" id="todayFaces"></div>
     </div>
     <div id="scoreTrace" role="img" aria-label=""></div>
+    <!-- Where the answer comes to rest: at the number's right edge, tucked behind it. -->
+    <button type="button" id="todayFaceDock"></button>
     <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <div id="todayBlockContext" class="score-note" style="text-align:center; font-size:var(--fs-tag);"></div>
     </div>
@@ -5084,19 +5122,25 @@ const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
 // down with the heights, which is the whole difference between a small drawing of a face and
 // a normal one squashed.
 const FACE_SCALE = 0.32;
-const facePx = v => (parseFloat(v) * FACE_SCALE).toFixed(2) + 'px';
+// The docked chip is the same drawing, larger: it is one thing now rather than one of five,
+// and it has to hold its own beside a 58px number.
+const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 7, DOCK_SCALE = 0.55;
+const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
+function faceEyesHtml(n, k, ink){
+  const st = EYE_STATES[n - 1];
+  const style = `--eye-box-w:${facePx('42px', k)}; --eye-box-h:${facePx('32px', k)}; --eye-gap:${facePx('12px', k)};`
+    + ` --eye-w:${facePx('15px', k)}; --eye-r:${facePx('7.5px', k)};`
+    + ` --eye-h:${facePx(st.h, k)}; --eye-rb:${facePx(st.rb, k)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
+    + ` --eye-ink:${ink}; --eye-plate:transparent; transition:none;`;
+  return `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span>`;
+}
 function faceButtonHtml(n){
   // The mark at the state this rating means, drawn small and static, in that step's colour.
   // .eyes declares its own defaults for every --eye-* property, so they have to be set ON it:
   // an inherited value from the button would lose to the class's own declaration.
-  const st = EYE_STATES[n - 1];
-  const style = `--eye-box-w:${facePx('42px')}; --eye-box-h:${facePx('32px')}; --eye-gap:${facePx('12px')};`
-    + ` --eye-w:${facePx('15px')}; --eye-r:${facePx('7.5px')};`
-    + ` --eye-h:${facePx(st.h)}; --eye-rb:${facePx(st.rb)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
-    + ` --eye-ink:currentColor; --eye-plate:transparent; transition:none;`;
   return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n});"`
     + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
-    + `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span></button>`;
+    + faceEyesHtml(n, FACE_SCALE, 'currentColor') + `</button>`;
 }
 (function wireAlcohol(){
   const box = document.getElementById('alcoholScale');
@@ -5272,7 +5316,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.10';
+const APP_VERSION = '2026.08.30.11';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6837,11 +6881,19 @@ function faceDate(){
   return d ? d.date : todayStr;
 }
 let faceValues = {};      // date -> 1..5, what the row is currently showing
+/* Answered days show the chip and no row; unanswered days show the row and no chip. Tapping
+   the chip sets faceRowOpen, which forces the row back for that one day so an answer can be
+   changed — it is cleared by answering again, or by moving to another day. */
+let faceRowOpen = null;
 function paintTodayFaces(){
   const host = document.getElementById('todayFaces');
   const cap = document.getElementById('todayFaceCap');
-  if(!host) return;
-  const v = faceValues[faceDate()];
+  const row = document.getElementById('todayFaceRow');
+  const dock = document.getElementById('todayFaceDock');
+  if(!host || !row) return;
+  const date = faceDate();
+  const v = faceValues[date];
+  const asking = v == null || faceRowOpen === date;
   host.classList.toggle('picked', v != null);
   host.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', +b.dataset.v === v));
   // The caption is the question until it is answered, and the answer after — one 9px line
@@ -6851,36 +6903,81 @@ function paintTodayFaces(){
     cap.textContent = v == null ? 'Ready for it' : SUBJECTIVE_WORDS[v - 1];
     cap.style.setProperty('--face-said', v == null ? '' : `var(--face-${v})`);
   }
+  if(dock){
+    if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; }
+    else {
+      dock.style.setProperty('--face-c', `var(--face-${v})`);
+      dock.setAttribute('aria-label', `${SUBJECTIVE_WORDS[v-1]} — tap to change`);
+      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000')
+        + `<span class="dock-word">${SUBJECTIVE_WORDS[v-1]}</span>`;
+    }
+  }
+  row.dataset.asking = asking ? '1' : '0';
 }
 /* The faces and the trace are one column, sharing a right edge, a measured width and a
    vertical centre — and the centre is the score's, not the band's, because the band's own
    middle is empty space between the eyes and the label. Both are laid out here so the two
    can never drift apart, and so the faces still land when the trace has nothing to draw. */
 const FACE_TRACE_GAP = 9;
+let dockRelayout = null, lastDockEdge = null;
 function layoutBandColumn(traceShown){
   const row = document.getElementById('todayFaceRow');
   const host = document.getElementById('scoreTrace');
+  const dock = document.getElementById('todayFaceDock');
   const band = document.querySelector('.today-open');
   const num = document.getElementById('overallScoreOut');
   if(!row || !band || !num) return;
+  const hideAll = ()=>{ row.style.display = 'none'; if(dock) dock.style.display = 'none'; };
   // Before the first morning is logged the whole gauge is taken away and the band collapses;
   // there is no score for this column to sit beside, so it goes with it.
   const gauge = band.querySelector('.gauge-wrap');
-  if(gauge && gauge.style.display === 'none'){ row.style.display = 'none'; return; }
+  if(gauge && gauge.style.display === 'none'){ hideAll(); return; }
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
-  const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
-  if(W < TRACE_MIN_W){ row.style.display = 'none'; return; }
-  row.style.width = W + 'px';
-  row.style.display = 'block';
+  const asking = row.dataset.asking !== '0';
+  const W = bandColumnWidth(bandRect, numRect, !asking);
+  // The chip is not the trace and does not go with it: a band too narrow to draw seven ticks
+  // is still wide enough to say what you told it this morning.
+  if(W < TRACE_MIN_W && asking){ hideAll(); return; }
+
+  // The chip is anchored to the number's right edge rather than a fixed x: "100" is a third
+  // wider than "55", and a dock at a constant offset would be swallowed whole by it. Same
+  // measurement the trace takes, so chip, trace and digits stay one arrangement at any width.
+  if(dock){
+    if(asking){ dock.style.display = 'none'; }
+    else {
+      dock.style.display = 'flex';
+      dock.style.left = Math.round(numRect.right - bandRect.left - DOCK_OVERLAP) + 'px';
+      dock.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - DOCK_H) / 2) + 'px';
+    }
+  }
+
+  row.style.display = asking ? 'block' : 'none';
+  row.style.width = Math.max(W, TRACE_MIN_W) + 'px';
   row.style.top = '0px';
   // Measured, not computed: the caption's line box depends on a font that may not have
   // loaded yet, which is the same reason the trace measures itself rather than adding up.
-  const faceH = row.offsetHeight;
-  const traceH = traceShown && host ? host.offsetHeight : 0;
-  const groupH = faceH + (traceH ? FACE_TRACE_GAP + traceH : 0);
+  const faceH = asking ? row.offsetHeight : 0;
+  const traceH = traceShown && host && W >= TRACE_MIN_W ? host.offsetHeight : 0;
+  const groupH = faceH + (faceH && traceH ? FACE_TRACE_GAP : 0) + traceH;
   const top = Math.round(numRect.top - bandRect.top + (numRect.height - groupH) / 2);
-  row.style.top = top + 'px';
-  if(traceH) host.style.top = (top + faceH + FACE_TRACE_GAP) + 'px';
+  if(asking) row.style.top = top + 'px';
+  if(traceH) host.style.top = (top + faceH + (faceH ? FACE_TRACE_GAP : 0)) + 'px';
+
+  // The digits are still rolling when this runs, so the edge measured above belongs to a
+  // counter mid-count. Another pass once it has landed — and it has to go through
+  // paintScoreTrace, because the reserve the chip needs changes the trace's WIDTH, not just
+  // its top. Armed only while that edge is still moving, so it converges instead of looping:
+  // the pass that measures the same edge twice is the last one. The chip's left is on a
+  // transition, so a number that came out wider takes the chip out with it.
+  const edge = Math.round(numRect.right - bandRect.left);
+  clearTimeout(dockRelayout);
+  if(!asking && edge !== lastDockEdge){
+    lastDockEdge = edge;
+    dockRelayout = setTimeout(()=>{
+      if(traceShown && scoreDays.length) paintScoreTrace();
+      else layoutBandColumn(traceShown);
+    }, UI_ANIM.digitRoll.ms + 140);
+  }
 }
 /* Read-modify-write rather than a form save: the entry may hold a night of sensor data this
    row knows nothing about, and rebuilding it from five buttons would throw all of it away. */
@@ -6925,6 +7022,32 @@ function eyeMirrorFace(n){
   scheduleIdle(EYE_ANIM.mirrorYourFace.ms + 700);
   return true;
 }
+/* THE TEAR.
+
+   The face does not travel to the dock. It tears where it stands, cuts, and tears back in
+   already docked — two plays of the same clip-and-slip the score makes when you swipe to
+   another day. Nothing in this app smears: every transition it owns is a straight line or a
+   hard cut, so an arc from the row to the number would have been the single curved path on
+   the page, and it would have looked borrowed.
+
+   The cost, stated plainly: nothing carries your eye across the gap, so the first time you
+   answer it may not be obvious the chip and the face you tapped are the same object. The
+   colour is what carries it — the chip is the only thing on the band wearing that hue, and
+   it is the hue you just pressed. */
+function tearFaceToDock(n){
+  const row = document.getElementById('todayFaceRow');
+  const dock = document.getElementById('todayFaceDock');
+  const btn = row && row.querySelector(`.subj-face[data-v="${n}"]`);
+  if(!dock) return;
+  if(!uiAnim('scoreGlitch')){ paintTodayFaces(); relayoutColumn(); return; }
+  // Tear where it stands first, so the gesture starts on the thing you actually touched.
+  if(btn) playGlitch(btn, 'scoreGlitch', 6);
+  setTimeout(()=>{
+    paintTodayFaces();                     // the row goes and the chip appears, on one frame
+    relayoutColumn();
+    playGlitch(dock, 'scoreGlitch', 8);
+  }, Math.round(UI_ANIM.scoreGlitch.ms * 0.55));
+}
 let faceSaving = false;
 async function onFaceTap(n){
   const date = faceDate();
@@ -6933,7 +7056,9 @@ async function onFaceTap(n){
   // reading you cannot take back.
   const next = faceValues[date] === n ? null : n;
   faceValues[date] = next == null ? undefined : next;
-  paintTodayFaces();                       // the tap lands before the score catches up
+  faceRowOpen = null;                      // answering closes the row again
+  if(next == null){ paintTodayFaces(); relayoutColumn(); }
+  else tearFaceToDock(next);
   // Only on a day the mark is actually reporting. Browsing back through the week, the pair
   // is wearing that day's score, and taking your face there would be a claim about a day you
   // are only looking at.
@@ -6958,6 +7083,7 @@ async function onFaceTap(n){
 /* Seven days of ratings, read once alongside the trace rather than per tap. */
 async function loadFaceValues(dates){
   faceValues = {};
+  faceRowOpen = null;
   for(const d of dates){
     try{
       const e = JSON.parse((await window.storage.get(keyFor(d))).value);
@@ -6973,6 +7099,15 @@ async function loadFaceValues(dates){
   host.addEventListener('click', e=>{
     const btn = e.target.closest('.subj-face');
     if(btn) onFaceTap(+btn.dataset.v);
+  });
+  // An answer is never a door that shuts: the chip is the way back to the five.
+  const dock = document.getElementById('todayFaceDock');
+  if(dock) dock.addEventListener('click', ()=>{
+    faceRowOpen = faceDate();
+    paintTodayFaces();
+    relayoutColumn();
+    const row = document.getElementById('todayFaceRow');
+    if(row) playGlitch(row, 'scoreGlitch', 6);
   });
 })();
 
@@ -11813,6 +11948,28 @@ const TICK_H = 3;               // today's mark; the other six are 2px
 const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
+/* Docked, the chip and its word stand in that gap and need it back: 30px of chip less the 7 it
+   spends behind the digits, plus the word underneath, which is wider than the chip is — and
+   then a real gap so a solid block of colour is not touching the week's ticks. On a 320px
+   screen with a three-digit score there is not enough band left for both, and the trace hides
+   itself under the rule it already had: below TRACE_MIN_W it is a squiggle, not a reading. */
+const DOCK_RESERVE = 45;
+function bandColumnWidth(bandRect, numRect, docked){
+  const gap = docked ? DOCK_RESERVE : TRACE_GAP;
+  return Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + gap)));
+}
+function faceIsDocked(){
+  const row = document.getElementById('todayFaceRow');
+  return !!row && row.dataset.asking === '0';
+}
+/* Docking and undocking changes what the trace is allowed to be WIDE, not only where it
+   sits, so the column has to be redrawn rather than repositioned. Straight to
+   layoutBandColumn on a day with too little history to draw a trace at all. */
+function relayoutColumn(){
+  lastDockEdge = null;
+  if(scoreDays.filter(d=> d.score != null).length >= 3) paintScoreTrace();
+  else layoutBandColumn(false);
+}
 /* The week, held. renderScoreTrace gathers it; paintScoreTrace draws it; and because the
    readings are kept rather than thrown away after drawing, the block can be swiped back
    through them without going near storage again. */
@@ -11904,7 +12061,7 @@ function paintScoreTrace(){
   const num = document.getElementById('overallScoreOut');
   if(!band || !num) return;
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
-  const W = Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + TRACE_GAP)));
+  const W = bandColumnWidth(bandRect, numRect, faceIsDocked());
   if(W < TRACE_MIN_W){ host.style.display = 'none'; layoutBandColumn(false); return; }
 
   const vals = scoreDays.filter(x=>x.score != null).map(x=>x.score);
@@ -12069,7 +12226,9 @@ function showScoreDay(idx){
   // was stating this week's position regardless — a small lie, but the block position is
   // exactly the context that makes an old score readable, so it is worth getting right.
   renderTodayBlockContext(scoreDays[idx].date);
-  // The row belongs to the day the band is showing, not to today.
+  // The row belongs to the day the band is showing, not to today — and a row forced open on
+  // one day should not follow you to the next.
+  faceRowOpen = null;
   paintTodayFaces();
   paintScoreTrace();
 }
