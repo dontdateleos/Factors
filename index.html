@@ -1107,6 +1107,15 @@
   .log-toggle-row{ flex-basis:100%; display:flex; gap:6px; margin-top:6px; }
   .log-toggle-row button{ height:28px; padding:0 10px; font-size:var(--fs-tag); flex:0 0 auto; }
   .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  /* Pushed to the far end of the stepper row: it is about the whole session, not about the
+     lift the arrows are moving between. */
+  .log-fill{ margin-left:auto; flex:0 0 auto; }
+  .ex-target-tap{ cursor:pointer; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .ex-target-hint{ text-decoration:underline; white-space:nowrap; }
+  /* A filled row says so for a moment. Without it a tap at the far end of the stepper row
+     changes three boxes on a page you may not even be looking at. */
+  .row-filled{ animation:rowFilled 0.7s steps(3, end); }
+  @keyframes rowFilled{ 0%,100%{ background:transparent; } 20%,60%{ background:var(--accent-dim); } }
   .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
     color:var(--dim); flex:1; text-align:center; }
   .log-step-arrow{ font-family:var(--mono); font-size:var(--fs-xl); line-height:1; height:auto;
@@ -5452,7 +5461,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.26';
+const APP_VERSION = '2026.08.30.27';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10399,6 +10408,78 @@ function showLogExercise(i){
   if(next) next.disabled = logExIndex === rows.length - 1;
   updateLogBar();
 }
+/* LOGGING A SESSION THAT WENT TO PLAN SHOULD NOT COST TWENTY-SEVEN TAPS.
+
+   Three empty boxes per lift — sets, reps, kg — and one lift on screen at a time, so a
+   nine-lift session is twenty-seven entries and eight swipes before you can save it. And
+   every one of those numbers is already on the row: the prescription is printed above the
+   boxes as "Target: 3 × 5", and the last session's load is printed under it as "Last 27 AUG
+   · 100kg". The app was showing you the answer and then asking you to type it.
+
+   One tap fills every empty box in the whole session, on every page, so the common case —
+   you did roughly what was planned — is fill, correct the one lift that differed, save.
+
+   What it writes, and what it deliberately will not:
+
+   SETS from the prescription; that is the number the plan asked for.
+
+   REPS from the BOTTOM of the prescribed range, never the top. The progression rule adds
+   weight when you hit the top of the range, so defaulting there would manufacture a load
+   increase you did not earn — the button would quietly write PRs. The bottom of the range
+   can only ever understate.
+
+   WEIGHT from the last session's actual load, not from a projected increase. Same reason,
+   more bluntly: a fabricated PR is the worst thing this button could possibly write.
+
+   And it only ever fills EMPTY boxes. Anything you have already typed is yours and is left
+   alone, so it is safe to tap at any point, including halfway through. */
+function plannedFillFor(row){
+  const src = row._srcExercise || {};
+  const nameEl = row.querySelector('.week-ex-name');
+  const h = exerciseHistory[exHistKey(nameEl ? nameEl.value : (src.name || ''))];
+  return {
+    sets:   src.sets != null ? src.sets : (h && h.sets != null ? h.sets : null),
+    reps:   src.repLow != null ? src.repLow : (h && h.reps != null ? h.reps : null),
+    weight: h && h.weight != null ? h.weight : null
+  };
+}
+function fillLogRow(row){
+  const f = plannedFillFor(row);
+  let touched = false;
+  [['.week-ex-sets', f.sets], ['.week-ex-reps', f.reps], ['.week-ex-weight', f.weight]].forEach(([sel, v])=>{
+    const el = row.querySelector(sel);
+    if(!el || el.value !== '' || v == null) return;
+    el.value = v;
+    touched = true;
+  });
+  if(touched){
+    row.classList.add('row-filled');
+    setTimeout(()=> row.classList.remove('row-filled'), 700);
+  }
+  return touched;
+}
+function fillLogAsPlanned(){
+  const rows = [...document.querySelectorAll('#weekExerciseRows .edit-row')]
+    .filter(r=> r.querySelector('.week-ex-sets'));
+  if(!rows.length) return;
+  let filled = 0, noWeight = 0;
+  rows.forEach(r=>{
+    if(fillLogRow(r)) filled++;
+    const w = r.querySelector('.week-ex-weight');
+    if(w && !w.value) noWeight++;
+  });
+  if(!filled){ showToast('Already filled in'); return; }
+  blockEditDirty = true;
+  try{ markLoggingStarted(blockEditDate); } catch(e){}
+  saveLogDraftSoon();
+  // Named rather than counted where something is still missing: a lift with no history has
+  // no weight to borrow, and saying so is the difference between a button that finished the
+  // job and one that looks like it did.
+  showToast(noWeight
+    ? `${filled} filled · ${noWeight} still need a weight`
+    : `${filled} lift${filled === 1 ? '' : 's'} filled — change what differed`);
+}
+
 // Rows the exercise stepper hid are still rows. Removing the one on screen has to leave you
 // looking at something rather than at the gap where it was.
 function afterLogRowRemoved(){ setTimeout(()=> showLogExercise(logExIndex), 240); }
@@ -10692,6 +10773,7 @@ async function openBlockEditor(date, slot, block, opts){
         <button type="button" class="log-step-arrow" id="logPrev" aria-label="Previous exercise">\u2039</button>
         <span class="log-step-pos" id="logPos"></span>
         <button type="button" class="log-step-arrow" id="logNext" aria-label="Next exercise">\u203a</button>
+        <button type="button" class="small outline log-fill" id="logFillAll">As planned</button>
       </div>
       <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
   } else if(block.type === 'run'){
@@ -10773,8 +10855,10 @@ async function openBlockEditor(date, slot, block, opts){
       // was PRESCRIBED, so logging meant either remembering the target from memory or
       // switching tabs to check it. Shown only when the exercise carries a real
       // prescription (assignPrescription ran on it) — a freshly typed manual row has none.
+      // Tapping the target fills this one row from it — the shortest possible path from
+      // "that is what I did" to it being written down.
       const targetLine = (sets!=null && repLow!=null)
-        ? `<div class="ex-target-line" style="flex-basis:100%; font-size:var(--fs-tag); color:var(--dim); margin-top:2px;">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}</div>`
+        ? `<div class="ex-target-line ex-target-tap" role="button" tabindex="0" style="flex-basis:100%; font-size:var(--fs-tag); color:var(--dim); margin-top:2px;">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}<span class="ex-target-hint">tap to fill</span></div>`
         : '';
       row.innerHTML = `
         <input type="text" class="week-ex-name" placeholder="exercise" value="${name}">
@@ -10803,6 +10887,19 @@ async function openBlockEditor(date, slot, block, opts){
           <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
         </div>`;
       row.querySelector('.remove-row').addEventListener('click', ()=>{ removeRowAnimated(row); afterLogRowRemoved(); });
+      const targetTap = row.querySelector('.ex-target-tap');
+      if(targetTap){
+        const fillOne = ()=>{
+          if(!fillLogRow(row)){ showToast('Already filled in'); return; }
+          blockEditDirty = true;
+          try{ markLoggingStarted(blockEditDate); } catch(e){}
+          saveLogDraftSoon();
+        };
+        targetTap.addEventListener('click', fillOne);
+        targetTap.addEventListener('keydown', e=>{
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fillOne(); }
+        });
+      }
       // Whether a set was taken to failure is the input the effort estimate has been guessing
       // from the rep drop-off. 5,5,4 because you failed and 5,5,4 because you stopped are
       // different sessions, and only you know which.
@@ -10851,6 +10948,8 @@ async function openBlockEditor(date, slot, block, opts){
     });
     document.getElementById('logPrev').addEventListener('click', ()=> showLogExercise(logExIndex - 1));
     document.getElementById('logNext').addEventListener('click', ()=> showLogExercise(logExIndex + 1));
+    const fillAll = document.getElementById('logFillAll');
+    if(fillAll) fillAll.addEventListener('click', ()=> fillLogAsPlanned());
   }
 
   if(block.type==='mobility'){
