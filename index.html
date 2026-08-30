@@ -1076,6 +1076,13 @@
   /* Set on Today's own sections rather than toggling each one's display, so every section
      keeps whatever show/hide logic it already had for when the app is set up. */
   #panel-insights > [data-first-run-hidden]{ display:none !important; }
+  /* A handle has to look like one, or nobody finds the gesture. Its own row, with the
+     instruction sitting on the right where the panel has room for it. */
+  .log-grab{ display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+  .log-grab:active{ cursor:grabbing; }
+  .log-grab-hint{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.04em;
+    text-transform:none; opacity:0.5; white-space:nowrap; }
   .rpe-row{ margin-top:12px; display:flex; flex-direction:column; gap:5px; }
   .rpe-row .subj-name, .rpe-row .subj-anchor{ color:var(--on-light); opacity:0.75; }
   .rpe-scale{ display:flex; gap:4px; }
@@ -5369,7 +5376,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.20';
+const APP_VERSION = '2026.08.30.21';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10403,6 +10410,51 @@ async function saveLogDraftNow(){
   if(!p || !blockEditDirty || !blockEditDate) return;
   try{ await window.storage.set(logDraftKey(blockEditDate, blockEditSlot), JSON.stringify(collectLogDraft(p))); } catch(e){}
 }
+/* THE WAY OUT IS THE WAY IN.
+
+   You swipe to open the session, so swiping should put it away again — and until now the only
+   exit was a button at the bottom of a panel you had to scroll to reach. The header line is
+   the handle: drag it in either direction, or press and hold it, and the session goes to the
+   bar with its draft saved, exactly as the Minimise button does.
+
+   The header ONLY, not the panel. A free vertical swipe anywhere on a tall panel is
+   indistinguishable from scrolling it, and dismissing a half-typed session because someone
+   scrolled is a far worse failure than not having the gesture at all. */
+const LOG_GRAB_PX = 40;        // far enough to be a decision
+const LOG_GRAB_HOLD_MS = 420;  // long enough not to be a tap
+function wireBlockEditorGrab(panel){
+  const grab = panel.querySelector('#blockEditGrab');
+  if(!grab) return;
+  let y0 = null, x0 = null, held = null, spent = false;
+  const go = async ()=>{
+    if(spent) return;
+    spent = true;
+    clearTimeout(held);
+    y0 = null;
+    await saveLogDraftNow();
+    if(blockEditMinimisable) minimiseBlockEditor();
+    else closeBlockEditor({ keepDraft:true });
+  };
+  const stop = ()=>{ clearTimeout(held); y0 = null; setTimeout(()=>{ spent = false; }, 260); };
+  grab.addEventListener('pointerdown', e=>{
+    y0 = e.clientY; x0 = e.clientX; spent = false;
+    // Captured, or the gesture cannot work at all: the handle is one line of 11px type, so
+    // the pointer is off it about fifteen pixels into a forty-pixel drag and every move after
+    // that goes to whatever is underneath. Measured — the swipe never once fired without it.
+    try{ grab.setPointerCapture(e.pointerId); } catch(err){}
+    clearTimeout(held);
+    held = setTimeout(go, LOG_GRAB_HOLD_MS);
+  });
+  grab.addEventListener('pointermove', e=>{
+    if(y0 == null) return;
+    const dy = e.clientY - y0, dx = e.clientX - x0;
+    // Any real movement means it is a swipe rather than a hold, whichever way it ends up.
+    if(Math.abs(dy) > 6 || Math.abs(dx) > 6) clearTimeout(held);
+    if(Math.abs(dy) >= LOG_GRAB_PX) go();
+  });
+  grab.addEventListener('pointerup', stop);
+  grab.addEventListener('pointercancel', stop);
+}
 function wireBlockEditorClose(panel){
   const btn = panel.querySelector('#closeWeekBlockBtn');
   if(!btn) return;
@@ -10562,7 +10614,7 @@ async function openBlockEditor(date, slot, block, opts){
     mobility: 'The sets/hold values above are used for logging too — tap Log Session to save what you actually did to your training history.'
   };
   panel.innerHTML = `
-    <div class="score-note" style="margin-bottom:12px;">${dayLabel} ${slot.toUpperCase()} — ${block.type}</div>
+    <div class="score-note log-grab" id="blockEditGrab" style="margin-bottom:12px;">${dayLabel} ${slot.toUpperCase()} — ${block.type}<span class="log-grab-hint">swipe or hold to minimise</span></div>
     ${fieldsHtml}
     <div class="score-note" style="margin-top:8px;">${logNoteByType[block.type]}</div>
     <!-- Session RPE. Foster's session-RPE is the only load currency validated across
@@ -10777,6 +10829,7 @@ async function openBlockEditor(date, slot, block, opts){
     showLogExercise(firstBlank < 0 ? 0 : firstBlank);
   }
   wireBlockEditorClose(panel);
+  wireBlockEditorGrab(panel);
   wireRestTimer(panel);
   wireSessionRpe(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
