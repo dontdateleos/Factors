@@ -966,6 +966,12 @@
     font-weight:var(--fw-bold); cursor:pointer; padding:0 4px; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
   .subj-dot.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
+  .subj-faces{ display:flex; gap:6px; }
+  .subj-face{ flex:1; min-width:0; height:46px; background:transparent; color:rgba(251,250,246,0.5);
+    border:2px solid rgba(251,250,246,0.35); cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center; }
+  .subj-face .eyes{ pointer-events:none; }
+  .subj-face.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -1857,8 +1863,8 @@
          forever, odd-numbered scale, and z-scored against your own rolling distribution,
          because people use different portions of a scale and the absolute number is not
          comparable between two people or across a change of mood about scales. -->
-    <div class="group form-panel">
-      <div class="group-head"><div class="group-title">How are you</div><div class="group-sub">four taps &mdash; weighted above the sensors</div></div>
+    <div class="group form-panel" id="subjectiveGroup">
+      <div class="group-head"><div class="group-title">How are you</div><div class="group-sub" id="subjectiveSub">one tap &mdash; weighted above the sensors</div></div>
       <div class="fields" id="subjectiveFields"></div>
     </div>
 
@@ -4996,41 +5002,69 @@ tabs.forEach(t=>{
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
 const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery',
-  'subjEnergy','subjSoreness','subjStress','subjMotivation','wakeClock','alcohol'];
+  'subjOverall','wakeClock','alcohol'];
+// The four legacy items are still READ from stored entries so old history keeps its meaning,
+// but they no longer have inputs on the form — leaving them in recoveryFieldIds meant every
+// save called getElementById on an element that is not there and threw before writing.
 
-/* Fixed wording, forever. Changing an item's text silently changes what the series means, and
-   the whole value of self-report is that it is the same question every day. `good` says which
-   end is the good end — soreness and stress read backwards from energy and motivation. */
+
+/* ONE QUESTION, FIVE FACES.
+
+   This was four items — energy, soreness, life stress, motivation — and four rows of five
+   buttons every single morning. The brief's own warning is that compliance failure destroys
+   a series far more thoroughly than measurement error does, and a daily four-part quiz is
+   how compliance fails. Saw 2016's finding is about the CATEGORY of measure, not about a
+   particular battery; the Hooper Index, which is the four-item standard, itself showed no
+   significant overall effectiveness in a 2025 meta-analysis. So the multi-item version was
+   never the validated part.
+
+   What is genuinely lost is life stress as its own channel — one tap with r = 0.27 against
+   injury, better than most physiological predictors. The single item is worded to reach for
+   it ("ready for it" rather than "physically fresh"), but a global question cannot separate
+   a bad week at work from bad legs. That is the trade, and it is a real one.
+
+   Five faces rather than five numbers, and the faces are the app's own mark. It already
+   carries exactly five expressions on a 0-100 band — squinting shut at the bottom, wide open
+   at the top — so the scale is drawn in the app's own iconography instead of borrowing
+   somebody else's emoji, and the thing you tap looks back at you. */
+const SUBJECTIVE_OVERALL = { id:'subjOverall', name:'Ready for it', low:'wrecked', high:'raring' };
+// Kept for reading history written before the four items became one. Nothing writes them now.
 const SUBJECTIVE_ITEMS = [
-  { id:'subjEnergy',     name:'Energy',     low:'flat',      high:'fresh',  good:'high' },
-  { id:'subjSoreness',   name:'Soreness',   low:'none',      high:'severe', good:'low'  },
-  { id:'subjStress',     name:'Life stress',low:'calm',      high:'heavy',  good:'low'  },
-  { id:'subjMotivation', name:'Motivation', low:'no desire', high:'keen',   good:'high' }
+  { id:'subjEnergy',     name:'Energy',     good:'high' },
+  { id:'subjSoreness',   name:'Soreness',   good:'low'  },
+  { id:'subjStress',     name:'Life stress',good:'low'  },
+  { id:'subjMotivation', name:'Motivation', good:'high' }
 ];
+function faceButtonHtml(n){
+  // The mark at the state this rating means, drawn small and static.
+  const st = EYE_STATES[n - 1];
+  const style = `--eye-box-w:26px; --eye-box-h:22px; --eye-gap:6px; --eye-w:5px;`
+    + ` --eye-h:${st.h}; --eye-r:2.5px; --eye-rb:${st.rb}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
+    + ` --eye-ink:currentColor; --eye-plate:transparent;`;
+  return `<button type="button" class="subj-face" data-v="${n}" aria-label="${SUBJECTIVE_OVERALL.name} ${n} of 5">`
+    + `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span></button>`;
+}
 (function buildSubjectiveFields(){
   const host = document.getElementById('subjectiveFields');
   if(!host) return;
-  SUBJECTIVE_ITEMS.forEach(item=>{
-    const row = document.createElement('div');
-    row.className = 'subj-row';
-    row.innerHTML = `<div class="subj-head"><span class="subj-name">${item.name}</span>`
-      + `<span class="subj-anchor">1 ${item.low} &middot; 5 ${item.high}</span></div>`
-      + `<div class="subj-scale">${[1,2,3,4,5].map(n=>
-          `<button type="button" class="subj-dot" data-v="${n}" aria-label="${item.name} ${n}">${n}</button>`).join('')}</div>`
-      + `<input type="hidden" id="${item.id}">`;
-    const input = row.querySelector('input');
-    row.querySelectorAll('.subj-dot').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        // Tapping the selected value again clears it — a mis-tap should not become a
-        // permanent reading you cannot take back.
-        const same = input.value === btn.dataset.v;
-        input.value = same ? '' : btn.dataset.v;
-        paintSubjectiveRow(row, input.value);
-        input.dispatchEvent(new Event('input', { bubbles:true }));
-      });
+  const row = document.createElement('div');
+  row.className = 'subj-row';
+  row.innerHTML = `<div class="subj-head"><span class="subj-name">${SUBJECTIVE_OVERALL.name}</span>`
+    + `<span class="subj-anchor">${SUBJECTIVE_OVERALL.low} &middot; ${SUBJECTIVE_OVERALL.high}</span></div>`
+    + `<div class="subj-faces">${[1,2,3,4,5].map(faceButtonHtml).join('')}</div>`
+    + `<input type="hidden" id="${SUBJECTIVE_OVERALL.id}">`;
+  const input = row.querySelector('input');
+  row.querySelectorAll('.subj-face').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      // Tapping the chosen face again clears it — a mis-tap should not become a permanent
+      // reading you cannot take back.
+      const same = input.value === btn.dataset.v;
+      input.value = same ? '' : btn.dataset.v;
+      paintSubjectiveRow(row, input.value);
+      input.dispatchEvent(new Event('input', { bubbles:true }));
     });
-    host.appendChild(row);
   });
+  host.appendChild(row);
 })();
 (function wireAlcohol(){
   const box = document.getElementById('alcoholScale');
@@ -5052,7 +5086,7 @@ function paintAlcohol(){
   box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(input.value)));
 }
 function paintSubjectiveRow(row, value){
-  row.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(value)));
+  row.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', b.dataset.v === String(value)));
 }
 function paintSubjectiveFields(){
   const host = document.getElementById('subjectiveFields');
@@ -5217,7 +5251,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.6';
+const APP_VERSION = '2026.08.30.7';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6550,9 +6584,17 @@ async function buildSignalWindowUncached(asOfDate, days){
   // five-point taps. People use different portions of a scale, and someone who never says 5
   // would otherwise read as permanently tired.
   const subjective = {};
-  SUBJECTIVE_ITEMS.forEach(item=>{
-    subjective[item.id] = normaliseChannel(pick(e=>e[item.id]), { invert: item.good === 'low' });
-  });
+  // One overall rating now. Entries written before that change carry the four separate items
+  // instead, so a day is read from whichever it has — the history stays continuous rather
+  // than the channel going blank for everything logged before today.
+  const legacyMean = (e)=>{
+    const vals = SUBJECTIVE_ITEMS
+      .map(it=> e[it.id] == null ? null : (it.good === 'low' ? 6 - e[it.id] : e[it.id]))
+      .filter(v=>v != null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+  };
+  subjective.subjOverall = normaliseChannel(
+    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), {});
   const subjParts = Object.values(subjective).filter(c=>c.available);
   const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
   // Per-day too: the composite has to rank against your own days like every other channel.
@@ -6740,6 +6782,44 @@ async function learnWeights(asOfDate){
                   blinded: outcomes.filter(o=>o.blinded).length };
   _learnedCache = { date, at:Date.now(), value };
   return value;
+}
+
+/* ---------- WHEN TO ASK ----------
+   Plews (2014): three days a week is enough for trained individuals, and moderate missingness
+   is fine. What is fatal is SYSTEMATIC missingness — and systematic means self-selected. If
+   you skip the mornings you feel rough, your baseline quietly becomes your good days and
+   every reading drifts optimistic.
+
+   Days chosen by the training plan are not self-selected, so asking only on session days is
+   safe in a way that "ask when you feel like it" never is. About one rest day in five is
+   added on top, picked by a hash of the date rather than by you, so the baseline is not
+   built purely from days you were going to train anyway — which would be its own quiet bias. */
+const CHECKIN_REST_RATE = 0.2;
+async function isCheckinDay(date){
+  const d = date || todayStr;
+  if(d !== todayStr) return true;         // editing an older entry: always allow
+  for(const slot of ['am','pm']){
+    try{ await window.storage.get(`weekplan:${d}:${slot}`); return true; } catch(e){}
+  }
+  return blindHash(d + '|checkin') < CHECKIN_REST_RATE;
+}
+/* The block hides itself on days it would not be used, and says so rather than vanishing —
+   a section that silently disappears reads as a bug. It can still be opened. */
+async function applyCheckinVisibility(){
+  const fields = document.getElementById('subjectiveFields');
+  const sub = document.getElementById('subjectiveSub');
+  if(!fields) return;
+  const answered = (document.getElementById('subjOverall') || {}).value;
+  const asking = (await isCheckinDay(todayStr)) || !!answered;
+  fields.style.display = asking ? '' : 'none';
+  if(sub) sub.innerHTML = asking
+    ? 'one tap &mdash; weighted above the sensors'
+    : '<span id="checkinOpen" role="button" tabindex="0" style="cursor:pointer; text-decoration:underline;">nothing planned today &mdash; tap to answer anyway</span>';
+  const open = document.getElementById('checkinOpen');
+  if(open) open.addEventListener('click', ()=>{
+    fields.style.display = '';
+    if(sub) sub.textContent = 'one tap — weighted above the sensors';
+  });
 }
 
 /* ---------- RANDOMISED SCORE-BLINDING ----------
@@ -7367,8 +7447,10 @@ async function computeTissueReadiness(asOfDate){
   let soreZ = 0;
   try{
     const win = await buildSignalWindow(date);
-    const sore = win.subjective && win.subjective.subjSoreness;
-    if(sore && sore.available) soreZ = sore.zAcute || 0;      // already inverted: low is good
+    // Soreness is no longer its own item, so the overall rating stands in for it. A weaker
+    // signal than a per-group soreness report, and gentler for it.
+    const sore = win.subjective && win.subjective.subjOverall;
+    if(sore && sore.available) soreZ = sore.zAcute || 0;
   } catch(e){}
   const soreMult = Math.max(0.75, Math.min(1.1, 1 + soreZ * 0.12));
 
@@ -7950,6 +8032,7 @@ function collectRecoveryEntry(){
   const entry = {};
   recoveryFieldIds.forEach(id=>{
     const el = document.getElementById(id);
+    if(!el) return;   // a field that has been retired should not take the save down with it
     const isText = el.tagName === 'SELECT' || el.type === 'time';
     entry[id] = el.value === '' ? null : (isText ? el.value : parseFloat(el.value));
   });
@@ -7971,12 +8054,14 @@ function collectRecoveryEntry(){
 function fillRecoveryForm(entry){
   recoveryFieldIds.forEach(id=>{
     const el = document.getElementById(id);
+    if(!el) return;
     const v = entry[id];
     el.value = (v===null||v===undefined) ? '' : v;
   });
   computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol();
+  applyCheckinVisibility();
 }
-function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ document.getElementById(id).value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol(); }
+function clearRecoveryForm(){ recoveryFieldIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); computeFlags(); computeScores(); computeSleepDebt(); syncRecoveryMore(); paintSubjectiveFields(); paintAlcohol(); applyCheckinVisibility(); }
 
 async function loadRecoveryEntry(date){
   const status = document.getElementById('loadStatus');
@@ -11579,7 +11664,7 @@ function readingDepth(entry){
   // reading counts as an HRV reading.
   if((entry.hrvGarmin ?? entry.hrvOura) != null) n++;
   if(entry.restingHR != null) n++;
-  if(SUBJECTIVE_ITEMS.some(i=>entry[i.id] != null)) n++;
+  if(entry.subjOverall != null || SUBJECTIVE_ITEMS.some(i=>entry[i.id] != null)) n++;
   return n;
 }
 const READING_FULL = 3;   // of five; below this the mark is drawn half width
