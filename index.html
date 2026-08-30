@@ -5469,7 +5469,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.29';
+const APP_VERSION = '2026.08.30.30';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -12271,8 +12271,8 @@ function buildRecCard(type, title, signals, confidence, meta){
     });
     return card;
   }
-  card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card));
-  card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card));
+  card.querySelector('.accept-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'accepted', card, title));
+  card.querySelector('.dismiss-btn').addEventListener('click', ()=>logRecDecision(type, meta, 'dismissed', card, title));
   return card;
 }
 
@@ -12303,13 +12303,48 @@ function showNextCard(){
   });
 }
 
-async function logRecDecision(type, meta, decision, card){
+/* A CARD YOU HAVE ANSWERED SHOULD STAY ANSWERED.
+
+   Every decision has always been written to `rec:<date>:<id>` — and nothing has ever read
+   one back. generateRecommendations rebuilds cardQueue from scratch and resets the index to
+   zero, and it runs on every visit to Today, so accepting a card, going to Weekly and coming
+   back put the whole stack in front of you again. Decided, undecided, it made no difference:
+   the queue had no memory at all.
+
+   It is filtered now, by what the card SAYS rather than only what kind it is: a day can raise
+   two "hold" cards about different things and answering one of them is not answering the
+   other. Records written before this carry no title, so they fall back to matching on type —
+   which can hide a same-type sibling for the rest of today, and is the right way round to be
+   wrong for a bug whose whole complaint is cards that will not go away.
+
+   Per day, deliberately. Tomorrow asks again, because tomorrow it is a different question. */
+async function decidedToday(){
+  const byTitle = new Set(), byType = new Set();
+  try{
+    const res = await window.storage.list(`rec:${todayStr}`);
+    for(const k of (res && res.keys) || []){
+      let r = null;
+      try{ r = JSON.parse((await window.storage.get(k)).value); } catch(e){ continue; }
+      if(!r || !r.type) continue;
+      if(r.title) byTitle.add(r.type + '|' + r.title);
+      else byType.add(r.type);
+    }
+  } catch(e){}
+  return { byTitle, byType };
+}
+function dropDecidedCards(queue, decided){
+  if(!decided || (!decided.byTitle.size && !decided.byType.size)) return queue;
+  return queue.filter(c=> !decided.byTitle.has(c.type + '|' + c.title) && !decided.byType.has(c.type));
+}
+async function logRecDecision(type, meta, decision, card, title){
   if(anim('lookAtCard')) eyeGlanceAtEl(card, 5);
   eyeNoteDecision(decision);
   const id = Date.now().toString();
   try{
     const key = `rec:${todayStr}:${id}`;
-    const result = await window.storage.set(key, JSON.stringify({ date: todayStr, type, meta, decision, timestamp: Date.now() }));
+    // The title goes in so the card can be recognised again tomorrow morning's rebuild — it
+    // is the only thing that tells two cards of the same kind apart.
+    const result = await window.storage.set(key, JSON.stringify({ date: todayStr, type, title, meta, decision, timestamp: Date.now() }));
     if(!result) throw new Error('save failed');
     if(type==='deload_suggest' && decision==='accepted'){
       const weekDates = getWeekDates();
@@ -20616,6 +20651,10 @@ const TENDINOPATHY_PROTOCOL = {
   cardQueue = cardQueue.filter(c => c.type !== 'hold');
   if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
   if(blockCard) cardQueue.unshift(blockCard);
+  // Last, after the reviews are on the front: anything already answered today comes straight
+  // back out again. Here rather than at the eight places cards are pushed, so every one of
+  // them is covered by the same line and the reasoning above stays in one piece.
+  cardQueue = dropDecidedCards(cardQueue, await decidedToday());
   showNextCard();
 
   const acceptanceStats = await getAcceptanceStats();
