@@ -5207,7 +5207,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.1';
+const APP_VERSION = '2026.08.30.2';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6667,7 +6667,10 @@ async function buildPrescription(sr){
       kind = 'modify';
       title = `Train around ${names}`;
     }
-    lines.push(`${names} ${limited.length > 1 ? 'are' : 'is'} still carrying the last session — substitute away from ${limited.length > 1 ? 'them' : 'it'} and keep everything else at full intensity. This is local, not systemic.`);
+    // Says what the app actually does now: cut volume on that group, hold its load, and
+    // leave every other lift alone. Not "substitute" — there is no squat that is not a quad
+    // exercise, so a swap would keep loading the tissue that is down.
+    lines.push(`${names} ${limited.length > 1 ? 'are' : 'is'} still carrying the last session. Anything loading ${limited.length > 1 ? 'them' : 'it'} is flagged on the plan below — take the set off, or skip the lift. Everything else stays at full intensity: this is local, not systemic.`);
   }
   if(cr && cr.available && cr.limited){
     if(!kind){ kind = 'modify'; title = 'Move the technical work'; }
@@ -7189,7 +7192,7 @@ async function renderTissueStrip(){
     </div>`).join('');
   const worst = down[0];
   const note = worst.tr < 40
-    ? `${worst.label} is still carrying the last session. Substitute away from it and leave everything else at full intensity — this is local, not systemic.`
+    ? `${worst.label} is still carrying the last session. Its lifts are flagged on the plan below and its load is held; everything else stays at full intensity — this is local, not systemic.`
     : `${worst.label} is not fully recovered. Everything not listed is clear.`;
   host.innerHTML = `<div class="tissue"><div class="tissue-head">Local readiness</div>${rows}`
     + `<div class="tissue-note">${note}${clear.length ? ` Clear: ${clear.map(a=>a.label).join(', ')}.` : ''}</div>`
@@ -18207,7 +18210,10 @@ async function suggestProgression(ex, focusInfo){
 
   if(hitTopOnEverySet){
     const next = Math.round((last.weight + increment) * 2) / 2;
-    return { action:'add_weight', weight: next, note: `+${increment}kg — hit ${repHigh} on every set` };
+    // fromWeight is what to fall back to if something downstream decides the increase should
+    // not happen today — holding means last session's load, not the new one.
+    return { action:'add_weight', weight: next, fromWeight: last.weight,
+             note: `+${increment}kg — hit ${repHigh} on every set` };
   }
   if(effort && effort.level === 'submaximal'){
     // Reps flat across sets at this load means the sets weren't near failure, so the
@@ -18245,6 +18251,56 @@ function injurySafeAltFor(ex, movementFlags){
   }
   return null;
 }
+/* Progression is blind to tissue state by construction: suggestProgression reads the last
+   session's reps and nothing else. This is the guard, and it is deliberately narrow — it
+   only ever cancels an INCREASE, never reduces a load, because holding is reversible and
+   the progression engine will offer the same increase again tomorrow. */
+const TISSUE_HOLD_LOAD = 55;   // above the flag thresholds: hold sooner than you cut sets
+function holdLoadIfFatigued(ex, progression, tissue){
+  if(!progression || progression.action !== 'add_weight') return progression;
+  if(!ex || !ex.area || !tissue || !tissue.available) return progression;
+  const a = tissue.areas[ex.area];
+  if(!a || a.tr >= TISSUE_HOLD_LOAD) return progression;
+  return { action:'hold_weight',
+           weight: progression.fromWeight != null ? progression.fromWeight : progression.weight,
+           note:`Load held — ${a.label} at ${a.tr}. The increase waits.` };
+}
+
+/* ---------- TISSUE FATIGUE AS A PLAN FLAG ----------
+   Reuses the injury flag's exact shape, rendering and apply path, because it is the same
+   kind of intervention with a different trigger: one exercise, one decision, applied to
+   today's plan in place.
+
+   What it deliberately does NOT do is substitute. The research brief's row says "substitute
+   away from group m", and in this data model that is impossible and would not help anyway.
+   Every squat-pattern entry in EXERCISE_LIBRARY — back squat, front squat, goblet, box,
+   safety bar, leg press, leg extension, pistol, Bulgarian split squat, walking lunge — is
+   area: quads_knees. There is no squat that is not a quad exercise, so swapping one for
+   another keeps loading the tissue that is already down. The alternatives table it would
+   have to use (SPINE_NEUTRAL_BY_PATTERN) is keyed movement|area and offers spine-neutral
+   variants of the SAME movement on the SAME muscle — built for spinal injuries, not fatigue.
+
+   The half of that row that does the work is the other half: keep everything else at full
+   intensity. So this cuts volume on the affected group and touches nothing else. */
+const TISSUE_FLAG_REDUCE = 40;   // below this, one fewer set on that group
+const TISSUE_FLAG_SKIP   = 25;   // below this, the group has nothing useful left today
+function tissueFlagForExercise(ex, tissue){
+  if(!ex || !tissue || !tissue.available) return null;
+  const area = ex.area;
+  if(!area) return null;
+  const a = tissue.areas[area];
+  if(!a) return null;
+  if(a.tr < TISSUE_FLAG_SKIP){
+    return { kind:'remove', severity:'high', label:'Skip',
+             text:`${a.label} at ${a.tr} — still recovering` };
+  }
+  if(a.tr < TISSUE_FLAG_REDUCE){
+    return { kind:'reduce', severity:'moderate', label:'−1 set',
+             text:`${a.label} at ${a.tr}` };
+  }
+  return null;
+}
+
 function injuryFlagForExercise(ex, movementFlags){
   if(!ex || !movementFlags) return null;
   const lib = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
@@ -18330,6 +18386,8 @@ async function blockSummaryHtml(block){
     const adjustment = await getTodayAdjustment();
     const movementFlags = await getInjuryMovementFlags();
     const flagDecisions = await getExerciseFlagDecisions(todayStr);
+    let tissue = null;
+    try{ tissue = await computeTissueReadiness(todayStr); } catch(e){}
     const rows = [];
     for(const ex of exercises){
       const libEntry = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
@@ -18350,7 +18408,13 @@ async function blockSummaryHtml(block){
         repHigh = Math.max(repLow, repHigh + adjustment.delta);
       }
       const repsLabel = `${repLow}-${repHigh}`;
-      const progression = await suggestProgression(ex, focusInfo);
+      let progression = await suggestProgression(ex, focusInfo);
+      // A load increase is decided purely from last session's reps, which knows nothing
+      // about the state of the tissue it is about to be loaded onto. Left alone, the plan
+      // would tell you to set a PR on the squat the morning after a heavy eccentric leg
+      // session — the single worst instruction in the app, and worse than any set it might
+      // have dropped. The weight holds instead, and says why.
+      progression = holdLoadIfFatigued(ex, progression, tissue);
       let weightLabel = progression.weight != null ? `${progression.weight}kg` : 'add weight';
       if(progression.weight != null && adjustment.lever==='weight'){
         weightLabel = `${Math.round(progression.weight * (1 + adjustment.delta/100) * 2) / 2}kg`;
@@ -18384,7 +18448,10 @@ async function blockSummaryHtml(block){
       // flag is offered here rather than silently applied — it changes what you lift.
       const key = exerciseFlagKey(ex);
       const decision = flagDecisions[key];
-      const flag = decision ? null : injuryFlagForExercise(ex, movementFlags);
+      // Injury wins where both fire. An injury is a harder constraint than fatigue, and two
+      // flags on one row would ask you to rule on the same exercise twice.
+      const flag = decision ? null
+        : (injuryFlagForExercise(ex, movementFlags) || tissueFlagForExercise(ex, tissue));
       const tag = flag
         ? `<div class="ex-flag ${flag.severity}" data-ex-key="${encodeURIComponent(key)}" data-kind="${flag.kind}"`
           + ` data-alt="${encodeURIComponent(flag.alt ? flag.alt.name : '')}">`
