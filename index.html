@@ -995,7 +995,7 @@
     border:1px solid var(--face-c); cursor:pointer; padding:0; position:relative;
     display:flex; align-items:center; justify-content:center;
     transition:background 0.12s linear, opacity 0.12s linear; }
-  .subj-face .eyes{ pointer-events:none; }
+  .subj-face .eyes, .subj-face .eyes span{ pointer-events:none; transition:none; }
   .subj-face.on{ background:var(--face-c); color:#000000; }
   /* The drawn box is small enough to sit beside the trace. What a thumb has to hit is not:
      this extends the target well past the border. Vertically only — the neighbours are all
@@ -2609,7 +2609,9 @@ const EYE_ANIM = {
   glitch:         { on:true, note:'Now and then the pair tears for a moment, the way it blinks', ms:200, chance:0.07 },
 
   // — Sixth.
-  mirrorYourFace: { on:true, note:'Wears the face you just tapped, then settles onto whatever the score makes of it', ms:900 }
+  mirrorYourFace: { on:true, note:'Wears the face you just tapped, then settles onto whatever the score makes of it', ms:900 },
+  chipBlinks:     { on:true, note:'The docked face blinks on its own clock — set by what you told it, not by what the score says' },
+  chipAndMark:    { on:true, note:'The pair and the docked face notice each other now and then, and what passes between them depends on whether they agree', chance:0.22, restMs:24000 }
 };
 window.EYE_ANIM = EYE_ANIM;
 /* Calm mode. prefers-reduced-motion is all-or-nothing and lives in iOS Settings rather
@@ -3074,7 +3076,11 @@ function stopIdle(){
     el.querySelectorAll('span').forEach(s=>{ s.style.transition = ''; s.style.height = ''; });
   });
 }
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) scheduleIdle(1500); });
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) return;
+  scheduleIdle(1500);
+  if(typeof scheduleChipIdle === 'function' && chipEyes()) scheduleChipIdle(2400);
+});
 
 /* ---------- THE FLIGHT ---------- */
 
@@ -5124,14 +5130,18 @@ const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
 const FACE_SCALE = 0.32;
 // The docked chip is the same drawing, larger: it is one thing now rather than one of five,
 // and it has to hold its own beside a 58px number.
-const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 7, DOCK_SCALE = 0.55;
+const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 2, DOCK_SCALE = 0.55;
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
-function faceEyesHtml(n, k, ink){
+function faceEyesHtml(n, k, ink, alive){
   const st = EYE_STATES[n - 1];
+  // The five in the row are a scale to read, so they hold still: .subj-face pins the
+  // transition off on the lids themselves, since an inline style on .eyes never reaches the
+  // spans that actually carry the height. The docked one is a face, and a face that never
+  // moves is a sticker, so it keeps its morph and blinks with it.
   const style = `--eye-box-w:${facePx('42px', k)}; --eye-box-h:${facePx('32px', k)}; --eye-gap:${facePx('12px', k)};`
     + ` --eye-w:${facePx('15px', k)}; --eye-r:${facePx('7.5px', k)};`
     + ` --eye-h:${facePx(st.h, k)}; --eye-rb:${facePx(st.rb, k)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
-    + ` --eye-ink:${ink}; --eye-plate:transparent; transition:none;`;
+    + ` --eye-ink:${ink}; --eye-plate:transparent;${alive ? '' : ' transition:none;'}`;
   return `<span class="eyes" style="${style}" aria-hidden="true">${EYE_INNER_HTML}</span>`;
 }
 function faceButtonHtml(n){
@@ -5316,7 +5326,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.11';
+const APP_VERSION = '2026.08.30.12';
 
 // Registration is deliberately optional. If sw.js hasn't been deployed alongside
 // index.html the register() call rejects and is swallowed — the app carries on exactly
@@ -6904,15 +6914,21 @@ function paintTodayFaces(){
     cap.style.setProperty('--face-said', v == null ? '' : `var(--face-${v})`);
   }
   if(dock){
+    // Rebuilt content means new eyes, so any blink in flight is talking to elements that no
+    // longer exist; the roster restarts with them.
+    stopChipIdle();
     if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; }
     else {
       dock.style.setProperty('--face-c', `var(--face-${v})`);
       dock.setAttribute('aria-label', `${SUBJECTIVE_WORDS[v-1]} — tap to change`);
-      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000')
+      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000', true)
         + `<span class="dock-word">${SUBJECTIVE_WORDS[v-1]}</span>`;
     }
   }
   row.dataset.asking = asking ? '1' : '0';
+  // The chip is only alive while it is on screen — offsetParent settles that, and it is null
+  // until layoutBandColumn has shown it, so this waits a frame.
+  requestAnimationFrame(()=>{ if(chipEyes()) scheduleChipIdle(1200); });
 }
 /* The faces and the trace are one column, sharing a right edge, a measured width and a
    vertical centre — and the centre is the score's, not the band's, because the band's own
@@ -7080,6 +7096,127 @@ async function onFaceTap(n){
   } catch(e){ pendingScoreDate = null; console.error(e); showToast('Could not save that — try again', true); }
   faceSaving = false;
 }
+/* THE DOCKED FACE IS ALIVE, AND THE TWO OF THEM KNOW ABOUT EACH OTHER.
+
+   The chip blinks on its own clock, and the clock is what YOU said rather than what the score
+   made of it — a wrecked face blinks slowly and rarely, a raring one quick and often, which is
+   the same rule blinkByScore applies to the pair above it. That is the point of having two of
+   them: one is reporting the number, the other is reporting you, and on most days they will
+   not be saying quite the same thing.
+
+   So now and then they look at each other, and what passes between them depends on how far
+   apart they are. Nothing here is decorative — the exchange IS the disagreement, said in the
+   only language the mark has. On a day you called yourself raring and the number came back low,
+   the pair turns and holds a look at the chip. On a day you said you were wrecked and it came
+   back high, the chip turns to the pair and the pair widens. When they agree, they simply nod
+   along together, quick if it is a good day and heavy if it is not.
+
+   Rare, and never twice in a row: it takes its turn in the chip's own blink roster the way
+   every idle behaviour takes its turn in the mark's. */
+let chipTimer = null, chipSeq = 0, chipLastExchange = 0;
+function chipEyes(){
+  const d = document.getElementById('todayFaceDock');
+  if(!d || !d.offsetParent) return null;
+  return d.querySelector('.eyes');
+}
+function chipGazeEl(){ const e = chipEyes(); return e && e.querySelector('.eye-gaze'); }
+function chipSaid(){ const v = faceValues[faceDate()]; return v == null ? null : v; }
+function chipTiming(){
+  const said = chipSaid();
+  const b = BLINK_BY_BAND[said == null ? 2 : said - 1];
+  // The lids travel about half as far at this size, so the same durations would read as a
+  // slow blink rather than a small one.
+  return { gap:b.gap, span:b.span, shut:Math.round(b.shut * 0.7), open:Math.round(b.open * 0.7) };
+}
+function chipBlinkOnce(then){
+  const el = chipEyes();
+  if(!el || eyeMotionOff()){ if(then) then(); return; }
+  const open = (el.style.getPropertyValue('--eye-h') || '').trim();
+  // Already shut. The bottom face IS a closed lid, and blinking it only twitches — the same
+  // exemption blinkOnce makes for the lowest score band.
+  if(!open || parseFloat(open) <= parseFloat(facePx(EYE_STATES[0].h, DOCK_SCALE)) + 0.01){ if(then) then(); return; }
+  const t = chipTiming(), seq = ++chipSeq;
+  el.style.setProperty('--eye-morph', t.shut + 'ms');
+  el.style.setProperty('--eye-h', facePx(BLINK_CLOSED, DOCK_SCALE));
+  setTimeout(()=>{
+    if(seq !== chipSeq) return;
+    el.style.setProperty('--eye-morph', t.open + 'ms');
+    el.style.setProperty('--eye-h', open);
+    setTimeout(()=>{
+      if(seq !== chipSeq) return;
+      el.style.removeProperty('--eye-morph');
+      if(then) then();
+    }, t.open + 40);
+  }, t.shut + 25);
+}
+function chipGaze(x, y, ms, holdMs){
+  const el = chipGazeEl();
+  if(!el || eyeMotionOff()) return;
+  el.style.setProperty('--eye-gaze-ms', (ms || 240) + 'ms');
+  el.style.setProperty('--eye-gaze-x', (x || 0) + 'px');
+  el.style.setProperty('--eye-gaze-y', (y || 0) + 'px');
+  if(holdMs != null) setTimeout(()=>{
+    const back = chipGazeEl();
+    if(back){ back.style.setProperty('--eye-gaze-ms', Math.round((ms || 240) * 1.6) + 'ms');
+              back.style.setProperty('--eye-gaze-x', '0px'); back.style.setProperty('--eye-gaze-y', '0px'); }
+  }, holdMs);
+}
+/* The chip sits to the right of the pair and a little below it, so "look at each other" is
+   the pair going right-and-down and the chip going left-and-up. Small numbers: the pair is
+   42px across and the chip is 17. */
+function chipExchange(){
+  const chip = chipEyes(), mark = eyesDocked();
+  const said = chipSaid();
+  if(!chip || !mark || said == null || eyesHome !== 'score' || eyeRollTimer) return false;
+  // Both on 0..1 so they can be compared at all: a five-step rating against a percentile.
+  const saidBand = (said - 1) / 4;
+  const shownBand = eyeScore == null ? saidBand : Math.max(0, Math.min(100, eyeScore)) / 100;
+  const gap = shownBand - saidBand;
+  const full = eyeFullOpen('score');
+  stopIdle();
+  if(Math.abs(gap) <= 0.22){
+    // They agree. A nod, together — quick on a good day, heavy on a bad one.
+    if(shownBand >= 0.55){
+      blinkOnce(mark, ()=> scheduleIdle(1400));
+      setTimeout(()=> chipBlinkOnce(), 150);
+    } else {
+      eyeLidPulse(Math.max(3, Math.round(full * 0.45)), 340, 900, ()=> scheduleIdle(1400));
+      setTimeout(()=> chipBlinkOnce(), 260);
+    }
+  } else if(gap < 0){
+    // You called yourself better than the number came back. The pair turns and holds a look
+    // at the chip; the chip blinks once and looks away.
+    eyeGaze(5, 3, 300, 1100);
+    setTimeout(()=>{ chipBlinkOnce(()=> chipGaze(2, 0, 220, 520)); }, 380);
+    scheduleIdle(1800);
+  } else {
+    // You called yourself worse than it came back. The chip turns to the pair, and the pair
+    // widens at being told.
+    chipGaze(-3, -2, 260, 1200);
+    setTimeout(()=> eyeLidPulse(full, 170, 760, ()=> scheduleIdle(1400)), 300);
+  }
+  return true;
+}
+function scheduleChipIdle(delay){
+  clearTimeout(chipTimer);
+  if(eyeMotionOff() || !chipEyes()) return;
+  const t = chipTiming();
+  const wait = delay != null ? delay : t.gap + Math.random() * t.span;
+  chipTimer = setTimeout(()=>{
+    if(document.hidden || !chipEyes()){ scheduleChipIdle(4000); return; }
+    const c = EYE_ANIM.chipAndMark;
+    if(anim('chipAndMark') && Math.random() < c.chance && Date.now() - chipLastExchange > c.restMs
+       && chipExchange()){
+      chipLastExchange = Date.now();
+      scheduleChipIdle(3400);
+      return;
+    }
+    if(anim('chipBlinks')) chipBlinkOnce(()=> scheduleChipIdle());
+    else scheduleChipIdle();
+  }, wait);
+}
+function stopChipIdle(){ clearTimeout(chipTimer); chipTimer = null; chipSeq++; }
+
 /* Seven days of ratings, read once alongside the trace rather than per tap. */
 async function loadFaceValues(dates){
   faceValues = {};
@@ -11953,7 +12090,7 @@ const TRACE_GAP = 16;           // clear space between the score's digits and th
    then a real gap so a solid block of colour is not touching the week's ticks. On a 320px
    screen with a three-digit score there is not enough band left for both, and the trace hides
    itself under the rule it already had: below TRACE_MIN_W it is a squiggle, not a reading. */
-const DOCK_RESERVE = 45;
+const DOCK_RESERVE = 50;
 function bandColumnWidth(bandRect, numRect, docked){
   const gap = docked ? DOCK_RESERVE : TRACE_GAP;
   return Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + gap)));
