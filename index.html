@@ -293,20 +293,6 @@
     font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
     text-transform:uppercase; letter-spacing:0.02em; line-height:1.15; }
   .header-date span{ display:block; }
-  /* On the tab label's line, right-aligned, above the date. Placed there because that row is
-     the one that survives the collapse: the wordmark shrinks to nothing as you scroll and
-     this does not move, which is what makes it a readout rather than another heading. Its
-     top is set rather than inherited from the flow, so nothing above it can push it into the
-     date underneath. */
-  .header-brand .header-readout{ position:absolute; right:14px; top:18px; z-index:2;
-    text-align:right; white-space:nowrap; pointer-events:none;
-    font-family:var(--mono); font-size:10px; letter-spacing:0.07em; line-height:15px;
-    color:rgba(251,250,246,0.5); }
-  .header-readout .ro-sep{ opacity:0.5; padding:0 5px; }
-  /* Colour only when something is true that you would want to know without asking. A deload
-     week is the one state here that changes what you should do today. */
-  .header-readout .ro-flag{ color:var(--warn); }
-  .header-readout .ro-streak{ color:var(--accent); font-weight:var(--fw-bold); }
   /* The rest day plate. Same black, same cream rule, same mono caption as a section heading —
      it is the page's way of saying there is nothing here, so it should look like the app
      rather than like an error. */
@@ -1770,9 +1756,6 @@
     <div class="header-date" id="headerDate" aria-label="Today's date">
       <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
     </div>
-    <!-- Where you are in the cycle and how today came out, on every tab. The two things you
-         cannot reconstruct from whatever page you happen to be looking at. -->
-    <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
@@ -3692,7 +3675,6 @@ function setEyeScore(score){
   const changed = score !== eyeScore;
   const waking = anim('wakeOnScore') && eyeScore == null && score != null;
   eyeScore = score;
-  if(changed) renderHeaderReadout();
   // A count is running and it lands on the right face itself. Applying the answer here as
   // well put the day's expression on screen before the count had started, and the
   // double-take fired in the middle of it.
@@ -4090,9 +4072,6 @@ function streakBurst(n){
     ], { duration: UI_ANIM.streakBurst.ms + Math.random() * 400, easing:'cubic-bezier(0.2,0.7,0.4,1)' });
     setTimeout(()=> bit.remove(), UI_ANIM.streakBurst.ms + 700);
   }
-  const out = document.getElementById('headerReadout');
-  if(out && milestone) uiPlay(out, [{ transform:'scale(1)' }, { transform:'scale(1.18)' }, { transform:'scale(1)' }],
-    { duration:520, easing:'cubic-bezier(0.2,0.9,0.2,1)' });
 }
 // Once a day, and only when the number has actually gone up — not on every render, and not
 // on the render that merely re-reads the same streak after a tab switch.
@@ -4813,7 +4792,6 @@ const UI_ANIM = {
   tabLift:      { on:true, note:'The tab’s colour fills the page and the new one is dealt up onto it',
                   axis:'Y', ms:440 },
   planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 },
-  readoutCycle: { on:true, note:'The header readout turns over its second slot, one reading at a time', ms:2600 }
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -5306,7 +5284,6 @@ function activateTab(name, opts){
   decorateChevrons(document);
   decorateColophon();
   eyeTabName = name;
-  renderHeaderReadout();
   eyeGlanceAtTabSoon(name);
   eyeCtx.perched = false;
   eyeFormSettled();
@@ -5918,12 +5895,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.82';
+const APP_VERSION = '2026.08.31.83';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.82': 'Runs get a warm-up \u2014 they never had one on a healthy week. And the morning before you log stops tucking itself under the tab bar.'
+  '2026.08.31.83': 'The metrics line in the top-right corner is gone. Just the date up there now.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -6899,80 +6876,12 @@ function confirmInPlace(btn, opts){
    Both are things you cannot get from the page you are on: the score is only drawn on Today,
    and where you sit in the block is otherwise on Weekly. Everything else the app knows is
    already next to the thing it describes, so it stays there. */
-/* The readout is half pinned, half board. Block position never leaves — it is the one thing
-   you want on every glance, and cycling it would mean four glances in five did not answer the
-   question you looked down to ask. Everything else takes turns in a single second slot, hard
-   cut, which buys each reading the width to say itself properly: "9D STREAK" rather than
-   "9d", and a last-logged stamp there was never room for at all.
-   The whole set is always in the aria-label — the turning is a way of fitting things on a
-   phone header, not a way of hiding them. */
-let readoutSlots = [];
-let readoutIndex = 0;
-let readoutTimer = null;
-let readoutPinned = '';
-function paintHeaderReadout(){
-  const el = document.getElementById('headerReadout');
-  if(!el) return;
-  const slot = readoutSlots.length ? readoutSlots[readoutIndex % readoutSlots.length] : '';
-  el.innerHTML = readoutPinned + (slot ? `<span class="ro-sep">·</span><span>${slot}</span>` : '');
-}
-async function renderHeaderReadout(){
-  const el = document.getElementById('headerReadout');
-  if(!el) return;
-  const spoken = [];
-  readoutPinned = '';
-  readoutSlots = [];
-  // B1 W1/4 counted from the first second of a fresh install, reporting a position in a
-  // block that had not been set up, let alone started. It waits for the setup now.
-  if(await hasTrainingDays()) try{
-    const pos = await getBlockPosition(todayStr);
-    const deload = isDeloadPosition(pos.weekInBlock, pos.length);
-    readoutPinned = `<span class="${deload ? 'ro-flag' : ''}">B${pos.blocksCompleted + 1} W${pos.weekInBlock}/${pos.length}</span>`;
-    spoken.push(`Block ${pos.blocksCompleted + 1}, week ${pos.weekInBlock} of ${pos.length}${deload ? ', deload' : ''}`);
-  }catch(e){}
-  if(eyeScore != null){
-    readoutSlots.push(`${Math.round(eyeScore)} SCORE`);
-    spoken.push(`score ${Math.round(eyeScore)}`);
-  }
-  // Stated, never celebrated. No colour, no exclamation, and it is gone at one day rather
-  // than telling you that you have logged today — which you know, because you just did it.
-  if(loggedStreak >= 2){
-    // A milestone is the one day the number is worth more than its own digits.
-    const milestone = STREAK_MILESTONES.includes(loggedStreak);
-    readoutSlots.push(`<span class="${milestone ? 'ro-streak' : ''}">${loggedStreak}D STREAK</span>`);
-    spoken.push(`${loggedStreak} day logging streak`);
-  }
-  try{
-    // A timestamp has to be a real one. Anything imported, hand-edited or written by an older
-    // version can carry a small integer, and stamp() will render that as 01 JAN 00:00 — a
-    // readout stating something false with total confidence, which is the worst thing this
-    // one can do.
-    const last = (await getAllTrainingSessions())
-      .filter(x=>x.timestamp > EPOCH_SANE).sort((a,b)=> b.timestamp - a.timestamp)[0];
-    if(last){
-      readoutSlots.push(`LOG ${stamp(last.timestamp, true)}`);
-      spoken.push(`last logged ${stamp(last.timestamp, true)}`);
-    }
-  }catch(e){}
-
-  clearInterval(readoutTimer);
-  readoutTimer = null;
-  if(!uiAnim('readoutCycle')){
-    // Not cycling means not hiding: everything that would have taken turns is shown at once,
-    // which is exactly what this readout used to be.
-    el.innerHTML = [readoutPinned, ...readoutSlots.map(x=>`<span>${x}</span>`)]
-      .filter(Boolean).join('<span class="ro-sep">·</span>');
-  } else {
-    readoutIndex = 0;
-    paintHeaderReadout();
-    if(readoutSlots.length > 1) readoutTimer = setInterval(()=>{
-      readoutIndex++;
-      paintHeaderReadout();
-    }, UI_ANIM.readoutCycle.ms);
-  }
-  // Read out as words, all of it, however it happens to be showing.
-  el.setAttribute('aria-label', spoken.join('. '));
-}
+/* THE HEADER READOUT IS GONE. It carried block position, today's score, the logging streak
+   and a last-logged stamp in the top-right corner, cycling the last three through one slot.
+   Every one of those is already beside the thing it describes — the score is the score, the
+   block position is on Weekly, the streak is a number nobody acts on — and stacked over the
+   date it made the busiest corner of the app out of the one that should be calmest. The date
+   stays; it is the only thing up there that the page below cannot tell you. */
 
 function flashConfirm(el){
   if(!el) return;
@@ -23413,7 +23322,9 @@ if(eyeCalmToggleEl){
 const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 if(checkUpdateBtnEl) checkUpdateBtnEl.addEventListener('click', checkForUpdate);
 renderAppVersion();
-countLoggedStreak().then(n=>{ loggedStreak = n; renderHeaderReadout(); });
+// The count itself is still wanted — noteStreak reads it to decide whether the mark
+// throws confetti. It just has nowhere to be displayed any more.
+countLoggedStreak().then(n=>{ loggedStreak = n; });
 
 // The block behind the active tab is the indicator's now, so it has to be under the tab the
 // markup starts on before the first frame — otherwise Today opens with no block at all.
