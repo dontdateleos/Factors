@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CONFETTI</title>
+<title>DOGFOOD</title>
 <!-- Home screen / "Add to Home Screen" support — makes the app launch fullscreen
      (no Safari address bar) with a proper icon and name, rather than opening as a
      plain bookmarked webpage. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Confetti">
+<meta name="apple-mobile-web-app-title" content="Dogfood">
 <meta name="theme-color" content="#0a0a0a">
 <!-- The mark itself: a full-bleed lime field with the two eyes on it. Full bleed
      because iOS rounds the corners of a home-screen icon for you, and rounding them
@@ -51,7 +51,6 @@
     --fs-control:var(--fs-md);
     --fs-xl:18px;       /* section titles */
     --fs-display:46px;  /* the one big number */
-    --fs-wordmark:46px; /* the logo, which is not it */
     --fs-score:58px;    /* recovery score, the largest thing on screen */
     --fs-num:26px;      /* goal priority numerals */
     --fw-normal:400;
@@ -86,25 +85,6 @@
        monos, which are close enough that the swap to Plex is a refinement rather than a
        reflow you watch happen. */
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-    /* The wordmark's own face: exactly the stack the approved specimen used, and nothing
-       else in it.
-
-       It carried four more fallbacks until now — Condensed Bold, Arial Narrow, Helvetica
-       Neue, Helvetica — added after a webfont failure to guarantee something heavy if the
-       first name missed. Gone, because the specimen that was approved did not have them and
-       any one of them winning is a way for this to render as something other than what was
-       chosen. The device is confirmed to carry the face: the typeface check reported it
-       present, measuring 161px where a fallback measured 204. sans-serif stays as the last
-       resort the browser would reach for anyway.
-
-       This declaration was inside a BROKEN COMMENT for several versions. An edit replaced a
-       slice that began mid-comment, which left the previous comment's closing marker behind
-       and the new text with no opening — so the parser hit bare prose inside :root, dropped
-       declarations while it recovered, and --wordmark-face never got defined. var() on an
-       undefined property is invalid at computed-value time, and font-family is inherited, so
-       the h1 quietly fell back to the body's mono. Every font chosen since did nothing at
-       all, which is exactly what it looked like. */
-    --wordmark-face: 'HelveticaNeue-CondensedBlack', 'Helvetica Neue Condensed Black', sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -171,30 +151,13 @@
   @media (prefers-reduced-motion: reduce){ .colophon-eyes span{ animation:none; } }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
-  /* The wordmark is set in the app's own typeface, not in a display sans borrowed for it.
-     Everything else measured on this page — the score, the strip figures, the readout, the
-     version line — is IBM Plex Mono, and a Helvetica wordmark sitting on top of all of it was
-     the one thing in the design speaking a different language. Its own size rather than
-     --fs-display: that variable means "the one big number", which is the score, and the logo
-     is not competing with it. */
-  /* Weight 900 so the fallbacks go as heavy as they have. Condensed Black is a single face
-     and takes whatever it is asked for; everything behind it is a family with a bold in it,
-     and asking high is what stops the chain resolving to a REGULAR the way it did when this
-     asked for 400 and got a thin, wide wordmark on a device that had none of the fonts named.
-     font-synthesis is deliberately left alone here: a faked bold is ugly and a light wordmark
-     is broken, and only one of those has actually happened. */
-  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:900; margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
+  h1{ font-family:var(--wordmark); font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  /* No stroke and no overhang, both matching the specimen rather than improving on it. The
-     -4px was optical correction so the wordmark's ink lined up with the tab label above it
-     instead of sitting inset by the C's side bearing — defensible, and not what was
-     approved. Exact beats slightly better when the whole point is that it looks like the
-     thing that was chosen. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0; letter-spacing:-0.045em; margin-left:0; }
+  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -373,10 +336,7 @@
      follow. The day number is a reading off a calendar, not a word. */
   .header-date .hd-day{ font-family:var(--mono); -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
-  /* nowrap and inline-block to match the specimen exactly: a wordmark that can wrap is a
-     wordmark that will, on some width nobody tested. */
   h1 .logo-line{ display:block; }
-  h1 .logo-line span{ display:inline-block; white-space:nowrap; }
   /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
      same rule serves the logo, the score card and the element that flies between them.
      --eye-h is how open the eye is, --eye-rb how square its bottom sits, --eye-bl how far
@@ -434,12 +394,6 @@
   .eyes.no-morph, .eyes.no-morph span, .eyes.no-morph .eye-gaze, .eyes.no-morph .eye-motion{ transition:none; transition-delay:0ms; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  /* A SEED, not the source. headerEyeSite computes these from --fs-wordmark and writes them
-     inline, and that is the authority; these are here so the first painted frame is not a
-     mark that jumps the moment script runs. They are the same numbers: 46px of wordmark at
-     MARK_TO_WORDMARK 0.87, which is the 40px plate DOGFOOD wore — and at that ratio the
-     scale factor is 1, so these are the geometry the mark was originally drawn at.
-     If you change --fs-wordmark, change nothing here; the ratio does it. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
     --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
     --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
@@ -1804,11 +1758,7 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <!-- One line. DOGFOOD stacked well because DOG and FOOD are both words and the break
-         fell on the compound's own seam; CONFETTI has no seam, and CON is a word meaning
-         something else, so a stack asks you to read it and then reassemble it.
-         One span: updateHeaderCollapse measures the wordmark's right edge off the last one. -->
-    <h1><div class="logo-line"><span>Confetti</span></div></h1>
+    <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
@@ -2459,11 +2409,6 @@
       <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
-        <!-- Whether the typefaces actually arrived. A webfont that fails does not report a
-             fault — it silently draws something else — so the only way anyone finds out is by
-             noticing the app looks wrong and not knowing why. Measured, not asked: see
-             faceLoaded. -->
-        <div class="field-row"><span class="field-label">Typefaces</span><span id="fontStatusOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <!-- The version has changed fifty times today and never once said what moved. -->
         <div id="whatChanged" class="score-note"></div>
         <div id="updateCheckResult" class="score-note"></div>
@@ -2894,7 +2839,7 @@ if(!window.storage){
       return { key, deleted: existed, shared: false };
     }
   };
-  console.info('CONFETTI: running standalone — using browser localStorage instead of Claude artifact storage.');
+  console.info('FACTORS: running standalone — using browser localStorage instead of Claude artifact storage.');
 }
 
 /* ---------- THE EYES ----------
@@ -3138,49 +3083,15 @@ function applyEyeState(el, st){
 // score band calls for. The flyer is given one set and then the other, so the plate closes
 // around the eyes on the way up and opens off them on the way down.
 const EYE_SITES = {
-  // Computed from the wordmark — see headerEyeSite. Filled in below rather than written
-  // here, because a literal is a number that stops agreeing with the type the first time the
-  // type changes size, which has now happened twice.
-  header: null,
+  header: { '--eye-box-w':'40px', '--eye-box-h':'40px', '--eye-gap':'10px',
+            '--eye-plate':'var(--block-lime)', '--eye-plate-r':'12px',
+            '--eye-w':'6px', '--eye-h':'18px', '--eye-r':'3px', '--eye-rb':'3px',
+            '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--text)' },
   score:  { '--eye-box-w':'42px', '--eye-box-h':'32px', '--eye-gap':'12px',
             '--eye-plate':'transparent', '--eye-plate-r':'0px',
             '--eye-w':'15px', '--eye-h':'32px', '--eye-r':'7.5px', '--eye-rb':'7.5px',
             '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--bg)' }
 };
-/* THE MARK IS SIZED FROM THE WORDMARK, NOT BESIDE IT.
-
-   It has been a literal twice and been wrong twice: 40px was a shade over the cap height of
-   a 46px Helvetica, and then half again the cap height of 34px mono, at which point the mark
-   was the biggest thing in the header. Both times the fix was to type a different number,
-   which sets up the same mistake for whoever changes --fs-wordmark next.
-
-   So it is a ratio of the wordmark's own size now. 0.64 keeps the plate under the height of
-   the letters beside it — deliberately under, not level, because a block matching them reads
-   as a ninth letter rather than a mark on the end of a word. It went up from 0.58 because at
-   that ratio the lime was 389px2 against DOGFOOD's 1600, and the mark is the only colour in
-   the whole header: a third of the presence the header lost was just that square getting
-   smaller. Change --fs-wordmark and the mark follows without anything else being touched.
-
-   One factor across every dimension, from the geometry the mark was originally drawn at.
-   That is what the whole thing being custom properties is for: the face stays the same face,
-   at a different size, rather than five values re-guessed to look about right. */
-const HEADER_MARK_BASE = { '--eye-box-w':40, '--eye-box-h':40, '--eye-gap':10,
-  '--eye-plate-r':12, '--eye-w':6, '--eye-h':18, '--eye-r':3, '--eye-rb':3 };
-const MARK_TO_WORDMARK = 0.87;
-function headerEyeSite(){
-  let fs = 34;
-  try{ fs = parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--fs-wordmark')) || 34; } catch(e){}
-  const k = (fs * MARK_TO_WORDMARK) / HEADER_MARK_BASE['--eye-box-h'];
-  const out = { '--eye-plate':'var(--block-lime)', '--eye-bl':'0%', '--eye-rot':'0deg',
-                '--eye-ink':'var(--text)' };
-  for(const key in HEADER_MARK_BASE){
-    out[key] = (Math.round(HEADER_MARK_BASE[key] * k * 100) / 100) + 'px';
-  }
-  return out;
-}
-EYE_SITES.header = headerEyeSite();
-
 // How wide open the eyes get at each site when nothing is dragging the lids down. Widening
 // past this would spill out of the plate, so surprise opens TO it rather than beyond it.
 function eyeFullOpen(site){ return parseFloat(EYE_SITES[site]['--eye-h']); }
@@ -4117,60 +4028,18 @@ function eyeNoteActivity(){
 // How many days back the logging runs unbroken. Its own function because two things want it
 // now and they must not disagree: the mark's blink rate, and the header readout. Reading it
 // off eyeCtx meant the readout lost the number whenever the mark's own switch was off.
-/* THE STREAK GETS A MOMENT. MOSTLY IT DOES NOT.
-
-   The app threw confetti every single day the streak went up. Twelve pieces for turning up,
-   twenty-six on a milestone — which meant the milestone was a slightly larger version of an
-   everyday event, and turning up once was treated as an achievement worth a party.
-
-   It is called Confetti and it does not give you any. That is the joke, and it is also the
-   correct behaviour: a reward that arrives every time is not a reward, it is a background
-   colour. Ordinary days now get a line instead — the app noticing, flatly, and declining to
-   celebrate. The real thing is held for the milestones, which is what makes them milestones.
-
-   Once per day, on the first render after the count actually increases, thrown from the mark
-   in the wordmark — the app's own face, and the right thing to be doing the withholding. The
-   burst goes through uiAnim, so calm mode and prefers-reduced-motion switch it off like
-   everything else; the LINE is text and is not motion, so it is not gated on them.
-
-   Lines are picked by the streak number, not at random, so a given day always says the same
-   thing — reproducible, testable, and it cannot say two different things either side of a
-   reload. */
-/* How long a toast sits. The default is sized for "Saved" — an acknowledgement you read in a
-   glance. A line with a joke in it needs longer than an acknowledgement does.
-   Declared up here with the streak rather than down beside showToast, because noteStreak
-   reads STREAK_LINE_MS and runs from refreshEyeHistory, which can fire before a declaration
-   several thousand lines further down has been reached. */
-const TOAST_MS = 1800, STREAK_LINE_MS = 3400;
+/* THE STREAK GETS A MOMENT.
+   It was stated and never celebrated — 9px of grey in the corner, deliberately: "no colour,
+   no exclamation". That was a defensible line and it is being crossed on purpose. The streak
+   is the one number here that is purely about having turned up, and the day it goes up is
+   the day the app should notice.
+   It fires once per day, on the first render after the count actually increases, from the
+   mark in the wordmark — which is the app's own face, and the right thing to be pleased.
+   Milestones throw more of it and hold the number for a beat. It goes through uiAnim, so
+   calm mode and prefers-reduced-motion both switch it off like everything else. */
 const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365];
 const CONFETTI_INK = ['var(--block-lime)', 'var(--block-orange)', 'var(--block-yellow)',
                       'var(--block-blue)', 'var(--block-purple)', 'var(--bg)'];
-/* What it says on a day that is not a milestone. Deadpan, and specific about the fact that
-   something is being withheld — the withholding is the joke, so it has to be named rather
-   than merely done. */
-const STREAK_LINES = [
-  'Day {n}. No confetti.',
-  'Day {n}. The confetti stays in the box.',
-  'Day {n}. Noted, without enthusiasm.',
-  'Day {n}. Below the confetti threshold.',
-  'Day {n}. Turning up is the minimum.',
-  'Day {n}. Logged. No further comment.'
-];
-/* And what it says on the days it actually pays out. Escalating, and grudging about it
-   throughout, because a machine that hands out confetti cheerfully is a different machine. */
-const STREAK_MILESTONE_LINES = {
-  7:   'Day 7. Fine. Confetti.',
-  14:  "Day 14. More confetti. Don't get used to it.",
-  30:  'Day 30. Real confetti. Read nothing into it.',
-  50:  'Day 50. You met the condition. Confetti.',
-  100: 'Day 100. This is the good confetti.',
-  200: 'Day 200. Confetti reserves are running low.',
-  365: 'Day 365. All of the remaining confetti. There is none left.'
-};
-function streakLine(n){
-  if(STREAK_MILESTONE_LINES[n]) return STREAK_MILESTONE_LINES[n];
-  return STREAK_LINES[n % STREAK_LINES.length].replace('{n}', n);
-}
 function streakBurst(n){
   if(!uiAnim('streakBurst')) return;
   const mark = document.getElementById('headerMark');
@@ -4218,12 +4087,7 @@ function noteStreak(n){
   if(seen && seen.date === todayStr) return;
   const grew = !seen || n > (seen.n || 0);
   try{ localStorage.setItem('streak:seen', JSON.stringify({ date: todayStr, n })); } catch(e){}
-  if(!grew) return;
-  // The line either way; the confetti only when it has been earned.
-  setTimeout(()=>{
-    showToast(streakLine(n), false, STREAK_LINE_MS);
-    if(STREAK_MILESTONES.includes(n)) streakBurst(n);
-  }, 420);
+  if(grew) setTimeout(()=> streakBurst(n), 420);
 }
 
 let loggedStreak = 0;
@@ -5308,7 +5172,7 @@ async function refreshLogStripWord(){
    surface with no room left to scroll is a way of being wrong half the time. */
 async function startTodayLogging(){
   const found = await getTodaysBlockAndSlotForType(todaySessionType);
-  if(!found){ showToast('Nothing planned. Logging it would be fiction.'); return; }
+  if(!found){ showToast('Nothing planned to log today'); return; }
   // Logging no longer costs you the tab you were on. The panel is moved here rather than the
   // page being moved to it, so the whole session — open, type, rest, save — happens without
   // Today ever going away underneath you.
@@ -5934,10 +5798,6 @@ if(document.fonts && document.fonts.ready){
     // The chip's word was measured in the fallback face, and the reserve it sets is what
     // decides how wide the week is allowed to be.
     try{ measureDockWord(); } catch(e){}
-    // So was the wordmark, and it is the app's typeface now — its width, its cap height and
-    // therefore where the mark sits beside it all move when the real face lands. Clearing the
-    // cache re-runs the one-time measurement, which is why that was made idempotent.
-    try{ headerCollapseEls = null; updateHeaderCollapse(); } catch(e){}
     try{ if(typeof paintScoreTrace === 'function' && scoreDays.length) paintScoreTrace(); } catch(e){}
   }).catch(()=>{});
 }
@@ -6042,12 +5902,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.79';
+const APP_VERSION = '2026.08.31.80';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.54': 'Faster start (the font no longer blocks the page), a warning when the app has sat open past midnight, motion controls out of dev, imports back themselves up first, and runs log properly.'
+  '2026.08.31.80': 'Back to Dogfood. The Confetti name and everything built on it \u2014 the wordmark, the withheld confetti, the sarcastic empty states \u2014 are reverted to the last build before the rename. Nothing from before it was touched.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -6791,26 +6651,6 @@ let headerCollapseEls = null;
 let logoTextWidth = null;
 let logoOriginX = 14;
 
-/* The wordmark's own measurements. LOGO_MEASURED_PX is the size the CSS sets and therefore
-   the size logoTextWidth is taken at — every scale below is relative to it, so changing the
-   CSS size without changing this would silently move the mark. MARK_BOX is the mark's drawn
-   width, and LOGO_DATE_CLEAR the air left between the mark and the date block. */
-const LOGO_MEASURED_PX = parseFloat(getComputedStyle(document.documentElement)
-  .getPropertyValue('--fs-wordmark')) || 34;
-/* Read off the element rather than restated here. The mark's drawn size is a CSS custom
-   property, and a copy of it in the layout maths is a copy that goes stale the first time
-   the mark is resized — which is exactly what just happened to it. */
-function markBoxPx(){
-  const m = document.querySelector('.header-brand .header-mark');
-  const v = m && parseFloat(getComputedStyle(m).getPropertyValue('--eye-box-w'));
-  return v > 0 ? v : 30;
-}
-const MARK_GAP_PX = 2, LOGO_DATE_CLEAR = 12;
-/* Where the cap band's middle sits below the top of the h1's line box, as a fraction of the
-   font size. Measured off the real face at first layout — see updateHeaderCollapse — with
-   this as the fallback for a browser that will not give ink metrics. */
-const LOGO_CAP_MID_FALLBACK = 0.42;
-let logoBasePx = LOGO_MEASURED_PX, logoTopY = 0, logoCapMid = LOGO_CAP_MID_FALLBACK;
 function updateHeaderCollapse(){
   if(window.headerCollapseSuspended) return;
   if(!headerCollapseEls){
@@ -6819,97 +6659,21 @@ function updateHeaderCollapse(){
       h1: header.querySelector('h1'),
       mark: document.querySelector('.header-mark')
     };
-    // Measure where the wordmark actually ends — the widest line, back when there were two
-    // of them and the mark had to clear both. Taken from the last letter's right edge
+    // Measure where the wordmark actually ends — the widest of the two lines, since the
+    // mark has to clear "food" as well as "Dog". Taken from the last letter's right edge
     // relative to h1's own left edge, once, before any inline style override is applied:
     // .logo-line is display:block and stretches to fill its container regardless of text
     // content, so the letter span's own rendered position is what reflects real text
     // metrics (which differ slightly between engines) rather than a pixel assumption.
-    // Measured at the CSS base size, always. Everything below is a ratio against
-    // LOGO_MEASURED_PX, and this function writes the h1's font-size inline — so measuring a
-    // second time without clearing that would read the ink at the size the LAST fit chose
-    // and fit against its own output. Only bites on a re-measure, which nothing does today;
-    // it is one line to make sure it never does.
-    headerCollapseEls.h1.style.fontSize = '';
     const h1Rect = headerCollapseEls.h1.getBoundingClientRect();
     const brandRect = header.querySelector('.header-brand').getBoundingClientRect();
     logoOriginX = h1Rect.left - brandRect.left;
-    // The h1's top in the flow. Its HEIGHT changes with the fitted size; where its box
-    // starts does not, so this is safe to take once and reuse at every size.
-    logoTopY = h1Rect.top - brandRect.top;
     logoTextWidth = 0;
     headerCollapseEls.h1.querySelectorAll('.logo-line').forEach(line=>{
       const spans = line.querySelectorAll('span');
       const last = spans[spans.length-1];
       if(last) logoTextWidth = Math.max(logoTextWidth, last.getBoundingClientRect().right - h1Rect.left);
     });
-    /* THE WORDMARK IS SET, AND SHRINKS IF IT HAS TO.
-
-       It was briefly fitted the other way round — sized to whatever crossed the band — which
-       put it at 68px on a large phone and made the logo the loudest thing on a page whose
-       loudest thing is meant to be the score. The design size is the design size. The fit
-       only ever takes away.
-
-       The stop is the date block, not the screen edge. The date and the readout above it are
-       the row that survives the collapse — the wordmark shrinks to nothing as you scroll and
-       they do not — so they are not something to run underneath. If the word plus the mark
-       plus a little air does not clear it, the word gives way; on every width measured it
-       does not have to. */
-    const dateEl = document.getElementById('headerDate');
-    const inkLeft = (headerCollapseEls.h1.querySelector('span') || headerCollapseEls.h1)
-      .getBoundingClientRect().left - brandRect.left;
-    const stopX = dateEl ? (dateEl.getBoundingClientRect().left - brandRect.left)
-      : (brandRect.width - 14);
-    const room = stopX - LOGO_DATE_CLEAR - markBoxPx() - MARK_GAP_PX - inkLeft;
-    // logoTextWidth was measured at the CSS base size, and the mark's left below scales by
-    // fontSize/LOGO_MEASURED_PX — so that measurement stays the reference and only the size
-    // it is drawn at changes.
-    logoBasePx = logoTextWidth > 0
-      ? Math.min(LOGO_MEASURED_PX, LOGO_MEASURED_PX * room / logoTextWidth)
-      : LOGO_MEASURED_PX;
-
-    /* WHERE THE MIDDLE OF THE WORD IS, measured off the font rather than assumed.
-
-       This used to be a constant worked out from Helvetica's metrics on paper. The face has
-       changed twice since, and the next time the number would be wrong again and wrong
-       silently — the mark would just sit a few pixels low and nobody would know why.
-
-       Canvas gives the two things needed: fontBoundingBox says where the baseline falls
-       inside the line box once the half-leading is taken off, and actualBoundingBoxAscent of
-       a reference glyph gives the height of the band the letters actually occupy.
-
-       WHICH reference glyph depends on the case, and that is the whole point of doing it this
-       way. An uppercase wordmark is a row of capitals, so it centres on the cap height. A
-       lowercase one is mostly x-height — "confetti" has ascenders on the f and both t's and
-       nothing at all below the baseline, so measuring the full ink of the word would centre
-       the mark on a band that only three of its eight letters reach, and lift it off the mass
-       of the word. Neither case has descenders here; centring on the LINE box would hang the
-       mark low by a descender that is not being used. */
-    logoCapMid = LOGO_CAP_MID_FALLBACK;
-    try{
-      const cs = getComputedStyle(headerCollapseEls.h1);
-      const raw = (headerCollapseEls.h1.textContent || '').trim();
-      const tf = cs.textTransform;
-      const shown = tf === 'lowercase' ? raw.toLowerCase()
-        : tf === 'uppercase' ? raw.toUpperCase() : raw;
-      const probe = document.createElement('canvas').getContext('2d');
-      probe.font = `${cs.fontWeight} ${LOGO_MEASURED_PX}px ${cs.fontFamily}`;
-      const ref = shown && shown === shown.toLowerCase() ? 'x' : 'H';
-      const m = probe.measureText(ref);
-      const asc = m.fontBoundingBoxAscent, desc = m.fontBoundingBoxDescent;
-      const band = m.actualBoundingBoxAscent;
-      if(asc > 0 && band > 0){
-        const lineH = parseFloat(cs.lineHeight) || LOGO_MEASURED_PX;
-        const baseline = (lineH - (asc + desc)) / 2 + asc;
-        /* On one line the mark centres on that line's ink. On TWO it has to centre on the
-           block — the midpoint between the first line's cap top and the last line's
-           baseline — which is a different number and the reason DOGFOOD's constant was 57
-           rather than something derived from a single line. Both fall out of the same
-           expression; with one line the last term is zero and it reduces to the old one. */
-        const rows = headerCollapseEls.h1.querySelectorAll('.logo-line').length || 1;
-        logoCapMid = (baseline + (lineH * (rows - 1) - band) / 2) / LOGO_MEASURED_PX;
-      }
-    } catch(e){}
   }
   const { h1, mark } = headerCollapseEls;
 
@@ -6921,25 +6685,21 @@ function updateHeaderCollapse(){
   // header having lost a line.
   const dateEl = document.getElementById('headerDate');
   if(dateEl) dateEl.style.opacity = (1 - progress).toFixed(3);
-  const fontSize = lerp(logoBasePx, 0, progress);
+  const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
-  // MARK_GAP_PX is the space between the wordmark and the mark at full size; it scales with
+  // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
-  // It used to be -10, which tucked the plate under the tail of DOGFOOD's "d" — a wide
-  // round letter with side bearing to spare. CONFETTI ends on an "I", which has none, so
-  // the same -10 swallowed the letter whole and the wordmark read CONFETT. Positive now:
-  // the mark sits just off the ink rather than over it.
-  // MARK_TOP centres the mark on the wordmark's ink. It used to be a flat 57px, which was
-  // the midpoint between DOGFOOD's two lines and correct only while the type was a fixed
-  // 46px on two lines. One line, at a size that now differs per screen (46 at 320, 68 at
-  // 430), needs it computed or the mark hangs below the baseline on every phone but one.
-  const MARK_TOP = logoTopY + fontSize * logoCapMid - markBoxPx() / 2;
+  // Negative: the mark tucks under the tail of the last letter rather than sitting off it.
+  const MARK_GAP = -10;
+  // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
+  // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
+  const MARK_TOP = 57;
   // The header mark's top is written from here, so the sag has to be added in rather than
   // read off the custom property the way the score slot does it.
   mark.style.top = (lerp(MARK_TOP, 30, progress) + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
-  mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP_PX) * (fontSize/LOGO_MEASURED_PX)) + 'px';
+  mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
   // Widening a touch as it shrinks reads as the mark being squeezed out of the way,
   // where an even scale just reads as it being turned off. The bulge peaks mid-collapse
   // and is gone at both ends, so it never fights the finger.
@@ -6987,7 +6747,7 @@ function animateNumber(el, from, to, duration, suffix){
 }
 
 let toastTimer = null;
-function showToast(message, isError, ms){
+function showToast(message, isError){
   const t = document.getElementById('toast');
   const icon = toastEyesHtml(isError) || (isError
     ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
@@ -7002,7 +6762,7 @@ function showToast(message, isError, ms){
   eyeNoteToast(isError);
   if(!isError) eyeFormSettled();
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, ms || TOAST_MS);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 1800);
 }
 // Mechanical double-flash confirmation (filter:invert, not a fade) — works on any
 // element's existing colors automatically. Re-triggerable: removing then re-adding the
@@ -9344,7 +9104,7 @@ async function refreshRecoveryLog(){
   const list = document.getElementById('logListRecovery');
   try{
     const res = await window.storage.list('entry:');
-    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing logged yet. The record is spotless.</span></div>'; return; }
+    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; return; }
     const dates = res.keys.map(k=>k.replace('entry:','')).sort().reverse().slice(0,14);
     list.innerHTML='';
     for(const d of dates){
@@ -9355,7 +9115,7 @@ async function refreshRecoveryLog(){
       div.addEventListener('click', ()=>{ dateInput.value=d; fillRecoveryForm(e); });
       list.appendChild(div);
     }
-  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing logged yet. The record is spotless.</span></div>'; }
+  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; }
 }
 
 document.getElementById('saveBtnRecovery').addEventListener('click', saveRecoveryEntry);
@@ -10474,7 +10234,7 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>
     }
     await syncPlannedSessionMirror(date);
   }
-  showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear. The week was already empty.');
+  showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear');
   renderWeekGrid();
 });
 
@@ -11488,7 +11248,7 @@ function tickRestTimer(){
   paintRestClocks(restClockText(left), true);
   if(left > 0) return;
   stopRestTimer();
-  showToast('Rest over. Back to it.');
+  showToast('Rest done');
   // Whatever the mark is doing, it looks up when the set is over.
   try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
 }
@@ -11712,7 +11472,7 @@ async function showLiftHistory(key, name){
     });
   } catch(e){}
   rows.sort((a, b)=> b.date.localeCompare(a.date));
-  if(!rows.length){ showToast('No history for this lift. You have never done it.'); return; }
+  if(!rows.length){ showToast('Nothing logged for this lift yet'); return; }
   // Best-so-far is computed forwards through time and read backwards, so the plate marks the
   // session that actually set the record rather than every session at that weight since.
   let best = 0;
@@ -18388,13 +18148,7 @@ async function applyRestDayShape(){
     ? (nextIn === 1 ? 'tomorrow'
        : new Date(next).toLocaleDateString(undefined, { weekday:'long' }).toLowerCase())
     : null;
-  // The line still answers the only question a rest day raises — when is the next one — and
-  // then says one more thing. "This is allowed" because a training app that has spent all
-  // week telling you what to do should be the one to say a day off is not a failure state;
-  // "rest or avoidance" because an empty WEEK is a different thing from an empty day, and
-  // naming the unflattering possibility is more use than pretending it isn't one.
-  note.textContent = label ? `nothing planned · next session ${label} · this is allowed`
-    : 'nothing planned this week · that is rest or avoidance';
+  note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
 }
 
 /* The morning form's second half, behind one line. Two rules keep it honest: it opens
@@ -18582,7 +18336,7 @@ async function applyTodayStage(){
         activateTab('training');
       } else {
         out.textContent = '';
-        showToast('Week built. The rest is up to you.');
+        showToast('Week built');
         await Promise.all([generateRecommendations(), renderTodayBlockContext(),
                            renderTodayWorkoutSummary(), applyRestDayShape()]);
         initWarmupTab();
@@ -23125,7 +22879,7 @@ document.getElementById('clearAllDataBtn').addEventListener('click', async (e)=>
     }
     result.textContent = `Deleted ${count} record(s). Reloading...`;
     result.style.color = 'var(--text)';
-    showToast('All data cleared. Every last bit of it.');
+    showToast('All data cleared');
     setTimeout(()=> location.reload(), 1200);
   } catch(e){
     result.textContent = 'Clear failed — try again.';
@@ -23505,7 +23259,7 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `confetti-backup-${todayStr}.json`;
+    a.href = url; a.download = `factors-backup-${todayStr}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch(e){
@@ -23584,58 +23338,9 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
   
 });
 
-/* Did the typeface actually arrive? Three rounds have now been spent on a wordmark nobody
-   could confirm was being drawn in the font it specifies — the sandbox this was built in
-   cannot reach the font host, and a phone gives no sign either way, because a webfont that
-   never loads does not fail, it just silently draws something else.
-
-   document.fonts.check is no use for this: with no @font-face registered at all it answers
-   true, which is the opposite of the truth. So this measures instead. The same string is
-   laid out twice, once with the family in front of a sentinel and once with the sentinel
-   alone; if the widths match, nothing in front of it took the job. */
-function faceLoaded(family){
-  try{
-    const w = (f)=>{
-      const el = document.createElement('span');
-      el.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:nowrap;'
-        + 'font-size:80px;font-weight:700;font-family:' + f;
-      el.textContent = 'CONFETTI';
-      document.body.appendChild(el);
-      const x = el.getBoundingClientRect().width;
-      el.remove();
-      return x;
-    };
-    return Math.abs(w(family + ', monospace') - w('monospace')) > 0.5;
-  } catch(e){ return null; }
-}
 function renderAppVersion(){
   const el = document.getElementById('appVersionOut');
   if(el) el.textContent = APP_VERSION;
-  const f = document.getElementById('fontStatusOut');
-  if(f){
-    const paint = ()=>{
-      // One webfont to report on, plus one thing that is not about fetching at all: whether
-      // the wordmark is drawn in the face it names. --wordmark-face spent five versions
-      // undefined behind a broken comment, and an undefined custom property does not throw —
-      // var() is simply invalid, font-family is inherited, and the h1 quietly wears the
-      // body's mono. Nothing anywhere reported that. This does.
-      const mono = faceLoaded("'IBM Plex Mono'");
-      if(mono === null){ f.textContent = ''; return; }
-      const h1 = document.querySelector('header h1');
-      const want = (getComputedStyle(document.documentElement)
-        .getPropertyValue('--wordmark-face') || '').trim();
-      const got = h1 ? getComputedStyle(h1).fontFamily : '';
-      const wordmarkOk = !!want && !!got && got.replace(/['"]/g, '').indexOf(
-        want.replace(/['"]/g, '').split(',')[0].trim()) === 0;
-      const bits = [];
-      bits.push(mono ? 'IBM Plex Mono loaded' : 'IBM Plex Mono missing');
-      bits.push(wordmarkOk ? 'wordmark on its own face' : 'WORDMARK FELL BACK — check the CSS');
-      f.textContent = bits.join(' · ');
-      f.style.color = (mono && wordmarkOk) ? 'rgba(251,250,246,0.5)' : 'var(--block-orange)';
-    };
-    paint();
-    if(document.fonts && document.fonts.ready) document.fonts.ready.then(paint).catch(()=>{});
-  }
 }
 /* ---------- DEV MODE ----------
    The mark's forty-three switches are a workbench, not a setting, so they are not in the
