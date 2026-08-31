@@ -1280,6 +1280,8 @@
   .logging-drop{ font-family:var(--mono); font-size:var(--fs-md); height:auto; padding:0 9px;
     background:transparent; color:var(--border-bold); border:2px solid var(--border-bold);
     flex:0 0 auto; cursor:pointer; }
+  .run-pace{ display:none; font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold);
+    letter-spacing:0.02em; margin:-2px 0 8px; }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -1728,6 +1730,19 @@
           <div class="type-btn" data-len="60">60 min</div>
           <div class="type-btn" data-len="90">90 min</div>
         </div></div>
+      </div>
+
+      <!-- Bodyweight is load-bearing and was never asked for. computeAthleteLevel returns
+           {error:'no-bodyweight'} without it, calisthenics volume counts as zero because a
+           pull-up with a blank load is a pull-up moving nothing, and the BW button's own
+           error tells you to go to "Data tab, under Everything else". One optional box here
+           is cheaper than every one of those. Optional, because a week can still be built
+           without it — it is the difference between the plan knowing your scale and not. -->
+      <div class="group form-panel">
+        <div class="group-head"><div class="group-title">4 &middot; How much do you weigh?</div><div class="group-sub">optional — it is what the strength standards are measured against</div></div>
+        <div class="fields">
+          <div class="field-row"><span class="field-label">Bodyweight (kg)</span><input type="number" step="0.1" id="firstRunWeight" placeholder="skip if you'd rather not"></div>
+        </div>
       </div>
 
       <button class="primary" id="firstRunBuildBtn">Build my first week</button>
@@ -5732,12 +5747,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.53';
+const APP_VERSION = '2026.08.31.54';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.53': 'Faster start (the font no longer blocks the page), a warning when the app has sat open past midnight, motion controls out of dev, imports back themselves up first, and runs log properly.'
+  '2026.08.31.54': 'Faster start (the font no longer blocks the page), a warning when the app has sat open past midnight, motion controls out of dev, imports back themselves up first, and runs log properly.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11266,6 +11281,50 @@ function lastLoggedLine(name){
   return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}</div>`;
 }
 
+function paceLabel(km, min){
+  if(!(km > 0) || !(min > 0)) return '';
+  const per = min / km;
+  const m = Math.floor(per), sec = Math.round((per - m) * 60);
+  return `${m}:${String(sec === 60 ? 0 : sec).padStart(2, '0')}/km`;
+}
+async function wireRunLogging(date, block){
+  const dist = document.getElementById('weekRunDistance');
+  const dur = document.getElementById('weekRunActualDuration');
+  const pace = document.getElementById('weekRunPace');
+  const hist = document.getElementById('weekRunHistory');
+  // Pace, as you type, from the two boxes above it. Nothing is stored — it is the third
+  // number implied by the first two, and it was the only one missing.
+  const paint = ()=>{
+    if(!pace) return;
+    const p2 = paceLabel(parseFloat(dist && dist.value), parseFloat(dur && dur.value));
+    pace.textContent = p2 ? p2 : '';
+    pace.style.display = p2 ? 'block' : 'none';
+  };
+  if(dist) dist.addEventListener('input', paint);
+  if(dur) dur.addEventListener('input', paint);
+  paint();
+  // And what the last few of this kind looked like, which is what "was that any good"
+  // actually means. Same type only: a tempo tells you nothing about a long run.
+  if(!hist) return;
+  let runs = [];
+  try{
+    runs = (await getAllTrainingSessions())
+      .filter(sn=> sn.type === 'run' && sn.date < date && sn.distanceKm)
+      .sort((a, b)=> b.date.localeCompare(a.date));
+  } catch(e){ return; }
+  const wanted = block.details && block.details.runType;
+  const sameType = wanted ? runs.filter(r=> r.runType === wanted) : [];
+  const show = (sameType.length ? sameType : runs).slice(0, 3);
+  if(!show.length){ hist.innerHTML = ''; return; }
+  hist.innerHTML = `<div class="ex-last-line" style="margin-left:0;">`
+    + (sameType.length && wanted ? `Last ${wanted} runs: ` : 'Last runs: ')
+    + show.map(r=>{
+        const p2 = paceLabel(r.distanceKm, r.durationMin);
+        return `${stamp(r.date)} ${r.distanceKm}km${r.durationMin ? ' \u00b7 ' + Math.round(r.durationMin) + 'min' : ''}${p2 ? ' \u00b7 ' + p2 : ''}`;
+      }).join(' \u2002|\u2002')
+    + `</div>`;
+}
+
 async function openBlockEditor(date, slot, block, opts){
   const panel = document.getElementById('blockEditPanel');
   // However you got back in — the bar, Today's marker, the day wheel — the bar's job is done.
@@ -11331,7 +11390,9 @@ async function openBlockEditor(date, slot, block, opts){
       </select></div>
       <div class="edit-row"><input type="number" id="weekRunDistance" placeholder="distance (km)" value="${block.details.distanceKm ?? ''}"></div>
       <div class="edit-row"><input type="number" id="weekRunActualDuration" placeholder="actual duration (min) — for logging" step="0.1"></div>
-      <div class="edit-row"><input type="text" id="weekRunNotes" placeholder="notes" value="${block.details.notes||''}"></div>`;
+      <div class="run-pace" id="weekRunPace"></div>
+      <div class="edit-row"><input type="text" id="weekRunNotes" placeholder="notes" value="${block.details.notes||''}"></div>
+      <div id="weekRunHistory"></div>`;
   } else if(block.type === 'mobility'){
     fieldsHtml = `<div id="weekStretchRows"></div><div class="add-row" id="addWeekStretchRow">+ add stretch</div>`;
   }
@@ -11367,6 +11428,11 @@ async function openBlockEditor(date, slot, block, opts){
   // After the skeleton is in and before any row is built, so every row can read its own
   // history synchronously and none of them arrive a frame late and shove the others down.
   if(block.type === 'strength') await loadExerciseHistory(date);
+  // A strength row tells you what you lifted last time and works out whether it was a best.
+  // A run got four empty boxes: the planned distance was pre-filled and nothing else was
+  // said, so the one number a runner actually trains on — pace — was left to be worked out
+  // in your head from two fields you had just typed.
+  if(block.type === 'run') await wireRunLogging(date, block);
 
   if(block.type==='strength'){
     const rowsContainer = document.getElementById('weekExerciseRows');
@@ -17908,6 +17974,12 @@ async function applyTodayStage(){
     out.textContent = 'Building...';
     build.disabled = true;
     try{
+      // Written in the same shape Body metrics writes, so it shows up there as an ordinary
+      // record you can correct rather than something that arrived by a private door.
+      const bw = parseFloat((document.getElementById('firstRunWeight') || {}).value);
+      if(bw > 0){
+        try{ await window.storage.set(`bodymetrics:${todayStr}`, JSON.stringify({ date: todayStr, weight: bw })); } catch(e){}
+      }
       await window.storage.set('settings:trainingSetup', JSON.stringify({
         availableDays: chosen,
         sessionLength: len ? len.dataset.len : '45',
