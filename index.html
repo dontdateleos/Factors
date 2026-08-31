@@ -4122,7 +4122,7 @@ const STREAK_MILESTONE_LINES = {
   7:   'Day 7. Fine. Confetti.',
   14:  "Day 14. More confetti. Don't get used to it.",
   30:  'Day 30. Real confetti. Read nothing into it.',
-  50:  'Day 50. The confetti was always conditional. You met the condition.',
+  50:  'Day 50. You met the condition. Confetti.',
   100: 'Day 100. This is the good confetti.',
   200: 'Day 200. Confetti reserves are running low.',
   365: 'Day 365. All of the remaining confetti. There is none left.'
@@ -5268,7 +5268,7 @@ async function refreshLogStripWord(){
    surface with no room left to scroll is a way of being wrong half the time. */
 async function startTodayLogging(){
   const found = await getTodaysBlockAndSlotForType(todaySessionType);
-  if(!found){ showToast('Nothing planned to log today'); return; }
+  if(!found){ showToast('Nothing planned. Logging it would be fiction.'); return; }
   // Logging no longer costs you the tab you were on. The panel is moved here rather than the
   // page being moved to it, so the whole session — open, type, rest, save — happens without
   // Today ever going away underneath you.
@@ -6002,7 +6002,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.69';
+const APP_VERSION = '2026.08.31.70';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9287,7 +9287,7 @@ async function refreshRecoveryLog(){
   const list = document.getElementById('logListRecovery');
   try{
     const res = await window.storage.list('entry:');
-    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; return; }
+    if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing logged yet. The record is spotless.</span></div>'; return; }
     const dates = res.keys.map(k=>k.replace('entry:','')).sort().reverse().slice(0,14);
     list.innerHTML='';
     for(const d of dates){
@@ -9298,7 +9298,7 @@ async function refreshRecoveryLog(){
       div.addEventListener('click', ()=>{ dateInput.value=d; fillRecoveryForm(e); });
       list.appendChild(div);
     }
-  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; }
+  } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing logged yet. The record is spotless.</span></div>'; }
 }
 
 document.getElementById('saveBtnRecovery').addEventListener('click', saveRecoveryEntry);
@@ -10417,7 +10417,7 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>
     }
     await syncPlannedSessionMirror(date);
   }
-  showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear');
+  showToast(cleared ? `Cleared ${cleared} block${cleared===1?'':'s'}` : 'Nothing to clear. The week was already empty.');
   renderWeekGrid();
 });
 
@@ -11431,7 +11431,7 @@ function tickRestTimer(){
   paintRestClocks(restClockText(left), true);
   if(left > 0) return;
   stopRestTimer();
-  showToast('Rest done');
+  showToast('Rest over. Back to it.');
   // Whatever the mark is doing, it looks up when the set is over.
   try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
 }
@@ -11655,7 +11655,7 @@ async function showLiftHistory(key, name){
     });
   } catch(e){}
   rows.sort((a, b)=> b.date.localeCompare(a.date));
-  if(!rows.length){ showToast('Nothing logged for this lift yet'); return; }
+  if(!rows.length){ showToast('No history for this lift. You have never done it.'); return; }
   // Best-so-far is computed forwards through time and read backwards, so the plate marks the
   // session that actually set the record rather than every session at that weight since.
   let best = 0;
@@ -18331,7 +18331,13 @@ async function applyRestDayShape(){
     ? (nextIn === 1 ? 'tomorrow'
        : new Date(next).toLocaleDateString(undefined, { weekday:'long' }).toLowerCase())
     : null;
-  note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
+  // The line still answers the only question a rest day raises — when is the next one — and
+  // then says one more thing. "This is allowed" because a training app that has spent all
+  // week telling you what to do should be the one to say a day off is not a failure state;
+  // "rest or avoidance" because an empty WEEK is a different thing from an empty day, and
+  // naming the unflattering possibility is more use than pretending it isn't one.
+  note.textContent = label ? `nothing planned · next session ${label} · this is allowed`
+    : 'nothing planned this week · that is rest or avoidance';
 }
 
 /* The morning form's second half, behind one line. Two rules keep it honest: it opens
@@ -18519,7 +18525,7 @@ async function applyTodayStage(){
         activateTab('training');
       } else {
         out.textContent = '';
-        showToast('Week built');
+        showToast('Week built. The rest is up to you.');
         await Promise.all([generateRecommendations(), renderTodayBlockContext(),
                            renderTodayWorkoutSummary(), applyRestDayShape()]);
         initWarmupTab();
@@ -23062,7 +23068,7 @@ document.getElementById('clearAllDataBtn').addEventListener('click', async (e)=>
     }
     result.textContent = `Deleted ${count} record(s). Reloading...`;
     result.style.color = 'var(--text)';
-    showToast('All data cleared');
+    showToast('All data cleared. Every last bit of it.');
     setTimeout(()=> location.reload(), 1200);
   } catch(e){
     result.textContent = 'Clear failed — try again.';
