@@ -51,6 +51,7 @@
     --fs-control:var(--fs-md);
     --fs-xl:18px;       /* section titles */
     --fs-display:46px;  /* the one big number */
+    --fs-wordmark:34px; /* the logo, which is not it */
     --fs-score:58px;    /* recovery score, the largest thing on screen */
     --fs-num:26px;      /* goal priority numerals */
     --fw-normal:400;
@@ -151,13 +152,19 @@
   @media (prefers-reduced-motion: reduce){ .colophon-eyes span{ animation:none; } }
   header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
-  h1{ font-family:var(--wordmark); font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
+  /* The wordmark is set in the app's own typeface, not in a display sans borrowed for it.
+     Everything else measured on this page — the score, the strip figures, the readout, the
+     version line — is IBM Plex Mono, and a Helvetica wordmark sitting on top of all of it was
+     the one thing in the design speaking a different language. Its own size rather than
+     --fs-display: that variable means "the one big number", which is the score, and the logo
+     is not competing with it. */
+  h1{ font-family:var(--mono); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
+  header h1{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); letter-spacing:0.01em; margin-left:-2px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -394,9 +401,15 @@
   .eyes.no-morph, .eyes.no-morph span, .eyes.no-morph .eye-gaze, .eyes.no-morph .eye-motion{ transition:none; transition-delay:0ms; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
+  /* Sized against the wordmark, not against the old one. The plate was 40px, which was a
+     shade over the cap height of a 46px Helvetica; the wordmark is 34px mono now, whose
+     capitals are about 24px, and a 40px block beside them stopped being a mark and started
+     being the biggest thing in the header. 30px reads as a terminal block on the end of the
+     word. Everything inside it comes down by the same factor rather than by five numbers
+     guessed separately — the whole point of the mark's geometry being properties. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
-    --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
-    --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
+    --eye-box-w:30px; --eye-box-h:30px; --eye-gap:7.5px; --eye-plate:var(--block-lime); --eye-plate-r:9px;
+    --eye-w:4.5px; --eye-h:13.5px; --eye-r:2.25px; --eye-rb:2.25px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -1758,10 +1771,11 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <!-- CONFETTI, one word straight across the band. Hand-kerned: Helvetica at this size
-         with -0.045em tracking sets CON too loose and the TT pair far too tight, and the
-         pairs that need it are the ones with a round letter beside a straight one. -->
-    <h1><div class="logo-line"><span style="margin-right:-0.02em;">C</span><span style="margin-right:-0.015em;">o</span><span style="margin-right:-0.005em;">n</span><span style="margin-right:-0.03em;">f</span><span style="margin-right:-0.01em;">e</span><span style="margin-right:-0.025em;">t</span><span style="margin-right:0.005em;">t</span><span>i</span></div></h1>
+    <!-- One span, not eight. The last wordmark was hand-kerned letter by letter because
+         Helvetica needed it; a monospaced face is a grid by definition, and nudging its
+         letters is undoing the only thing it is for. The span stays because
+         updateHeaderCollapse measures the wordmark's right edge off the last one. -->
+    <h1><div class="logo-line"><span>Confetti</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
@@ -3086,9 +3100,14 @@ function applyEyeState(el, st){
 // score band calls for. The flyer is given one set and then the other, so the plate closes
 // around the eyes on the way up and opens off them on the way down.
 const EYE_SITES = {
-  header: { '--eye-box-w':'40px', '--eye-box-h':'40px', '--eye-gap':'10px',
-            '--eye-plate':'var(--block-lime)', '--eye-plate-r':'12px',
-            '--eye-w':'6px', '--eye-h':'18px', '--eye-r':'3px', '--eye-rb':'3px',
+  // Every dimension here came down by a quarter when the wordmark went from 46px Helvetica
+  // to 34px of the app's own mono: a 40px plate was a shade over the old cap height and is
+  // half again the new one, which made the mark the largest thing in the header rather than
+  // a block on the end of a word. One factor applied to all of them, which is the reason the
+  // geometry is properties rather than five numbers — the face is the same face, smaller.
+  header: { '--eye-box-w':'30px', '--eye-box-h':'30px', '--eye-gap':'7.5px',
+            '--eye-plate':'var(--block-lime)', '--eye-plate-r':'9px',
+            '--eye-w':'4.5px', '--eye-h':'13.5px', '--eye-r':'2.25px', '--eye-rb':'2.25px',
             '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--text)' },
   score:  { '--eye-box-w':'42px', '--eye-box-h':'32px', '--eye-gap':'12px',
             '--eye-plate':'transparent', '--eye-plate-r':'0px',
@@ -5848,6 +5867,10 @@ if(document.fonts && document.fonts.ready){
     // The chip's word was measured in the fallback face, and the reserve it sets is what
     // decides how wide the week is allowed to be.
     try{ measureDockWord(); } catch(e){}
+    // So was the wordmark, and it is the app's typeface now — its width, its cap height and
+    // therefore where the mark sits beside it all move when the real face lands. Clearing the
+    // cache re-runs the one-time measurement, which is why that was made idempotent.
+    try{ headerCollapseEls = null; updateHeaderCollapse(); } catch(e){}
     try{ if(typeof paintScoreTrace === 'function' && scoreDays.length) paintScoreTrace(); } catch(e){}
   }).catch(()=>{});
 }
@@ -5952,7 +5975,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.67';
+const APP_VERSION = '2026.08.31.68';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6705,15 +6728,22 @@ let logoOriginX = 14;
    the size logoTextWidth is taken at — every scale below is relative to it, so changing the
    CSS size without changing this would silently move the mark. MARK_BOX is the mark's drawn
    width, and LOGO_DATE_CLEAR the air left between the mark and the date block. */
-const LOGO_MEASURED_PX = 46, MARK_BOX = 40, MARK_GAP_PX = 2, LOGO_DATE_CLEAR = 12;
+const LOGO_MEASURED_PX = parseFloat(getComputedStyle(document.documentElement)
+  .getPropertyValue('--fs-wordmark')) || 34;
+/* Read off the element rather than restated here. The mark's drawn size is a CSS custom
+   property, and a copy of it in the layout maths is a copy that goes stale the first time
+   the mark is resized — which is exactly what just happened to it. */
+function markBoxPx(){
+  const m = document.querySelector('.header-brand .header-mark');
+  const v = m && parseFloat(getComputedStyle(m).getPropertyValue('--eye-box-w'));
+  return v > 0 ? v : 30;
+}
+const MARK_GAP_PX = 2, LOGO_DATE_CLEAR = 12;
 /* Where the cap band's middle sits below the top of the h1's line box, as a fraction of the
-   font size. Helvetica/Arial: ascent 0.905em, descent 0.212em, cap height 0.716em, set on a
-   0.92 line-height — so the half-leading is negative, the baseline lands 0.8065em down, and
-   the middle of the capitals is half a cap height above that. Uppercase type has nothing
-   below the baseline, so centring the mark on the LINE BOX would hang it low by the whole
-   descender; this centres it on the ink. */
-const LOGO_CAP_MID = 0.4486;
-let logoBasePx = LOGO_MEASURED_PX, logoTopY = 0;
+   font size. Measured off the real face at first layout — see updateHeaderCollapse — with
+   this as the fallback for a browser that will not give ink metrics. */
+const LOGO_CAP_MID_FALLBACK = 0.42;
+let logoBasePx = LOGO_MEASURED_PX, logoTopY = 0, logoCapMid = LOGO_CAP_MID_FALLBACK;
 function updateHeaderCollapse(){
   if(window.headerCollapseSuspended) return;
   if(!headerCollapseEls){
@@ -6746,35 +6776,56 @@ function updateHeaderCollapse(){
       const last = spans[spans.length-1];
       if(last) logoTextWidth = Math.max(logoTextWidth, last.getBoundingClientRect().right - h1Rect.left);
     });
-    /* THE WORDMARK IS FITTED, NOT SET.
+    /* THE WORDMARK IS SET, AND SHRINKS IF IT HAS TO.
 
-       One word across the band, at whatever size actually crosses it. A fixed 46px was
-       right for a two-line DOGFOOD and is wrong for this: measured, CONFETTI on one line is
-       209px at 46px, which leaves a 393 screen a third empty and still runs into the date
-       block on a 320. So the size comes from the room rather than the room from the size.
+       It was briefly fitted the other way round — sized to whatever crossed the band — which
+       put it at 68px on a large phone and made the logo the loudest thing on a page whose
+       loudest thing is meant to be the score. The design size is the design size. The fit
+       only ever takes away.
 
        The stop is the date block, not the screen edge. The date and the readout above it are
        the row that survives the collapse — the wordmark shrinks to nothing as you scroll and
-       they do not — so they are not something to run underneath. What is left after the
-       mark, its gap and a little air is what the word gets.
-
-       Clamped at both ends: never past 76, because a wide tablet would otherwise set it at a
-       size nothing else on the page answers to, and never under 42, where it stops being
-       display type. The floor is 42 rather than the old 46 because 46 was ABOVE the fit on a
-       320 screen — the clamp won, and the mark ended up 1.6px from the date. A floor that
-       overrides the fit is a floor that puts things on top of each other. */
+       they do not — so they are not something to run underneath. If the word plus the mark
+       plus a little air does not clear it, the word gives way; on every width measured it
+       does not have to. */
     const dateEl = document.getElementById('headerDate');
     const inkLeft = (headerCollapseEls.h1.querySelector('span') || headerCollapseEls.h1)
       .getBoundingClientRect().left - brandRect.left;
     const stopX = dateEl ? (dateEl.getBoundingClientRect().left - brandRect.left)
       : (brandRect.width - 14);
-    const room = stopX - LOGO_DATE_CLEAR - MARK_BOX - MARK_GAP_PX - inkLeft;
+    const room = stopX - LOGO_DATE_CLEAR - markBoxPx() - MARK_GAP_PX - inkLeft;
     // logoTextWidth was measured at the CSS base size, and the mark's left below scales by
     // fontSize/LOGO_MEASURED_PX — so that measurement stays the reference and only the size
     // it is drawn at changes.
     logoBasePx = logoTextWidth > 0
-      ? Math.max(42, Math.min(76, LOGO_MEASURED_PX * room / logoTextWidth))
+      ? Math.min(LOGO_MEASURED_PX, LOGO_MEASURED_PX * room / logoTextWidth)
       : LOGO_MEASURED_PX;
+
+    /* WHERE THE MIDDLE OF THE CAPITALS IS, measured off the font rather than assumed.
+
+       This used to be a constant worked out from Helvetica's metrics on paper. The face has
+       changed, and the next time it changes the number would be wrong again and wrong
+       silently — the mark would just sit a few pixels low and nobody would know why.
+
+       Canvas gives the two things needed: fontBoundingBox tells us where the baseline falls
+       inside the line box once the half-leading is taken off, and actualBoundingBoxAscent of
+       a capital gives the cap height. Uppercase has nothing below the baseline, so the
+       middle of the ink is half a cap height above it — centring the mark on the LINE box
+       instead would hang it low by the whole descender. */
+    logoCapMid = LOGO_CAP_MID_FALLBACK;
+    try{
+      const cs = getComputedStyle(headerCollapseEls.h1);
+      const probe = document.createElement('canvas').getContext('2d');
+      probe.font = `${cs.fontWeight} ${LOGO_MEASURED_PX}px ${cs.fontFamily}`;
+      const m = probe.measureText('H');
+      const asc = m.fontBoundingBoxAscent, desc = m.fontBoundingBoxDescent;
+      const cap = m.actualBoundingBoxAscent;
+      if(asc > 0 && cap > 0){
+        const lineH = parseFloat(cs.lineHeight) || LOGO_MEASURED_PX;
+        const baseline = (lineH - (asc + desc)) / 2 + asc;
+        logoCapMid = (baseline - cap / 2) / LOGO_MEASURED_PX;
+      }
+    } catch(e){}
   }
   const { h1, mark } = headerCollapseEls;
 
@@ -6800,7 +6851,7 @@ function updateHeaderCollapse(){
   // the midpoint between DOGFOOD's two lines and correct only while the type was a fixed
   // 46px on two lines. One line, at a size that now differs per screen (46 at 320, 68 at
   // 430), needs it computed or the mark hangs below the baseline on every phone but one.
-  const MARK_TOP = logoTopY + fontSize * LOGO_CAP_MID - MARK_BOX / 2;
+  const MARK_TOP = logoTopY + fontSize * logoCapMid - markBoxPx() / 2;
   // The header mark's top is written from here, so the sag has to be added in rather than
   // read off the custom property the way the score slot does it.
   mark.style.top = (lerp(MARK_TOP, 30, progress) + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
