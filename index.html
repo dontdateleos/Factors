@@ -857,7 +857,7 @@
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
-  /* A day picker, built the same way as the mobility one on the Function tab: three rows,
+  /* A day picker, built the same way as the mobility one on the Body tab: three rows,
      the middle one focused, drag or tap to move. It replaces an arc of rotated labels
      drawn twice — once black over the page and once cream inside a clipping panel — whose
      boundary had to be solved from glyph metrics on every frame. That was a lot of
@@ -1586,7 +1586,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
     <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><span>Weekly</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Function</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Body</span></div>
     <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><span>Data</span></div>
     <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><span>Settings</span></div>
   </div>
@@ -1798,7 +1798,7 @@
       </div>
 
       <!-- The week leads, in the same black band the mobility assessment takes on the
-           Function tab: a picker at the top of it and what you picked underneath. -->
+           Body tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
         <div class="group-head"><div class="group-title">Week <span class="head-est" id="weekBlockPos"></span></div><div class="group-sub">tap a day, tap a workout, change it</div></div>
         <div class="fields">
@@ -3951,13 +3951,13 @@ function decorateEmptyStates(root){
 // the whole mechanism, which quietly made the wording load-bearing: shortening "Nothing
 // planned for strength today — plan it on the Weekly tab" to "No strength today" would have
 // left the pair with nothing to look at, and nothing in the message would have said so.
-// "Goals" still resolves — the word appears in copy written before the tab was retired,
-// and it now points at Weekly, which is where the goals live.
-const EYE_EMPTY_TABS = { today:'insights', weekly:'training', function:'injuries',
+// Retired names still resolve, because they appear in copy written before the tabs were
+// renamed: "Goals" points at Weekly, where the goals live, and "Function" at Body.
+const EYE_EMPTY_TABS = { today:'insights', weekly:'training', body:'injuries', function:'injuries',
                          goals:'training', data:'data', settings:'settings' };
 function emptyStateTarget(block){
   const aim = block.dataset.aim
-    || ((block.textContent || '').match(/\b(Today|Weekly|Function|Goals|Data|Settings)\s+tab\b/i) || [])[1];
+    || ((block.textContent || '').match(/\b(Today|Weekly|Body|Function|Goals|Data|Settings)\s+tab\b/i) || [])[1];
   if(aim){
     const tab = document.querySelector(`.tab[data-tab="${EYE_EMPTY_TABS[aim.toLowerCase()]}"]`);
     if(tab && tab.getBoundingClientRect().width) return tab;
@@ -5523,7 +5523,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.37';
+const APP_VERSION = '2026.08.31.38';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -14240,7 +14240,7 @@ async function loadCurrentGoals(){
   const goals = await getCurrentGoals(todayStr);
   // Park the running panel outside the container first. It lives among the goal rows now,
   // and clearing them with innerHTML destroyed it — this runs on both the Weekly and the
-  // Function tab, so the panel survived exactly one visit and then never came back until
+  // Body tab, so the panel survived exactly one visit and then never came back until
   // a reload. attachRunStartToRunningGoal puts it back where it belongs a few lines down.
   const runPanel = document.getElementById('runStartPanel');
   const goalsHost = document.getElementById('weekGoalsGroup');
@@ -18798,7 +18798,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
         msg += ` Heavy lift days kept away from hard running days based on actual training-stress conflict, not just a fixed rest-day rule.`;
       }
     }
-    if(!first.result.mobilityHandled && options.includeMobility) msg += ' No mobility goal set, so no mobility sessions generated — add one under Mobility Skills on the Function tab.';
+    if(!first.result.mobilityHandled && options.includeMobility) msg += ' No mobility goal set, so no mobility sessions generated — add one under Mobility Skills on the Body tab.';
     if(numWeeks > 1) msg += ' Deload weeks use the same auto-prefill as the manual deload checkbox — nothing new to learn.';
     const fitCheck = await checkSessionLengthFit();
     if(fitCheck){
