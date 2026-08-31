@@ -5523,7 +5523,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.38';
+const APP_VERSION = '2026.08.31.39';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -17567,6 +17567,13 @@ async function applyTodayStage(){
         await Promise.all([generateRecommendations(), renderTodayBlockContext(),
                            renderTodayWorkoutSummary(), applyRestDayShape()]);
         initWarmupTab();
+        // Both sections are generated on entering Today, and building the first week never
+        // leaves Today — so a new user's first session came with no warm-up and no
+        // stretch-down at all, and the two sections stayed hidden until something else
+        // happened to re-enter the tab. The person least likely to know how to warm up for
+        // a squat was the only one not offered it.
+        await generateWarmup();
+        await generateMobility();
         updateFooterVisibility();
       }
     } catch(e){
