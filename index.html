@@ -143,7 +143,19 @@
   .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
   .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
-  .tab svg{ width:18px; height:18px; }
+  /* THE TAB SYMBOLS. Drawn from rectangles on a 24 grid, the same way the card symbols are,
+     rather than borrowed from an icon set — a house style is a house style or it is not one.
+     Each says what its tab holds: Today wears the mark itself, Weekly the horizontal bars
+     its own block chart is now drawn in, Body an arc swung off a pivot, which is what a
+     range of motion is, Data the varying ticks of the score trace, Settings a pair of
+     sliders. Orientation is what keeps them apart at 18px — Weekly's bars run across,
+     Data's run up, Body has no bars at all — because at that size a shape is read before it
+     is examined. They came off when the bar held six tabs and the labels needed the room;
+     five tabs and a shorter word than "Function" have given it back. */
+  .tab svg{ width:18px; height:18px; flex:none; opacity:0.55; }
+  /* Dimmer than the word until the tab is yours: the label carries the name, the symbol is
+     there to be found by shape, and two things at full strength read as two things. */
+  .tab.active svg{ opacity:1; }
   .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
   .tab[data-tab="insights"].active{ background:var(--block-lime); }
   .tab[data-tab="training"].active{ background:var(--block-orange); }
@@ -1631,11 +1643,11 @@
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><span>Today</span></div>
-    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><span>Weekly</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><span>Body</span></div>
-    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><span>Data</span></div>
-    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><span>Settings</span></div>
+    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5.5" y="6" width="5" height="12" rx="2.5"/><rect x="13.5" y="6" width="5" height="12" rx="2.5"/></svg><span>Today</span></div>
+    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="15" height="3"/><rect x="3" y="10.5" width="19" height="3"/><rect x="3" y="16" width="10" height="3"/></svg><span>Weekly</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.5 19.5A11 11 0 0 1 19 10.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="5.5" cy="19.5" r="2.6" fill="currentColor"/></svg><span>Body</span></div>
+    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2.5" y="13" width="3.4" height="7"/><rect x="8.2" y="7" width="3.4" height="13"/><rect x="13.9" y="10.5" width="3.4" height="9.5"/><rect x="19.6" y="4" width="3.4" height="16"/></svg><span>Data</span></div>
+    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2.5" y="6.8" width="19" height="2.4" rx="1.2"/><rect x="6.5" y="3.9" width="3.6" height="8.2" rx="1.2"/><rect x="2.5" y="14.8" width="19" height="2.4" rx="1.2"/><rect x="13.9" y="11.9" width="3.6" height="8.2" rx="1.2"/></svg><span>Settings</span></div>
   </div>
 </header>
 
@@ -5603,7 +5615,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.49';
+const APP_VERSION = '2026.08.31.50';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
