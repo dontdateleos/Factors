@@ -612,6 +612,11 @@
     font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; }
   .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
   .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
+  .day-rolled{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 14px; background:var(--warn); color:#0c0d0b; font-family:var(--mono);
+    font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui); }
+  .day-rolled button{ height:31px; flex:0 0 auto; background:#0c0d0b; color:var(--bg);
+    border:2px solid #0c0d0b; }
   .update-banner-x{ font-size:var(--fs-xl); line-height:1; cursor:pointer; padding:0 6px; opacity:0.7; }
   /* Collapsible Settings sections. Head is a 44px tap target in its own right. */
   .group-head.collapsible{ display:flex; align-items:center; justify-content:space-between; min-height:44px; -webkit-tap-highlight-color:transparent; }
@@ -797,7 +802,10 @@
      depends on how wide the score itself is drawn, which is two digits some days and three
      others, and a fixed width that clears "100" at 320px would be needlessly small the rest
      of the time. */
-  #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:none; }
+  /* The trace is where you SEE a missed day, so it is where fixing one should start. It was
+     pointer-events:none — a picture of a gap with nothing to do about it, while the only
+     way to backfill was the date browser on Data, which nothing on this page mentions. */
+  #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:auto; cursor:pointer; }
   /* Says what the marks are without saying it twice — the number beside them is the score, so
      the only thing left to state is how far back they go. */
   /* 10px rather than 9. The column cannot get any WIDER — it is bounded by the score's own
@@ -1680,6 +1688,13 @@
   </div>
 </header>
 
+<!-- Shown only when the calendar has moved on since this copy of the page loaded. It is
+     the one state where every date the app writes is a day behind what the header says. -->
+<div class="day-rolled" id="dayRolledBanner" style="display:none;">
+  <span>It's a new day — this page is still on yesterday.</span>
+  <button type="button" id="dayRolledBtn">Start today</button>
+</div>
+
 <main>
   <!-- INSIGHTS PANEL -->
   <div class="panel active" id="panel-insights">
@@ -2292,6 +2307,8 @@
       <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
+        <!-- The version has changed fifty times today and never once said what moved. -->
+        <div id="whatChanged" class="score-note"></div>
         <div id="updateCheckResult" class="score-note"></div>
         <button id="checkUpdateBtn" class="outline">Check for update</button>
       </div>
@@ -2441,13 +2458,25 @@
       </div>
     </div>
 
-    <div class="group form-panel dev-only" id="eyesDevGroup">
-      <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
-      <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
-        <label class="week-deload" for="eyeCalmToggle" style="margin-bottom:10px;">
+    <!-- Calm mode is not a dev switch. prefers-reduced-motion is honoured in ten places, so
+         the system setting has always worked — but someone who simply finds the movement
+         distracting, without turning it off across their whole phone, had no way to say so:
+         the toggle existed and sat inside a section with display:none. It comes out; the
+         per-animation list it used to sit above stays behind the dev flag. -->
+    <div class="group form-panel" id="calmGroup">
+      <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion <span class="head-est" id="calmSummary"></span></div><div class="group-sub">how much the mark does</div><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="calm" style="display:none;">
+        <label class="week-deload" for="eyeCalmToggle">
           <input type="checkbox" id="eyeCalmToggle">
           <span>Calm mode — keep the useful ones, drop the character</span>
         </label>
+        <div class="score-note">The mark still blinks to say something is loading and still moves to the header when you scroll. What goes is everything that was only ever character.</div>
+      </div>
+    </div>
+
+    <div class="group form-panel dev-only" id="eyesDevGroup">
+      <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
         <div class="score-note" style="margin-bottom:10px;">Dev only. Tap any row to see it. Untick to switch it off; it takes effect straight away and is remembered.</div>
         <div id="eyeAnimList"></div>
       </div>
@@ -5543,6 +5572,56 @@ function renderHeaderDate(){
 }
 renderHeaderDate();
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderHeaderDate(); });
+/* A gap in the trace is the moment you want to fill it in. Tapping it goes to the morning
+   form with the date already set to the most recent day that has no entry — which is the
+   thing the gap is about — rather than to today, which is the one day that does not need
+   fixing. With no gap it goes to the browser anyway, on the day you are looking at. */
+async function firstMissingRecentDate(){
+  for(let i = 1; i <= 14; i++){
+    const d = new Date(todayStr); d.setDate(d.getDate() - i);
+    const ds = localDateStr(d);
+    try{ await window.storage.get(keyFor(ds)); } catch(e){ return ds; }
+  }
+  return null;
+}
+(function wireTraceBackfill(){
+  const host = document.getElementById('scoreTrace');
+  if(!host) return;
+  host.setAttribute('role', 'button');
+  host.setAttribute('tabindex', '0');
+  const go = async ()=>{
+    const missing = await firstMissingRecentDate();
+    activateTab('data');
+    activateDataSubView('recovery');
+    const input = document.getElementById('entryDate');
+    if(input && missing){
+      input.value = missing;
+      input.dispatchEvent(new Event('change', { bubbles:true }));
+      showToast(`Filling in ${missing}`);
+    }
+  };
+  host.addEventListener('click', go);
+  host.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
+})();
+
+/* THE DAY CAN MOVE WHILE THE APP SITS OPEN.
+   todayStr is frozen at load on purpose — a day's data is keyed to the date the session
+   started under, and re-deriving it would move entries between days beneath whoever is
+   looking at them. But the header date is re-read on every wake, so a home-screen app left
+   open overnight said TUESDAY while every key it wrote still ended in Monday's date. The
+   face you tapped on Tuesday morning was saved to Monday.
+   It is not fixed by moving the data. It is fixed by saying so and offering the one thing
+   that does fix it, which is starting the day again. */
+function checkDayRollover(){
+  if(localDateStr() === todayStr) return;
+  const bar = document.getElementById('dayRolledBanner');
+  if(!bar || bar.dataset.shown === '1') return;
+  bar.dataset.shown = '1';
+  bar.style.display = 'flex';
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkDayRollover(); });
+setInterval(checkDayRollover, 60000);
+checkDayRollover();
 // The header date is positioned from canvas text metrics, and the trace and its captions are
 // measured too. All of that now runs before Plex has necessarily arrived, so it is run again
 // when it does — otherwise the first paint's alignment is the one that sticks.
@@ -5653,7 +5732,13 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.52';
+const APP_VERSION = '2026.08.31.53';
+/* What moved, in one line, for the builds worth naming. The banner has always been able to
+   say a new version is available and never what is in it, which asks for a reload on faith.
+   Only the current build needs an entry — anything older has already been read or missed. */
+const APP_NOTES = {
+  '2026.08.31.53': 'Faster start (the font no longer blocks the page), a warning when the app has sat open past midnight, motion controls out of dev, imports back themselves up first, and runs log properly.'
+};
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -5716,6 +5801,13 @@ function applyUpdate(version){
     setTimeout(go, 120);
   } catch(e){ go(); }
 }
+// A plain reload is the whole fix — todayStr is derived at load, so a fresh load is a fresh
+// day. location.replace rather than reload(), for the same reason applyUpdate uses it: iOS
+// re-serves the same document from reload() often enough to be unreliable.
+(function wireDayRolled(){
+  const btn = document.getElementById('dayRolledBtn');
+  if(btn) btn.addEventListener('click', ()=> location.replace(location.pathname + '?d=' + Date.now()));
+})();
 function showUpdateBanner(version){
   if(document.getElementById('updateBanner')) return;
   const bar = document.createElement('div');
@@ -5782,7 +5874,7 @@ async function checkForUpdate(){
 // re-renders like that, and re-opening the same section on every visit is a tap you already
 // paid for.
 const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
-                             'blinding', 'weights', 'version', 'legal'];
+                             'blinding', 'weights', 'version', 'legal', 'calm'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
@@ -9293,6 +9385,8 @@ async function renderSettingsSummaries(){
     put('goalProfileSummary', sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '');
   } catch(e){}
   put('versionSummary', APP_VERSION);
+  const changed = document.getElementById('whatChanged');
+  if(changed) changed.textContent = APP_NOTES[APP_VERSION] || '';
   // What you actually have, counted. "Export a backup first" and "permanently deletes
   // everything" both refer to a quantity the page never named, so neither sentence had a
   // size until you had already acted on it.
@@ -9316,6 +9410,10 @@ async function renderSettingsSummaries(){
     const blindOn = (await window.storage.get('settings:blinding')).value === 'true';
     put('blindingSummary', blindOn ? 'on' : 'off');
   } catch(e){ put('blindingSummary', 'off'); }
+  try{
+    const calm = document.getElementById('eyeCalmToggle');
+    put('calmSummary', calm && calm.checked ? 'calm' : 'full');
+  } catch(e){}
   // Whether anything is actually connected, rather than how many things could be.
   try{
     let connected = false;
@@ -22670,6 +22768,22 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
     return;
   }
 
+  // The import writes over live keys. It validated the JSON and the shape and then went
+  // ahead — so one paste of the wrong export ended the previous state with nothing to go
+  // back to. A snapshot is taken first, automatically, and named in the result so there is
+  // something to name when someone asks how to undo it.
+  let snapKey = null;
+  try{
+    const listRes = await window.storage.list('');
+    const before = {};
+    for(const k of ((listRes && listRes.keys) || [])){
+      if(k.startsWith('snapshot:')) continue;      // never snapshot the snapshots
+      try{ before[k] = JSON.parse((await window.storage.get(k)).value); } catch(e){}
+    }
+    snapKey = `snapshot:${Date.now()}`;
+    await window.storage.set(snapKey, JSON.stringify({ at: Date.now(), reason: 'before import', data: before }));
+  } catch(e){ snapKey = null; }
+
   const keys = Object.keys(data);
   let succeeded = 0;
   const failedKeys = [];
@@ -22687,7 +22801,8 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
   }
 
   if(failedKeys.length === 0){
-    result.textContent = `Imported ${succeeded} of ${keys.length} key(s) successfully.`;
+    result.textContent = `Imported ${succeeded} of ${keys.length} key(s) successfully.`
+      + (snapKey ? ` Everything that was here first was saved as ${snapKey} — paste that record's "data" back through this box to undo it.` : '');
     result.style.color = 'var(--text)';
     showToast(`Imported ${succeeded} records`);
     input.value = '';
