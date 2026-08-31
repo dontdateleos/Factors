@@ -97,12 +97,18 @@
        score lead, where Anton takes the header. Nothing else needs touching either way: the
        size fits itself, and the mark measures the face's own cap height. */
        A SYSTEM FACE, which is the quiet reason DOGFOOD never once looked wrong. Every
-       wordmark since has been a webfont, and a webfont that fails does not report a fault —
+       wordmark between has been a webfont, and a webfont that fails does not report a fault —
        it silently draws something else. Three rounds went on type nobody could confirm was
-       being drawn, and the last fallback chain led with fonts iOS does not ship at all.
-       Helvetica is on the device before the app opens. There is nothing to fetch, nothing to
-       fail, and no state where this renders as something other than what was chosen. */
-    --wordmark-face: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+       being drawn, and the fallback chain written to catch that led with fonts iOS does not
+       ship at all.
+       This is the face those rounds were reaching for. Helvetica Neue's Condensed Black is
+       heavy AND condensed, it is what a compressed poster face was wanted for, and it has
+       been sitting on the device the whole time — addressed by PostScript name, because the
+       condensed cuts are not reachable as a family plus a weight. Condensed Bold behind it
+       for anything that has the family and not the Black, then Arial Narrow, then the
+       uncondensed Helveticas. Nothing to fetch and nothing to fail. */
+    --wordmark-face: 'HelveticaNeue-CondensedBlack', 'Helvetica Neue Condensed Black',
+       'HelveticaNeue-CondensedBold', 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -175,21 +181,24 @@
      the one thing in the design speaking a different language. Its own size rather than
      --fs-display: that variable means "the one big number", which is the score, and the logo
      is not competing with it. */
-  /* DOGFOOD's treatment exactly, carrying a different word: Helvetica Neue bold at 46px,
-     two lines of caps on a 0.92 line-height, tracked tight. Bold comes from the family, which
-     has a real bold — so no font-synthesis guard is needed here, unlike the single-weight
-     face this replaces. */
-  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
+  /* Weight 900 so the fallbacks go as heavy as they have. Condensed Black is a single face
+     and takes whatever it is asked for; everything behind it is a family with a bold in it,
+     and asking high is what stops the chain resolving to a REGULAR the way it did when this
+     asked for 400 and got a thin, wide wordmark on a device that had none of the fonts named.
+     font-synthesis is deliberately left alone here: a faked bold is ugly and a light wordmark
+     is broken, and only one of those has actually happened. */
+  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:900; margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  /* And the header's own overrides, back to the numbers DOGFOOD wore: the tight tracking
-     that locked its letters into one mass, the 0.6px stroke that gave it its weight, and the
-     9px of overhang — 3px of that optical correction for a round capital's side bearing, the
-     rest hanging display type off the edge as display type set this large wants to. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
+  /* No stroke. It was 0.6px to give Helvetica Bold its weight; Condensed Black arrives with
+     more than that and a stroke on top would close its counters. The overhang comes in from
+     9px to 4px for the same reason — 9 was three parts optical correction for a round
+     capital's side bearing and six parts hanging display type off the edge, and a condensed
+     C has markedly less bearing to correct for. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0; letter-spacing:-0.045em; margin-left:-4px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -1796,12 +1805,11 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <!-- Two lines, the way DOGFOOD was set. CON over FETTI rather than a balanced 4/4,
-         because the break falls where the word does — and the first line on its own is not
-         the worst description of an app that promises confetti and withholds it.
-         One span per line: updateHeaderCollapse measures the wordmark's right edge off the
-         last span of each, and takes the widest. -->
-    <h1><div class="logo-line"><span>Con</span></div><div class="logo-line"><span>fetti</span></div></h1>
+    <!-- One line. DOGFOOD stacked well because DOG and FOOD are both words and the break
+         fell on the compound's own seam; CONFETTI has no seam, and CON is a word meaning
+         something else, so a stack asks you to read it and then reassemble it.
+         One span: updateHeaderCollapse measures the wordmark's right edge off the last one. -->
+    <h1><div class="logo-line"><span>Confetti</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
@@ -6035,7 +6043,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.76';
+const APP_VERSION = '2026.08.31.77';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
