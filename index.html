@@ -5899,12 +5899,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.86';
+const APP_VERSION = '2026.08.31.87';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.86': 'The dot screen comes off the coloured backdrop \u2014 the colours are flat now.'
+  '2026.08.31.87': 'A run gets a shorter warm-up and cool-down than a lift, and its cool-down counts toward each body part\u2019s weekly mobility total.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22248,6 +22248,20 @@ const MOBILITY_STATIC_SHARE_PER_AREA = 5;
 // training transiently reduces force output, and RAMP's Raise/Activate/Mobilise phases
 // are movement prep by design. Zero, not a token minute.
 const WARMUP_STATIC_SHARE_PER_AREA = 0;
+/* A RUN NEEDS LESS OF BOTH THAN A LIFT DOES.
+
+   Before: the first kilometre at an easy pace is itself the warm-up, which is why the run
+   protocol elsewhere in this file already says so. There is no equivalent for a heavy squat —
+   you cannot ease into it — so a lift needs its preparation done beforehand and a run largely
+   does not. After: a run loads a narrow, predictable set of tissue rather than whatever the
+   session happened to contain, so there is less to work through.
+
+   Both caps are scaled, not the per-area dose, because the budget is area-count times cost.
+   At the standard caps that takes the warm-up from four areas to two and the cool-down from
+   two to one — the cool-down is coarse, since seven minutes an area means it can only ever be
+   one or two. Shorter, in the only unit the budget has. */
+const RUN_WARMUP_SCALE = 0.6;
+const RUN_COOLDOWN_SCALE = 0.7;
 // Always keeps the must-keep areas — injuries, and areas you pinned by accepting a
 // mobility card (non-negotiable); trims everything else to fit
 // the time budget, taking `ordered` (already priority-sorted) from the top down.
@@ -22298,6 +22312,9 @@ async function generateWarmup(){
     if(len && len <= 30) warmupCap = Math.round(WARMUP_TIME_CAP * 0.45);
     else if(len && len <= 45) warmupCap = Math.round(WARMUP_TIME_CAP * 0.7);
   } catch(e){}
+  // Composes with the length scaling above rather than replacing it: a short run day gets
+  // both reductions, which is correct — it is the shortest prep the app will prescribe.
+  if(todaySessionType === 'run') warmupCap = Math.round(warmupCap * RUN_WARMUP_SCALE);
   // Priority decides the first two slots; the remainder rotates by date so the tail of
   // the list is reachable at all. Deterministic within a day, different across days.
   const rotDay = new Date(todayStr).getDate();
@@ -22539,6 +22556,7 @@ async function generateMobility(){
     if(len && len <= 30) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.45);
     else if(len && len <= 45) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.7);
   } catch(e){}
+  if(todaySessionType === 'run') mobilityCap = Math.round(mobilityCap * RUN_COOLDOWN_SCALE);
   // Same rotation on the post-session side, for the same reason.
   const rotDayM = new Date(todayStr).getDate();
   const remainingBase = remaining.length
