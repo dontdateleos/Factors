@@ -726,6 +726,7 @@
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
+  .score-num.score-waiting{ opacity:0.35; }
   .score-label-row{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px; }
   .score-label-row .score-label{ margin-top:0; }
   .score-label-row .conf-chevron{ transition:transform 0.15s; }
@@ -5863,7 +5864,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.59';
+const APP_VERSION = '2026.08.31.60';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13301,6 +13302,11 @@ function scoreLadderLabel(n){
 function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
+  // Whatever this pass decides, it is a reading — so the "waiting for one" dimming comes
+  // off. The star below means something specific and different: the score exists and is
+  // being held back for a blinded day, which the note under it explains. It was doing that
+  // job AND standing in for "nothing logged yet", where nothing explained it at all.
+  if(out) out.classList.remove('score-waiting');
 
   // Capacity becomes the main number once it has enough data (7+ paired days) — a
   // personalized, correlation-weighted read on today's numbers, not just today's
@@ -21202,6 +21208,16 @@ async function generateRecommendations(){
       + (ouraOn ? '' : '<div class="cta-aside" id="insightsRingOffer" role="button" tabindex="0">'
           + 'Wear an Oura ring? Connect it and this fills itself in.</div>');
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
+    // THE SCORE SLOT SAYS WHAT IT IS WAITING FOR.
+    // #overallScoreOut ships with an eight-pointed star in it as a placeholder, and nothing
+    // overwrites it on the day's first render — so someone six weeks in opens the app in the
+    // morning and the biggest thing on the page is a glyph, labelled "Overall". It reads as
+    // an error, or as a spinner that has given up. The geometry stays exactly as it is, so
+    // nothing jumps when the real number lands a moment later; only what it says changes.
+    const scoreOut = document.getElementById('overallScoreOut');
+    const scoreLbl = document.getElementById('overallScoreLabel');
+    if(scoreOut){ scoreOut.textContent = '\u2014'; scoreOut.classList.add('score-waiting'); delete scoreOut.dataset.value; }
+    if(scoreLbl) scoreLbl.textContent = 'Not logged yet';
     // The morning CTA is rendered INTO the card container, and the container now folds — so
     // collapsing the stack hid the one action this state exists to offer. It is not a card
     // and does not belong behind the stack's handle: shown outright, with the counter and
