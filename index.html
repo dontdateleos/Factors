@@ -1727,16 +1727,14 @@
       <div id="recHistory"></div>
     </div>
 
-    <div class="group" id="sessionSourceGroup">
-      <div class="group-head"><div class="group-title">Session source</div><div class="group-sub">why today looks like this</div></div>
-      <div class="fields">
-        <div id="planSourceLabel" class="score-note" style="margin-bottom:0;"></div>
-        <!-- The session-type pills are gone from the UI. The element stays because
-             initWarmupTab and refreshPlanSourceDisplay both address it, and
-             selectedPlanTypes — now always empty — still feeds computeWarmupAreas, which
-             works from the day's planned exercises. -->
-        <div id="planCheckboxes" style="display:none;"></div>
-      </div>
+    <!-- "Session source" was a section of its own — a third of a new user's first screen —
+         explaining that today's session came from the Weekly tab. That is plumbing: it
+         answers a question about where data is stored, not one about training. Both
+         elements stay because refreshPlanSourceDisplay and computeWarmupAreas address
+         them; neither is on screen. -->
+    <div id="sessionSourceGroup" style="display:none;">
+      <div id="planSourceLabel"></div>
+      <div id="planCheckboxes"></div>
     </div>
   </div>
 
@@ -5523,7 +5521,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.39';
+const APP_VERSION = '2026.08.31.40';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -17369,7 +17367,9 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
    training. The warm-up and cooldown sections are left alone deliberately: they hide
    themselves when they are empty, and forcing them shut here would mean deciding when to
    open them again. */
-const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea', 'sessionSourceGroup'];
+// sessionSourceGroup is off this list because it is hidden for good — handing it back a
+// display of '' here would have put it on screen again on every non-rest day.
+const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea'];
 async function applyRestDayShape(){
   const plate = document.getElementById('restDayPlate');
   if(!plate) return;
