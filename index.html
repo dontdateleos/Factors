@@ -86,29 +86,25 @@
        monos, which are close enough that the swap to Plex is a refinement rather than a
        reflow you watch happen. */
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-    /* The wordmark's own face and its own fallbacks. Condensed system faces before the
-       generics, because a wordmark that falls back to a normal-width sans is a third wider
-       than the space measured for it — and that measurement decides where the mark sits.
+    /* The wordmark's own face: exactly the stack the approved specimen used, and nothing
+       else in it.
 
-       TO SWAP TO LEAGUE GOTHIC, change one word on the next line: 'Anton' -> 'League Gothic'.
-       Both are already in the stylesheet link, and a browser only downloads the file for the
-       family a page actually uses, so carrying the alternative costs nothing but the line it
-       is written on. League Gothic is narrower and much lighter — it sits back and lets the
-       score lead, where Anton takes the header. Nothing else needs touching either way: the
-       size fits itself, and the mark measures the face's own cap height. */
-       A SYSTEM FACE, which is the quiet reason DOGFOOD never once looked wrong. Every
-       wordmark between has been a webfont, and a webfont that fails does not report a fault —
-       it silently draws something else. Three rounds went on type nobody could confirm was
-       being drawn, and the fallback chain written to catch that led with fonts iOS does not
-       ship at all.
-       This is the face those rounds were reaching for. Helvetica Neue's Condensed Black is
-       heavy AND condensed, it is what a compressed poster face was wanted for, and it has
-       been sitting on the device the whole time — addressed by PostScript name, because the
-       condensed cuts are not reachable as a family plus a weight. Condensed Bold behind it
-       for anything that has the family and not the Black, then Arial Narrow, then the
-       uncondensed Helveticas. Nothing to fetch and nothing to fail. */
-    --wordmark-face: 'HelveticaNeue-CondensedBlack', 'Helvetica Neue Condensed Black',
-       'HelveticaNeue-CondensedBold', 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+       It carried four more fallbacks until now — Condensed Bold, Arial Narrow, Helvetica
+       Neue, Helvetica — added after a webfont failure to guarantee something heavy if the
+       first name missed. Gone, because the specimen that was approved did not have them and
+       any one of them winning is a way for this to render as something other than what was
+       chosen. The device is confirmed to carry the face: the typeface check reported it
+       present, measuring 161px where a fallback measured 204. sans-serif stays as the last
+       resort the browser would reach for anyway.
+
+       This declaration was inside a BROKEN COMMENT for several versions. An edit replaced a
+       slice that began mid-comment, which left the previous comment's closing marker behind
+       and the new text with no opening — so the parser hit bare prose inside :root, dropped
+       declarations while it recovered, and --wordmark-face never got defined. var() on an
+       undefined property is invalid at computed-value time, and font-family is inherited, so
+       the h1 quietly fell back to the body's mono. Every font chosen since did nothing at
+       all, which is exactly what it looked like. */
+    --wordmark-face: 'HelveticaNeue-CondensedBlack', 'Helvetica Neue Condensed Black', sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -193,12 +189,12 @@
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  /* No stroke. It was 0.6px to give Helvetica Bold its weight; Condensed Black arrives with
-     more than that and a stroke on top would close its counters. The overhang comes in from
-     9px to 4px for the same reason — 9 was three parts optical correction for a round
-     capital's side bearing and six parts hanging display type off the edge, and a condensed
-     C has markedly less bearing to correct for. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0; letter-spacing:-0.045em; margin-left:-4px; }
+  /* No stroke and no overhang, both matching the specimen rather than improving on it. The
+     -4px was optical correction so the wordmark's ink lined up with the tab label above it
+     instead of sitting inset by the C's side bearing — defensible, and not what was
+     approved. Exact beats slightly better when the whole point is that it looks like the
+     thing that was chosen. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0; letter-spacing:-0.045em; margin-left:0; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -377,7 +373,10 @@
      follow. The day number is a reading off a calendar, not a word. */
   .header-date .hd-day{ font-family:var(--mono); -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
+  /* nowrap and inline-block to match the specimen exactly: a wordmark that can wrap is a
+     wordmark that will, on some width nobody tested. */
   h1 .logo-line{ display:block; }
+  h1 .logo-line span{ display:inline-block; white-space:nowrap; }
   /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
      same rule serves the logo, the score card and the element that flies between them.
      --eye-h is how open the eye is, --eye-rb how square its bottom sits, --eye-bl how far
@@ -6043,7 +6042,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.77';
+const APP_VERSION = '2026.08.31.79';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23615,13 +23614,24 @@ function renderAppVersion(){
   const f = document.getElementById('fontStatusOut');
   if(f){
     const paint = ()=>{
-      // One webfont left to report on. The wordmark is a system face now and cannot fail,
-      // which is rather the point of it being one.
+      // One webfont to report on, plus one thing that is not about fetching at all: whether
+      // the wordmark is drawn in the face it names. --wordmark-face spent five versions
+      // undefined behind a broken comment, and an undefined custom property does not throw —
+      // var() is simply invalid, font-family is inherited, and the h1 quietly wears the
+      // body's mono. Nothing anywhere reported that. This does.
       const mono = faceLoaded("'IBM Plex Mono'");
       if(mono === null){ f.textContent = ''; return; }
-      f.textContent = mono ? 'IBM Plex Mono loaded · wordmark is a system face'
-        : 'IBM Plex Mono missing — body text is in a system mono';
-      f.style.color = mono ? 'rgba(251,250,246,0.5)' : 'var(--block-orange)';
+      const h1 = document.querySelector('header h1');
+      const want = (getComputedStyle(document.documentElement)
+        .getPropertyValue('--wordmark-face') || '').trim();
+      const got = h1 ? getComputedStyle(h1).fontFamily : '';
+      const wordmarkOk = !!want && !!got && got.replace(/['"]/g, '').indexOf(
+        want.replace(/['"]/g, '').split(',')[0].trim()) === 0;
+      const bits = [];
+      bits.push(mono ? 'IBM Plex Mono loaded' : 'IBM Plex Mono missing');
+      bits.push(wordmarkOk ? 'wordmark on its own face' : 'WORDMARK FELL BACK — check the CSS');
+      f.textContent = bits.join(' · ');
+      f.style.color = (mono && wordmarkOk) ? 'rgba(251,250,246,0.5)' : 'var(--block-orange)';
     };
     paint();
     if(document.fonts && document.fonts.ready) document.fonts.ready.then(paint).catch(()=>{});
