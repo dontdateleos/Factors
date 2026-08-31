@@ -4031,18 +4031,60 @@ function eyeNoteActivity(){
 // How many days back the logging runs unbroken. Its own function because two things want it
 // now and they must not disagree: the mark's blink rate, and the header readout. Reading it
 // off eyeCtx meant the readout lost the number whenever the mark's own switch was off.
-/* THE STREAK GETS A MOMENT.
-   It was stated and never celebrated — 9px of grey in the corner, deliberately: "no colour,
-   no exclamation". That was a defensible line and it is being crossed on purpose. The streak
-   is the one number here that is purely about having turned up, and the day it goes up is
-   the day the app should notice.
-   It fires once per day, on the first render after the count actually increases, from the
-   mark in the wordmark — which is the app's own face, and the right thing to be pleased.
-   Milestones throw more of it and hold the number for a beat. It goes through uiAnim, so
-   calm mode and prefers-reduced-motion both switch it off like everything else. */
+/* THE STREAK GETS A MOMENT. MOSTLY IT DOES NOT.
+
+   The app threw confetti every single day the streak went up. Twelve pieces for turning up,
+   twenty-six on a milestone — which meant the milestone was a slightly larger version of an
+   everyday event, and turning up once was treated as an achievement worth a party.
+
+   It is called Confetti and it does not give you any. That is the joke, and it is also the
+   correct behaviour: a reward that arrives every time is not a reward, it is a background
+   colour. Ordinary days now get a line instead — the app noticing, flatly, and declining to
+   celebrate. The real thing is held for the milestones, which is what makes them milestones.
+
+   Once per day, on the first render after the count actually increases, thrown from the mark
+   in the wordmark — the app's own face, and the right thing to be doing the withholding. The
+   burst goes through uiAnim, so calm mode and prefers-reduced-motion switch it off like
+   everything else; the LINE is text and is not motion, so it is not gated on them.
+
+   Lines are picked by the streak number, not at random, so a given day always says the same
+   thing — reproducible, testable, and it cannot say two different things either side of a
+   reload. */
+/* How long a toast sits. The default is sized for "Saved" — an acknowledgement you read in a
+   glance. A line with a joke in it needs longer than an acknowledgement does.
+   Declared up here with the streak rather than down beside showToast, because noteStreak
+   reads STREAK_LINE_MS and runs from refreshEyeHistory, which can fire before a declaration
+   several thousand lines further down has been reached. */
+const TOAST_MS = 1800, STREAK_LINE_MS = 3400;
 const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365];
 const CONFETTI_INK = ['var(--block-lime)', 'var(--block-orange)', 'var(--block-yellow)',
                       'var(--block-blue)', 'var(--block-purple)', 'var(--bg)'];
+/* What it says on a day that is not a milestone. Deadpan, and specific about the fact that
+   something is being withheld — the withholding is the joke, so it has to be named rather
+   than merely done. */
+const STREAK_LINES = [
+  'Day {n}. No confetti.',
+  'Day {n}. The confetti stays in the box.',
+  'Day {n}. Noted, without enthusiasm.',
+  'Day {n}. Below the confetti threshold.',
+  'Day {n}. Turning up is the minimum.',
+  'Day {n}. Logged. No further comment.'
+];
+/* And what it says on the days it actually pays out. Escalating, and grudging about it
+   throughout, because a machine that hands out confetti cheerfully is a different machine. */
+const STREAK_MILESTONE_LINES = {
+  7:   'Day 7. Fine. Confetti.',
+  14:  "Day 14. More confetti. Don't get used to it.",
+  30:  'Day 30. Real confetti. Read nothing into it.',
+  50:  'Day 50. The confetti was always conditional. You met the condition.',
+  100: 'Day 100. This is the good confetti.',
+  200: 'Day 200. Confetti reserves are running low.',
+  365: 'Day 365. All of the remaining confetti. There is none left.'
+};
+function streakLine(n){
+  if(STREAK_MILESTONE_LINES[n]) return STREAK_MILESTONE_LINES[n];
+  return STREAK_LINES[n % STREAK_LINES.length].replace('{n}', n);
+}
 function streakBurst(n){
   if(!uiAnim('streakBurst')) return;
   const mark = document.getElementById('headerMark');
@@ -4090,7 +4132,12 @@ function noteStreak(n){
   if(seen && seen.date === todayStr) return;
   const grew = !seen || n > (seen.n || 0);
   try{ localStorage.setItem('streak:seen', JSON.stringify({ date: todayStr, n })); } catch(e){}
-  if(grew) setTimeout(()=> streakBurst(n), 420);
+  if(!grew) return;
+  // The line either way; the confetti only when it has been earned.
+  setTimeout(()=>{
+    showToast(streakLine(n), false, STREAK_LINE_MS);
+    if(STREAK_MILESTONES.includes(n)) streakBurst(n);
+  }, 420);
 }
 
 let loggedStreak = 0;
@@ -5905,7 +5952,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.66';
+const APP_VERSION = '2026.08.31.67';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6805,7 +6852,7 @@ function animateNumber(el, from, to, duration, suffix){
 }
 
 let toastTimer = null;
-function showToast(message, isError){
+function showToast(message, isError, ms){
   const t = document.getElementById('toast');
   const icon = toastEyesHtml(isError) || (isError
     ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
@@ -6820,7 +6867,7 @@ function showToast(message, isError){
   eyeNoteToast(isError);
   if(!isError) eyeFormSettled();
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 1800);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, ms || TOAST_MS);
 }
 // Mechanical double-flash confirmation (filter:invert, not a fade) — works on any
 // element's existing colors automatically. Re-triggerable: removing then re-adding the
