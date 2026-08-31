@@ -744,6 +744,15 @@
   .d-badge{ color:var(--text); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:var(--sp-3); }
+  /* The three buttons on Today always follow something black and full-bleed — the score
+     band, the card stack's own black head, or the rest plate — and every one of those ends
+     with margin-bottom:0, because the things that USUALLY follow them are also black and are
+     meant to butt straight on. The lime CTA strip does exactly that and should.
+     An outlined button row is not that. Sitting on the edge of a solid black field it reads
+     as attached to it rather than as the next thing down. This is the one element that needs
+     the gap, so it is the one element that gets it, rather than the band growing a bottom
+     margin that would push the strips that belong there away too. */
+  #todaySessionTypePills{ margin-top:var(--sp-3); }
   .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid var(--line); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:var(--on-light-dim); cursor:pointer; background:var(--panel); }
   .type-btn.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
 
@@ -5914,12 +5923,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.84';
+const APP_VERSION = '2026.08.31.85';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.84': 'The streak says itself again \u2014 the day it goes up, the mark throws confetti and a toast names the number.'
+  '2026.08.31.85': 'The Strength / Run / Mobility buttons stop sitting on the edge of the black band.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
