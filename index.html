@@ -1142,12 +1142,23 @@
     background:transparent; color:var(--text); cursor:pointer; }
   .rest-preset.on{ background:var(--reverse-bg); color:var(--bg); }
   .logging-row{ display:flex; align-items:stretch; gap:4px; margin-bottom:6px; }
+  /* A session you are part way through is an invitation, not a caution, and it was wearing
+     --warn — the colour the gate reasons, the injury severities and the declining trends
+     are written in. Yellow says "you left this here" instead.
+     The border is doing the real work: this sits on the Today tab's lime, and every light
+     fill is within a hair of that lime in luminance (yellow on lime is about 1.1:1), so a
+     chip whose edge is its own colour has no edge at all — which is what was wrong with
+     the amber too. A black rule cuts it out cleanly, the way every other control on this
+     tab is cut out, and the fill is then free to be a name rather than a boundary. */
   .logging-flag{ font-family:var(--mono); font-size:var(--fs-tag); height:auto;
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase;
-    background:var(--warn); color:#0c0d0b; border:2px solid var(--warn); padding:3px 8px;
-    flex:0 1 auto; cursor:pointer; }
+    background:var(--block-yellow); color:#0c0d0b; border:2px solid var(--border-bold);
+    padding:3px 8px; flex:0 1 auto; cursor:pointer; }
+  /* The cross throws a draft away, so it stays out of the way: an outline, no fill, and no
+     colour of its own. The yellow is the only colour in the row and it points at Resume. */
   .logging-drop{ font-family:var(--mono); font-size:var(--fs-md); height:auto; padding:0 9px;
-    background:transparent; color:var(--warn); border:2px solid var(--warn); flex:0 0 auto; cursor:pointer; }
+    background:transparent; color:var(--border-bold); border:2px solid var(--border-bold);
+    flex:0 0 auto; cursor:pointer; }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -5476,7 +5487,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.32';
+const APP_VERSION = '2026.08.31.33';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
