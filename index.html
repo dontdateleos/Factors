@@ -1806,10 +1806,12 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <!-- One span, not eight. An earlier wordmark was hand-kerned letter by letter because
-         Helvetica needed it; nothing here does. The span stays because updateHeaderCollapse
-         measures the wordmark's right edge off the last one. -->
-    <h1><div class="logo-line"><span>Confetti</span></div></h1>
+    <!-- Two lines, the way DOGFOOD was set. CON over FETTI rather than a balanced 4/4,
+         because the break falls where the word does — and the first line on its own is not
+         the worst description of an app that promises confetti and withholds it.
+         One span per line: updateHeaderCollapse measures the wordmark's right edge off the
+         last span of each, and takes the widest. -->
+    <h1><div class="logo-line"><span>Con</span></div><div class="logo-line"><span>fetti</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
@@ -6043,7 +6045,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.74';
+const APP_VERSION = '2026.08.31.75';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6902,7 +6904,13 @@ function updateHeaderCollapse(){
       if(asc > 0 && band > 0){
         const lineH = parseFloat(cs.lineHeight) || LOGO_MEASURED_PX;
         const baseline = (lineH - (asc + desc)) / 2 + asc;
-        logoCapMid = (baseline - band / 2) / LOGO_MEASURED_PX;
+        /* On one line the mark centres on that line's ink. On TWO it has to centre on the
+           block — the midpoint between the first line's cap top and the last line's
+           baseline — which is a different number and the reason DOGFOOD's constant was 57
+           rather than something derived from a single line. Both fall out of the same
+           expression; with one line the last term is zero and it reduces to the old one. */
+        const rows = headerCollapseEls.h1.querySelectorAll('.logo-line').length || 1;
+        logoCapMid = (baseline + (lineH * (rows - 1) - band) / 2) / LOGO_MEASURED_PX;
       }
     } catch(e){}
   }
