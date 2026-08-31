@@ -1021,6 +1021,18 @@
      measured width, same 9px caption over a short band. The two of them are one column — what
      you say about today, and what the last seven came to — at the score's own eye level. */
   #todayFaceRow{ position:absolute; right:14px; display:none; }
+  /* Out of the band and into the page: no measuring, full width, and room for the faces to
+     be tapped rather than squeezed beside a number.
+     On its own black band, and not for decoration — the five face colours were chosen
+     against the black the score sits on, and two of them are Today's own lime and a yellow
+     a shade off it. Dropped straight onto the page, "good" is lime on lime and invisible.
+     The band gives them back the ground they were drawn for. */
+  #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
+    background:#000000; margin:0 -14px var(--sp-3); padding:var(--sp-3) 14px; }
+  #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
+    color:rgba(251,250,246,0.65); }
+  #todayFaceRow.face-row-flow .subj-faces{ gap:6px; }
+  #todayFaceRow.face-row-flow .subj-face{ height:44px; }
   /* The captions are 9px. A saturated mid-tone at that size is legible by the numbers and
      hard work in practice, and the colour is already being carried a few pixels away by the
      face itself — the chip is filled in it, the row is outlined in it. So the marks keep the
@@ -1658,6 +1670,12 @@
          the week can still write into it; it is display:none until something needs it. -->
     <div id="todayBlockContext" class="score-note" style="display:none; text-align:center; font-size:var(--fs-tag);"></div>
     </div>
+    <!-- Where the faces live before there is a score. The column inside the band is measured
+         against the number's edge, so with no number there is nowhere for it to sit — and
+         the row was hidden along with the gauge and the trace, which are readings. The faces
+         are not a reading; they are the question, and it is the one input a new user can
+         answer on their first morning without a watch, a ring or a night's history. -->
+    <div id="todayFaceIntro"></div>
     <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
 
     <!-- The recommendation stack sits directly under the score it is reasoning about.
@@ -5530,7 +5548,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.42';
+const APP_VERSION = '2026.08.31.43';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -7173,8 +7191,11 @@ function layoutBandColumn(traceShown){
   const num = document.getElementById('overallScoreOut');
   if(!row || !band || !num) return;
   const hideAll = ()=>{ row.style.display = 'none'; if(dock) dock.style.display = 'none'; };
-  // Before the first morning is logged the whole gauge is taken away and the band collapses;
-  // there is no score for this column to sit beside, so it goes with it.
+  // Before the first morning is logged the gauge is taken away and the band collapses. The
+  // trace and the chip go with it — they are readings — but the row has been rehomed to
+  // #todayFaceIntro by applyTodayStage and is laid out by the page, not by this. Measuring
+  // it against a number that is not on screen is what used to take it away with them.
+  if(row.classList.contains('face-row-flow')){ if(dock) dock.style.display = 'none'; return; }
   const gauge = band.querySelector('.gauge-wrap');
   if(gauge && gauge.style.display === 'none'){ hideAll(); return; }
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
@@ -17524,7 +17545,22 @@ async function applyTodayStage(){
   const faces = document.getElementById('todayFaceRow');
   // todayBlockContext is deliberately not in this list any more: it is hidden for good, and
   // handing it back a display of '' here would have undone that on the first render.
-  [gauge, trace, faces].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
+  [gauge, trace].forEach(el=>{ if(el) el.style.display = seen ? '' : 'none'; });
+  // The faces move rather than hide. Inside the band they are measured against the score's
+  // own edge, which is why they could not stand before there was a score; out here they are
+  // an ordinary block, full width, and the question is the first thing on the page.
+  if(faces){
+    const intro = document.getElementById('todayFaceIntro');
+    const band = panel.querySelector('.today-open');
+    const home = seen ? band : intro;
+    if(home && faces.parentElement !== home){
+      if(seen) band.insertBefore(faces, document.getElementById('scoreTrace'));
+      else intro.appendChild(faces);
+    }
+    faces.classList.toggle('face-row-flow', !seen);
+    faces.style.display = '';
+    if(!seen){ faces.style.width = ''; faces.style.top = ''; }
+  }
   // The band is the score's own ground. Emptied but still standing it is a black hole at the
   // top of the page, so it collapses with what it was holding.
   const band = panel.querySelector('.today-open');
