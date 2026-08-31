@@ -1095,6 +1095,11 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
+  /* Hung under the strip it belongs to, in the page's own ink rather than the strip's: it is
+     an aside, and an aside that shouts is a second call to action. */
+  .cta-aside{ margin:calc(-1 * var(--sp-3)) 0 var(--sp-3); padding:0 0 2px; cursor:pointer;
+    font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); opacity:0.85;
+    text-decoration:underline; text-underline-offset:3px; }
   /* The three-currency table these were written for is gone — the block chart draws it.
      The learned-weights panel on Data borrows the same row, so the row survives. */
   .load-row{ display:flex; align-items:baseline; gap:9px; margin-bottom:4px;
@@ -5548,7 +5553,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.43';
+const APP_VERSION = '2026.08.31.44';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -20597,9 +20602,26 @@ async function generateRecommendations(){
   catch(e){
     // Styled as the action it always was. It has been clickable the whole time and read as a
     // notice, so the one next step on the page looked like a locked door rather than a way in.
+    // The offer to connect a ring belongs here rather than in the first run: this is the
+    // line that asks you to go and type four numbers, and connecting is the one action that
+    // deletes that task instead of making it quicker. Adding a fourth step to a first run
+    // that opens "three answers and it builds your week" would cost a tap for everyone,
+    // including the people with nothing to connect; offered at the point of the chore it
+    // costs a tap only to the people it helps. It stops appearing once a ring is connected.
+    let ouraOn = false;
+    try{ ouraOn = !!JSON.parse((await window.storage.get('oura:tokens')).value); } catch(e){}
     container.innerHTML = '<div class="cta-strip" id="insightsLogCTA" role="button" tabindex="0">'
-      + '<span>Log this morning</span><span class="cta-strip-arrow" aria-hidden="true">&rarr;</span></div>';
+      + '<span>Log this morning</span><span class="cta-strip-arrow" aria-hidden="true">&rarr;</span></div>'
+      + (ouraOn ? '' : '<div class="cta-aside" id="insightsRingOffer" role="button" tabindex="0">'
+          + 'Wear an Oura ring? Connect it and this fills itself in.</div>');
     document.getElementById('insightsLogCTA').addEventListener('click', ()=>{ activateTab('data'); activateDataSubView('recovery'); });
+    const ringOffer = document.getElementById('insightsRingOffer');
+    if(ringOffer){
+      const go = ()=>{ activateTab('settings'); const d = document.getElementById('deviceDetails');
+        if(d){ d.open = true; d.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' }); } };
+      ringOffer.addEventListener('click', go);
+      ringOffer.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } });
+    }
     renderScoreTrace(null);
     refreshRecHistory();
     return;
