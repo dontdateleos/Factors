@@ -18,6 +18,13 @@
    so a bug in here costs the offline fallback rather than the app. */
 
 const CACHE = 'factors-doc-v1';
+/* The font is the one other thing the page needs, and it came from a third party that an
+   offline phone cannot reach — so an offline launch had the document and no typeface. It
+   gets its own cache, and the opposite strategy to the document: CACHE-FIRST, because a
+   font file at a versioned URL never changes, and revalidated in the background so a new
+   weight is picked up without anyone waiting for it. */
+const FONT_CACHE = 'factors-font-v1';
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const NET_TIMEOUT_MS = 6000;   // a slow network should not out-wait a usable cached copy
 
 self.addEventListener('install', (e)=>{
@@ -29,10 +36,23 @@ self.addEventListener('install', (e)=>{
 self.addEventListener('activate', (e)=>{
   e.waitUntil((async ()=>{
     const names = await caches.keys();
-    await Promise.all(names.filter(n=> n !== CACHE).map(n=> caches.delete(n)));
+    await Promise.all(names.filter(n=> n !== CACHE && n !== FONT_CACHE).map(n=> caches.delete(n)));
     await self.clients.claim();
   })());
 });
+
+async function cacheFirstFont(request){
+  const cache = await caches.open(FONT_CACHE);
+  const hit = await cache.match(request);
+  if(hit){
+    // Revalidate without blocking on it: the cached copy is already on its way to the page.
+    fetch(request).then(res=>{ if(res && res.ok) cache.put(request, res.clone()).catch(()=>{}); }).catch(()=>{});
+    return hit;
+  }
+  const res = await fetch(request);
+  if(res && (res.ok || res.type === 'opaque')) cache.put(request, res.clone()).catch(()=>{});
+  return res;
+}
 
 async function networkFirst(request){
   const cache = await caches.open(CACHE);
@@ -63,7 +83,11 @@ self.addEventListener('fetch', (e)=>{
     const req = e.request;
     if(req.method !== 'GET') return;
     const url = new URL(req.url);
-    if(url.origin !== self.location.origin) return;   // Oura, fonts, anything else: untouched
+    // The font is the one cross-origin thing worth holding: without it an offline launch
+    // renders in the fallback stack forever. Everything else cross-origin — Oura, the token
+    // worker — is left alone, because caching a data API is how you serve stale readings.
+    if(FONT_HOSTS.includes(url.hostname)){ e.respondWith(cacheFirstFont(req)); return; }
+    if(url.origin !== self.location.origin) return;   // Oura, anything else: untouched
     // Only the document. There is nothing else to cache — the app is one file — and leaving
     // every other request alone means this worker cannot break anything it does not serve.
     const isDoc = req.mode === 'navigate'
