@@ -5553,7 +5553,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.44';
+const APP_VERSION = '2026.08.31.45';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -10670,23 +10670,65 @@ function scrollToLogExercise(i){
 
    And it only ever fills EMPTY boxes. Anything you have already typed is yours and is left
    alone, so it is safe to tap at any point, including halfway through. */
+/* A FIRST WEIGHT, WITHOUT INVENTING ONE.
+   "As planned" filled sets and reps and left the load blank, because the plan stores sets
+   and reps and never weight. On day one that is every lift: the beginner's first act is
+   typing a number they do not have, for each exercise, and the plan line said "@ add
+   weight" rather than answering.
+
+   Nothing here guesses what you can lift. Three sources, in order, and each is something
+   the app already knows for a fact:
+     1. This exact lift, last time — what it has always used.
+     2. The empty implement. A barbell is 20kg everywhere, a trap bar about 25 — that is a
+        fact about the equipment, not a claim about you, and starting a new lift at the bar
+        while you learn it is what a coach would say anyway.
+   A third rule was tried and cut: carry the lightest load you have logged on the same
+   movement pattern. It reads as conservative and is not — with one squat session logged it
+   proposed a back-squat weight for a front squat, and the same again for a goblet squat,
+   which is a dumbbell held at the chest. Transferring a load between two lifts IS a claim
+   about you, and it was the wrong one.
+   Dumbbells, machines and cables get nothing: their loads are not standard and a number
+   would be a guess. Bodyweight movements take your bodyweight if it is recorded, which is
+   what the BW button already does.
+   Every one of these lands in an editable box, so the worst case is the same edit the
+   blank box needed. */
+const BARE_IMPLEMENT_KG = { barbell: 20, trap_bar: 25, ez_bar: 10 };
+function startingLoadFor(name, src){
+  const key = exHistKey(name || (src && src.name) || '');
+  if(!key) return null;
+  const own = exerciseHistory[key];
+  if(own && own.weight != null) return { kg: own.weight, why: 'last time' };
+
+  const guess = guessTagsFromLibrary(name || (src && src.name) || '');
+  const lib = guess ? EXERCISE_LIBRARY[guess.exerciseId] : null;
+  const kit = (lib && lib.equipment) || [];
+  for(const k2 of kit){ if(BARE_IMPLEMENT_KG[k2] != null) return { kg: BARE_IMPLEMENT_KG[k2], why: 'the bar' }; }
+  return null;
+}
 function plannedFillFor(row){
   const src = row._srcExercise || {};
   const nameEl = row.querySelector('.week-ex-name');
-  const h = exerciseHistory[exHistKey(nameEl ? nameEl.value : (src.name || ''))];
+  const name = nameEl ? nameEl.value : (src.name || '');
+  const h = exerciseHistory[exHistKey(name)];
+  const start = startingLoadFor(name, src);
   return {
     sets:   src.sets != null ? src.sets : (h && h.sets != null ? h.sets : null),
     reps:   src.repLow != null ? src.repLow : (h && h.reps != null ? h.reps : null),
-    weight: h && h.weight != null ? h.weight : null
+    weight: h && h.weight != null ? h.weight : (start ? start.kg : null),
+    weightWhy: (h && h.weight != null) ? null : (start ? start.why : null)
   };
 }
 function fillLogRow(row){
   const f = plannedFillFor(row);
   let touched = false;
+  delete row.dataset.weightWhy;
   [['.week-ex-sets', f.sets], ['.week-ex-reps', f.reps], ['.week-ex-weight', f.weight]].forEach(([sel, v])=>{
     const el = row.querySelector(sel);
     if(!el || el.value !== '' || v == null) return;
     el.value = v;
+    // Remembered on the row so the toast can say how many of these loads are a starting
+    // point rather than something you have actually lifted.
+    if(sel === '.week-ex-weight' && f.weightWhy) row.dataset.weightWhy = f.weightWhy;
     touched = true;
   });
   if(touched){
@@ -10699,11 +10741,12 @@ function fillLogAsPlanned(){
   const rows = [...document.querySelectorAll('#weekExerciseRows .edit-row')]
     .filter(r=> r.querySelector('.week-ex-sets'));
   if(!rows.length) return;
-  let filled = 0, noWeight = 0;
+  let filled = 0, noWeight = 0, started = 0;
   rows.forEach(r=>{
     if(fillLogRow(r)) filled++;
     const w = r.querySelector('.week-ex-weight');
     if(w && !w.value) noWeight++;
+    else if(r.dataset.weightWhy) started++;
   });
   if(!filled){ showToast('Already filled in'); return; }
   blockEditDirty = true;
@@ -10712,8 +10755,12 @@ function fillLogAsPlanned(){
   // Named rather than counted where something is still missing: a lift with no history has
   // no weight to borrow, and saying so is the difference between a button that finished the
   // job and one that looks like it did.
+  // A proposed starting load is not the same claim as "this is what you lifted last time",
+  // so it says which it is rather than letting the box imply the stronger one.
   showToast(noWeight
     ? `${filled} filled · ${noWeight} still need a weight`
+    : started
+    ? `${filled} filled · ${started} starting from scratch — change if it is light`
     : `${filled} lift${filled === 1 ? '' : 's'} filled — change what differed`);
 }
 
