@@ -401,15 +401,15 @@
   .eyes.no-morph, .eyes.no-morph span, .eyes.no-morph .eye-gaze, .eyes.no-morph .eye-motion{ transition:none; transition-delay:0ms; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
-  /* Sized against the wordmark, not against the old one. The plate was 40px, which was a
-     shade over the cap height of a 46px Helvetica; the wordmark is 34px mono now, whose
-     capitals are about 24px, and a 40px block beside them stopped being a mark and started
-     being the biggest thing in the header. 30px reads as a terminal block on the end of the
-     word. Everything inside it comes down by the same factor rather than by five numbers
-     guessed separately — the whole point of the mark's geometry being properties. */
+  /* A SEED, not the source. headerEyeSite computes these from --fs-wordmark and writes them
+     inline, and that is the authority; these are here so the first painted frame is not a
+     40px mark that jumps to 20 the moment script runs. They are the same numbers: 34px of
+     wordmark at MARK_TO_WORDMARK 0.58, which is 19.72px of plate — a little under the cap
+     height of the type beside it, which is what keeps it a mark rather than a ninth letter.
+     If you change --fs-wordmark, change nothing here; the ratio does it. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
-    --eye-box-w:30px; --eye-box-h:30px; --eye-gap:7.5px; --eye-plate:var(--block-lime); --eye-plate-r:9px;
-    --eye-w:4.5px; --eye-h:13.5px; --eye-r:2.25px; --eye-rb:2.25px; --eye-ink:var(--text); }
+    --eye-box-w:19.72px; --eye-box-h:19.72px; --eye-gap:4.93px; --eye-plate:var(--block-lime); --eye-plate-r:5.92px;
+    --eye-w:2.96px; --eye-h:8.87px; --eye-r:1.48px; --eye-rb:1.48px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -3100,20 +3100,47 @@ function applyEyeState(el, st){
 // score band calls for. The flyer is given one set and then the other, so the plate closes
 // around the eyes on the way up and opens off them on the way down.
 const EYE_SITES = {
-  // Every dimension here came down by a quarter when the wordmark went from 46px Helvetica
-  // to 34px of the app's own mono: a 40px plate was a shade over the old cap height and is
-  // half again the new one, which made the mark the largest thing in the header rather than
-  // a block on the end of a word. One factor applied to all of them, which is the reason the
-  // geometry is properties rather than five numbers — the face is the same face, smaller.
-  header: { '--eye-box-w':'30px', '--eye-box-h':'30px', '--eye-gap':'7.5px',
-            '--eye-plate':'var(--block-lime)', '--eye-plate-r':'9px',
-            '--eye-w':'4.5px', '--eye-h':'13.5px', '--eye-r':'2.25px', '--eye-rb':'2.25px',
-            '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--text)' },
+  // Computed from the wordmark — see headerEyeSite. Filled in below rather than written
+  // here, because a literal is a number that stops agreeing with the type the first time the
+  // type changes size, which has now happened twice.
+  header: null,
   score:  { '--eye-box-w':'42px', '--eye-box-h':'32px', '--eye-gap':'12px',
             '--eye-plate':'transparent', '--eye-plate-r':'0px',
             '--eye-w':'15px', '--eye-h':'32px', '--eye-r':'7.5px', '--eye-rb':'7.5px',
             '--eye-bl':'0%', '--eye-rot':'0deg', '--eye-ink':'var(--bg)' }
 };
+/* THE MARK IS SIZED FROM THE WORDMARK, NOT BESIDE IT.
+
+   It has been a literal twice and been wrong twice: 40px was a shade over the cap height of
+   a 46px Helvetica, and then half again the cap height of 34px mono, at which point the mark
+   was the biggest thing in the header. Both times the fix was to type a different number,
+   which sets up the same mistake for whoever changes --fs-wordmark next.
+
+   So it is a ratio of the wordmark's own size now. 0.58 puts the plate a little UNDER the
+   cap height of the type it sits beside — deliberately under, not level: the mark is a mark
+   on the end of a word, and a block matching the capitals reads as a ninth letter. Change
+   --fs-wordmark and the mark follows it without anything else being touched.
+
+   One factor across every dimension, from the geometry the mark was originally drawn at.
+   That is what the whole thing being custom properties is for: the face stays the same face,
+   at a different size, rather than five values re-guessed to look about right. */
+const HEADER_MARK_BASE = { '--eye-box-w':40, '--eye-box-h':40, '--eye-gap':10,
+  '--eye-plate-r':12, '--eye-w':6, '--eye-h':18, '--eye-r':3, '--eye-rb':3 };
+const MARK_TO_WORDMARK = 0.58;
+function headerEyeSite(){
+  let fs = 34;
+  try{ fs = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--fs-wordmark')) || 34; } catch(e){}
+  const k = (fs * MARK_TO_WORDMARK) / HEADER_MARK_BASE['--eye-box-h'];
+  const out = { '--eye-plate':'var(--block-lime)', '--eye-bl':'0%', '--eye-rot':'0deg',
+                '--eye-ink':'var(--text)' };
+  for(const key in HEADER_MARK_BASE){
+    out[key] = (Math.round(HEADER_MARK_BASE[key] * k * 100) / 100) + 'px';
+  }
+  return out;
+}
+EYE_SITES.header = headerEyeSite();
+
 // How wide open the eyes get at each site when nothing is dragging the lids down. Widening
 // past this would spill out of the plate, so surprise opens TO it rather than beyond it.
 function eyeFullOpen(site){ return parseFloat(EYE_SITES[site]['--eye-h']); }
@@ -5975,7 +6002,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.68';
+const APP_VERSION = '2026.08.31.69';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
