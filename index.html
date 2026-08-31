@@ -1536,10 +1536,19 @@
   .flow-area{ font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase;
     letter-spacing:0.07em; white-space:nowrap; }
   .flow-area::after{ content:'\00a0'; }
-  /* The card's coloured dot became the colour of the entry it flagged — same signal, no
-     extra element, and no body-part label needed to carry it. */
-  .flow-flag.injury{ color:var(--bad); }
-  .flow-flag.load{ color:var(--warn); }
+  /* THE FLAGS STOP COLOURING THE TEXT.
+
+     A drill was tinted by the reason its area got picked: red for an injury, amber for a
+     load flag. As a signal it had two problems. There is no key for it anywhere, so a
+     coloured line reads as an arbitrary colour rather than as information — and both hues
+     sit on body copy at 13px, where a mid-tone on cream is the hardest thing on the page to
+     read. Half the warm-up ending up orange for reasons the page never states is noise, not
+     signal.
+
+     The classes stay in the markup. The reason each drill is on the list is still carried on
+     the element and still correct; it simply is not painted any more, and restoring it is
+     one line if it ever earns a legend to go with it. */
+  .flow-flag.injury, .flow-flag.load{ color:inherit; }
   .flow-note{ color:var(--dim); }
   /* A section that is now five lines tall does not need a section-sized gap under it. */
   .group.quiet > .fields{ padding-top:var(--sp-2); padding-bottom:0; }
@@ -5902,12 +5911,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.80';
+const APP_VERSION = '2026.08.31.81';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.80': 'Back to Dogfood. The Confetti name and everything built on it \u2014 the wordmark, the withheld confetti, the sarcastic empty states \u2014 are reverted to the last build before the rename. Nothing from before it was touched.'
+  '2026.08.31.81': 'The warm-up and cool-down stop colouring their drills. The red and amber were flagging why each area was picked, with no key anywhere to say so.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
