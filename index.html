@@ -1038,7 +1038,14 @@
   .fr-pick .type-btn.active{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
   #firstRunBuildBtn{ width:100%; margin-top:4px; }
   .fr-note{ margin-top:10px; }
-  .today-open.today-open-empty{ padding-top:0; padding-bottom:0; margin-bottom:0; }
+  /* The band carries a -20px top margin so its black tucks under the header's black and the
+     two read as one field. That only works while there is a band: collapsed, the negative
+     margin stays and there is nothing left to fill it, so it drags whatever comes next up
+     under the header — main's 16px of padding minus 20 is four pixels of OVERLAP. Whatever
+     is first on the morning before you have logged, the card stack or the session-type row,
+     started underneath the tab bar with no air above it at all.
+     Nothing tucks when there is nothing to tuck. */
+  .today-open.today-open-empty{ margin-top:0; padding-top:0; padding-bottom:0; margin-bottom:0; }
   /* One line standing in for a page of optional fields. Deliberately not a .group — it is a
      control, not a section, and reading as one would put a fifth heading on the page. */
   .more-toggle{ display:flex; align-items:baseline; gap:8px; cursor:pointer; margin:0 -14px var(--sp-3);
@@ -5911,12 +5918,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.81';
+const APP_VERSION = '2026.08.31.82';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.81': 'The warm-up and cool-down stop colouring their drills. The red and amber were flagging why each area was picked, with no key anywhere to say so.'
+  '2026.08.31.82': 'Runs get a warm-up \u2014 they never had one on a healthy week. And the morning before you log stops tucking itself under the tab bar.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22207,6 +22214,22 @@ async function computeWarmupAreas(){
   // intelligence report: single-leg squat-pattern work needs the same ankle prep.
   const squatAnkleFlag = plannedExercises.some(ex=>ex.movement==='squat' || ex.movement==='lunge');
   if(squatAnkleFlag) plannedAreas.add('ankles');
+
+  /* A RUN NEVER GOT A WARM-UP, and the comment on generateWarmup has claimed since it was
+     written that the section "exists to precede a strength or run session".
+
+     Every route onto the list above starts from planned EXERCISES, and a run has none. So on
+     a run day the areas came only from an active injury, an area over its load ratio, or a
+     running volume spike — and with none of those, the list came back empty and the whole
+     section hid itself. A first run, on a healthy week, got nothing.
+
+     Running does not need to be inspected to know what it loads. It is the same tissue every
+     time: the ankles and calves take the contact, the hips and hamstrings the drive, the
+     quads the braking. Seeded whenever today is a run, exactly the way a squat pattern
+     already seeds ankles — and left as ordinary planned areas rather than flagged ones, so
+     they sort below a real injury and get trimmed first when the budget is tight. */
+  const RUN_WARMUP_AREAS = ['ankles', 'calves', 'hips', 'hamstrings', 'quads_knees'];
+  if(todaySessionType === 'run') RUN_WARMUP_AREAS.forEach(a=> plannedAreas.add(a));
 
   const allAreas = new Set([...Object.keys(injuryByArea), ...plannedAreas]);
   const loadFlagged = {};
