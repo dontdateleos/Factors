@@ -1146,10 +1146,28 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
+  /* The suggestions head is a section head and was the only one not dressed as one: the
+     other three on this page are black, sticky and full-bleed, and this one was
+     transparent, static and inset — so it read as a stray band of the tab's colour between
+     two sections rather than as the top of one. Measured, the page alternated seven times;
+     three of those are headings doing their job and this was the only anomaly. */
   .card-stack-head{ display:flex; justify-content:space-between; align-items:center;
-    gap:10px; margin-bottom:8px; cursor:pointer; }
-  .card-stack-chev{ font-size:var(--fs-md); color:var(--dim); flex:none;
+    gap:10px; cursor:pointer; background:#000000; color:var(--bg);
+    margin:0 -14px; padding:var(--sp-3) 14px var(--sp-2);
+    position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; }
+  .card-stack-head #cardStackCounter{ color:var(--bg); }
+  /* Black-on-light by default, which is invisible on the plate — same inversion the form
+     panels do to their own buttons. */
+  .card-stack-head #undoDecisionBtn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .card-stack-chev{ font-size:var(--fs-md); color:rgba(251,250,246,0.7); flex:none;
     transition:transform 0.15s; }
+  /* A plate that butts against the band above it and the section below. The stack's own
+     margins were leaving 14px and 6px of the tab's colour on either side — thin enough to
+     read as a seam between two blacks rather than as a gap between two sections, which is
+     the one thing worse than the band it replaced. */
+  #todayCardStack{ margin-top:0; }
+  #recommendationCards:not([style*="display: none"]){ padding-top:var(--sp-2); }
+  #acceptanceStats:empty{ margin-bottom:0 !important; }
   /* Hung under the strip it belongs to, in the page's own ink rather than the strip's: it is
      an aside, and an aside that shouts is a second call to action. */
   .cta-aside{ margin:calc(-1 * var(--sp-3)) 0 var(--sp-3); padding:0 0 2px; cursor:pointer;
@@ -5864,7 +5882,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.61';
+const APP_VERSION = '2026.08.31.62';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13058,6 +13076,8 @@ function showNextCard(){
     ? `${cardQueueIndex+1} of ${cardQueue.length}`
     : `${left} suggestion${left === 1 ? '' : 's'}`;
   container.style.display = cardStackOpen ? '' : 'none';
+  const headRow = document.getElementById('cardStackHead');
+  if(headRow) headRow.style.display = '';
   const chev = document.getElementById('cardStackChev');
   if(chev){
     chev.style.display = '';
@@ -21225,8 +21245,11 @@ async function generateRecommendations(){
     container.style.display = '';
     const headCounter = document.getElementById('cardStackCounter');
     const headChev = document.getElementById('cardStackChev');
+    const headRow = document.getElementById('cardStackHead');
     if(headCounter) headCounter.textContent = '';
     if(headChev) headChev.style.display = 'none';
+    // Now that the head is a plate, an empty one is a black bar heading nothing.
+    if(headRow) headRow.style.display = 'none';
     const ringOffer = document.getElementById('insightsRingOffer');
     if(ringOffer){
       const go = ()=>{ activateTab('settings'); const d = document.getElementById('deviceDetails');
