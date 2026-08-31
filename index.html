@@ -727,7 +727,14 @@
      The header's own rule goes with it on these tabs, for the same reason it does on
      Weekly — it reads as a gap in the join. And #000000 rather than content black, again
      like the Weekly band: two blacks that touch can't be a shade apart. */
-  .panel > .form-panel:first-child, .week-panel{ margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
+  .panel > .form-panel:first-child, #weeklyTrainingView > .form-panel:first-child{
+    margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
+  /* .week-panel used to carry that rule by name, from when it opened the tab. Goals opens
+     it now, and a negative top margin on a section that is no longer first pulls it up
+     THROUGH the one above — which is what put the goal rows under the week's own heading.
+     The whole column takes the same black instead, so the sections read as one surface
+     rather than as three panels in two shades of nearly-black. */
+  #weeklyTrainingView > .group{ background:#000000; }
   /* Same opening band on the two tabs that don't start with a form. What sits in it
      differs — Goals puts its section head there, Data its view switch — but the band is
      the constant, and every tab now begins by continuing the header rather than by
@@ -824,11 +831,24 @@
      colour. The hairline under each heading already separates the sections; a stripe of
      yellow between them was doing that job twice and losing the band in the process. */
   .form-panel:has(+ .form-panel){ margin-bottom:0; }
+  /* Weekly is one black column. :has(+ .form-panel) could not close its seams because the
+     empty session-editor host sits between two of the sections, so every 16px gap became a
+     stripe of the tab's orange — and orange is the darkest and most saturated of the six tab
+     colours, so a stripe of it reads as a band of something rather than as a gap. The heads'
+     own hairlines separate the sections; the gaps were doing that job a second time. */
+  #weeklyTrainingView > .group{ margin-bottom:0; }
+  /* And the column runs to the footer rather than stopping 16px short of it, which left one
+     orange strip behind with nothing on either side of it to be a gap between. */
+  #weeklyTrainingView > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
+  #weeklyTrainingView > #blockEditHome:not(:empty){ background:#000000; }
   .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
   .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
   /* Buttons are black-on-light by default, which is invisible on the panel. */
   .form-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .form-panel button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
+  /* An outlined row is black-on-light by default, same as a button, so it disappeared the
+     moment the goal list moved onto a black panel. */
+  .form-panel .add-row{ color:var(--bg); border-color:rgba(251,250,246,0.45); }
   .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .injury-head{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
   .injury-part{ font-weight:var(--fw-bold); font-size:var(--fs-md); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
@@ -1001,7 +1021,11 @@
      measured width, same 9px caption over a short band. The two of them are one column — what
      you say about today, and what the last seven came to — at the score's own eye level. */
   #todayFaceRow{ position:absolute; right:14px; display:none; }
-  #todayFaceRow .trace-cap{ color:var(--face-said, rgba(251,250,246,0.42)); }
+  /* The captions are 9px. A saturated mid-tone at that size is legible by the numbers and
+     hard work in practice, and the colour is already being carried a few pixels away by the
+     face itself — the chip is filled in it, the row is outlined in it. So the marks keep the
+     hue and the words take the ink every other caption on the page uses. */
+  #todayFaceRow .trace-cap{ color:rgba(251,250,246,0.55); }
   .subj-faces{ display:flex; gap:3px; }
   /* Outlined in its own colour, filled in it when chosen: colour is always on the page so the
      scale reads at a glance, but only one of them is ever loud. */
@@ -1038,7 +1062,7 @@
      it when a three-digit score pushes the number's edge right. */
   #todayFaceDock .dock-word{ position:absolute; left:0; top:100%; margin-top:3px;
     font-family:var(--mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
-    color:var(--face-c); white-space:nowrap; pointer-events:none; }
+    color:rgba(251,250,246,0.7); white-space:nowrap; pointer-events:none; }
   /* The digits sit over the chip. Their own stacking context, so "behind" is a fact rather
      than a source-order accident — chip 1, digits 2, and the column above both, because the
      gauge is a full-width flex box whose empty half lies right across the row and would
@@ -1730,7 +1754,7 @@
            across two tabs — pick a goal on Goals, come here, press Generate — which is why
            nothing on screen ever said the two were connected. Folded by default: it is an
            input you set and revisit, not one you read. -->
-      <div class="group" id="weekGoalsGroup">
+      <div class="group form-panel" id="weekGoalsGroup">
         <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals <span class="head-est" id="weekGoalsSummary"></span></div><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
 
@@ -1819,7 +1843,7 @@
       <!-- Every session of the week with its reasoning underneath it: worth having, not
            worth reading every time you open the tab. It opens on a tap and stays a heading
            the rest of the time. -->
-      <div class="group" id="whyWeekGroup">
+      <div class="group form-panel" id="whyWeekGroup">
         <div class="group-head collapsible" data-collapse="whyweek" style="cursor:pointer;"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div><span class="collapse-chevron collapsed" data-collapse="whyweek">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="whyweek" style="display:none;">
           <div id="generateProgramResult" class="score-note"></div>
@@ -5499,7 +5523,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.36';
+const APP_VERSION = '2026.08.31.37';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
