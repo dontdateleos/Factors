@@ -140,9 +140,19 @@
      rather than assuming the margin. */
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
-  .tabs{ display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
+  /* The five tabs share the bar rather than sitting at their natural width with the slack
+     left over on the right. The gap goes with it — each tab's own padding is the gap now,
+     and an active tab's colour block runs to its neighbours instead of floating. */
+  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
-  .tab{ flex:0 0 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 8px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  /* flex:1 1 0 rather than a fixed min-width: five equal shares of whatever the phone is.
+     It also ends an overflow that had been there the whole time — at 320px the bar was 49px
+     too wide and clipped "Settings", and at 360px 9px too wide. Nothing clips at any width
+     now, because the labels shrink the tab rather than the tab shrinking the label.
+     The symbols stay ABOVE the labels, which was measured rather than chosen: beside them,
+     "Settings" clips at every width up to 393 even with the icon down at 14px, and buying
+     the room by shrinking the type is the opposite of the last three days' work. */
+  .tab{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 2px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
   /* THE TAB SYMBOLS. Drawn from rectangles on a 24 grid, the same way the card symbols are,
      rather than borrowed from an icon set — a house style is a house style or it is not one.
      Each says what its tab holds: Today wears the mark itself, Weekly the horizontal bars
@@ -5615,7 +5625,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.50';
+const APP_VERSION = '2026.08.31.51';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
