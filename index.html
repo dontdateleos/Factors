@@ -1122,9 +1122,17 @@
   #todayFaceDock .eyes{ pointer-events:none; }
   /* Reads out from under the chip, in the chip's own colour, so the word and the mark are
      obviously one statement. Positioned off the chip rather than the band, so it rides with
-     it when a three-digit score pushes the number's edge right. */
-  #todayFaceDock .dock-word{ position:absolute; left:0; top:100%; margin-top:3px;
-    font-family:var(--mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+     it when a three-digit score pushes the number's edge right.
+
+     CENTRED on the chip rather than aligned to its left edge. Left-aligned, "wrecked" was
+     47px hanging off a 30px chip: it started under the numeral and finished five pixels from
+     the week's first tick, so the same nine-pixel line touched both of its neighbours. Two
+     letters either side of the mark is a caption; seven letters trailing off to the right of
+     it is a tail. The tracking comes down with it — 0.14em is a lot of air to buy at a size
+     where the extra width is what pushes the word into the trace. */
+  #todayFaceDock .dock-word{ position:absolute; left:50%; transform:translateX(-50%);
+    top:100%; margin-top:3px;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.08em; text-transform:uppercase;
     color:rgba(251,250,246,0.7); white-space:nowrap; pointer-events:none; }
   /* The digits sit over the chip. Their own stacking context, so "behind" is a fact rather
      than a source-order accident — chip 1, digits 2, and the column above both, because the
@@ -5623,7 +5631,8 @@ const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
 const FACE_SCALE = 0.38;
 // The docked chip is the same drawing, larger: it is one thing now rather than one of five,
 // and it has to hold its own beside a 58px number.
-const DOCK_W = 30, DOCK_H = 36, DOCK_OVERLAP = 2, DOCK_SCALE = 0.55;
+const DOCK_W = 30, DOCK_H = 36, DOCK_SCALE = 0.55;
+let dockWordW = 0;   // the width of the word under the chip; see measureDockWord
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
 function faceEyesHtml(st, k, ink, alive){
   if(typeof st === 'number') st = EYE_STATES[st - 1];
@@ -5778,6 +5787,9 @@ checkDayRollover();
 if(document.fonts && document.fonts.ready){
   document.fonts.ready.then(()=>{
     try{ renderHeaderDate(); } catch(e){}
+    // The chip's word was measured in the fallback face, and the reserve it sets is what
+    // decides how wide the week is allowed to be.
+    try{ measureDockWord(); } catch(e){}
     try{ if(typeof paintScoreTrace === 'function' && scoreDays.length) paintScoreTrace(); } catch(e){}
   }).catch(()=>{});
 }
@@ -5882,7 +5894,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.63';
+const APP_VERSION = '2026.08.31.64';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7532,6 +7544,7 @@ function paintTodayFaces(){
       dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000', true)
         + `<span class="dock-word">${SUBJECTIVE_WORDS[v-1]}</span>`;
     }
+    measureDockWord();
   }
   row.dataset.asking = asking ? '1' : '0';
   // The chip is only alive while it is on screen — offsetParent settles that, and it is null
@@ -7573,7 +7586,16 @@ function layoutBandColumn(traceShown){
     if(asking){ dock.style.display = 'none'; }
     else {
       dock.style.display = 'flex';
-      dock.style.left = Math.round(numRect.right - bandRect.left - DOCK_OVERLAP) + 'px';
+      // The BLOCK is placed, not the chip: with the word centred under it, a word wider than
+      // the chip sticks out both sides, and anchoring the chip would put those overhanging
+      // letters back under the numeral. So the block's left edge takes the gap, and the chip
+      // sits in the middle of it. The chip used to be laid two pixels OVER the digits, which
+      // at this weight meant a saturated square touching the "9" with no daylight at all.
+      const plan = dockPlan(bandRect, numRect);
+      const word = dock.querySelector('.dock-word');
+      if(word) word.style.display = plan.showWord ? '' : 'none';
+      dock.style.left = Math.round(numRect.right - bandRect.left + DOCK_GAP
+        + (plan.blockW - DOCK_W) / 2) + 'px';
       dock.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - DOCK_H) / 2) + 'px';
     }
   }
@@ -13476,14 +13498,66 @@ const TICK_H = 4;               // today's mark; the other six are 3px
 const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
-/* Docked, the chip and its word stand in that gap and need it back: 30px of chip less the 7 it
-   spends behind the digits, plus the word underneath, which is wider than the chip is — and
-   then a real gap so a solid block of colour is not touching the week's ticks. On a 320px
-   screen with a three-digit score there is not enough band left for both, and the trace hides
-   itself under the rule it already had: below TRACE_MIN_W it is a squiggle, not a reading. */
-const DOCK_RESERVE = 50;
+/* Docked, the chip and its word stand in that gap and need it back. This used to be one
+   number, 50, sized for the worst case and then charged to every case — so a day answered
+   "ok" reserved as much room as one answered "wrecked", and the trace was made narrower to
+   hold a word that was seventeen pixels shorter than the reservation.
+
+   Measured now, off the word that is actually on the chip. The block is the chip or the
+   word, whichever is wider, with daylight on both sides of it: DOCK_GAP from the numeral so
+   a solid square of colour is not welded to a glyph, and DOCK_TRACE_GAP from the week so it
+   is not touching the ticks either. Four of the five answers are narrower than the constant
+   they replace, which is trace width given back.
+
+   Falls back to the widest word when nothing is on the chip to measure, because this is also
+   called before the chip has been painted. On a 320px screen with a three-digit score there
+   is still not enough band for both, and the trace hides itself under the rule it already
+   had: below TRACE_MIN_W it is a squiggle, not a reading. */
+const DOCK_GAP = 9;             // daylight between the last numeral and the chip
+const DOCK_TRACE_GAP = 9;       // and between the chip's word and the week's first tick
+const DOCK_RESERVE_MAX = 61;    // the widest answer, for before there is one to measure
+/* Taken when the word is written rather than when the column is laid out. The column asks
+   for the chip's footprint BEFORE the chip has been shown, and a hidden element measures
+   zero — which would have every first pass fall back to the widest word and then correct
+   itself a frame later, visibly. Shown for the length of one synchronous read; nothing
+   paints in between. Declared with the other dock measurements rather than here, so a paint
+   that runs before this block is reached cannot land in its temporal dead zone. */
+function measureDockWord(){
+  const dock = document.getElementById('todayFaceDock');
+  const w = dock && dock.querySelector('.dock-word');
+  if(!w){ dockWordW = 0; return; }
+  // The word itself may be hidden by the plan below, and a re-measure has to see it anyway
+  // — otherwise it measures zero, the plan reads that as "nothing to weigh", and the two
+  // flip each other back and forth.
+  const prevD = dock.style.display, prevW = w.style.display;
+  if(getComputedStyle(dock).display === 'none') dock.style.display = 'flex';
+  w.style.display = '';
+  dockWordW = w.offsetWidth;
+  w.style.display = prevW;
+  dock.style.display = prevD;
+}
+/* On a 320px band, "wrecked" and a seven-day trace do not both fit beside the number: the
+   word is 43px, and asking for it takes the column under TRACE_MIN_W, which takes the whole
+   week away. So the word goes instead — and only in that case. It is a legend for a mark you
+   chose ten seconds ago, drawn in that mark's own colour a few pixels above it; the week is
+   the only place on this page the last seven days exist. When the band can hold one of them
+   it holds the week.
+   Dropped only when dropping it is what saves the trace. Where the trace is doomed either
+   way (a three-digit score at 320) the word stays, because losing it would buy nothing.
+
+   Both the trace and the column read this, so it is one calculation off the same two rects
+   rather than two that have to agree. */
+function dockPlan(bandRect, numRect){
+  const avail = (bandRect.right - 14) - numRect.right;
+  const bare = DOCK_GAP + DOCK_W + DOCK_TRACE_GAP;
+  const withWord = dockWordW ? Math.round(DOCK_GAP + Math.max(DOCK_W, dockWordW) + DOCK_TRACE_GAP)
+    : DOCK_RESERVE_MAX;
+  const showWord = (avail - withWord) >= TRACE_MIN_W || (avail - bare) < TRACE_MIN_W;
+  return { reserve: showWord ? withWord : bare, showWord,
+    blockW: showWord && dockWordW ? Math.max(DOCK_W, dockWordW) : DOCK_W };
+}
 function bandColumnWidth(bandRect, numRect, docked){
-  const gap = docked ? DOCK_RESERVE : TRACE_GAP;
+  const gap = docked ? dockPlan(bandRect, numRect).reserve : TRACE_GAP;
   return Math.round(Math.min(100, (bandRect.right - 14) - (numRect.right + gap)));
 }
 function faceIsDocked(){
