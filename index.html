@@ -4823,7 +4823,9 @@ const tabs = document.querySelectorAll('.tab');
 const panels = document.querySelectorAll('.panel');
 const footerRecoveryEl = document.getElementById('footerRecovery');
 
-function updateFooterVisibility(){
+// async now: whether the strip stands depends on whether a session is under way, which is
+// a stored answer. Every caller fires and forgets it, so nothing waits on the result.
+async function updateFooterVisibility(){
   const dataActive = document.getElementById('panel-data').classList.contains('active');
   const dataSubView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view;
   footerRecoveryEl.style.display = (dataActive && dataSubView==='recovery') ? 'flex' : 'none';
@@ -4831,10 +4833,17 @@ function updateFooterVisibility(){
   const onToday = document.getElementById('panel-insights').classList.contains('active');
   const colophon = document.querySelector('.app-colophon');
   const strip = document.getElementById('todayLogStrip');
-  if(colophon) colophon.style.display = onToday ? 'none' : '';
-  // "Swipe down to log workout" offers to log a session that cannot exist yet.
-  const stripOn = onToday && todayIsSetUp;
+  // The strip was a second way into logging, doing exactly what the "Log this workout"
+  // button under the exercises already does — and taking a black band across the bottom of
+  // every Today to say so. The button is the way in: it sits beside the thing it logs. The
+  // strip only stands once a session is under way, where it is not a duplicate but the way
+  // back to a panel you have scrolled past, and Today closes in the colophon like every
+  // other tab the rest of the time.
+  let started = false;
+  try{ started = !!(await loggingStartedAt(todayStr)); } catch(e){}
+  const stripOn = onToday && todayIsSetUp && started;
   if(strip) strip.style.display = stripOn ? 'flex' : 'none';
+  if(colophon) colophon.style.display = stripOn ? 'none' : '';
   if(stripOn) refreshLogStripWord();
   // The minimised bar sits above whatever footer this tab has, so it has to be remeasured
   // whenever the footer comes or goes. Guarded because this runs during boot, before the
@@ -5521,7 +5530,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.41';
+const APP_VERSION = '2026.08.31.42';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
