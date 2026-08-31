@@ -5899,12 +5899,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.87';
+const APP_VERSION = '2026.08.31.88';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.87': 'A run gets a shorter warm-up and cool-down than a lift, and its cool-down counts toward each body part\u2019s weekly mobility total.'
+  '2026.08.31.88': 'The run warm-up follows the evidence: sized per run type, dynamic work capped at 220 seconds, strides on the sessions that need them, and a jog-down on the cool-down.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -18336,19 +18336,25 @@ async function saveStretchLedgerFor(date, secondsByArea){
 
 
 
-// Warm-up protocol per run type. Easy and long runs need very little — starting slowly is
-// itself the warm-up — while tempo and interval work needs the muscles and nervous system
-// prepared before the first hard rep. Strides are included for quality sessions because
-// they're the standard bridge between easy running and race-pace effort.
+/* Warm-up protocol per run type, on the run block itself. This USED to describe the drills
+   as well — "leg swings and ankle rolls", "dynamic drills (A-skips, high knees, heel flicks)"
+   — which is the same content Today's warm-up list now prescribes properly, with doses and
+   tick boxes and a 220-second ceiling on it. Two places telling you to do leg swings, one of
+   them without a dose.
+   So the split is by RAMP phase. This owns RAISE and POTENTIATE — the jogging and the
+   strides, which are running and belong to the run. The drill list owns ACTIVATE and
+   MOBILISE. Neither mentions the other's work.
+   The gaps are stated because the gap matters as much as the work: muscle temperature and
+   the raised VO2 baseline both decay in the walk to the start. */
 const RUN_WARMUP_BY_TYPE = {
-  easy:     '5 min brisk walk or very easy jog, then settle into pace.',
+  easy:     'Walk, then ease into the first kilometre slower than target pace. The run is the warm-up.',
   long:     '5-10 min easy jog to open up, then settle. Start slower than feels necessary.',
-  tempo:    '10 min easy jog · leg swings and ankle rolls · 4x20s strides building to tempo pace · 2 min easy before the first rep.',
-  interval: '10-15 min easy jog · dynamic drills (A-skips, high knees, heel flicks) · 4-6x20s strides at target pace · 3 min easy before rep one.',
-  fartlek:  '10 min easy jog · leg swings · 3x20s strides. The first surge is the warm-up for the rest.',
-  hills:    '10-15 min easy jog to the hill · dynamic drills · one relaxed uphill at half effort before the working reps.',
-  sprint:   '15 min easy jog · full dynamic sequence · 4-6 progressive strides. Never sprint cold.',
-  race:     'Follow your usual pre-race routine — 10-15 min easy, drills, strides, finishing ~10 min before the gun.'
+  tempo:    '10-15 min easy jog, last 2 min lifting toward steady \u00b7 4-6 \u00d7 80-100m strides \u00b7 first rep within 2 min.',
+  interval: '10-15 min easy jog \u00b7 4-6 \u00d7 80-100m strides at target pace \u00b7 rep one within 2 min.',
+  fartlek:  '10 min easy jog \u00b7 3 \u00d7 20s strides. The first surge is the warm-up for the rest.',
+  hills:    '10-15 min easy jog to the hill \u00b7 one relaxed uphill at half effort before the working reps.',
+  sprint:   '15 min easy jog \u00b7 4-6 progressive strides. Never sprint cold.',
+  race:     '10-15 min easy jog finishing 25-30 min out \u00b7 4-6 strides \u00b7 keep moving with layers on, gap to the gun under 5 min. At half or full marathon distance cut the jog to 5-10 min and treat the first kilometres as the rest of it.'
 };
 
 
@@ -22248,20 +22254,50 @@ const MOBILITY_STATIC_SHARE_PER_AREA = 5;
 // training transiently reduces force output, and RAMP's Raise/Activate/Mobilise phases
 // are movement prep by design. Zero, not a token minute.
 const WARMUP_STATIC_SHARE_PER_AREA = 0;
-/* A RUN NEEDS LESS OF BOTH THAN A LIFT DOES.
+/* A RUN'S PREPARATION IS NOT ONE SIZE, AND IT IS NOT A FRACTION OF A LIFT'S.
 
-   Before: the first kilometre at an easy pace is itself the warm-up, which is why the run
-   protocol elsewhere in this file already says so. There is no equivalent for a heavy squat —
-   you cannot ease into it — so a lift needs its preparation done beforehand and a run largely
-   does not. After: a run loads a narrow, predictable set of tissue rather than whatever the
-   session happened to contain, so there is less to work through.
+   This was briefly a single multiplier applied to every run, which the evidence does not
+   support in either direction: an easy run wants 3-5 minutes because the first kilometre IS
+   the warm-up, while a threshold or interval session wants 15-20 and should therefore get
+   MORE preparation than a strength day, not sixty percent of one. Half and full marathons
+   are the one case where less is clearly better again — opening pace is well below the
+   intensity that creates a large oxygen deficit, and beyond ten minutes you are spending
+   glycogen and adding heat load for a benefit the first race kilometres would have given you.
 
-   Both caps are scaled, not the per-area dose, because the budget is area-count times cost.
-   At the standard caps that takes the warm-up from four areas to two and the cool-down from
-   two to one — the cool-down is coarse, since seven minutes an area means it can only ever be
-   one or two. Shorter, in the only unit the budget has. */
-const RUN_WARMUP_SCALE = 0.6;
-const RUN_COOLDOWN_SCALE = 0.7;
+   These budgets cover the DRILLS ONLY — the Activate and Mobilise phases of RAMP. The Raise
+   phase (the jog) and the Potentiate phase (strides) belong to the run itself and are what
+   RUN_WARMUP_BY_TYPE describes, so the two stopped overlapping. Minutes here, against a
+   per-area cost of WARMUP_TIME_PER_AREA, so easy gets one area and a workout gets four.
+
+   They REPLACE the session-length scaling rather than compounding with it: sessionLength is
+   the strength setting and says nothing about how long a run is. */
+const RUN_WARMUP_BUDGET = {
+  easy:3, recovery:3, long:6, tempo:9, fartlek:9, interval:12, hills:12, sprint:12, race:12
+};
+/* And the ceiling that is not a judgement call. Pooled across studies, dynamic stretching
+   improved running performance by 9.8% at a total of 217-220 seconds — and a 900-second
+   protocol IMPAIRED it. So the drills are trimmed to this however many areas were selected;
+   the budget above decides what gets picked, this decides when to stop. */
+const RUN_DYNAMIC_CAP_S = 220;
+/* Afterwards: 10-20 minutes, low impact, under thirty in total so it does not interfere with
+   glycogen resynthesis. An easy run has little to work through and gets one area; anything
+   harder gets two. */
+const RUN_COOLDOWN_BUDGET = {
+  easy:7, recovery:7, long:14, tempo:14, fartlek:14, interval:14, hills:14, sprint:14, race:14
+};
+/* Which run today actually is. The budgets above are useless without it, and the block has
+   carried runType since runs were schedulable. Named plannedRunType, not todayRunType: a
+   local of that name already lives inside the deload check, and a global function shadowed
+   by a let in the one place someone would go looking is a trap. */
+async function plannedRunType(){
+  for(const slot of ['am', 'pm']){
+    try{
+      const bl = JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value);
+      if(bl && bl.type === 'run') return (bl.details && bl.details.runType) || 'easy';
+    } catch(e){}
+  }
+  return 'easy';
+}
 // Always keeps the must-keep areas — injuries, and areas you pinned by accepting a
 // mobility card (non-negotiable); trims everything else to fit
 // the time budget, taking `ordered` (already priority-sorted) from the top down.
@@ -22312,9 +22348,8 @@ async function generateWarmup(){
     if(len && len <= 30) warmupCap = Math.round(WARMUP_TIME_CAP * 0.45);
     else if(len && len <= 45) warmupCap = Math.round(WARMUP_TIME_CAP * 0.7);
   } catch(e){}
-  // Composes with the length scaling above rather than replacing it: a short run day gets
-  // both reductions, which is correct — it is the shortest prep the app will prescribe.
-  if(todaySessionType === 'run') warmupCap = Math.round(warmupCap * RUN_WARMUP_SCALE);
+  const runType = todaySessionType === 'run' ? await plannedRunType() : null;
+  if(runType) warmupCap = RUN_WARMUP_BUDGET[runType] != null ? RUN_WARMUP_BUDGET[runType] : RUN_WARMUP_BUDGET.long;
   // Priority decides the first two slots; the remainder rotates by date so the tail of
   // the list is reachable at all. Deterministic within a day, different across days.
   const rotDay = new Date(todayStr).getDate();
@@ -22350,9 +22385,7 @@ async function generateWarmup(){
   // being measured against planned mobility blocks only — real exposure was higher than
   // anything the app reported. WARMUP_TIME_PER_AREA is the per-area cost the budget was
   // built from, so it converts directly.
-  const warmupSecondsByArea = {};
-  selected.forEach(a => { warmupSecondsByArea[a] = WARMUP_STATIC_SHARE_PER_AREA * 60; });
-  try{ await window.storage.set(`warmupLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: selected, secondsByArea: warmupSecondsByArea })); } catch(e){}
+  // (written further down, once the drill list is final — see warmedAreas)
 
   // The +5 was Raise plus Potentiate; only Potentiate is left. And the structure is no
   // longer the full RAMP, so it stops claiming to be.
@@ -22413,6 +22446,10 @@ async function generateWarmup(){
   // which is what you actually do. An injured area still colours its own drills, so the
   // flag survives the label it used to hang on.
   const drillParts = [];
+  // Which area each drill came from, in step with drillParts. The 220-second trim below can
+  // drop the tail of the list, and an area whose drills all went is not an area that was
+  // warmed up — logging it as one would have the cool-down skip tissue nothing touched.
+  const drillAreas = [];
   const seen = new Set();
   selected.forEach(area=>{
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas);
@@ -22421,16 +22458,58 @@ async function generateWarmup(){
       if(seen.has(k)) return;   // two areas can draw the same drill from the library
       seen.add(k);
       drillParts.push(r.cls==='planned' ? d : `<span class="flow-flag ${r.cls}">${d}</span>`);
+      drillAreas.push(area);
     });
   });
-  // Potentiate closes the sequence: it names the ramp-up sets for the specific lift you are
-  // about to do, which no drill in the list covers — and it is not a drill, so it is not
-  // something to tick off.
+  /* THE 220-SECOND CEILING, on a run only. The budget above decided which areas got picked;
+     this decides when the list stops. Pooled across studies, dynamic stretching improved
+     running performance by 9.8% at 217-220 seconds total and IMPAIRED it at 900, so the
+     drills are trimmed to their own printed doses rather than to a count of areas. The first
+     drill is always kept — a warm-up of nothing is not the finding. */
+  if(runType){
+    let spent = 0;
+    let keep = 0;
+    for(let i = 0; i < drillParts.length; i++){
+      const cost = drillDoseSeconds(drillParts[i])[1];
+      if(keep && spent + cost > RUN_DYNAMIC_CAP_S) break;
+      keep++;
+      spent += cost;
+    }
+    drillParts.length = keep;
+    drillAreas.length = keep;
+  }
+  // What is written down is what survived, not what was picked. This used to be logged the
+  // moment the areas were chosen, several steps before the drills existed; with a trim in
+  // between, that record would claim tissue the list never showed you.
+  const warmedAreas = selected.filter(a => drillAreas.includes(a));
+  const warmupSecondsByArea = {};
+  warmedAreas.forEach(a => { warmupSecondsByArea[a] = WARMUP_STATIC_SHARE_PER_AREA * 60; });
+  try{ await window.storage.set(`warmupLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: warmedAreas, secondsByArea: warmupSecondsByArea })); } catch(e){}
+  /* Potentiate closes the sequence, and what it is depends on what you are about to do. For
+     a lift it is the ramp-up sets on the first movement. For a run it is STRIDES — the step
+     most runners skip and the one that actually lifts baseline VO2 into the range that pays
+     off in the opening minutes; it is worth about 1% over strides alone in trained 800m
+     runners. Only on the sessions that need it: an easy or long run gets the opposite
+     instruction, because there the first kilometre is the warm-up and a stride before it is
+     answering a question nobody asked.
+     Not a drill either way, so not something to tick off. */
+  const QUALITY_RUNS = ['tempo', 'interval', 'fartlek', 'hills', 'sprint', 'race'];
+  let potentiate, potentiateMins;
+  if(runType && QUALITY_RUNS.includes(runType)){
+    potentiate = '<b>Strides</b> — 4-6 × 80-100m at about 5K pace, walking back between. Start the first rep within 2 minutes of the last one.';
+    potentiateMins = 5;
+  } else if(runType){
+    potentiate = '<b>Ease in</b> — run the first kilometre deliberately slower than target pace. That is the rest of the warm-up.';
+    potentiateMins = 0;
+  } else {
+    potentiate = '<b>Ramp up</b> — sets on the first lift, building toward your working weight';
+    potentiateMins = 3;
+  }
   flow.className = 'drill-list';
-  // +3 for the ramp-up sets, which are real minutes with no dose written on them.
-  const warmMins = drillMinutes(drillParts) + 3;
+  // The closing phase is real minutes with no dose written on it, so it is added by hand.
+  const warmMins = drillMinutes(drillParts) + potentiateMins;
   renderDrillList(flow, 'warmup', drillParts.map(d=>({ html:d }))
-    .concat([{ html:'<b>Ramp up</b> — sets on the first lift, building toward your working weight', note:true }]),
+    .concat([{ html:potentiate, note:true }]),
     document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`);
 }
 
@@ -22556,7 +22635,8 @@ async function generateMobility(){
     if(len && len <= 30) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.45);
     else if(len && len <= 45) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.7);
   } catch(e){}
-  if(todaySessionType === 'run') mobilityCap = Math.round(mobilityCap * RUN_COOLDOWN_SCALE);
+  const coolRunType = todaySessionType === 'run' ? await plannedRunType() : null;
+  if(coolRunType) mobilityCap = RUN_COOLDOWN_BUDGET[coolRunType] != null ? RUN_COOLDOWN_BUDGET[coolRunType] : RUN_COOLDOWN_BUDGET.long;
   // Same rotation on the post-session side, for the same reason.
   const rotDayM = new Date(todayStr).getDate();
   const remainingBase = remaining.length
@@ -22648,8 +22728,22 @@ async function generateMobility(){
   Object.keys(buckets).filter(b=>buckets[b].length).forEach(b=>{
     buckets[b].forEach(t=> coolItems.push({ html:t, group:b }));
   });
+  /* After a run the jog-down comes before any of this and is not in the library, so it is
+     said here. Low impact is an explicit recommendation rather than a preference: additional
+     eccentric loading on already-damaged muscle is the thing to avoid, which is why a hard
+     session is walked or cycled rather than jogged. The thirty-minute ceiling is there so the
+     cool-down does not start competing with glycogen resynthesis.
+     What it does NOT claim: an active cool-down does not reduce next-day soreness and does
+     not change injury rates. The holds below are for range of motion, which the glossary
+     already says. */
+  if(coolRunType){
+    const hard = ['tempo', 'interval', 'fartlek', 'hills', 'sprint', 'race'].includes(coolRunType);
+    coolItems.unshift({ note:true, html: hard
+      ? '<b>Jog down</b> — 5-15 min easing into a walk. After a hard session walk or cycle rather than jog, and keep the whole cool-down under 30 minutes.'
+      : '<b>Jog down</b> — let the last 5 minutes decay into a walk. Under 30 minutes all in.' });
+  }
   renderDrillList(coolFlow, 'cooldown', coolItems,
-    document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.map(i=>i.html))}<i class="unit">min</i>`);
+    document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.filter(i=>!i.note).map(i=>i.html))}<i class="unit">min</i>`);
 }
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
