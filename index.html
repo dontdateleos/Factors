@@ -194,40 +194,16 @@
   /* Settings inherits the blue Goals used to hold: red is the loudest thing in the palette
      and it was spending it on the tab you visit least. */
   .tab[data-tab="settings"].active{ background:var(--block-blue); }
-  /* An ordered dot screen on a 4px grid, offset on the second pass so it reads as a printed
-     ground rather than as a grid. Black at 13% — no new colour anywhere.
-
-     7px at 16% was tried and taken back out: on the real phone it stopped being tone and
-     started being dots you could count, which is a pattern rather than a ground. At 4px it
-     is barely there by design — what it does is stop the colour looking like flat digital
-     fill, and it should not be doing more than that.
-
-     It goes on the backdrop and nowhere else, which is what puts it on the coloured parts
-     only: the backdrop is the tab's colour showing through the gaps the page leaves, and
-     every black block in the app is an opaque element painted on top of it. So the screen
-     appears exactly where colour appears, and the chips, the plate and the tab blocks — all
-     of them small enough that a screen would read as dirt rather than as tone — are
-     untouched. */
-  :root{
-    --screen:radial-gradient(rgba(0,0,0,0.13) 0.5px, transparent 0.6px),
-             radial-gradient(rgba(0,0,0,0.13) 0.5px, transparent 0.6px);
-    --screen-size:4px 4px, 4px 4px;
-    --screen-pos:0 0, 2px 2px;
-  }
-  #scrollBackdrop{ position:absolute; inset:0; z-index:-1; background-repeat:repeat;
-    background-image:var(--screen); background-size:var(--screen-size);
-    background-position:var(--screen-pos); }
-  /* The card carries its own copy of the tab colour while it is being dealt, so it has to
-     carry the screen too — without this the page arrives flat and gains its tone at the
-     handoff, which is a pop on every switch. */
-  .panel.tab-card{ background-image:var(--screen); background-size:var(--screen-size);
-    background-position:var(--screen-pos); }
-  /* A screen lowers the effective contrast of whatever sits on the colour, by a little. Not
-     enough to fail anything, but someone who has asked for more contrast has asked for the
-     flat colour. */
-  @media (prefers-contrast: more){
-    #scrollBackdrop, .panel.tab-card{ background-image:none; }
-  }
+  /* The coloured backdrop is flat colour. It used to carry an ordered dot screen — black at
+     13% on a 4px grid, offset on a second pass — meant to stop the colour reading as flat
+     digital fill. On the real phone it was doing less than that and costing contrast on
+     everything sitting over it, so it is gone: no background-image on the backdrop, none on
+     the card while it is being dealt, and no prefers-contrast override to turn off something
+     that no longer exists.
+     The backdrop element itself stays. It is what carries the tab's colour — activateTab
+     writes its background-color — and every black block in the app is an opaque element
+     painted on top of it. */
+  #scrollBackdrop{ position:absolute; inset:0; z-index:-1; }
   /* The deal. The card is a positioned element with a z-index so it makes its own stacking
      context, which is what stops the sticky headings inside it climbing out and painting over
      its leading edge. It stays under the header's z-index 10, so the header is untouched the
@@ -5923,12 +5899,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.85';
+const APP_VERSION = '2026.08.31.86';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.85': 'The Strength / Run / Mobility buttons stop sitting on the edge of the black band.'
+  '2026.08.31.86': 'The dot screen comes off the coloured backdrop \u2014 the colours are flat now.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
