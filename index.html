@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOGFOOD</title>
+<title>CONFETTI</title>
 <!-- Home screen / "Add to Home Screen" support — makes the app launch fullscreen
      (no Safari address bar) with a proper icon and name, rather than opening as a
      plain bookmarked webpage. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Dogfood">
+<meta name="apple-mobile-web-app-title" content="Confetti">
 <meta name="theme-color" content="#0a0a0a">
 <!-- The mark itself: a full-bleed lime field with the two eyes on it. Full bleed
      because iOS rounds the corners of a home-screen icon for you, and rounding them
@@ -1758,7 +1758,10 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
+    <!-- CONFETTI, one word straight across the band. Hand-kerned: Helvetica at this size
+         with -0.045em tracking sets CON too loose and the TT pair far too tight, and the
+         pairs that need it are the ones with a round letter beside a straight one. -->
+    <h1><div class="logo-line"><span style="margin-right:-0.02em;">C</span><span style="margin-right:-0.015em;">o</span><span style="margin-right:-0.005em;">n</span><span style="margin-right:-0.03em;">f</span><span style="margin-right:-0.01em;">e</span><span style="margin-right:-0.025em;">t</span><span style="margin-right:0.005em;">t</span><span>i</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
@@ -2839,7 +2842,7 @@ if(!window.storage){
       return { key, deleted: existed, shared: false };
     }
   };
-  console.info('FACTORS: running standalone — using browser localStorage instead of Claude artifact storage.');
+  console.info('CONFETTI: running standalone — using browser localStorage instead of Claude artifact storage.');
 }
 
 /* ---------- THE EYES ----------
@@ -5902,7 +5905,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.65';
+const APP_VERSION = '2026.08.31.66';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6651,6 +6654,19 @@ let headerCollapseEls = null;
 let logoTextWidth = null;
 let logoOriginX = 14;
 
+/* The wordmark's own measurements. LOGO_MEASURED_PX is the size the CSS sets and therefore
+   the size logoTextWidth is taken at — every scale below is relative to it, so changing the
+   CSS size without changing this would silently move the mark. MARK_BOX is the mark's drawn
+   width, and LOGO_DATE_CLEAR the air left between the mark and the date block. */
+const LOGO_MEASURED_PX = 46, MARK_BOX = 40, MARK_GAP_PX = 2, LOGO_DATE_CLEAR = 12;
+/* Where the cap band's middle sits below the top of the h1's line box, as a fraction of the
+   font size. Helvetica/Arial: ascent 0.905em, descent 0.212em, cap height 0.716em, set on a
+   0.92 line-height — so the half-leading is negative, the baseline lands 0.8065em down, and
+   the middle of the capitals is half a cap height above that. Uppercase type has nothing
+   below the baseline, so centring the mark on the LINE BOX would hang it low by the whole
+   descender; this centres it on the ink. */
+const LOGO_CAP_MID = 0.4486;
+let logoBasePx = LOGO_MEASURED_PX, logoTopY = 0;
 function updateHeaderCollapse(){
   if(window.headerCollapseSuspended) return;
   if(!headerCollapseEls){
@@ -6659,21 +6675,59 @@ function updateHeaderCollapse(){
       h1: header.querySelector('h1'),
       mark: document.querySelector('.header-mark')
     };
-    // Measure where the wordmark actually ends — the widest of the two lines, since the
-    // mark has to clear "food" as well as "Dog". Taken from the last letter's right edge
+    // Measure where the wordmark actually ends — the widest line, back when there were two
+    // of them and the mark had to clear both. Taken from the last letter's right edge
     // relative to h1's own left edge, once, before any inline style override is applied:
     // .logo-line is display:block and stretches to fill its container regardless of text
     // content, so the letter span's own rendered position is what reflects real text
     // metrics (which differ slightly between engines) rather than a pixel assumption.
+    // Measured at the CSS base size, always. Everything below is a ratio against
+    // LOGO_MEASURED_PX, and this function writes the h1's font-size inline — so measuring a
+    // second time without clearing that would read the ink at the size the LAST fit chose
+    // and fit against its own output. Only bites on a re-measure, which nothing does today;
+    // it is one line to make sure it never does.
+    headerCollapseEls.h1.style.fontSize = '';
     const h1Rect = headerCollapseEls.h1.getBoundingClientRect();
     const brandRect = header.querySelector('.header-brand').getBoundingClientRect();
     logoOriginX = h1Rect.left - brandRect.left;
+    // The h1's top in the flow. Its HEIGHT changes with the fitted size; where its box
+    // starts does not, so this is safe to take once and reuse at every size.
+    logoTopY = h1Rect.top - brandRect.top;
     logoTextWidth = 0;
     headerCollapseEls.h1.querySelectorAll('.logo-line').forEach(line=>{
       const spans = line.querySelectorAll('span');
       const last = spans[spans.length-1];
       if(last) logoTextWidth = Math.max(logoTextWidth, last.getBoundingClientRect().right - h1Rect.left);
     });
+    /* THE WORDMARK IS FITTED, NOT SET.
+
+       One word across the band, at whatever size actually crosses it. A fixed 46px was
+       right for a two-line DOGFOOD and is wrong for this: measured, CONFETTI on one line is
+       209px at 46px, which leaves a 393 screen a third empty and still runs into the date
+       block on a 320. So the size comes from the room rather than the room from the size.
+
+       The stop is the date block, not the screen edge. The date and the readout above it are
+       the row that survives the collapse — the wordmark shrinks to nothing as you scroll and
+       they do not — so they are not something to run underneath. What is left after the
+       mark, its gap and a little air is what the word gets.
+
+       Clamped at both ends: never past 76, because a wide tablet would otherwise set it at a
+       size nothing else on the page answers to, and never under 42, where it stops being
+       display type. The floor is 42 rather than the old 46 because 46 was ABOVE the fit on a
+       320 screen — the clamp won, and the mark ended up 1.6px from the date. A floor that
+       overrides the fit is a floor that puts things on top of each other. */
+    const dateEl = document.getElementById('headerDate');
+    const inkLeft = (headerCollapseEls.h1.querySelector('span') || headerCollapseEls.h1)
+      .getBoundingClientRect().left - brandRect.left;
+    const stopX = dateEl ? (dateEl.getBoundingClientRect().left - brandRect.left)
+      : (brandRect.width - 14);
+    const room = stopX - LOGO_DATE_CLEAR - MARK_BOX - MARK_GAP_PX - inkLeft;
+    // logoTextWidth was measured at the CSS base size, and the mark's left below scales by
+    // fontSize/LOGO_MEASURED_PX — so that measurement stays the reference and only the size
+    // it is drawn at changes.
+    logoBasePx = logoTextWidth > 0
+      ? Math.max(42, Math.min(76, LOGO_MEASURED_PX * room / logoTextWidth))
+      : LOGO_MEASURED_PX;
   }
   const { h1, mark } = headerCollapseEls;
 
@@ -6685,21 +6739,25 @@ function updateHeaderCollapse(){
   // header having lost a line.
   const dateEl = document.getElementById('headerDate');
   if(dateEl) dateEl.style.opacity = (1 - progress).toFixed(3);
-  const fontSize = lerp(46, 0, progress);
+  const fontSize = lerp(logoBasePx, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
-  // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
+  // MARK_GAP_PX is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
-  // Negative: the mark tucks under the tail of the last letter rather than sitting off it.
-  const MARK_GAP = -10;
-  // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
-  // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
-  const MARK_TOP = 57;
+  // It used to be -10, which tucked the plate under the tail of DOGFOOD's "d" — a wide
+  // round letter with side bearing to spare. CONFETTI ends on an "I", which has none, so
+  // the same -10 swallowed the letter whole and the wordmark read CONFETT. Positive now:
+  // the mark sits just off the ink rather than over it.
+  // MARK_TOP centres the mark on the wordmark's ink. It used to be a flat 57px, which was
+  // the midpoint between DOGFOOD's two lines and correct only while the type was a fixed
+  // 46px on two lines. One line, at a size that now differs per screen (46 at 320, 68 at
+  // 430), needs it computed or the mark hangs below the baseline on every phone but one.
+  const MARK_TOP = logoTopY + fontSize * LOGO_CAP_MID - MARK_BOX / 2;
   // The header mark's top is written from here, so the sag has to be added in rather than
   // read off the custom property the way the score slot does it.
   mark.style.top = (lerp(MARK_TOP, 30, progress) + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
-  mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP) * (fontSize/46)) + 'px';
+  mark.style.left = (logoOriginX + (logoTextWidth + MARK_GAP_PX) * (fontSize/LOGO_MEASURED_PX)) + 'px';
   // Widening a touch as it shrinks reads as the mark being squeezed out of the way,
   // where an even scale just reads as it being turned off. The bulge peaks mid-collapse
   // and is gone at both ends, so it never fights the finger.
@@ -23259,7 +23317,7 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `factors-backup-${todayStr}.json`;
+    a.href = url; a.download = `confetti-backup-${todayStr}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch(e){

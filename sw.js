@@ -1,4 +1,4 @@
-/* Factors — service worker.
+/* Confetti — service worker.
 
    index.html has tried to register this file since the update checker was written, and it
    has never existed, so every register() call rejected and was swallowed. That left the one
@@ -17,13 +17,13 @@
    Everything is defensive. Any throw inside the fetch handler falls through to the network,
    so a bug in here costs the offline fallback rather than the app. */
 
-const CACHE = 'factors-doc-v1';
+const CACHE = 'confetti-doc-v1';
 /* The font is the one other thing the page needs, and it came from a third party that an
    offline phone cannot reach — so an offline launch had the document and no typeface. It
    gets its own cache, and the opposite strategy to the document: CACHE-FIRST, because a
    font file at a versioned URL never changes, and revalidated in the background so a new
    weight is picked up without anyone waiting for it. */
-const FONT_CACHE = 'factors-font-v1';
+const FONT_CACHE = 'confetti-font-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const NET_TIMEOUT_MS = 6000;   // a slow network should not out-wait a usable cached copy
 
