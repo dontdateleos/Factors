@@ -1801,28 +1801,6 @@
         </div>
       </div>
 
-
-
-      <div class="group">
-        <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
-        <div class="fields">
-          <details class="mobility-legend">
-            <summary>Where do these progressions come from?</summary>
-            <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand progressions come from coaching consensus. Muscle-up is a reasonable extension, not directly sourced &mdash; marked with an asterisk.</div>
-          </details>
-          <div id="strengthSkillPicker">
-            <div class="mob-wheel" id="strengthSkillWheel"></div>
-            <label class="skill-active-row" for="strengthSkillActive">
-              <input type="checkbox" id="strengthSkillActive">
-              <span id="strengthSkillActiveLabel">Working on this</span>
-            </label>
-            <div class="mob-check" id="strengthSkillLevels"></div>
-            <div class="score-note" id="strengthSkillNote"></div>
-            <div class="skg-progress" id="exerciseProgressBody"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Moved under the running goal row by loadCurrentGoals, and hidden when there
            isn't one — it is that goal's own setup, not a section of its own. -->
       <div class="group form-panel" id="runStartPanel">
@@ -1923,6 +1901,29 @@
       <div class="log-title">Active &amp; recent injuries</div>
       <div id="injuryList"></div>
     </div>
+
+      <!-- The two skill ladders are one system and always were: same skillGoals array, same
+           picker, same levels. loadCurrentGoals already seeded both from whichever tab you
+           were on — only the markup had them on separate tabs. -->
+      <div class="group">
+        <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
+        <div class="fields">
+          <details class="mobility-legend">
+            <summary>Where do these progressions come from?</summary>
+            <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand progressions come from coaching consensus. Muscle-up is a reasonable extension, not directly sourced &mdash; marked with an asterisk.</div>
+          </details>
+          <div id="strengthSkillPicker">
+            <div class="mob-wheel" id="strengthSkillWheel"></div>
+            <label class="skill-active-row" for="strengthSkillActive">
+              <input type="checkbox" id="strengthSkillActive">
+              <span id="strengthSkillActiveLabel">Working on this</span>
+            </label>
+            <div class="mob-check" id="strengthSkillLevels"></div>
+            <div class="score-note" id="strengthSkillNote"></div>
+            <div class="skg-progress" id="exerciseProgressBody"></div>
+          </div>
+        </div>
+      </div>
 
       <div class="group">
         <div class="group-head"><div class="group-title">Mobility Skills</div><div class="group-sub">what you're chasing, and where each one sits</div></div>
@@ -5496,7 +5497,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.34';
+const APP_VERSION = '2026.08.31.35';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
