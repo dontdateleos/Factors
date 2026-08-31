@@ -1107,6 +1107,23 @@
   .load-name{ flex:0 0 34%; opacity:0.7; text-transform:uppercase; letter-spacing:0.05em; }
   .load-val{ flex:1; font-variant-numeric:tabular-nums; }
   .load-delta{ flex:0 0 auto; opacity:0.7; font-variant-numeric:tabular-nums; }
+  /* Ten identical rows read as a list of ten things. Four bands read as four. The band is a
+     label on the page's own colour, not another black plate — it separates the sections
+     rather than joining the queue of them. */
+  .set-band{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--text); opacity:0.75;
+    padding:var(--sp-3) 0 var(--sp-2); }
+  /* Settings is one dark column for the same reason Weekly is: each section carries a 16px
+     bottom margin, and where the section's surface is transparent that margin shows the
+     tab's colour — which reads as a band of something rather than as a gap. The bands above
+     are the only place the blue is meant to show through. */
+  #panel-settings > .group{ margin-bottom:0; }
+  #panel-settings > .set-band + .group{ margin-top:0; }
+  /* Version opens the tab, so it runs into the header the way every other tab's first
+     section does, and the column runs to the footer rather than stopping a gap short of it. */
+  #panel-settings > .group:first-child{ margin-top:calc(-1 * (var(--sp-3) + 4px));
+    padding-top:4px; background:#000000; }
+  #panel-settings > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
   /* The block chart's caption and its unit pills share one line: the pills are the only
      control on the chart and they belong beside the sentence they change. */
   .blc-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -2214,6 +2231,18 @@
   </div>
 
   <div class="panel" id="panel-settings">
+    <!-- Version leads. It was ninth of ten, and checking for an update is the one thing on
+         this page anyone does more than once — four taps deep for a control that mostly
+         answers "yes, you're current". -->
+    <div class="group">
+      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="version" style="display:none;">
+        <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
+        <div id="updateCheckResult" class="score-note"></div>
+        <button id="checkUpdateBtn" class="outline">Check for update</button>
+      </div>
+    </div>
+    <div class="set-band">Your setup</div>
     <div class="group form-panel">
       <div class="group-head collapsible" data-collapse="devices" style="cursor:pointer;"><div class="group-title">Connect devices <span class="head-est" id="devicesSummary"></span></div><span class="collapse-chevron" data-collapse="devices">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="devices" style="display:none;">
@@ -2285,10 +2314,14 @@
     </div>
 
 
+    <div class="set-band">Your data</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
+      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore <span class="head-est" id="backupSummary"></span></div><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
         <div class="score-note">Copies everything out. Paste into Bulk Import on another copy to move your data.</div>
-        <button id="exportAllBtn">Export all data</button>
+        <div class="log-toggle-row" style="gap:6px;">
+          <button id="exportAllBtn">Export all data</button>
+          <button id="copyExportBtn" class="outline">Copy</button>
+        </div>
         <textarea id="exportOutput" readonly placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <div id="exportResult" class="score-note"></div>
 
@@ -2296,13 +2329,6 @@
         <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <button id="bulkImportBtn">Import</button>
         <div id="bulkImportResult" class="score-note"></div>
-      </div>
-    </div>
-    <div class="group form-panel" style="border-color:var(--bad);">
-      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
-        <div class="score-note">Erases everything permanently. Export a backup first.</div>
-        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
-        <div id="clearAllDataResult" class="score-note"></div>
       </div>
     </div>
     <div style="display:none;">
@@ -2341,6 +2367,7 @@
     <!-- Readouts, so they sit after the forms rather than between them. Version and Legal
          are not black, and standing mid-run they cut the settings form into stripes of
          tab colour the way Recent entries did on Data. -->
+    <div class="set-band">The engine</div>
     <div class="group form-panel">
       <div class="group-head collapsible" data-collapse="blinding" style="cursor:pointer;"><div class="group-title">Blind days <span class="head-est" id="blindingSummary"></span></div><div class="group-sub">the only way to know the score is telling the truth</div><span class="collapse-chevron" data-collapse="blinding">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="blinding" style="display:none;">
@@ -2354,7 +2381,7 @@
     </div>
 
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="weights" style="cursor:pointer;"><div class="group-title">What the score is made of</div><div class="group-sub">the weights, and how they have moved for you</div><span class="collapse-chevron" data-collapse="weights">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="weights" style="cursor:pointer;"><div class="group-title">What the score is made of <span class="head-est" id="weightsSummary"></span></div><div class="group-sub">the weights, and how they have moved for you</div><span class="collapse-chevron" data-collapse="weights">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="weights" style="display:none;">
         <div id="learnedWeights"></div>
       </div>
@@ -2372,14 +2399,7 @@
       </div>
     </div>
 
-    <div class="group">
-      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
-      <div class="fields collapsible-body" data-collapse="version" style="display:none;">
-        <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
-        <div id="updateCheckResult" class="score-note"></div>
-        <button id="checkUpdateBtn" class="outline">Check for update</button>
-      </div>
-    </div>
+    <div class="set-band">The small print</div>
     <div class="group">
       <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
         <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
@@ -2556,6 +2576,13 @@
       </div>
     </div>
 
+    <div class="group form-panel" style="border-color:var(--bad);">
+      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh <span class="head-est" id="startFreshSummary"></span></div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
+        <div class="score-note">Erases everything permanently. Export a backup first.</div>
+        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
+        <div id="clearAllDataResult" class="score-note"></div>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -4762,8 +4789,11 @@ function slidePanelIn(panel, name, replay){
 
 /* 2 — The active tab's block slides between tabs. One element behind the row, moved to the
    box of whichever tab is active, rather than a background that blinks from one to another. */
+// Settings took the blue when Goals retired. These two maps kept saying red, so the sliding
+// indicator and the tab-switch wipe both went pink on the way to a blue page — the colour
+// was gone from the stylesheet and still in the motion.
 const UI_TAB_COLOUR = { insights:'--block-lime', training:'--block-orange', injuries:'--block-purple',
-                        goals:'--block-blue', data:'--block-yellow', settings:'--block-red' };
+                        data:'--block-yellow', settings:'--block-blue' };
 function moveTabIndicator(name, animate){
   if(!uiAnim('tabIndicator')) return;
   const bar = document.querySelector('.tabs');
@@ -4924,8 +4954,8 @@ async function startTodayLogging(){
 })();
 
 const TAB_BACKDROP_COLOR = {
-  insights:'var(--block-lime)', training:'var(--block-orange)', goals:'var(--block-blue)',
-  injuries:'var(--block-purple)', data:'var(--block-yellow)', settings:'var(--block-red)'
+  insights:'var(--block-lime)', training:'var(--block-orange)',
+  injuries:'var(--block-purple)', data:'var(--block-yellow)', settings:'var(--block-blue)'
 };
 // Tabs the app used to have, and where their contents went. Without this a stale caller
 // asking for a retired tab hides every panel and leaves a blank screen — the one failure
@@ -4979,7 +5009,14 @@ function activateTab(name, opts){
   // Both skill ladders and the progression live on Function; the goal list lives on Weekly.
   // loadCurrentGoals fills both tabs' rows — the queries don't care which panel is showing
   // — so it runs for either, and each tab renders what it actually displays.
-  if(name==='settings') renderBlindingStats();
+  if(name==='settings'){
+    renderBlindingStats();
+    restoreRememberedCollapse();
+    // The answer is usually "you're current", and it takes a network round trip to say so.
+    // Fetching it on arrival means the section is already answered by the time you open it,
+    // instead of four taps and a wait to be told nothing changed.
+    checkForUpdate();
+  }
   if(name==='injuries'){
     loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
     refreshInjuries();
@@ -5553,7 +5590,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.45';
+const APP_VERSION = '2026.08.31.48';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -5677,7 +5714,12 @@ async function checkForUpdate(){
 // tab, so a section you closed had to be remembered or it reopened a minute later. Both
 // are a few lines now and neither can be closed, so there is nothing left to remember.
 // The Settings disclosures still collapse; they just do not persist across a visit.
-const COLLAPSE_REMEMBERED = [];
+// Settings sections DO persist now. The note above was written when Today's sections were
+// on this list and re-rendered themselves open a minute later; nothing on Settings
+// re-renders like that, and re-opening the same section on every visit is a tap you already
+// paid for.
+const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
+                             'blinding', 'weights', 'version', 'legal'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
@@ -5692,6 +5734,13 @@ function setCollapsed(key, collapsed){
     chev.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(180deg)';
     chev.classList.toggle('collapsed', !!collapsed);
   }
+}
+function restoreRememberedCollapse(){
+  COLLAPSE_REMEMBERED.forEach(key=>{
+    let saved = null;
+    try{ saved = localStorage.getItem('collapsed:' + key); } catch(e){}
+    if(saved === '0') setCollapsed(key, false);
+  });
 }
 document.querySelectorAll('.group-head.collapsible').forEach(head=>{
   head.addEventListener('click', ()=>{
@@ -9145,6 +9194,22 @@ async function loadTrainingSetup(){
   renderSettingsSummaries();
 }
 
+// Counted from the keys themselves rather than from a running total the app would have to
+// keep correct — this runs once, on a page you visit rarely.
+async function countStoredRecords(){
+  const count = async pfx=>{
+    try{ const r = await window.storage.list(pfx); return ((r && r.keys) || []).length; }
+    catch(e){ return 0; }
+  };
+  try{
+    return { entries: await count('entry:'), sessions: await count('training:'), injuries: await count('injury:') };
+  } catch(e){ return null; }
+}
+function daysAgoWord(ts){
+  const d = Math.floor((Date.now() - ts) / 86400000);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+}
+
 // A settings row should say what it is set to without being opened — a list of section
 // names alone tells you nothing about your own configuration, which is the whole reason
 // you came here. Each header carries its current value; the controls are behind it.
@@ -9165,6 +9230,29 @@ async function renderSettingsSummaries(){
     put('goalProfileSummary', sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '');
   } catch(e){}
   put('versionSummary', APP_VERSION);
+  // What you actually have, counted. "Export a backup first" and "permanently deletes
+  // everything" both refer to a quantity the page never named, so neither sentence had a
+  // size until you had already acted on it.
+  const counts = await countStoredRecords();
+  if(counts){
+    const said = [
+      counts.entries ? `${counts.entries} morning${counts.entries===1?'':'s'}` : null,
+      counts.sessions ? `${counts.sessions} session${counts.sessions===1?'':'s'}` : null,
+      counts.injuries ? `${counts.injuries} injur${counts.injuries===1?'y':'ies'}` : null
+    ].filter(Boolean).join(' \u00b7 ');
+    put('startFreshSummary', said || 'nothing stored yet');
+    let exported = null;
+    try{ exported = JSON.parse((await window.storage.get('settings:lastExport')).value).at; } catch(e){}
+    put('backupSummary', exported ? `last export ${daysAgoWord(exported)}` : 'never exported');
+  }
+  try{
+    const L = await learnWeights(todayStr);
+    put('weightsSummary', L ? `learned from ${L.n} session${L.n===1?'':'s'}` : 'starting weights');
+  } catch(e){ put('weightsSummary', 'starting weights'); }
+  try{
+    const blindOn = (await window.storage.get('settings:blinding')).value === 'true';
+    put('blindingSummary', blindOn ? 'on' : 'off');
+  } catch(e){ put('blindingSummary', 'off'); }
   // Whether anything is actually connected, rather than how many things could be.
   try{
     let connected = false;
@@ -22437,6 +22525,21 @@ document.getElementById('clearTestDataBtn').addEventListener('click', async ()=>
   }
 });
 
+// Selecting a hundred kilobytes of JSON by hand in a textarea, on a phone, was the actual
+// export step. This is the same data, one tap. Falls back to select-all where the clipboard
+// API is not available, which is what people were doing anyway.
+const copyExportBtnEl = document.getElementById('copyExportBtn');
+if(copyExportBtnEl) copyExportBtnEl.addEventListener('click', async ()=>{
+  const output = document.getElementById('exportOutput');
+  if(!output || !output.value){ showToast('Export first'); return; }
+  try{
+    await navigator.clipboard.writeText(output.value);
+    showToast('Backup copied');
+  } catch(e){
+    output.focus(); output.select();
+    showToast('Selected — press copy');
+  }
+});
 document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
   const output = document.getElementById('exportOutput');
   const result = document.getElementById('exportResult');
@@ -22457,8 +22560,12 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     const json = JSON.stringify(data, null, 2);
     output.value = json;
     output.select();
-    result.textContent = `Exported ${count} of ${keys.length} key(s). Tap the box above, select all, and copy — paste into Bulk Import on another copy of this app.`;
+    result.textContent = `Exported ${count} of ${keys.length} key(s). Copy takes it to the clipboard in one tap — paste into Bulk Import on another copy of this app.`;
     result.style.color = 'var(--text)';
+    // Dated so "Backup & Restore" can say when you last did this. It said nothing at all
+    // before, which is the one fact that decides whether you need to do it again.
+    try{ await window.storage.set('settings:lastExport', JSON.stringify({ at: Date.now() })); } catch(e){}
+    renderSettingsSummaries();
 
     // also offer a file download for safekeeping
     const blob = new Blob([json], { type: 'application/json' });
