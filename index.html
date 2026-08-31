@@ -29,8 +29,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null;"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Anton&family=League+Gothic&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Anton&family=League+Gothic&display=swap"></noscript>
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
 <style>
 
   :root{
@@ -51,7 +51,7 @@
     --fs-control:var(--fs-md);
     --fs-xl:18px;       /* section titles */
     --fs-display:46px;  /* the one big number */
-    --fs-wordmark:44px; /* the logo, which is not it */
+    --fs-wordmark:46px; /* the logo, which is not it */
     --fs-score:58px;    /* recovery score, the largest thing on screen */
     --fs-num:26px;      /* goal priority numerals */
     --fw-normal:400;
@@ -96,19 +96,13 @@
        is written on. League Gothic is narrower and much lighter — it sits back and lets the
        score lead, where Anton takes the header. Nothing else needs touching either way: the
        size fits itself, and the mark measures the face's own cap height. */
-       THE FALLBACKS DECIDE WHAT THIS LOOKS LIKE WHEN THE FONT DOES NOT ARRIVE, and the last
-       stack got that badly wrong. It led with Impact — which I said was "on effectively every
-       system including iOS" and which iOS does not ship at all. Nor Haettenschweiler, nor
-       Arial Narrow. So on the one device this app is actually used on, the whole chain fell
-       through to plain sans-serif, and the wordmark rendered thin and wide: the exact
-       "skinny" it was reported as.
-       iOS does ship a heavy condensed face, and has for years — Helvetica Neue's Condensed
-       Black, reachable by its PostScript name. That goes first, so a failed fetch lands on
-       something in the same family of shapes as Anton rather than on Helvetica Regular.
-       (Swapping to League Gothic, reorder these too — it is a light face and wants
-       'Oswald', 'Arial Narrow' behind it rather than a black.) */
-    --wordmark-face: 'Anton', 'HelveticaNeue-CondensedBlack', 'Helvetica Neue Condensed Black',
-       'Impact', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+       A SYSTEM FACE, which is the quiet reason DOGFOOD never once looked wrong. Every
+       wordmark since has been a webfont, and a webfont that fails does not report a fault —
+       it silently draws something else. Three rounds went on type nobody could confirm was
+       being drawn, and the last fallback chain led with fonts iOS does not ship at all.
+       Helvetica is on the device before the app opens. There is nothing to fetch, nothing to
+       fail, and no state where this renders as something other than what was chosen. */
+    --wordmark-face: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -181,25 +175,21 @@
      the one thing in the design speaking a different language. Its own size rather than
      --fs-display: that variable means "the one big number", which is the score, and the logo
      is not competing with it. */
-  /* Anton, in caps. A compressed poster face out of the wood-type lineage, and the most ink
-     available at this width.
-     ASKS FOR 700, not 400. Anton has one weight and it is black, so 400 was right for Anton
-     and wrong for every fallback behind it — 400 of a system sans is LIGHT, which is how a
-     wordmark meant to be the heaviest thing on the page ended up the thinnest. Asking for 700
-     lets each fallback bring its own bold, and font-synthesis:none stops the browser faking
-     one on top of Anton, which would fill in counters that have nothing to spare.
-     The element still says "Confetti", which is the app's name and what a screen reader
-     should announce; the casing is presentation and is done as presentation. */
-  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:700; font-synthesis:none; margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:uppercase; }
+  /* DOGFOOD's treatment exactly, carrying a different word: Helvetica Neue bold at 46px,
+     two lines of caps on a 0.92 line-height, tracked tight. Bold comes from the family, which
+     has a real bold — so no font-synthesis guard is needed here, unlike the single-weight
+     face this replaces. */
+  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  /* A half-pixel of stroke, not none. Zero was correct if and only if Anton arrived; it left
-     the wordmark with no weight of its own the moment anything else drew it. Half a pixel is
-     enough to thicken a fallback and little enough that Anton's counters survive it. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0.5px var(--bg); letter-spacing:0.01em; margin-left:-2px; }
+  /* And the header's own overrides, back to the numbers DOGFOOD wore: the tight tracking
+     that locked its letters into one mass, the 0.6px stroke that gave it its weight, and the
+     9px of overhang — 3px of that optical correction for a round capital's side bearing, the
+     rest hanging display type off the edge as display type set this large wants to. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -438,13 +428,13 @@
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
   /* A SEED, not the source. headerEyeSite computes these from --fs-wordmark and writes them
      inline, and that is the authority; these are here so the first painted frame is not a
-     40px mark that jumps the moment script runs. They are the same numbers: 44px of wordmark
-     at MARK_TO_WORDMARK 0.64, which is 28.16px of plate — under the height of the letters
-     beside it, which is what keeps it a mark rather than a ninth letter.
+     mark that jumps the moment script runs. They are the same numbers: 46px of wordmark at
+     MARK_TO_WORDMARK 0.87, which is the 40px plate DOGFOOD wore — and at that ratio the
+     scale factor is 1, so these are the geometry the mark was originally drawn at.
      If you change --fs-wordmark, change nothing here; the ratio does it. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
-    --eye-box-w:28.16px; --eye-box-h:28.16px; --eye-gap:7.04px; --eye-plate:var(--block-lime); --eye-plate-r:8.45px;
-    --eye-w:4.22px; --eye-h:12.67px; --eye-r:2.11px; --eye-rb:2.11px; --eye-ink:var(--text); }
+    --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
+    --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -3169,7 +3159,7 @@ const EYE_SITES = {
    at a different size, rather than five values re-guessed to look about right. */
 const HEADER_MARK_BASE = { '--eye-box-w':40, '--eye-box-h':40, '--eye-gap':10,
   '--eye-plate-r':12, '--eye-w':6, '--eye-h':18, '--eye-r':3, '--eye-rb':3 };
-const MARK_TO_WORDMARK = 0.64;
+const MARK_TO_WORDMARK = 0.87;
 function headerEyeSite(){
   let fs = 34;
   try{ fs = parseFloat(getComputedStyle(document.documentElement)
@@ -6045,7 +6035,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.75';
+const APP_VERSION = '2026.08.31.76';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23617,13 +23607,13 @@ function renderAppVersion(){
   const f = document.getElementById('fontStatusOut');
   if(f){
     const paint = ()=>{
-      const mono = faceLoaded("'IBM Plex Mono'"), word = faceLoaded("'Anton'");
+      // One webfont left to report on. The wordmark is a system face now and cannot fail,
+      // which is rather the point of it being one.
+      const mono = faceLoaded("'IBM Plex Mono'");
       if(mono === null){ f.textContent = ''; return; }
-      f.textContent = mono && word ? 'typefaces loaded'
-        : !mono && !word ? 'no typefaces — drawing in system fallbacks'
-        : mono ? 'wordmark face missing — drawing in a fallback'
-        : 'body face missing — drawing in a fallback';
-      f.style.color = mono && word ? 'rgba(251,250,246,0.5)' : 'var(--block-orange)';
+      f.textContent = mono ? 'IBM Plex Mono loaded · wordmark is a system face'
+        : 'IBM Plex Mono missing — body text is in a system mono';
+      f.style.color = mono ? 'rgba(251,250,246,0.5)' : 'var(--block-orange)';
     };
     paint();
     if(document.fonts && document.fonts.ready) document.fonts.ready.then(paint).catch(()=>{});
