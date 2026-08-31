@@ -1063,18 +1063,26 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
-  #loadPanel:not(:empty){ margin-top:var(--sp-4); padding-top:var(--sp-3);
-    border-top:1px solid rgba(251,250,246,0.25); }
-  .load-head{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.6;
-    margin-bottom:7px; }
+  /* The three-currency table these were written for is gone — the block chart draws it.
+     The learned-weights panel on Data borrows the same row, so the row survives. */
   .load-row{ display:flex; align-items:baseline; gap:9px; margin-bottom:4px;
     font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); }
   .load-name{ flex:0 0 34%; opacity:0.7; text-transform:uppercase; letter-spacing:0.05em; }
   .load-val{ flex:1; font-variant-numeric:tabular-nums; }
   .load-delta{ flex:0 0 auto; opacity:0.7; font-variant-numeric:tabular-nums; }
-  .load-delta.flag{ color:var(--warn); opacity:1; }
-  .load-note{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg); opacity:0.55;
-    margin-top:8px; line-height:1.45; }
+  /* The block chart's caption and its unit pills share one line: the pills are the only
+     control on the chart and they belong beside the sentence they change. */
+  .blc-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .blc-units{ display:flex; gap:3px; flex:none; }
+  /* .form-panel button paints every button in the black panel cream, which would make all
+     three unit pills read as selected. Matched at the same weight to undo it. */
+  .form-panel .blc-unit{ width:auto; height:22px; flex:none; padding:0 8px; margin:0;
+    font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
+    letter-spacing:0.04em; background:transparent; color:var(--bg); opacity:0.5;
+    border:1px solid rgba(251,250,246,0.35); cursor:pointer; }
+  .form-panel .blc-unit.on{ opacity:1; background:var(--bg); color:var(--text);
+    border-color:var(--bg); }
+  .blc-note{ margin-top:8px; line-height:1.45; }
   /* Dark ink: this chart sits on the Data tab's own yellow, not on the black band the score
      trace lives in, and cream ticks were all but invisible on it. */
   .tc-tick{ font-family:var(--mono); font-size:9px; fill:rgba(12,13,11,0.55); }
@@ -1721,7 +1729,6 @@
           <!-- The block's shape, then what builds it. Both belong with the week rather than
                scattered down the page below it. -->
           <div id="weekBlockStrip"></div>
-          <div id="loadPanel"></div>
           <div class="week-gen-row">
             <select id="programSplitOverride">
               <option value="auto">Auto split</option>
@@ -5469,7 +5476,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.30.31';
+const APP_VERSION = '2026.08.31.32';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -7688,43 +7695,11 @@ async function computeLoad(asOfDate){
   return { available:true, ...out, hardSets };
 }
 
-/* What replaced the ratio on screen. Absolute units, a signed change, and a flag only when
-   that change is high against your own year. */
+/* LOAD_LABELS survives renderLoadPanel, which does not. The three currencies are drawn by
+   the block chart on Weekly now rather than tabulated under it; only the labels and the
+   flag sentence are still written out. */
 const LOAD_UNITS = { mechanical:'kg', cardio:'min', perceived:'au' };
 const LOAD_LABELS = { mechanical:'Mechanical', cardio:'Cardio', perceived:'Perceived' };
-async function renderLoadPanel(){
-  const host = document.getElementById('loadPanel');
-  if(!host) return;
-  let load = null, adapt = null;
-  try{ load = await computeLoad(todayStr); } catch(e){}
-  try{ adapt = await computeAdaptation(todayStr); } catch(e){}
-  if(!load || !load.available){ host.innerHTML = ''; return; }
-  const rows = ['mechanical','cardio','perceived'].filter(k=>load[k] && load[k].available).map(k=>{
-    const d = load[k];
-    const sign = d.delta > 0 ? '+' : '';
-    return `<div class="load-row"><span class="load-name">${LOAD_LABELS[k]}</span>`
-      + `<span class="load-val">${d.chronic}<i class="unit">${LOAD_UNITS[k]}/day</i></span>`
-      + `<span class="load-delta${d.flagged ? ' flag' : ''}">${sign}${d.delta}</span></div>`;
-  }).join('');
-  if(!rows){ host.innerHTML = ''; return; }
-  const flagged = ['mechanical','cardio','perceived'].filter(k=>load[k] && load[k].flagged);
-  const sets = (load.hardSets || []).filter(h=>h.week > 0).slice(0, 4)
-    .map(h=>`${h.label} ${h.week}`).join(' · ');
-  const notes = [];
-  notes.push('Four-week average, and how far this week sits from it — in the units themselves, not as a ratio.');
-  if(flagged.length) notes.push(`<b>${flagged.map(k=>LOAD_LABELS[k]).join(' and ')} is climbing faster than it usually does for you.</b>`);
-  if(sets) notes.push(`Hard sets this week: ${sets}.`);
-  if(adapt && adapt.available){
-    const bits = [];
-    if(adapt.aerobic) bits.push(`Aerobic: ${adapt.aerobic}`);
-    if(adapt.strength) bits.push(`Strength: ${adapt.strength}`);
-    // Never merged into one word — that merge is what grades a hybrid athlete "unproductive"
-    // in the week they trained hardest.
-    if(bits.length) notes.push(`${bits.join(' · ')}. Tracked apart, never combined.`);
-  }
-  host.innerHTML = `<div class="load-head">Load, in three currencies</div>${rows}`
-    + `<div class="load-note">${notes.join(' ')}</div>`;
-}
 
 /* ================= SCORE 6 — ADAPTATION TRAJECTORY =================
    Garmin's Training Status fails hybrid athletes because it merges a strength-driven VO2max
@@ -9932,142 +9907,229 @@ async function renderWeekSessionList(){
     : '';
 }
 
+/* ============ THE BLOCK CHART — ONE CHART, NOT TWO ============
+   Weekly used to stack two things that were both about load: a bar strip of planned sets
+   filled as you logged, and underneath it a table of mechanical/cardio/perceived load with
+   a four-line paragraph explaining itself. Two charts of the same subject, one of them
+   mostly prose.
+
+   They are one bullet chart now. Per week: a solid bar for what you actually DID, and a
+   tick for the reference it should be read against. In sets the tick is that week's plan,
+   so the ticks alone still draw the block's forward wave for weeks you have not reached.
+   In kg, minutes or AU there is no planned figure to compare with — the plan stores sets
+   and reps, never weight — so the tick is your four-week average and the flat line it
+   forms across the chart is the thing the old table wrote as "+1186".
+
+   One meaning per mark in every unit: bar = done, tick = reference. The unit is a tap. */
+const WEEK_LOAD_UNITS = [
+  { key:'sets',       label:'sets', unit:'sets' },
+  { key:'mechanical', label:'kg',   unit:'kg'   },
+  { key:'cardio',     label:'min',  unit:'min'  },
+  { key:'perceived',  label:'au',   unit:'au'   }
+];
+let weekLoadUnit = 'sets';
+function compactLoad(v){
+  const n = Math.round(v);
+  if(n >= 10000) return Math.round(n / 1000) + 'k';
+  if(n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return String(n);
+}
+
 let weekDetailLastHtml = '';
+// Kept as its own function so the unit pills can redraw the chart without rebuilding the
+// whole week grid around it.
+async function renderBlockLoadChart(){
+  const strip = document.getElementById('weekBlockStrip');
+  if(!strip) return;
+  try{
+    const dates = getWeekDates();
+    const pos = await getBlockPosition(dates[0]);
+    wheelBlockPos = pos;
+
+    let sessions = [];
+    try{ sessions = await getAllTrainingSessions(); } catch(e){}
+    // Logged sets by date, in one pass — so a week's bar is what you actually did.
+    const loggedSetsByDate = {};
+    sessions.forEach(sn=>{
+      let n = 0;
+      (sn.exercises || []).forEach(e=>{ n += (e.sets || 0); });
+      if(n > 0) loggedSetsByDate[sn.date] = (loggedSetsByDate[sn.date] || 0) + n;
+    });
+    // The same daily series computeLoad is built from, so the bars and any number quoted
+    // underneath them can never disagree.
+    const loadByDate = loadSeriesFor(sessions, todayStr, 365);
+    let load = null, adapt = null;
+    try{ load = await computeLoad(todayStr); } catch(e){}
+    try{ adapt = await computeAdaptation(todayStr); } catch(e){}
+
+    let plannedByWeek = {}, setsByWeek = {}, runKmByWeek = {}, doneSetsByWeek = {};
+    const currencyByWeek = { mechanical:{}, cardio:{}, perceived:{} };
+    try{
+      for(let w=0; w<pos.length; w++){
+        const offset = w - (pos.weekInBlock - 1);
+        const wd = getWeekDatesForOffset(offset);
+        let n = 0, sets = 0, km = 0;
+        for(const d of wd){
+          for(const slot of ['am','pm']){
+            try{ const v = JSON.parse((await window.storage.get('weekplan:'+d+':'+slot)).value);
+              if(v.type === 'strength' || v.type === 'run') n++;
+              if(v.type === 'run') km += (v.details.distanceKm || 0);
+            } catch(e){}
+          }
+          try{
+            const rec = JSON.parse((await window.storage.get('planned_session:'+d)).value);
+            (rec.exercises||[]).forEach(e=>{ sets += (e.sets||0); });
+          } catch(e){}
+        }
+        plannedByWeek[w+1] = n;
+        setsByWeek[w+1] = sets;
+        runKmByWeek[w+1] = Math.round(km);
+        doneSetsByWeek[w+1] = wd.reduce((t,d)=> t + (loggedSetsByDate[d] || 0), 0);
+        ['mechanical','cardio','perceived'].forEach(k=>{
+          currencyByWeek[k][w+1] = wd.reduce((t,d)=> t + ((loadByDate[d] && loadByDate[d][k]) || 0), 0);
+        });
+      }
+    } catch(e){}
+
+    // Which units this athlete actually has. Sets is always offered; a currency appears
+    // only once there is something in it, so a lifter who never runs is not handed a
+    // minutes tab that draws four empty columns.
+    // Availability is judged over the whole history, not over this block: gating on the
+    // block's own weeks would hide the minutes tab from a runner in week 1 and then make
+    // it appear halfway through, and a control that comes and goes is worse than a sparse
+    // one. The baseline still draws, so no tab is ever blank.
+    const units = WEEK_LOAD_UNITS.filter(u=> u.key === 'sets' || (load && load[u.key] && load[u.key].available));
+    if(!units.some(u=>u.key === weekLoadUnit)) weekLoadUnit = 'sets';
+    const active = units.find(u=>u.key === weekLoadUnit) || units[0];
+
+    // bar = what you did; tick = what to read it against.
+    const isSets = active.key === 'sets';
+    // A 42-day EWMA is in units per day; the bars are weekly totals, so the reference is
+    // that average over a week. Same number the old table printed, drawn instead of typed.
+    const flatRef = isSets ? null : Math.round((load && load[active.key] ? load[active.key].chronic : 0) * 7);
+    const actualFor = w=> isSets ? (doneSetsByWeek[w] || 0) : (currencyByWeek[active.key][w] || 0);
+    const refFor    = w=> isSets ? (setsByWeek[w] || 0) : flatRef;
+
+    const scale = Math.max(1, ...Array.from({length: pos.length}, (_, i)=>
+      Math.max(actualFor(i+1), refFor(i+1) || 0)));
+
+    const cells = [];
+    // A long block puts eight columns across a phone, so the labels tighten rather than
+    // overflow: smaller type, and the run distance drops out to leave room for the figure.
+    const dense = pos.length > 6;
+    const BAR_BAND = 46; // the bars' own band, independent of the text around them
+    for(let w=1; w<=pos.length; w++){
+      const dl = isDeloadPosition(w, pos.length);
+      const phase = dl ? 'deload' : getBlockPhase(w, dl, pos.length);
+      const isNow = w === pos.weekInBlock;
+      const reintroWk = w === 1 && pos.blocksCompleted > 0;
+      const label = dl ? 'D' : (reintroWk ? 'R' : String(w));
+      const act = actualFor(w), ref = refFor(w) || 0;
+      const barH = act > 0 ? Math.max(2, Math.round((act / scale) * BAR_BAND)) : 0;
+      // A week whose plan has not been generated yet still has a shape the block intends
+      // for it, and drawing nothing there would empty the forward half of the chart for
+      // anyone who plans one week at a time. The tick falls back to the phase's own
+      // height — a height, deliberately, not an invented set count: there is no figure
+      // above the column to go with it.
+      const phaseFrac = dl ? 0.26 : (phase === 'intensification' ? 0.96 : (reintroWk ? 0.52 : 0.74));
+      const refH = ref > 0 ? Math.max(1, Math.round((ref / scale) * BAR_BAND))
+                 : (isSets ? Math.round(phaseFrac * BAR_BAND) : null);
+      // Inside the black panel, so the marks are cream and the week you are in is the
+      // tab's own orange — the one place that colour appears below the tab bar, which is
+      // what makes it findable at a glance. A difference in hue rather than one of shade:
+      // an earlier version drew every week in the same ink at three opacities and "which
+      // week am I on" became a judgement about grey levels.
+      const ink = isNow ? 'var(--block-orange)' : 'var(--bg)';
+      // The figure above the column is what you did. A week you have not reached has no
+      // figure of its own, so it shows the reference instead — otherwise the forward half
+      // of the block would be a row of blanks.
+      const shown = act > 0 ? act : (isSets && ref > 0 ? ref : null);
+      const faint = act === 0;
+      const tag = `font-family:var(--mono); font-size:${dense ? '9px' : 'var(--fs-tag)'}; white-space:nowrap;`;
+      const title = `Week ${w} — ${phase}`
+        + (isSets ? (ref > 0 ? ` · ${act}/${ref} sets logged` : '')
+                  : ` · ${compactLoad(act)}${active.unit}, four-week average ${compactLoad(ref)}${active.unit}`);
+      cells.push(`<div title="${title}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
+        <div style="${tag} opacity:${isNow ? 0.9 : (faint ? 0.3 : 0.45)};">${shown != null ? compactLoad(shown) + (dense ? '' : `<i class="unit">${active.unit}</i>`) : '&nbsp;'}</div>
+        <div style="width:100%; height:${BAR_BAND}px; position:relative;">
+          <div style="position:absolute; left:3px; right:3px; bottom:0; height:${barH}px; background:${ink};"></div>
+          ${refH != null ? `<div style="position:absolute; left:0; right:0; bottom:${refH}px; height:2px; background:${ink}; opacity:${act > 0 ? 0.85 : 0.4};"></div>` : ''}
+        </div>
+        <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
+        <div style="${tag} opacity:${isNow?0.7:0.3};">${(isSets && plannedByWeek[w] ? plannedByWeek[w] + (dense ? 's' : '<i class="unit">ses</i>') : '') + ((isSets && !dense && runKmByWeek[w]) ? ' ' + runKmByWeek[w] + '<i class="unit">km</i>' : '') || '&nbsp;'}</div>
+      </div>`);
+    }
+
+    const dlNow = isDeloadPosition(pos.weekInBlock, pos.length);
+    const phaseNow = dlNow ? 'deload' : getBlockPhase(pos.weekInBlock, dlNow, pos.length);
+    const reintro = isBlockReintroWeek(pos.weekInBlock, pos.blocksCompleted);
+    // What happens next — the strip should look forward, not just report the present.
+    let nextLine = '';
+    const weeksLeft = pos.length - pos.weekInBlock;
+    if(dlNow){
+      nextLine = 'Next week starts block ' + (pos.blocksCompleted + 2) + ' — loads reintroduce ~10% down.';
+    } else if(weeksLeft === 1){
+      nextLine = 'Deload next week — volume drops to maintenance.';
+    } else if(weeksLeft > 1){
+      nextLine = weeksLeft + ' weeks to deload' + (weeksLeft === 2 ? ', intensification next.' : '.');
+    }
+    const headline = reintro
+      ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
+      : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
+
+    // What survives of the old panel's paragraph: the sentence that is actionable, and the
+    // two figures the chart cannot draw. Everything else it said is now the picture.
+    const notes = [];
+    const flagged = ['mechanical','cardio','perceived']
+      .filter(k=> load && load[k] && load[k].flagged).map(k=> LOAD_LABELS[k]);
+    if(flagged.length){
+      const named = flagged.length > 1
+        ? flagged.slice(0, -1).join(', ') + ' and ' + flagged[flagged.length - 1]
+        : flagged[0];
+      notes.push(`<b>${named} ${flagged.length > 1 ? 'are' : 'is'} climbing faster than ${flagged.length > 1 ? 'they' : 'it'} usually ${flagged.length > 1 ? 'do' : 'does'} for you.</b>`);
+    }
+    const sets = ((load && load.hardSets) || []).filter(h=>h.week > 0).slice(0, 4).map(h=>`${h.label} ${h.week}`).join(' · ');
+    if(sets) notes.push(`Hard sets this week: ${sets}.`);
+    if(adapt && adapt.available){
+      const bits = [];
+      if(adapt.aerobic) bits.push(`Aerobic: ${adapt.aerobic}`);
+      if(adapt.strength) bits.push(`Strength: ${adapt.strength}`);
+      // Never merged into one word — that merge is what grades a hybrid athlete
+      // "unproductive" in the week they trained hardest.
+      if(bits.length) notes.push(`${bits.join(' · ')}. Tracked apart, never combined.`);
+    }
+
+    const pills = units.length > 1
+      ? `<div class="blc-units">${units.map(u=>
+          `<button type="button" class="blc-unit${u.key === active.key ? ' on' : ''}" data-unit="${u.key}">${u.label}</button>`).join('')}</div>`
+      : '';
+    strip.innerHTML = `<div class="blc-head"><span class="score-note" style="margin:0;">${
+        isSets ? 'Logged vs plan' : 'Logged vs 4-week average'}</span>${pills}</div>
+      <div style="display:flex; gap:${dense ? 3 : 5}px; align-items:flex-end; margin-top:5px;">${cells.join('')}</div>
+      <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
+      ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}
+      ${notes.length ? `<div class="score-note blc-note">${notes.join(' ')}</div>` : ''}`;
+    strip.querySelectorAll('.blc-unit').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        weekLoadUnit = btn.dataset.unit;
+        try{ await window.storage.set('settings:weekLoadUnit', JSON.stringify({ unit: weekLoadUnit })); } catch(e){}
+        renderBlockLoadChart();
+      });
+    });
+  } catch(e){ strip.innerHTML = ''; }
+}
+
 async function renderWeekGrid(){
   // Surface block position where the week is actually planned. Previously the whole
   // periodization model was invisible: an intensification or deload week looked identical
   // to any other, so a sudden volume change had no explanation on screen.
-  (async ()=>{
-    const strip = document.getElementById('weekBlockStrip');
-    if(!strip) return;
-    try{
-      const dates = getWeekDates();
-      const pos = await getBlockPosition(dates[0]);
-      wheelBlockPos = pos;
-      // Each week reads as a bar whose height is its planned volume, so the wave is
-      // legible without reading labels. Session counts sit under each bar so the strip
-      // answers "what's coming" rather than only "where am I" — previously the only
-      // forward information was a caption naming the current week.
-      // Session count alone doesn't say how hard a week is — four heavy days and four easy
-      // ones look identical. Planned SETS is the number that actually varies across the
-      // block, so it's what the bars are scaled to and what's shown above them.
-      let plannedByWeek = {}, setsByWeek = {}, runKmByWeek = {}, doneSetsByWeek = {};
-      // Logged sets, keyed by date, in one pass — so a week's bar can be drawn as what you
-      // actually did against what was planned rather than as the plan alone.
-      const loggedSetsByDate = {};
-      try{
-        (await getAllTrainingSessions()).forEach(sn=>{
-          let n = 0;
-          (sn.exercises || []).forEach(e=>{ n += (e.sets || 0); });
-          if(n > 0) loggedSetsByDate[sn.date] = (loggedSetsByDate[sn.date] || 0) + n;
-        });
-      } catch(e){}
-      try{
-        for(let w=0; w<pos.length; w++){
-          const offset = w - (pos.weekInBlock - 1);
-          const wd = getWeekDatesForOffset(offset);
-          let n = 0, sets = 0, km = 0;
-          for(const d of wd){
-            for(const slot of ['am','pm']){
-              try{ const v = JSON.parse((await window.storage.get('weekplan:'+d+':'+slot)).value);
-                if(v.type === 'strength' || v.type === 'run') n++;
-                if(v.type === 'run') km += (v.details.distanceKm || 0);
-              } catch(e){}
-            }
-            try{
-              const rec = JSON.parse((await window.storage.get('planned_session:'+d)).value);
-              (rec.exercises||[]).forEach(e=>{ sets += (e.sets||0); });
-            } catch(e){}
-          }
-          // The deload cut is applied when a session is DISPLAYED, not when it's stored —
-          // so the stored plan for a deload week holds full sets and the chart showed it
-          // identical to intensification. Apply the same cut here so the bar matches what
-          // you'll actually be asked to do that week.
-          plannedByWeek[w+1] = n;
-          setsByWeek[w+1] = sets;
-          runKmByWeek[w+1] = Math.round(km);
-          doneSetsByWeek[w+1] = wd.reduce((t,d)=> t + (loggedSetsByDate[d] || 0), 0);
-        }
-      } catch(e){}
-      const maxSets = Math.max(1, ...Object.values(setsByWeek));
-
-      const cells = [];
-      // A long block puts eight columns across a phone, so the labels tighten rather than
-      // overflow: smaller type, and the run distance drops out to leave room for the sets.
-      const dense = pos.length > 6;
-      const BAR_BAND = 46; // the bars' own height, independent of the text around them
-      for(let w=1; w<=pos.length; w++){
-        const dl = isDeloadPosition(w, pos.length);
-        const phase = dl ? 'deload' : getBlockPhase(w, dl, pos.length);
-        const isNow = w === pos.weekInBlock;
-        const isPast = w < pos.weekInBlock;
-        const reintroWk = w === 1 && pos.blocksCompleted > 0;
-        const label = dl ? 'D' : (reintroWk ? 'R' : String(w));
-        // Bar height comes from actual planned sets where a week has been generated, so
-        // the chart shows real load rather than the phase it's supposed to represent.
-        // Falls back to the phase shape for weeks not yet generated.
-        const realSets = setsByWeek[w] || 0;
-        const h = realSets > 0
-          ? Math.max(10, Math.round((realSets / maxSets) * 46))
-          : (dl ? 12 : (phase === 'intensification' ? 44 : (reintroWk ? 24 : 34)));
-        const n = realSets > 0 ? realSets : null;
-        // The bar is the plan; the sets you have logged fill it from the bottom. An
-        // untouched week reads as an outline, a finished one as the solid bar it has
-        // always been — so the strip records the block rather than only forecasting it.
-        // Ratio is by sets both sides: filling a sets-height bar by a count of sessions
-        // would have mixed units and drawn a half-done week at the wrong height.
-        const doneSets = doneSetsByWeek[w] || 0;
-        const doneRatio = realSets > 0 ? Math.min(1, doneSets / realSets) : (doneSets > 0 ? 1 : 0);
-        const fillH = doneRatio > 0 ? Math.max(2, Math.round(h * doneRatio)) : 0;
-        const barInk = isNow ? 'var(--block-orange)' : 'var(--bg)';
-        // Inside the black panel now, so the bars are cream and the week you are in is the
-        // tab's own orange — the one place that colour appears below the tab bar, which is
-        // what makes it findable at a glance. A difference in hue rather than one of
-        // shade: an earlier version drew all four in the same ink at three opacities and
-        // "which week am I on" became a judgement about grey levels. Past and future do
-        // not read apart; the week labels underneath carry that.
-        // The bars live in a band of their own rather than sizing the row. The row had a
-        // fixed height while a column was a bar plus three lines of text, so the tallest
-        // bar pushed its own number up out of the row and into the caption above it.
-        // The text rows hold a space when they have nothing to say, so a column with no
-        // figures keeps the same height as one with them and the bars share a baseline.
-        const tag = `font-family:var(--mono); font-size:${dense ? '9px' : 'var(--fs-tag)'}; white-space:nowrap;`;
-        cells.push(`<div title="Week ${w} — ${phase}${realSets > 0 ? ` · ${doneSets}/${realSets} sets logged` : ''}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; overflow:hidden;">
-          <div style="${tag} opacity:${isNow?0.9:0.4};">${n != null ? n + (dense ? '' : '<i class="unit">sets</i>') : '&nbsp;'}</div>
-          <div style="width:100%; height:${BAR_BAND}px; display:flex; align-items:flex-end;">
-            <div style="width:100%; height:${h}px; position:relative; box-shadow:inset 0 0 0 1px ${barInk};">
-              <div style="position:absolute; left:0; right:0; bottom:0; height:${fillH}px; background:${barInk};"></div>
-            </div>
-          </div>
-          <div style="${tag} font-weight:${isNow?'700':'400'}; opacity:${isNow?1:0.55};">${label}</div>
-          <div style="${tag} opacity:${isNow?0.7:0.3};">${(plannedByWeek[w] ? plannedByWeek[w] + (dense ? 's' : '<i class="unit">ses</i>') : '') + ((!dense && runKmByWeek[w]) ? ' ' + runKmByWeek[w] + '<i class="unit">km</i>' : '') || '&nbsp;'}</div>
-        </div>`);
-      }
-
-      const dlNow = isDeloadPosition(pos.weekInBlock, pos.length);
-      const phaseNow = dlNow ? 'deload' : getBlockPhase(pos.weekInBlock, dlNow, pos.length);
-      const reintro = isBlockReintroWeek(pos.weekInBlock, pos.blocksCompleted);
-      // What happens next — the strip should look forward, not just report the present.
-      let nextLine = '';
-      const weeksLeft = pos.length - pos.weekInBlock;
-      if(dlNow){
-        nextLine = 'Next week starts block ' + (pos.blocksCompleted + 2) + ' — loads reintroduce ~10% down.';
-      } else if(weeksLeft === 1){
-        nextLine = 'Deload next week — volume drops to maintenance.';
-      } else if(weeksLeft > 1){
-        nextLine = weeksLeft + ' weeks to deload' + (weeksLeft === 2 ? ', intensification next.' : '.');
-      }
-      const headline = reintro
-        ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
-        : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
-      strip.innerHTML = `<div class="score-note" style="margin-bottom:3px;">Planned load, filled as you log</div>
-        <div style="display:flex; gap:${dense ? 3 : 5}px; align-items:flex-end;">${cells.join('')}</div>
-        <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
-        ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}`;
-    } catch(e){ strip.innerHTML = ''; }
-  })();
+  try{
+    const r = await window.storage.get('settings:weekLoadUnit');
+    const u = JSON.parse(r.value);
+    if(u && u.unit) weekLoadUnit = u.unit;
+  } catch(e){}
+  renderBlockLoadChart();
   renderWeekSessionList();
-  renderLoadPanel();
   const wheelStageEl = document.getElementById('weekWheelStage');
   if(wheelStageEl) wheelStageEl.style.display = '';
   const detailCol = document.getElementById('weekWheelDetail');
