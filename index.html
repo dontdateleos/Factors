@@ -306,6 +306,7 @@
   /* Colour only when something is true that you would want to know without asking. A deload
      week is the one state here that changes what you should do today. */
   .header-readout .ro-flag{ color:var(--warn); }
+  .header-readout .ro-streak{ color:var(--accent); font-weight:var(--fw-bold); }
   /* The rest day plate. Same black, same cream rule, same mono caption as a section heading —
      it is the page's way of saying there is nothing here, so it should look like the app
      rather than like an error. */
@@ -1144,6 +1145,10 @@
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
+  .card-stack-head{ display:flex; justify-content:space-between; align-items:center;
+    gap:10px; margin-bottom:8px; cursor:pointer; }
+  .card-stack-chev{ font-size:var(--fs-md); color:var(--dim); flex:none;
+    transition:transform 0.15s; }
   /* Hung under the strip it belongs to, in the page's own ink rather than the strip's: it is
      an aside, and an aside that shouts is a second call to action. */
   .cta-aside{ margin:calc(-1 * var(--sp-3)) 0 var(--sp-3); padding:0 0 2px; cursor:pointer;
@@ -1282,6 +1287,23 @@
     flex:0 0 auto; cursor:pointer; }
   .run-pace{ display:none; font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold);
     letter-spacing:0.02em; margin:-2px 0 8px; }
+  .ex-last-tap{ cursor:pointer; }
+  .ex-last-more{ margin-left:8px; text-decoration:underline; text-underline-offset:2px; opacity:0.8; }
+  .lift-sheet{ position:fixed; inset:0; z-index:70; background:rgba(12,13,11,0.72);
+    display:flex; align-items:flex-end; justify-content:center; }
+  .lift-sheet-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
+    background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) 14px calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
+  .lift-sheet-head{ display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
+    text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:var(--sp-3); }
+  .lift-sheet-x{ width:auto; flex:none; height:30px; padding:0 10px; background:transparent;
+    color:var(--bg); border:2px solid rgba(251,250,246,0.4); font-size:var(--fs-md); }
+  .lift-row{ display:flex; align-items:baseline; gap:10px; padding:7px 0;
+    border-top:1px solid rgba(251,250,246,0.18); font-family:var(--mono); font-size:var(--fs-tag); }
+  .lift-date{ flex:0 0 62px; opacity:0.6; }
+  .lift-load{ flex:0 0 62px; font-weight:var(--fw-bold); font-variant-numeric:tabular-nums; }
+  .lift-reps{ flex:1; opacity:0.75; }
+  .lift-sheet-foot{ margin-top:var(--sp-3); color:rgba(251,250,246,0.6); }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -1789,11 +1811,16 @@
          page asking you to change today's session appeared after the page had already
          told you what today's session was. -->
     <div id="todayCardStack">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <!-- 277px for one of two cards, above the session, on the screen you open every
+           morning — and answering one only reveals the next. The counter is a handle now:
+           closed it is a line saying how many suggestions are waiting, open it is the stack.
+           Shut by default, because the plan should be the thing you scroll to. -->
+      <div class="card-stack-head" id="cardStackHead" role="button" tabindex="0">
         <div id="cardStackCounter" class="log-title" style="margin-bottom:0;"></div>
         <button id="undoDecisionBtn" class="small" style="display:none; flex:none;">Undo last</button>
+        <span class="card-stack-chev" id="cardStackChev">&#9662;</span>
       </div>
-      <div id="recommendationCards"></div>
+      <div id="recommendationCards" style="display:none;"></div>
     </div>
 
     <!-- A rest day has nothing to plan, so the page stops pretending it has. -->
@@ -3942,6 +3969,68 @@ function eyeNoteActivity(){
 // How many days back the logging runs unbroken. Its own function because two things want it
 // now and they must not disagree: the mark's blink rate, and the header readout. Reading it
 // off eyeCtx meant the readout lost the number whenever the mark's own switch was off.
+/* THE STREAK GETS A MOMENT.
+   It was stated and never celebrated — 9px of grey in the corner, deliberately: "no colour,
+   no exclamation". That was a defensible line and it is being crossed on purpose. The streak
+   is the one number here that is purely about having turned up, and the day it goes up is
+   the day the app should notice.
+   It fires once per day, on the first render after the count actually increases, from the
+   mark in the wordmark — which is the app's own face, and the right thing to be pleased.
+   Milestones throw more of it and hold the number for a beat. It goes through uiAnim, so
+   calm mode and prefers-reduced-motion both switch it off like everything else. */
+const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365];
+const CONFETTI_INK = ['var(--block-lime)', 'var(--block-orange)', 'var(--block-yellow)',
+                      'var(--block-blue)', 'var(--block-purple)', 'var(--bg)'];
+function streakBurst(n){
+  if(!uiAnim('streakBurst')) return;
+  const mark = document.getElementById('headerMark');
+  if(!mark) return;
+  const milestone = STREAK_MILESTONES.includes(n);
+  const count = milestone ? 26 : 12;
+  // On the body, fixed, not inside the header: the header is overflow:hidden, so confetti
+  // thrown upward out of the mark was cut off at the moment it left — which is the moment
+  // it becomes confetti. Viewport coordinates, so it does not care what it is thrown from.
+  const m = mark.getBoundingClientRect();
+  const cx = m.left + m.width / 2, cy = m.top + m.height / 2;
+  for(let i = 0; i < count; i++){
+    const bit = document.createElement('i');
+    const size = 3 + Math.random() * (milestone ? 5 : 3);
+    bit.className = 'confetti';
+    bit.style.cssText = `position:fixed; left:${cx.toFixed(1)}px; top:${cy.toFixed(1)}px;`
+      + `width:${size.toFixed(1)}px; height:${(size * (0.6 + Math.random())).toFixed(1)}px;`
+      + `pointer-events:none; z-index:60; background:${CONFETTI_INK[i % CONFETTI_INK.length]};`;
+    document.body.appendChild(bit);
+    // Thrown up and out, then dropped — gravity is what makes it read as confetti rather
+    // than as a starburst.
+    // Up first, then out: a narrower arc than a full spray, biased above the horizontal, so
+    // it reads as thrown rather than as something falling out of the mark.
+    const ang = (-125 + Math.random() * 70) * Math.PI / 180;
+    const power = (milestone ? 74 : 50) + Math.random() * 46;
+    const dx = Math.cos(ang) * power, up = Math.sin(ang) * power;
+    const spin = (Math.random() * 900 - 450).toFixed(0);
+    uiPlay(bit, [
+      { transform:'translate(0,0) rotate(0deg)', opacity:1 },
+      { transform:`translate(${(dx * 0.6).toFixed(1)}px, ${up.toFixed(1)}px) rotate(${spin / 2}deg)`, opacity:1, offset:0.45 },
+      { transform:`translate(${dx.toFixed(1)}px, ${(Math.abs(up) * 1.5 + 30).toFixed(1)}px) rotate(${spin}deg)`, opacity:0 }
+    ], { duration: UI_ANIM.streakBurst.ms + Math.random() * 400, easing:'cubic-bezier(0.2,0.7,0.4,1)' });
+    setTimeout(()=> bit.remove(), UI_ANIM.streakBurst.ms + 700);
+  }
+  const out = document.getElementById('headerReadout');
+  if(out && milestone) uiPlay(out, [{ transform:'scale(1)' }, { transform:'scale(1.18)' }, { transform:'scale(1)' }],
+    { duration:520, easing:'cubic-bezier(0.2,0.9,0.2,1)' });
+}
+// Once a day, and only when the number has actually gone up — not on every render, and not
+// on the render that merely re-reads the same streak after a tab switch.
+function noteStreak(n){
+  if(!(n >= 2)) return;
+  let seen = null;
+  try{ seen = JSON.parse(localStorage.getItem('streak:seen') || 'null'); } catch(e){}
+  if(seen && seen.date === todayStr) return;
+  const grew = !seen || n > (seen.n || 0);
+  try{ localStorage.setItem('streak:seen', JSON.stringify({ date: todayStr, n })); } catch(e){}
+  if(grew) setTimeout(()=> streakBurst(n), 420);
+}
+
 let loggedStreak = 0;
 async function countLoggedStreak(){
   try{
@@ -3963,6 +4052,7 @@ async function countLoggedStreak(){
 async function refreshEyeHistory(){
   loggedStreak = await countLoggedStreak();
   eyeCtx.streak = anim('streakPerk') ? loggedStreak : 0;
+  noteStreak(loggedStreak);
 }
 // A run of logged days shortens the gap between blinks. Multiplies whatever the score band
 // already decided rather than replacing it, so the two read together.
@@ -4632,6 +4722,7 @@ const UI_ANIM = {
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:320 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
+  streakBurst:  { on:true, note:'The mark throws confetti the first time you log on a new day', ms:1100 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
   panelDirection:{ on:true, note:'A panel arrives from the side its tab sits on — what runs when the deal is off, since both write the same transform', ms:280, px:26 },
@@ -5748,7 +5839,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.55';
+const APP_VERSION = '2026.08.31.57';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6767,7 +6858,9 @@ async function renderHeaderReadout(){
   // Stated, never celebrated. No colour, no exclamation, and it is gone at one day rather
   // than telling you that you have logged today — which you know, because you just did it.
   if(loggedStreak >= 2){
-    readoutSlots.push(`${loggedStreak}D STREAK`);
+    // A milestone is the one day the number is worth more than its own digits.
+    const milestone = STREAK_MILESTONES.includes(loggedStreak);
+    readoutSlots.push(`<span class="${milestone ? 'ro-streak' : ''}">${loggedStreak}D STREAK</span>`);
     spoken.push(`${loggedStreak} day logging streak`);
   }
   try{
@@ -10745,6 +10838,10 @@ function applyLoggedSession(session){
     document.querySelectorAll('#rpeScale .subj-dot').forEach(btn=>
       btn.classList.toggle('on', +btn.dataset.v === +session.sessionRpe));
   }
+  // Reopening a logged session brings its note back with everything else, or the note is
+  // lost the first time you go in to correct a weight.
+  const note = document.getElementById('weekSessionNotes');
+  if(note && session.notes) note.value = session.notes;
 }
 function collectLogDraft(panel){
   const rows = [...panel.querySelectorAll('.edit-row')].filter(r=>r.querySelector('.week-ex-name')).map(r=>({
@@ -11279,8 +11376,58 @@ function lastLoggedLine(name){
   // plate meaningless within a week.
   const pr = h.weight && h.weight > (h.bestBefore || 0) ? '<span class="pr-plate">PR</span>' : '';
   const fail = h.toFailure ? ' \u00b7 to failure' : '';
-  return `<div class="ex-last-line">Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}</div>`;
+  // The line is a way in now. exerciseHistory holds every session of every lift and only
+  // ever showed you the most recent one; "how has my squat actually gone" was a question
+  // the app could answer and had nowhere to answer it.
+  return `<div class="ex-last-line ex-last-tap" role="button" tabindex="0" data-ex="${exHistKey(name)}">`
+    + `Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}<span class="ex-last-more">history</span></div>`;
 }
+/* Every logged session of one lift, newest first, with the load and whether it was a best at
+   the time. Built from the sessions rather than from exerciseHistory, which by design keeps
+   only the latest of each. */
+async function showLiftHistory(key, name){
+  let rows = [];
+  try{
+    const sessions = await getAllTrainingSessions();
+    sessions.forEach(sn=>{
+      (sn.exercises || []).forEach(ex=>{
+        if(exHistKey(ex.name) !== key) return;
+        const reps = Array.isArray(ex.repsPerSet) && ex.repsPerSet.length
+          ? ex.repsPerSet.join(',') : (ex.sets ? `${ex.sets}\u00d7${ex.reps}` : ex.reps);
+        rows.push({ date: sn.date, weight: ex.weight, reps, fail: !!ex.toFailure });
+      });
+    });
+  } catch(e){}
+  rows.sort((a, b)=> b.date.localeCompare(a.date));
+  if(!rows.length){ showToast('Nothing logged for this lift yet'); return; }
+  // Best-so-far is computed forwards through time and read backwards, so the plate marks the
+  // session that actually set the record rather than every session at that weight since.
+  let best = 0;
+  const asc = [...rows].reverse();
+  asc.forEach(r=>{ r.isPr = r.weight > best; if(r.weight > best) best = r.weight; });
+  const sheet = document.createElement('div');
+  sheet.className = 'lift-sheet';
+  sheet.innerHTML = `<div class="lift-sheet-panel" role="dialog" aria-label="${name} history">
+      <div class="lift-sheet-head"><span>${name}</span><button type="button" class="lift-sheet-x" aria-label="Close">\u00d7</button></div>
+      <div class="lift-sheet-body">${rows.slice(0, 40).map(r=>
+        `<div class="lift-row"><span class="lift-date">${stamp(r.date)}</span>`
+        + `<span class="lift-load">${r.weight ? r.weight + 'kg' : '\u2014'}</span>`
+        + `<span class="lift-reps">${r.reps || ''}${r.fail ? ' \u00b7 to failure' : ''}</span>`
+        + `${r.isPr && r.weight ? '<span class="pr-plate">PR</span>' : ''}</div>`).join('')}</div>
+      <div class="score-note lift-sheet-foot">${rows.length} session${rows.length === 1 ? '' : 's'} \u00b7 best ${best ? best + 'kg' : '\u2014'}</div>
+    </div>`;
+  const close = ()=> sheet.remove();
+  sheet.addEventListener('click', e=>{ if(e.target === sheet || e.target.closest('.lift-sheet-x')) close(); });
+  document.addEventListener('keydown', function esc(e){ if(e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc); } });
+  document.body.appendChild(sheet);
+}
+document.addEventListener('click', e=>{
+  const line = e.target.closest && e.target.closest('.ex-last-tap');
+  if(!line) return;
+  const row = line.closest('.edit-row');
+  const nameEl = row && row.querySelector('.week-ex-name');
+  showLiftHistory(line.dataset.ex, nameEl ? nameEl.value : line.dataset.ex);
+});
 
 function paceLabel(km, min){
   if(!(km > 0) || !(min > 0)) return '';
@@ -11375,7 +11522,12 @@ async function openBlockEditor(date, slot, block, opts){
         <span class="log-step-pos" id="logPos"></span>
         <button type="button" class="small outline log-fill" id="logFillAll">As planned</button>
       </div>
-      <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>`;
+      <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>
+      <!-- The run block has always had one. A strength session did not, so "gym was rammed,
+           shoulder twinged on set three" — the context the score cannot see and cannot
+           infer — had nowhere to go. session.notes already existed in the record and was
+           written as an empty string every time. -->
+      <div class="edit-row"><input type="text" id="weekSessionNotes" placeholder="notes — how it actually went"></div>`;
   } else if(block.type === 'run'){
     fieldsHtml = `
       <div class="edit-row"><select id="weekRunType">
@@ -11655,7 +11807,11 @@ async function openBlockEditor(date, slot, block, opts){
   wireBlockEditorGrab(panel);
   wireRestTimer(panel);
   wireSessionRpe(panel);
-  document.getElementById('deleteWeekBlockBtn').addEventListener('click', async ()=>{
+  document.getElementById('deleteWeekBlockBtn').addEventListener('click', async (e)=>{
+    // It sat in the same row as Save and removed the day's plan on one tap, with nothing to
+    // undo it — while "Clear all data" three tabs away makes you hold for two seconds. Same
+    // tap-again confirmation the week's Clear all uses; a mis-tap mid-session costs nothing.
+    if(!await confirmInPlace(e.currentTarget, { mode:'tap', label:'Tap again to remove' })) return;
     try{
       await window.storage.delete(`weekplan:${date}:${slot}`);
       await syncPlannedSessionMirror(date);
@@ -11817,7 +11973,8 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         sessionRpe: isNaN(rpe) ? null : rpe,
         scoreBlinded: wasBlind,
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
-        notes: '', exercises, totalVolume
+        notes: (document.getElementById('weekSessionNotes') || {}).value || '',
+        exercises, totalVolume
       };
       const startedAt = await loggingStartedAt(date);
       if(startedAt){
@@ -12838,6 +12995,22 @@ function buildRecCard(type, title, signals, confidence, meta){
   return card;
 }
 
+// Shut when the day starts and remembered for the rest of it, so opening the stack once
+// does not mean re-opening it after every render.
+let cardStackOpen = false;
+try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:open') || 'null')?.date === todayStr; } catch(e){}
+(function wireCardStackHead(){
+  const head = document.getElementById('cardStackHead');
+  if(!head) return;
+  const toggle = e=>{
+    if(e.target.closest('#undoDecisionBtn')) return;   // Undo is its own button, not the handle
+    cardStackOpen = !cardStackOpen;
+    try{ localStorage.setItem('cardStack:open', JSON.stringify(cardStackOpen ? { date: todayStr } : null)); } catch(e2){}
+    showNextCard();
+  };
+  head.addEventListener('click', toggle);
+  head.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(e); } });
+})();
 function showNextCard(){
   const container = document.getElementById('recommendationCards');
   const counter = document.getElementById('cardStackCounter');
@@ -12853,7 +13026,16 @@ function showNextCard(){
     return;
   }
   if(stack) stack.style.display = '';
-  counter.textContent = `${cardQueueIndex+1} of ${cardQueue.length}`;
+  // Closed, it says what is waiting rather than which one of them you are on — "1 of 2" is
+  // an answer to a question you only have once the stack is open.
+  const left = cardQueue.length - cardQueueIndex;
+  counter.textContent = cardStackOpen
+    ? `${cardQueueIndex+1} of ${cardQueue.length}`
+    : `${left} suggestion${left === 1 ? '' : 's'}`;
+  container.style.display = cardStackOpen ? '' : 'none';
+  const chev = document.getElementById('cardStackChev');
+  if(chev) chev.style.transform = cardStackOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  if(!cardStackOpen) return;
   const item = cardQueue[cardQueueIndex];
   eyeThinkBeforeCard(()=>{
   const card = buildRecCard(item.type, item.title, item.signals, item.confidence, item.meta);
