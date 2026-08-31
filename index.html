@@ -29,8 +29,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null;"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap"></noscript>
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Anton&family=League+Gothic&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Anton&family=League+Gothic&display=swap"></noscript>
 <style>
 
   :root{
@@ -86,11 +86,25 @@
        monos, which are close enough that the swap to Plex is a refinement rather than a
        reflow you watch happen. */
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-    /* The wordmark's own face and its own fallbacks. Condensed system faces first, because a
-       wordmark that falls back to a normal-width sans is a wordmark a third wider than the
-       space measured for it — and that measurement decides where the mark sits. */
-    --wordmark-face: 'IBM Plex Sans Condensed', 'Helvetica Neue Condensed', 'Arial Narrow',
-       'Roboto Condensed', ui-sans-serif, system-ui, sans-serif;
+    /* The wordmark's own face and its own fallbacks. Condensed system faces before the
+       generics, because a wordmark that falls back to a normal-width sans is a third wider
+       than the space measured for it — and that measurement decides where the mark sits.
+
+       TO SWAP TO LEAGUE GOTHIC, change one word on the next line: 'Anton' -> 'League Gothic'.
+       Both are already in the stylesheet link, and a browser only downloads the file for the
+       family a page actually uses, so carrying the alternative costs nothing but the line it
+       is written on. League Gothic is narrower and much lighter — it sits back and lets the
+       score lead, where Anton takes the header. Nothing else needs touching either way: the
+       size fits itself, and the mark measures the face's own cap height. */
+       The fallbacks have to be HEAVY, which they did not used to. Anton ships one weight and
+       that weight is black, so the h1 asks for 400 — ask for 700 and a browser synthesises a
+       bold on top of a face that has no room for one. But 400 of a generic sans is LIGHT, so
+       a stack ending in sans-serif renders a thin wide wordmark the moment the network fails.
+       Impact is the answer: heavy, condensed, and present on effectively every system
+       including iOS. Haettenschweiler is the Windows equivalent behind it.
+       (Swapping to League Gothic, reorder these too — it is a light face and wants
+       'Oswald', 'Arial Narrow' behind it rather than Impact.) */
+    --wordmark-face: 'Anton', 'Impact', 'Haettenschweiler', 'Arial Narrow', sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -163,24 +177,25 @@
      the one thing in the design speaking a different language. Its own size rather than
      --fs-display: that variable means "the one big number", which is the score, and the logo
      is not competing with it. */
-  /* IBM Plex Sans Condensed, lowercase. Condensed because the word is eight letters with
-     three narrow ones in it, and a MONOSPACED face gave the two i's as much room as the o —
-     which is what made the wordmark read airy and slightly broken. Same superfamily as the
-     mono carrying the rest of the app, so it is compressed without being a second voice.
-     Lowercase because the ascenders on the f and the two t's give the word a silhouette that
-     all-caps flattens. The element still says "Confetti", which is the app's name and what a
-     screen reader should announce; the casing is presentation and is done as presentation. */
-  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:lowercase; }
+  /* Anton, in caps. A compressed poster face out of the wood-type lineage, and the most ink
+     available at this width — which is the point, after the header spent a version and a half
+     being too quiet. Weight comes from the face rather than from a stroke: Anton has one
+     weight and it is already black, so --fw-bold is left off it and the text-stroke below is
+     zero. Adding either would fill in the counters.
+     The element still says "Confetti", which is the app's name and what a screen reader
+     should announce; the casing is presentation and is done as presentation. */
+  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:400; margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  /* Tracking and stroke are back near where DOGFOOD had them, and for the reason DOGFOOD had
-     them: -0.045em is what locked that wordmark's letters into a single mass instead of a row
-     of separate shapes, and a condensed face at display size takes negative tracking happily.
-     Not all the way to -0.045 — that was set for caps, and lowercase closes up faster. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.025em; margin-left:-2px; }
+  /* No stroke, and a little air rather than none. Negative tracking was the right answer for
+     a lighter condensed face, where it locked separate shapes into one mass; Anton arrives as
+     one mass already, and pulling its caps together would close the gaps its counters need at
+     this size. The stroke goes to zero for the same reason — it thickened a face that had no
+     lightness left to spend. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0; letter-spacing:0.01em; margin-left:-2px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -6019,7 +6034,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.72';
+const APP_VERSION = '2026.08.31.73';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
