@@ -5864,7 +5864,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.60';
+const APP_VERSION = '2026.08.31.61';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22351,9 +22351,45 @@ async function generateWarmup(){
   // about to do, which no drill in the list covers — and it is not a drill, so it is not
   // something to tick off.
   flow.className = 'drill-list';
+  // +3 for the ramp-up sets, which are real minutes with no dose written on them.
+  const warmMins = drillMinutes(drillParts) + 3;
   renderDrillList(flow, 'warmup', drillParts.map(d=>({ html:d }))
     .concat([{ html:'<b>Ramp up</b> — sets on the first lift, building toward your working weight', note:true }]),
-    document.getElementById('warmupEstimate'), `~${estMinutes+3}<i class="unit">min</i>`);
+    document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`);
+}
+
+/* THE ESTIMATE IS COUNTED, NOT ASSUMED.
+   It was areas × WARMUP_TIME_PER_AREA (3), which claimed 15 minutes for eight drills whose
+   own printed doses add up to between four and six. Measured across session lengths the
+   warm-up overstated itself by roughly two to one, every time — and the number sits in a
+   heading next to a session that says "~30min", so the page read as prescribing an hour of
+   mobility around half an hour of training.
+   Every drill carries its dose, because withDefaultDose guarantees one. So they are summed,
+   with a transition allowance per drill for finding the band and getting down on the floor,
+   which is real time the doses do not contain. It cannot drift from the content again: add
+   a drill and the estimate moves.
+   The cap is untouched. It is written in minutes but it is really an area budget — halving
+   the per-area cost there would double the number of areas selected, which is the opposite
+   of the fix. */
+const DRILL_TRANSITION_S = 18;
+function drillDoseSeconds(text){
+  const t = String(text).replace(/<[^>]*>/g, '').toLowerCase();
+  const sides = /\/side|each side|each leg|each arm|each|both/.test(t) ? 2 : 1;
+  const reps = (a, b)=> [a * 3 * sides, (b || a) * 4 * sides];
+  let m;
+  if((m = t.match(/(\d+)\s*-\s*(\d+)\s*s\b/)))     return [+m[1] * sides, +m[2] * sides];
+  if((m = t.match(/(\d+)\s*s\b/)))                  return [+m[1] * sides, +m[1] * sides];
+  if((m = t.match(/(\d+)\s*-\s*(\d+)\s*min/)))     return [+m[1] * 60 * sides, +m[2] * 60 * sides];
+  if((m = t.match(/[\u00d7x]\s*(\d+)\s*-\s*(\d+)/))) return reps(+m[1], +m[2]);
+  if((m = t.match(/[\u00d7x]\s*(\d+)/)))              return reps(+m[1]);
+  if((m = t.match(/(\d+)\s*-\s*(\d+)\s*reps?/)))    return reps(+m[1], +m[2]);
+  if((m = t.match(/(\d+)\s*reps?/)))                 return reps(+m[1]);
+  if((m = t.match(/\b(\d+)\b/)))                     return reps(+m[1]);
+  return [30, 45];
+}
+function drillMinutes(items){
+  const secs = items.reduce((a, it)=> a + drillDoseSeconds(it) [1] + DRILL_TRANSITION_S, 0);
+  return Math.max(1, Math.round(secs / 60));
 }
 
 /* THE WARM-UP IS A LIST YOU CAN TICK.
@@ -22536,7 +22572,7 @@ async function generateMobility(){
     buckets[b].forEach(t=> coolItems.push({ html:t, group:b }));
   });
   renderDrillList(coolFlow, 'cooldown', coolItems,
-    document.getElementById('cooldownEstimate'), `~${estMinutes}<i class="unit">min</i>`);
+    document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.map(i=>i.html))}<i class="unit">min</i>`);
 }
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
