@@ -29,8 +29,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null;"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap"></noscript>
 <style>
 
   :root{
@@ -86,6 +86,11 @@
        monos, which are close enough that the swap to Plex is a refinement rather than a
        reflow you watch happen. */
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    /* The wordmark's own face and its own fallbacks. Condensed system faces first, because a
+       wordmark that falls back to a normal-width sans is a wordmark a third wider than the
+       space measured for it — and that measurement decides where the mark sits. */
+    --wordmark-face: 'IBM Plex Sans Condensed', 'Helvetica Neue Condensed', 'Arial Narrow',
+       'Roboto Condensed', ui-sans-serif, system-ui, sans-serif;
     --mono: 'IBM Plex Mono', var(--mono-fallback);
     --sans: 'IBM Plex Mono', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
@@ -158,7 +163,14 @@
      the one thing in the design speaking a different language. Its own size rather than
      --fs-display: that variable means "the one big number", which is the score, and the logo
      is not competing with it. */
-  h1{ font-family:var(--mono); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:uppercase; }
+  /* IBM Plex Sans Condensed, lowercase. Condensed because the word is eight letters with
+     three narrow ones in it, and a MONOSPACED face gave the two i's as much room as the o —
+     which is what made the wordmark read airy and slightly broken. Same superfamily as the
+     mono carrying the rest of the app, so it is compressed without being a second voice.
+     Lowercase because the ascenders on the f and the two t's give the word a silhouette that
+     all-caps flattens. The element still says "Confetti", which is the app's name and what a
+     screen reader should announce; the casing is presentation and is done as presentation. */
+  h1{ font-family:var(--wordmark-face); font-size:var(--fs-wordmark); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:0; line-height:0.92; text-transform:lowercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
      and below it — and the rest hangs the display type off the edge, as display type set
@@ -1771,10 +1783,9 @@
          cannot reconstruct from whatever page you happen to be looking at. -->
     <div class="header-readout" id="headerReadout"></div>
     <div id="currentTabLabel" class="tab-label">Today</div>
-    <!-- One span, not eight. The last wordmark was hand-kerned letter by letter because
-         Helvetica needed it; a monospaced face is a grid by definition, and nudging its
-         letters is undoing the only thing it is for. The span stays because
-         updateHeaderCollapse measures the wordmark's right edge off the last one. -->
+    <!-- One span, not eight. An earlier wordmark was hand-kerned letter by letter because
+         Helvetica needed it; nothing here does. The span stays because updateHeaderCollapse
+         measures the wordmark's right edge off the last one. -->
     <h1><div class="logo-line"><span>Confetti</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
@@ -6002,7 +6013,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.70';
+const APP_VERSION = '2026.08.31.71';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6828,29 +6839,40 @@ function updateHeaderCollapse(){
       ? Math.min(LOGO_MEASURED_PX, LOGO_MEASURED_PX * room / logoTextWidth)
       : LOGO_MEASURED_PX;
 
-    /* WHERE THE MIDDLE OF THE CAPITALS IS, measured off the font rather than assumed.
+    /* WHERE THE MIDDLE OF THE WORD IS, measured off the font rather than assumed.
 
        This used to be a constant worked out from Helvetica's metrics on paper. The face has
-       changed, and the next time it changes the number would be wrong again and wrong
+       changed twice since, and the next time the number would be wrong again and wrong
        silently — the mark would just sit a few pixels low and nobody would know why.
 
-       Canvas gives the two things needed: fontBoundingBox tells us where the baseline falls
+       Canvas gives the two things needed: fontBoundingBox says where the baseline falls
        inside the line box once the half-leading is taken off, and actualBoundingBoxAscent of
-       a capital gives the cap height. Uppercase has nothing below the baseline, so the
-       middle of the ink is half a cap height above it — centring the mark on the LINE box
-       instead would hang it low by the whole descender. */
+       a reference glyph gives the height of the band the letters actually occupy.
+
+       WHICH reference glyph depends on the case, and that is the whole point of doing it this
+       way. An uppercase wordmark is a row of capitals, so it centres on the cap height. A
+       lowercase one is mostly x-height — "confetti" has ascenders on the f and both t's and
+       nothing at all below the baseline, so measuring the full ink of the word would centre
+       the mark on a band that only three of its eight letters reach, and lift it off the mass
+       of the word. Neither case has descenders here; centring on the LINE box would hang the
+       mark low by a descender that is not being used. */
     logoCapMid = LOGO_CAP_MID_FALLBACK;
     try{
       const cs = getComputedStyle(headerCollapseEls.h1);
+      const raw = (headerCollapseEls.h1.textContent || '').trim();
+      const tf = cs.textTransform;
+      const shown = tf === 'lowercase' ? raw.toLowerCase()
+        : tf === 'uppercase' ? raw.toUpperCase() : raw;
       const probe = document.createElement('canvas').getContext('2d');
       probe.font = `${cs.fontWeight} ${LOGO_MEASURED_PX}px ${cs.fontFamily}`;
-      const m = probe.measureText('H');
+      const ref = shown && shown === shown.toLowerCase() ? 'x' : 'H';
+      const m = probe.measureText(ref);
       const asc = m.fontBoundingBoxAscent, desc = m.fontBoundingBoxDescent;
-      const cap = m.actualBoundingBoxAscent;
-      if(asc > 0 && cap > 0){
+      const band = m.actualBoundingBoxAscent;
+      if(asc > 0 && band > 0){
         const lineH = parseFloat(cs.lineHeight) || LOGO_MEASURED_PX;
         const baseline = (lineH - (asc + desc)) / 2 + asc;
-        logoCapMid = (baseline - cap / 2) / LOGO_MEASURED_PX;
+        logoCapMid = (baseline - band / 2) / LOGO_MEASURED_PX;
       }
     } catch(e){}
   }
