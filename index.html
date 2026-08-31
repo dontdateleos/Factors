@@ -5243,11 +5243,14 @@ function activateTab(name, opts){
   if(name==='insights'){
     applyTodayStage();
     refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
-    applyRestDayShape();
+    // Awaited by the two generators below, not fired alongside them: it is what reads the
+    // day's plan into todaySessionType, and a warm-up built before that read is a warm-up
+    // for the wrong session.
+    const shaped = Promise.resolve(applyRestDayShape()).catch(()=>{});
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
     withEyesBusy(
-      withEyesBusy(generateWarmup(), document.getElementById('warmupCards'))
+      shaped.then(()=> withEyesBusy(generateWarmup(), document.getElementById('warmupCards')))
         .then(()=>withEyesBusy(generateMobility(), document.getElementById('mobilityCards')))
     );
   }
@@ -5902,7 +5905,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.89';
+const APP_VERSION = '2026.08.31.90';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18087,6 +18090,16 @@ async function applyTypePillVisibility(){
     } catch(e){}
   }
   pills.style.display = scheduled.length === 1 ? 'none' : '';
+  // And nothing was reading the plan's answer. todaySessionType sat on its declared default
+  // of 'strength' unless a pill was tapped — and on a run-only day the pills are hidden, so
+  // there was no pill to tap. Every run-aware branch downstream (the run warm-up areas, the
+  // per-run-type warm-up and cool-down budgets, the jog-down) was dead on exactly the days
+  // it was written for, and a run got a lift's warm-up.
+  if(scheduled.length && !scheduled.includes(todaySessionType)){
+    todaySessionType = scheduled[0];
+    pills.querySelectorAll('.type-btn').forEach(b=>
+      b.classList.toggle('active', b.dataset.type === todaySessionType));
+  }
 }
 
 async function applyRestDayShape(){
