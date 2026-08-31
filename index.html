@@ -51,7 +51,7 @@
     --fs-control:var(--fs-md);
     --fs-xl:18px;       /* section titles */
     --fs-display:46px;  /* the one big number */
-    --fs-wordmark:34px; /* the logo, which is not it */
+    --fs-wordmark:52px; /* the logo, which is not it */
     --fs-score:58px;    /* recovery score, the largest thing on screen */
     --fs-num:26px;      /* goal priority numerals */
     --fw-normal:400;
@@ -176,7 +176,11 @@
      and below it — and the rest hangs the display type off the edge, as display type set
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
-  header h1{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); letter-spacing:0.01em; margin-left:-2px; }
+  /* Tracking and stroke are back near where DOGFOOD had them, and for the reason DOGFOOD had
+     them: -0.045em is what locked that wordmark's letters into a single mass instead of a row
+     of separate shapes, and a condensed face at display size takes negative tracking happily.
+     Not all the way to -0.045 — that was set for caps, and lowercase closes up faster. */
+  header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.025em; margin-left:-2px; }
   .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
@@ -415,13 +419,13 @@
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
   /* A SEED, not the source. headerEyeSite computes these from --fs-wordmark and writes them
      inline, and that is the authority; these are here so the first painted frame is not a
-     40px mark that jumps to 20 the moment script runs. They are the same numbers: 34px of
-     wordmark at MARK_TO_WORDMARK 0.58, which is 19.72px of plate — a little under the cap
-     height of the type beside it, which is what keeps it a mark rather than a ninth letter.
+     40px mark that jumps the moment script runs. They are the same numbers: 52px of wordmark
+     at MARK_TO_WORDMARK 0.64, which is 33.28px of plate — under the height of the letters
+     beside it, which is what keeps it a mark rather than a ninth letter.
      If you change --fs-wordmark, change nothing here; the ratio does it. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
-    --eye-box-w:19.72px; --eye-box-h:19.72px; --eye-gap:4.93px; --eye-plate:var(--block-lime); --eye-plate-r:5.92px;
-    --eye-w:2.96px; --eye-h:8.87px; --eye-r:1.48px; --eye-rb:1.48px; --eye-ink:var(--text); }
+    --eye-box-w:33.28px; --eye-box-h:33.28px; --eye-gap:8.32px; --eye-plate:var(--block-lime); --eye-plate-r:9.98px;
+    --eye-w:4.99px; --eye-h:14.98px; --eye-r:2.5px; --eye-rb:2.5px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
      Absolute, so the expression can change height without moving anything on the page. */
   .score-stack{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -3127,17 +3131,19 @@ const EYE_SITES = {
    was the biggest thing in the header. Both times the fix was to type a different number,
    which sets up the same mistake for whoever changes --fs-wordmark next.
 
-   So it is a ratio of the wordmark's own size now. 0.58 puts the plate a little UNDER the
-   cap height of the type it sits beside — deliberately under, not level: the mark is a mark
-   on the end of a word, and a block matching the capitals reads as a ninth letter. Change
-   --fs-wordmark and the mark follows it without anything else being touched.
+   So it is a ratio of the wordmark's own size now. 0.64 keeps the plate under the height of
+   the letters beside it — deliberately under, not level, because a block matching them reads
+   as a ninth letter rather than a mark on the end of a word. It went up from 0.58 because at
+   that ratio the lime was 389px2 against DOGFOOD's 1600, and the mark is the only colour in
+   the whole header: a third of the presence the header lost was just that square getting
+   smaller. Change --fs-wordmark and the mark follows without anything else being touched.
 
    One factor across every dimension, from the geometry the mark was originally drawn at.
    That is what the whole thing being custom properties is for: the face stays the same face,
    at a different size, rather than five values re-guessed to look about right. */
 const HEADER_MARK_BASE = { '--eye-box-w':40, '--eye-box-h':40, '--eye-gap':10,
   '--eye-plate-r':12, '--eye-w':6, '--eye-h':18, '--eye-r':3, '--eye-rb':3 };
-const MARK_TO_WORDMARK = 0.58;
+const MARK_TO_WORDMARK = 0.64;
 function headerEyeSite(){
   let fs = 34;
   try{ fs = parseFloat(getComputedStyle(document.documentElement)
@@ -6013,7 +6019,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.71';
+const APP_VERSION = '2026.08.31.72';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
