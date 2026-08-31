@@ -5521,7 +5521,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.40';
+const APP_VERSION = '2026.08.31.41';
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
    practice too, for a long time, because sw.js did not exist in the repository. Every
@@ -17370,6 +17370,24 @@ async function generateProgramFromGoals(weekDatesOverride, volumeWaveNote, block
 // sessionSourceGroup is off this list because it is hidden for good — handing it back a
 // display of '' here would have put it on screen again on every non-rest day.
 const REST_HIDDEN = ['todaySessionTypePills', 'todayWorkoutArea'];
+// Strength / Run / Mobility, offered above a plan that already says which of the three
+// today is. Two of the buttons then answer "no run today" — a control whose most likely
+// outcome is a dead end. It is a real choice only when the day holds more than one session,
+// or holds none and you are deciding what to do instead; otherwise the plan has answered
+// and the row is a question with one possible answer.
+async function applyTypePillVisibility(){
+  const pills = document.getElementById('todaySessionTypePills');
+  if(!pills) return;
+  const scheduled = [];
+  for(const slot of ['am', 'pm']){
+    try{
+      const bl = JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value);
+      if(bl && bl.type && !scheduled.includes(bl.type)) scheduled.push(bl.type);
+    } catch(e){}
+  }
+  pills.style.display = scheduled.length === 1 ? 'none' : '';
+}
+
 async function applyRestDayShape(){
   const plate = document.getElementById('restDayPlate');
   if(!plate) return;
@@ -17380,6 +17398,7 @@ async function applyRestDayShape(){
     const el = document.getElementById(id);
     if(el) el.style.display = resting ? 'none' : '';
   });
+  if(!resting) await applyTypePillVisibility();
   if(!resting) return;
   // What it says is the one thing worth knowing on a day with nothing in it: when the next
   // thing is. Scanned forward rather than assumed, and it says nothing rather than guessing
