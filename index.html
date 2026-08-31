@@ -5882,7 +5882,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.62';
+const APP_VERSION = '2026.08.31.63';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13462,8 +13462,17 @@ async function overallScoreForEntry(entry){
 // of it. This one is read as shape, not as value — the number itself is directly beside it.
 const TRACE_MIN_SPAN = 20;
 const TRACE_PAD = 4;            // so the highest and lowest days aren't drawn on the edges
-const TRACE_BAND = 30;          // the trace's own height, above its rail
-const TICK_H = 3;               // today's mark; the other six are 2px
+/* Measured: seven marks of 9x2px, with 27 units of vertical travel between the best day of
+   the week and the worst — so a forty-point swing moved a mark eleven pixels, and the mark
+   itself was two of them. Three things are encoded on those marks at once (height is the
+   score, opacity is which day, width is how much was behind the reading), which is a lot to
+   ask of two pixels.
+   Nothing about the drawing changes; it is given room. The band grows by half, which is
+   free — it sits in a 162px score band that the column never filled — and every difference
+   between two days grows with it. The marks go up a pixel for the same reason: at 2px they
+   were relying on a 3x screen to exist at all. */
+const TRACE_BAND = 44;          // the trace's own height, above its rail
+const TICK_H = 4;               // today's mark; the other six are 3px
 const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
@@ -13622,7 +13631,7 @@ function paintScoreTrace(){
     // tells you which end of the week you are at.
     const picked = i === scoreDayIndex;
     const isToday = i === scoreDays.length - 1;
-    const h = picked ? TICK_H : 2;
+    const h = picked ? TICK_H : 3;
     const fill = picked ? 'var(--bg)' : (isToday ? 'rgba(251,250,246,0.85)' : 'rgba(251,250,246,0.5)');
     // A thin reading gets a short mark. Not a fainter one — opacity is already carrying which
     // day you are on and which one is today, and a third meaning stacked on it would make all
