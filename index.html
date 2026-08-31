@@ -4035,6 +4035,12 @@ function eyeNoteActivity(){
    mark in the wordmark — which is the app's own face, and the right thing to be pleased.
    Milestones throw more of it and hold the number for a beat. It goes through uiAnim, so
    calm mode and prefers-reduced-motion both switch it off like everything else. */
+/* How long a toast sits. The default is sized for "Saved" — an acknowledgement you take in
+   at a glance; anything with a figure in it worth reading needs longer.
+   Declared up here with the streak rather than beside showToast, because noteStreak reads
+   them and runs from refreshEyeHistory, which can fire before a declaration a couple of
+   thousand lines further down has been reached. */
+const TOAST_MS = 1800, TOAST_LONG_MS = 3000;
 const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365];
 const CONFETTI_INK = ['var(--block-lime)', 'var(--block-orange)', 'var(--block-yellow)',
                       'var(--block-blue)', 'var(--block-purple)', 'var(--bg)'];
@@ -4073,8 +4079,16 @@ function streakBurst(n){
     setTimeout(()=> bit.remove(), UI_ANIM.streakBurst.ms + 700);
   }
 }
-// Once a day, and only when the number has actually gone up — not on every render, and not
-// on the render that merely re-reads the same streak after a tab switch.
+/* Once a day, and only when the number has actually gone up — not on every render, and not
+   on the render that merely re-reads the same streak after a tab switch.
+
+   IT SAYS THE NUMBER NOW. The streak used to live in the header readout, which is gone; what
+   was left was confetti thrown from the mark and nothing anywhere to say what it was for. A
+   celebration with no subject is just movement on the screen.
+   So the burst comes with a toast, which is the app's own way of saying a thing happened —
+   it carries the mark's eyes, and the confetti is thrown from that same pair, so the two
+   halves are one gesture rather than two events. A milestone holds longer and throws more,
+   which is already true of the burst. */
 function noteStreak(n){
   if(!(n >= 2)) return;
   let seen = null;
@@ -4082,7 +4096,12 @@ function noteStreak(n){
   if(seen && seen.date === todayStr) return;
   const grew = !seen || n > (seen.n || 0);
   try{ localStorage.setItem('streak:seen', JSON.stringify({ date: todayStr, n })); } catch(e){}
-  if(grew) setTimeout(()=> streakBurst(n), 420);
+  if(!grew) return;
+  setTimeout(()=>{
+    const milestone = STREAK_MILESTONES.includes(n);
+    showToast(`${n} day streak`, false, milestone ? TOAST_LONG_MS : TOAST_MS);
+    streakBurst(n);
+  }, 420);
 }
 
 let loggedStreak = 0;
@@ -5895,12 +5914,12 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.83';
+const APP_VERSION = '2026.08.31.84';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
 const APP_NOTES = {
-  '2026.08.31.83': 'The metrics line in the top-right corner is gone. Just the date up there now.'
+  '2026.08.31.84': 'The streak says itself again \u2014 the day it goes up, the mark throws confetti and a toast names the number.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -6740,7 +6759,7 @@ function animateNumber(el, from, to, duration, suffix){
 }
 
 let toastTimer = null;
-function showToast(message, isError){
+function showToast(message, isError, ms){
   const t = document.getElementById('toast');
   const icon = toastEyesHtml(isError) || (isError
     ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
@@ -6755,7 +6774,7 @@ function showToast(message, isError){
   eyeNoteToast(isError);
   if(!isError) eyeFormSettled();
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 1800);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, ms || TOAST_MS);
 }
 // Mechanical double-flash confirmation (filter:invert, not a fade) — works on any
 // element's existing colors automatically. Re-triggerable: removing then re-adding the
