@@ -1470,6 +1470,30 @@
      nothing is ruled, and the whole of either fits in a few lines under the score.
      The score is the page; these are the footnote to it. */
   .flow{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.7; letter-spacing:0.005em; color:var(--text); }
+  /* One drill per row, 44px of it, because this is read and tapped mid-warm-up rather than
+     read at a desk. The box is the app's own square rather than a checkbox control: a real
+     input would bring its own platform styling into a page that has none anywhere else. */
+  .drill-list{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--text); }
+  .drill-group{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase; opacity:0.55;
+    margin:var(--sp-2) 0 2px; }
+  .drill-group:first-child{ margin-top:0; }
+  .drill{ display:flex; align-items:flex-start; gap:10px; width:100%; min-height:44px;
+    padding:6px 0; margin:0; background:transparent; border:0; border-radius:0; text-align:left;
+    font-family:var(--sans); font-size:var(--fs-sm); line-height:1.45; letter-spacing:0.005em;
+    text-transform:none; font-weight:var(--fw-normal); color:var(--text); cursor:pointer; }
+  .drill + .drill{ border-top:1px solid rgba(12,13,11,0.12); }
+  .drill-box{ flex:0 0 auto; width:17px; height:17px; margin-top:2px;
+    box-shadow:inset 0 0 0 2px var(--border-bold); background:transparent; }
+  .drill.on .drill-box{ background:var(--border-bold); }
+  .drill-text{ flex:1; min-width:0; }
+  /* Struck through AND faded: the strike says done, the fade takes it out of the way of the
+     ones that are not. */
+  .drill.on .drill-text{ text-decoration:line-through; opacity:0.42; }
+  .drill-count{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
+    opacity:0.6; margin-left:6px; }
+  .drill-note{ font-size:var(--fs-sm); line-height:1.45; opacity:0.75; padding:10px 0 0;
+    margin-top:var(--sp-2); border-top:1px solid rgba(12,13,11,0.12); }
   .flow-seg{ display:inline; }
   /* An arrow rather than a bullet: this is a sequence you move through in order, and the
      separator is the only thing left carrying that once the rules came out. */
@@ -5839,7 +5863,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.58';
+const APP_VERSION = '2026.08.31.59';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22242,8 +22266,7 @@ async function generateWarmup(){
   // longer the full RAMP, so it stops claiming to be.
   // The estimate sits in the section heading rather than on a line of its own inside it:
   // it is the one number worth seeing while the section is still closed.
-  const warmEstEl = document.getElementById('warmupEstimate');
-  if(warmEstEl) warmEstEl.innerHTML = `~${estMinutes+3}<i class="unit">min</i>`;
+  // The estimate is written by renderDrillList, which appends the tick count to it.
   const flow = document.createElement('div');
   flow.className = 'flow';
   container.innerHTML = '';
@@ -22309,9 +22332,70 @@ async function generateWarmup(){
     });
   });
   // Potentiate closes the sequence: it names the ramp-up sets for the specific lift you are
-  // about to do, which no drill in the list covers.
-  flow.innerHTML = `<span class="flow-seg">${drillParts.join(' \u00b7 ')}</span>`
-    + `<span class="flow-seg"><span class="flow-area">Ramp up</span>sets on the first lift, building toward your working weight</span>`;
+  // about to do, which no drill in the list covers — and it is not a drill, so it is not
+  // something to tick off.
+  flow.className = 'drill-list';
+  renderDrillList(flow, 'warmup', drillParts.map(d=>({ html:d }))
+    .concat([{ html:'<b>Ramp up</b> — sets on the first lift, building toward your working weight', note:true }]),
+    document.getElementById('warmupEstimate'), `~${estMinutes+3}<i class="unit">min</i>`);
+}
+
+/* THE WARM-UP IS A LIST YOU CAN TICK.
+   Both sections were one paragraph of drills separated by middots — 291 characters for the
+   warm-up, 248 for the stretch-down. You read them WHILE DOING THEM, one item at a time,
+   standing up, and a paragraph is the one shape that makes "where was I" hard to answer.
+   Same content, one row each, and a tap strikes it out. Ticks are per-day and live in
+   localStorage: this is which drills you have done in the last twenty minutes, not training
+   history, and it should not survive into tomorrow or sync anywhere. */
+function drillKey(text){
+  const t = String(text).replace(/<[^>]*>/g, '').trim().toLowerCase();
+  let h = 0;
+  for(let i = 0; i < t.length; i++){ h = (h * 31 + t.charCodeAt(i)) | 0; }
+  return 'd' + (h >>> 0).toString(36);
+}
+function drillsDone(listKey){
+  try{
+    const raw = JSON.parse(localStorage.getItem('drills:' + listKey) || 'null');
+    if(raw && raw.date === todayStr) return new Set(raw.ids || []);
+  } catch(e){}
+  return new Set();
+}
+function setDrillsDone(listKey, set){
+  try{ localStorage.setItem('drills:' + listKey, JSON.stringify({ date: todayStr, ids: [...set] })); } catch(e){}
+}
+/* items: [{ html, group }] — group starts a labelled run, the way the stretch-down groups
+   Roll / Move / Hold. A note (an item with no key) is text that is not a thing to tick. */
+function renderDrillList(host, listKey, items, estEl, estHtml){
+  const done = drillsDone(listKey);
+  const tickable = items.filter(it=> !it.note);
+  let lastGroup = null;
+  host.innerHTML = items.map(it=>{
+    let out = '';
+    if(it.group && it.group !== lastGroup){ lastGroup = it.group; out += `<div class="drill-group">${it.group}</div>`; }
+    if(it.note) return out + `<div class="drill-note">${it.html}</div>`;
+    const k = drillKey(it.html);
+    return out + `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
+      + `<span class="drill-box" aria-hidden="true"></span><span class="drill-text">${it.html}</span></button>`;
+  }).join('');
+  const paint = ()=>{
+    if(!estEl) return;
+    const n = drillsDone(listKey).size;
+    // The count goes beside the estimate rather than replacing it: how long it takes and how
+    // far through you are are both worth knowing, and neither is the other.
+    estEl.innerHTML = estHtml + (tickable.length ? ` <span class="drill-count">${n}/${tickable.length}</span>` : '');
+  };
+  host.querySelectorAll('.drill').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const set = drillsDone(listKey);
+      const k = btn.dataset.k;
+      if(set.has(k)) set.delete(k); else set.add(k);
+      setDrillsDone(listKey, set);
+      btn.classList.toggle('on', set.has(k));
+      btn.setAttribute('aria-pressed', set.has(k) ? 'true' : 'false');
+      paint();
+    });
+  });
+  paint();
 }
 
 // Auto-generated alongside the warm-up and workout when the Today tab renders — no
@@ -22388,8 +22472,6 @@ async function generateMobility(){
   });
 
   mobilitySection.style.display = 'block';
-  const coolEstEl = document.getElementById('cooldownEstimate');
-  if(coolEstEl) coolEstEl.innerHTML = `~${estMinutes}<i class="unit">min</i>`;
   const coolFlow = document.createElement('div');
   coolFlow.className = 'flow';
   mobilityContainer.innerHTML = '';
@@ -22432,10 +22514,13 @@ async function generateMobility(){
     // the hold list rather than adding an "optional" entry to it.
     if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls);
   });
-  coolFlow.innerHTML = Object.keys(buckets)
-    .filter(b=>buckets[b].length)
-    .map(b=>`<span class="flow-seg"><span class="flow-area">${b}</span>${buckets[b].join(' \u00b7 ')}</span>`)
-    .join('');
+  coolFlow.className = 'drill-list';
+  const coolItems = [];
+  Object.keys(buckets).filter(b=>buckets[b].length).forEach(b=>{
+    buckets[b].forEach(t=> coolItems.push({ html:t, group:b }));
+  });
+  renderDrillList(coolFlow, 'cooldown', coolItems,
+    document.getElementById('cooldownEstimate'), `~${estMinutes}<i class="unit">min</i>`);
 }
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
