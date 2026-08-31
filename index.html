@@ -477,7 +477,15 @@
      number's width mid-count, which reads as a wobble on the one figure most looked at. */
   /* A strip of 0-9 per place, translated to the digit it should land on. overflow:hidden
      on the well is what makes it a counter rather than a column of numbers. */
-  .digit-well{ display:inline-block; overflow:hidden; height:1em; vertical-align:top; }
+  /* One line box tall, not one em. The strips are ten lines at the score's line-height of
+     0.92, and the roll steps by exactly one of those lines — but the window they showed
+     through was 1em, which is 0.08em taller. So every place except the last drew a sliver of
+     the digit BELOW the one it had landed on: "100" carried the top of a 2 under its 1 and
+     the top of a 1 under each 0, three cream marks floating between the score and its label
+     on every render. 1lh is that window measured in the same unit the strip is built from,
+     so the two cannot drift apart if the line-height is ever touched; 1em stays as the
+     fallback for anything that does not know the unit. */
+  .digit-well{ display:inline-block; overflow:hidden; height:1em; height:1lh; vertical-align:top; }
   .digit-strip{ display:block; will-change:transform; }
   .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); line-height:0.92; -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
@@ -5894,7 +5902,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.64';
+const APP_VERSION = '2026.08.31.65';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
