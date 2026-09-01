@@ -1887,7 +1887,9 @@
           <div id="warmupCards"></div>
           <details class="glossary">
             <summary>what the stages mean</summary>
-            <div class="gloss-item"><span class="gloss-term">RAMP UP</span>Sets on the first lift itself — same movement, building toward your working weight, so the nervous system is ready for it. Called potentiation.</div>
+            <div class="gloss-item"><span class="gloss-term">RAISE</span>Get warm and get blood moving — the jog, or the opening kilometre of an easy run.</div>
+            <div class="gloss-item"><span class="gloss-term">MOVE</span>Take the joints you are about to load through their range, and wake the muscles that hold them.</div>
+            <div class="gloss-item"><span class="gloss-term">PRIME</span>The last step before the work: strides before a hard run, ramp-up sets before a lift. The one most people skip. Called potentiation.</div>
             <div class="gloss-item"><span class="gloss-term">×8-10</span>Reps. <span class="gloss-term">30s</span> is a hold. <span class="gloss-term">/side</span> means that each way, not in total.</div>
           </details>
         </div>
@@ -5939,7 +5941,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.95';
+const APP_VERSION = '2026.08.31.96';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18486,6 +18488,20 @@ async function saveStretchLedgerFor(date, secondsByArea){
    MOBILISE. Neither mentions the other's work.
    The gaps are stated because the gap matters as much as the work: muscle temperature and
    the raised VO2 baseline both decay in the walk to the start. */
+/* RAISE, on its own, so the warm-up section can own it as a step you tick rather than the
+   run card describing it in prose. The strides that used to be packed into these same
+   strings live in the section's PRIME group — stated once, at one pace. */
+const RUN_RAISE_BY_TYPE = {
+  easy:      'Walk, then run the first kilometre slower than target pace — that is the warm-up',
+  recovery:  'Walk, then run the first kilometre slower than target pace — that is the warm-up',
+  long:      'Easy jog to open up, starting slower than feels necessary — 5-10 min',
+  tempo:     'Easy jog, last 2 minutes lifting toward steady — 10-15 min',
+  interval:  'Easy jog — 10-15 min',
+  fartlek:   'Easy jog — 10 min',
+  hills:     'Easy jog to the hill, then one relaxed uphill at half effort — 10-15 min',
+  sprint:    'Easy jog. Never sprint cold — 15 min',
+  race:      'Easy jog, finishing 25-30 min before the start — 10-15 min. At half or full marathon cut it to 5-10 min and treat the first kilometres as the rest of it'
+};
 const RUN_WARMUP_BY_TYPE = {
   easy:     'Walk, then ease into the first kilometre slower than target pace. The run is the warm-up.',
   long:     '5-10 min easy jog to open up, then settle. Start slower than feels necessary.',
@@ -20999,8 +21015,10 @@ async function blockSummaryHtml(block){
       dose = `${distanceKm ? distanceKm + 'km' : ''}${paceLabel}`.trim();
       // Stored on the block at generation; fall back to the protocol for this run type so
       // blocks saved before warm-ups existed still show one.
-      const warm = d.warmup || (typeof RUN_WARMUP_BY_TYPE !== 'undefined' ? RUN_WARMUP_BY_TYPE[typeKey] : null);
-      if(warm) lines.push({ key:'Warm-up', text: warm });
+      // The warm-up section owns the warm-up now — see the note in generateWarmup. This card
+      // sits directly under it and was saying the same thing in a different shape, and on a
+      // quality day at a different stride pace. details.warmup stays on the block: it is what
+      // the Weekly planner wrote, and nothing here should rewrite what was planned.
     }
     if(d.notes && !d.walkRun && !/^Auto-generated/.test(d.notes)) lines.push({ text: d.notes });
     return `<div class="plan-list">${planRow(name, dose, lines)}</div>`;
@@ -22695,25 +22713,42 @@ async function generateWarmup(){
      instruction, because there the first kilometre is the warm-up and a stride before it is
      answering a question nobody asked.
      Not a drill either way, so not something to tick off. */
+  /* ONE WARM-UP, IN ONE FORMAT.
+
+     The section and the run card were both writing the warm-up, in two different shapes: a
+     dosed, tickable list here and a line of prose on the card. On an easy day they said the
+     same sentence twice, about 250px apart. On a quality day they disagreed — strides "at
+     about 5K pace" here against "at target pace" there, which for a tempo session are not
+     the same speed. The brief puts strides at roughly 5K to mile pace, so that is what is
+     left standing and the card's line is gone.
+
+     Everything is one grouped, dosed, tickable list now, the shape the cool-down already
+     had: RAISE, MOVE, PRIME. The jog was described on the card but never counted anywhere,
+     which is why a quality warm-up claimed ten minutes for something the brief puts at
+     twenty-odd.
+
+     PRIME only where it earns its place. An easy or long run's first kilometre IS the
+     priming, and RAISE already says so — a stride before it answers a question nobody
+     asked. */
   const QUALITY_RUNS = ['tempo', 'interval', 'fartlek', 'hills', 'sprint', 'race'];
-  let potentiate, potentiateMins;
+  let prime = null;
   if(runType && QUALITY_RUNS.includes(runType)){
-    potentiate = '<b>Strides</b> — 4-6 × 80-100m at about 5K pace, walking back between. Start the first rep within 2 minutes of the last one.';
-    potentiateMins = 5;
-  } else if(runType){
-    potentiate = '<b>Ease in</b> — run the first kilometre deliberately slower than target pace. That is the rest of the warm-up.';
-    potentiateMins = 0;
-  } else {
-    potentiate = '<b>Ramp up</b> — sets on the first lift, building toward your working weight';
-    potentiateMins = 3;
+    prime = 'Strides — 4-6 × 80-100m at roughly 5K to mile pace, walking back between. Start the session within 2 minutes of the last one — 4-5 min';
+  } else if(!runType){
+    prime = 'Ramp up — sets on the first lift, building toward your working weight — 3 min';
   }
+  const raise = runType ? (RUN_RAISE_BY_TYPE[runType] || RUN_RAISE_BY_TYPE.easy) : null;
+
   flow.className = 'drill-list';
-  // The closing phase is real minutes with no dose written on it, so it is added by hand.
-  const warmMins = drillMinutes(drillParts) + potentiateMins;
+  const warmItems = [];
+  if(raise) warmItems.push({ group:'RAISE', html: raise });
+  drillParts.forEach(d=> warmItems.push({ group:'MOVE', html: d }));
+  if(prime) warmItems.push({ group:'PRIME', html: prime });
   const warmDeferred = deferredAreasNote(deferred, 'warm-up');
-  renderDrillList(flow, 'warmup', drillParts.map(d=>({ html:d }))
-    .concat([{ html:potentiate, note:true }])
-    .concat(warmDeferred ? [warmDeferred] : []),
+  if(warmDeferred) warmItems.push(warmDeferred);
+  // Counted from the printed doses, like the cool-down, instead of a hand-added constant.
+  const warmMins = drillMinutes(warmItems.filter(i=>!i.note).map(i=>i.html));
+  renderDrillList(flow, 'warmup', warmItems,
     document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`);
 }
 
@@ -22739,6 +22774,10 @@ function drillDoseSeconds(text){
   if((m = t.match(/(\d+)\s*-\s*(\d+)\s*s\b/)))     return [+m[1] * sides, +m[2] * sides];
   if((m = t.match(/(\d+)\s*s\b/)))                  return [+m[1] * sides, +m[1] * sides];
   if((m = t.match(/(\d+)\s*-\s*(\d+)\s*min/)))     return [+m[1] * 60 * sides, +m[2] * 60 * sides];
+  // A single minute value read as a rep count before this: "5 min" fell through to the bare
+  // number rule and came back as twenty seconds. Nothing in either list carried one until
+  // the warm-up's jog moved in, and the jog is the longest item on the page.
+  if((m = t.match(/(\d+)\s*min/)))                  return [+m[1] * 60 * sides, +m[1] * 60 * sides];
   if((m = t.match(/[\u00d7x]\s*(\d+)\s*-\s*(\d+)/))) return reps(+m[1], +m[2]);
   if((m = t.match(/[\u00d7x]\s*(\d+)/)))              return reps(+m[1]);
   if((m = t.match(/(\d+)\s*-\s*(\d+)\s*reps?/)))    return reps(+m[1], +m[2]);
