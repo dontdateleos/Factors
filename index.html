@@ -569,9 +569,27 @@
   .ex-flag.high .ex-flag-btn.accept{ background:var(--bg); color:var(--bad); }
   .ex-flag-label{ flex:none; white-space:nowrap; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.1em; }
   .ex-flag-text{ flex:1; min-width:0; font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.01em; line-height:1.35; }
-  .ex-flag-btn{ flex:none; width:26px; height:26px; min-width:26px; padding:0; border:2px solid var(--on-light); border-radius:0; background:transparent; color:var(--on-light); font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .ex-flag-btn{ flex:none; width:26px; height:26px; min-width:26px; padding:0; border:2px solid var(--on-light); border-radius:0; background:transparent; color:var(--on-light); font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
   .ex-flag-btn.accept{ background:var(--on-light); color:var(--block-yellow); }
   .ex-flag-btn:active{ opacity:0.6; }
+  /* THE TARGETS, NOT THE BUTTONS.
+
+     26x26 with 8px between them, and the two of them do opposite things to today's plan:
+     one applies a change to what you are about to lift, the other throws it away. That
+     clears the 24x24 the guidelines set as a floor and is well under the 44 they recommend,
+     on a control where a mis-tap is not a cosmetic error.
+
+     Extended DOWNWARD AND UP ONLY, to 26x44. Not sideways, on purpose. Widening them would
+     spend the 8px between them, and that gap is the one thing making a slip land on neither
+     button rather than on the wrong one — dead space between two opposite answers is worth
+     more than a few pixels of target. Nor leftward into the text, which would turn a tap on
+     the words into an accepted change to the session.
+
+     More above than below, because the room is not symmetrical. The chip carries a 9px top
+     margin and a 1px bottom one, so growing upward spends space that belongs to the chip
+     already, while growing downward reaches into the next exercise row. Same technique the
+     face buttons use a few hundred lines up. */
+  .ex-flag-btn::after{ content:''; position:absolute; left:0; right:0; top:-15px; bottom:-9px; }
   .ex-flag-done{ margin:9px 0 1px 20px; font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
   /* Labels sit in a filled box rather than running into the sentence they introduce, so a
      row reads as tag-then-content at a glance. Black on cream rather than the yellow of a
@@ -6144,7 +6162,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.110';
+const APP_VERSION = '2026.08.31.111';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
