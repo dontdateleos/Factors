@@ -346,7 +346,18 @@
                clip-path var(--eye-morph) var(--eye-ease), transform var(--eye-morph) var(--eye-ease); }
   /* One lid trails the other by --eye-lag. Negative flips which one leads, which is the
      whole point: a pair moving in perfect lockstep reads as a mechanism. */
-  .eyes span:last-child{ transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1) rotate(var(--eye-rot));
+  /* ASYMMETRY, ON THE STATES THAT EARN IT. The second eye is mirrored, which is what makes
+     the pair read as one symmetrical thing — so breaking that mirror is the only way a face
+     can look lopsided rather than merely rotated.
+
+     A FACTOR on the height, never an absolute: every lid animation in the app writes
+     --eye-h, so an absolute second height would freeze this eye through a blink while the
+     other one closed. As a multiplier the asymmetry rides on top of whatever the lids are
+     doing and survives all of it. Both default to no difference at all, so a state that
+     says nothing is drawn exactly as before. */
+  .eyes span:last-child{ height:calc(var(--eye-h) * var(--eye-h2f, 1));
+    transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1)
+              rotate(calc(var(--eye-rot) + var(--eye-rot2d, 0deg)));
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
@@ -3106,12 +3117,31 @@ function anim(k){
    the mark is drawn at: the dozy faces sit low and look down, the awake ones sit level and
    the top one a touch high. Applied on the drawn faces only — the score's own mark has gaze
    behaviours of its own and this would fight them. */
+/* FIVE KINDS, NOT FIVE HEIGHTS.
+
+   These were five stages of the same pill: 3, 9, 17, 26, 32 pixels tall, all leaning by
+   degrees. Three, four and five were the same shape at different sizes, which is why the
+   scale never read as five things — the distance between "ok" and "good" was six pixels of
+   eyelid.
+
+   Now each one differs in KIND. A hairline sunk low. A heavy slab with a real lean. A level,
+   square-cornered block — the only state below the top with no rotation at all, which is
+   what makes deadpan read as deadpan. A narrow upright pill. A wide round one.
+
+   h2f and rot2d are the asymmetry, and they fade as the day improves: at the bad end one lid
+   sits well below the other and skewed against it, and by "good" the pair has squared up.
+   A face that is having a hard time is not having it evenly. Absent on 4 and 5, so the top
+   of the scale is drawn exactly symmetrically.
+
+   This table is not only the five buttons. eyeStateForScore picks from it by score band, so
+   it is also the mark's own face on the score, and eyeStateAt interpolates it for the 1-10
+   session trace. */
 const EYE_STATES = [
-  { h:'3px',  w:'18px', g:'6px',  r:'1.5px', rb:'1.5px', bl:'0%',  rot:'-20deg', gy:0.30 },
-  { h:'9px',  w:'17px', g:'8px',  r:'3px',   rb:'2px',   bl:'52%', rot:'-14deg', gy:0.19 },
-  { h:'17px', w:'15px', g:'12px', r:'6px',   rb:'4px',   bl:'24%', rot:'-7deg',  gy:0.07 },
-  { h:'26px', w:'15px', g:'12px', r:'7.5px', rb:'7px',   bl:'6%',  rot:'-2deg',  gy:0     },
-  { h:'32px', w:'15px', g:'12px', r:'7.5px', rb:'8px',   bl:'0%',  rot:'0deg',   gy:-0.05 }
+  { h:'3px',  w:'19px', g:'6px',  r:'1.5px', rb:'1.5px', bl:'0%',  rot:'-22deg', gy:0.34, h2f:0.70, rot2d:'10deg' },
+  { h:'7px',  w:'18px', g:'8px',  r:'2px',   rb:'1.5px', bl:'56%', rot:'-18deg', gy:0.22, h2f:0.72, rot2d:'7deg'  },
+  { h:'14px', w:'16px', g:'11px', r:'2.5px', rb:'2.5px', bl:'0%',  rot:'0deg',   gy:0.06, h2f:0.86, rot2d:'3deg'  },
+  { h:'26px', w:'13px', g:'12px', r:'6.5px', rb:'6.5px', bl:'6%',  rot:'-2deg',  gy:0     },
+  { h:'31px', w:'19px', g:'13px', r:'9.5px', rb:'9.5px', bl:'0%',  rot:'0deg',   gy:-0.06 }
 ];
 /* Anywhere between them, for a scale with more than five steps on it. Every numeric property
    is carried across, so a ten-point row gets ten faces that are all genuinely different
@@ -3121,8 +3151,13 @@ function eyeStateAt(t){
   const i = Math.min(EYE_STATES.length - 2, Math.floor(x));
   const f = x - i, a = EYE_STATES[i], b = EYE_STATES[i + 1];
   const mix = (p, unit)=> (parseFloat(a[p]) + (parseFloat(b[p]) - parseFloat(a[p])) * f).toFixed(2) + unit;
+  // Both asymmetry properties default to "no difference", so a state that omits them
+  // interpolates toward symmetry rather than toward NaN.
+  const num = (p, d)=> { const av = a[p] == null ? d : parseFloat(a[p]), bv = b[p] == null ? d : parseFloat(b[p]);
+                         return av + (bv - av) * f; };
   return { h:mix('h','px'), w:mix('w','px'), g:mix('g','px'), r:mix('r','px'), rb:mix('rb','px'),
-           bl:mix('bl','%'), rot:mix('rot','deg'), gy: a.gy + (b.gy - a.gy) * f };
+           bl:mix('bl','%'), rot:mix('rot','deg'), gy: a.gy + (b.gy - a.gy) * f,
+           h2f: +num('h2f', 1).toFixed(3), rot2d: num('rot2d', 0).toFixed(2) + 'deg' };
 }
 const EYE_NEUTRAL = EYE_STATES[EYE_STATES.length-1];
 const EYE_FLIGHT_MS = 640;
@@ -3149,6 +3184,13 @@ function applyEyeState(el, st){
   if(st.w) el.style.setProperty('--eye-w', st.w);
   if(st.r) el.style.setProperty('--eye-r', st.r);
   if(st.g) el.style.setProperty('--eye-gap', st.g);
+  // Removed rather than left alone when a state carries no asymmetry: these are inline
+  // styles on a persistent element, so a lopsided bad day would otherwise stay lopsided
+  // through every good day after it.
+  if(st.h2f != null) el.style.setProperty('--eye-h2f', st.h2f);
+  else el.style.removeProperty('--eye-h2f');
+  if(st.rot2d) el.style.setProperty('--eye-rot2d', st.rot2d);
+  else el.style.removeProperty('--eye-rot2d');
   applyEyeMood(el);
 }
 
@@ -5800,6 +5842,7 @@ function faceEyesHtml(st, k, ink, alive){
   const style = `--eye-box-w:${facePx('42px', k)}; --eye-box-h:${facePx('32px', k)}; --eye-gap:${facePx(st.g || '12px', k)};`
     + ` --eye-w:${facePx(st.w || '15px', k)}; --eye-r:${facePx(st.r || '7.5px', k)};`
     + ` --eye-h:${facePx(st.h, k)}; --eye-rb:${facePx(st.rb, k)}; --eye-bl:${st.bl}; --eye-rot:${st.rot};`
+    + (st.h2f != null ? ` --eye-h2f:${st.h2f};` : '') + (st.rot2d ? ` --eye-rot2d:${st.rot2d};` : '')
     + ` --eye-ink:${ink}; --eye-plate:transparent;${alive ? '' : ' transition:none;'}`;
   // The gaze rides on the inner wrapper, which is where eyeGaze puts it on the live mark. A
   // fraction of the box, so it holds at any size the face is drawn.
@@ -6058,7 +6101,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.104';
+const APP_VERSION = '2026.08.31.105';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
