@@ -1675,15 +1675,17 @@
      read at a desk. The box is the app's own square rather than a checkbox control: a real
      input would bring its own platform styling into a page that has none anywhere else. */
   .drill-list{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--text); }
-  /* The stage a drill belongs to — RAISE, MOVE, PRIME, ROLL, HOLD — as a plate on its own
-     row rather than a heading over a block of rows. Fixed width so every drill's text
-     starts on the same line whatever its stage is called, and empty on a row that has no
-     stage so the column still holds. */
-  .drill-stage{ flex:none; min-width:52px; text-align:center; align-self:flex-start;
+  /* The stage a drill belongs to — RAISE, PRIME, ROLL, HOLD — as a plate at the head of its
+     own line. Inline rather than a column of its own: reserving the column indented every
+     drill past where the session's exercise names start, and the whole point of the row is
+     that the three lists match. Inline-block also keeps the plate out of the strike-through,
+     which a plain inline span would have been drawn through.
+     Absent on most rows, so it collapses rather than leaving a gap. */
+  .drill-stage{ display:inline-block; vertical-align:baseline; margin-right:9px;
     font-family:var(--mono); font-size:9.5px; font-weight:var(--fw-bold);
     letter-spacing:0.09em; text-transform:uppercase;
-    background:var(--reverse-bg); color:var(--dim); padding:4px 6px; margin-top:1px; }
-  .drill-stage:empty{ background:transparent; }
+    background:var(--reverse-bg); color:var(--dim); padding:4px 6px; }
+  .drill-stage:empty{ display:none; }
   /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
      exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
      the warm-up and cool-down read a step quieter than the session they bracket. The size
@@ -1694,9 +1696,9 @@
     font-family:var(--sans); font-size:var(--fs-md); line-height:1.45; letter-spacing:0.005em;
     text-transform:none; font-weight:var(--fw-normal); color:var(--text); cursor:pointer; }
   .drill + .drill{ border-top:1px solid rgba(12,13,11,0.12); }
-  .drill-box{ flex:0 0 auto; width:17px; height:17px; margin-top:2px;
-    box-shadow:inset 0 0 0 2px var(--border-bold); background:transparent; }
-  .drill.on .drill-box{ background:var(--border-bold); }
+  /* No checkbox. The row is the control and the strike is the state — a box beside a line
+     that already crosses itself out was saying it twice. aria-pressed on the button carries
+     the same state for anything that cannot see the strike. */
   .drill-text{ flex:1; min-width:0; font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* Struck through AND faded: the strike says done, the fade takes it out of the way of the
      ones that are not. */
@@ -6282,7 +6284,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.138';
+const APP_VERSION = '2026.08.31.139';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23677,9 +23679,7 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-box" aria-hidden="true"></span>`
-      + `<span class="drill-stage">${stageLabel(it.group)}</span>`
-      + `<span class="drill-text">${it.html}</span></button>`;
+      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${it.html}</span></button>`;
   }).join('');
   const paint = ()=>{
     if(!estEl) return;
