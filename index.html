@@ -1305,10 +1305,28 @@
     letter-spacing:0.02em; margin:-2px 0 8px; }
   .ex-last-tap{ cursor:pointer; }
   .ex-last-more{ margin-left:8px; text-decoration:underline; text-underline-offset:2px; opacity:0.8; }
-  .lift-sheet{ position:fixed; inset:0; z-index:70; background:rgba(12,13,11,0.72);
+  .lift-sheet, .morning-sheet{ position:fixed; inset:0; z-index:70; background:rgba(12,13,11,0.72);
     display:flex; align-items:flex-end; justify-content:center; }
-  .lift-sheet-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
+  .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
     background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) 14px calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
+  .morning-q{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
+    letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin:var(--sp-3) 0 6px; }
+  .morning-panel .subj-faces{ display:flex; gap:8px; }
+  .morning-panel .subj-scale{ display:flex; gap:6px; }
+  .morning-panel .subj-dot{ flex:1; background:transparent; color:var(--bg);
+    border:2px solid rgba(251,250,246,0.35); font-family:var(--mono); font-size:var(--fs-tag);
+    padding:9px 4px; letter-spacing:0.02em; }
+  .morning-panel .subj-dot.on{ background:var(--accent); color:var(--text); border-color:var(--accent); }
+  /* Only the size differs from the row's faces — colour, fill and the picked state are the
+     shared .subj-face rules, so the two cannot drift apart. */
+  .morning-panel .subj-face{ height:46px; }
+  /* button.primary is --reverse-bg on --reverse-bg here, which is an invisible primary
+     action. On this panel the accent is the only fill that reads. */
+  /* button.primary, which this also carries, is one specificity step above a bare class —
+     so a .morning-done rule lost to it and the button stayed --reverse-bg on a
+     --reverse-bg panel. Matched at the same weight to actually win. */
+  button.primary.morning-done{ margin-top:var(--sp-4); width:100%; background:var(--accent);
+    color:var(--text); border:2px solid var(--accent); font-weight:var(--fw-bold); }
   .lift-sheet-head{ display:flex; justify-content:space-between; align-items:center;
     font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:var(--sp-3); }
@@ -5291,6 +5309,8 @@ function activateTab(name, opts){
     // against the declared default and announced "No strength today" above a planned run.
     const shaped = Promise.resolve(applyRestDayShape()).catch(()=>{});
     shaped.then(()=> renderTodayWorkoutSummary());
+    // After the stage is settled, so todayIsSetUp is true before it decides whether to ask.
+    shaped.then(()=> maybeAskMorning()).catch(()=>{});
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
     withEyesBusy(
@@ -5956,7 +5976,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.99';
+const APP_VERSION = '2026.08.31.100';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7854,6 +7874,100 @@ function chipEyes(){
   return d.querySelector('.eyes');
 }
 function chipGazeEl(){ const e = chipEyes(); return e && e.querySelector('.eye-gaze'); }
+/* THE MORNING ASKS, ONCE.
+
+   The face row has always been on the page, and being on the page is not the same as being
+   asked — it sits there being quiet, and a rating you never gave is a channel weighing 0.28
+   that is simply absent. The two context questions were worse off: they lived on the Data
+   tab, behind a trip nobody makes at 6am, so alcohol and illness were only ever recorded by
+   someone who went looking for the form.
+
+   All three together, because they are one question about the same night. Asked on the first
+   open of a day and never again that day, whether or not it was answered — the whole reason
+   to keep this cheap is that a prompt you cannot get rid of gets answered carelessly, and a
+   careless answer on the heaviest channel in the score is worse than no answer at all. The
+   face row stays exactly where it is as the fallback for anyone who dismisses this.
+
+   Not shown once a session is logged: by then the morning is a reconstruction, which is the
+   same contamination faceEditable exists to prevent, just inside the day instead of across
+   days. */
+async function morningAlreadyAsked(){
+  try{ await window.storage.get(`morningAsked:${todayStr}`); return true; } catch(e){ return false; }
+}
+async function markMorningAsked(){
+  try{ await window.storage.set(`morningAsked:${todayStr}`, JSON.stringify({ at: Date.now() })); } catch(e){}
+}
+async function setMorningContext(field, value){
+  let entry = null;
+  try{ entry = JSON.parse((await window.storage.get(keyFor(todayStr))).value); } catch(e){}
+  if(!entry || typeof entry !== 'object') entry = { date: todayStr, disagreements: [] };
+  if(value == null || value === '') delete entry[field]; else entry[field] = +value;
+  entry.date = todayStr;
+  try{ await window.storage.set(keyFor(todayStr), JSON.stringify(entry)); } catch(e){}
+}
+async function maybeAskMorning(){
+  if(!todayIsSetUp) return;                       // nothing to contextualise before there is a plan
+  if(document.querySelector('.morning-sheet')) return;
+  if(await morningAlreadyAsked()) return;
+  let entry = null;
+  try{ entry = JSON.parse((await window.storage.get(keyFor(todayStr))).value); } catch(e){}
+  if(entry && entry.subjOverall != null) return;  // already rated today, by the row or anywhere else
+  try{
+    const logged = (await getAllTrainingSessions()).some(sn => sn.date === todayStr);
+    if(logged) return;
+  } catch(e){}
+
+  // The same builder the row uses, so the faces carry their own colours and cannot drift
+  // from the ones on the page behind this.
+  const faces = [1,2,3,4,5].map(faceButtonHtml).join('');
+  const dots = (id, opts) => `<div class="subj-scale" id="${id}">` + opts.map(([v, t]) =>
+    `<button type="button" class="subj-dot" data-v="${v}">${t}</button>`).join('') + `</div>`;
+
+  const sheet = document.createElement('div');
+  sheet.className = 'morning-sheet';
+  sheet.innerHTML = `<div class="morning-panel" role="dialog" aria-modal="true" aria-label="This morning">
+      <div class="lift-sheet-head"><span>This morning</span>
+        <button type="button" class="lift-sheet-x" aria-label="Not now">\u00d7</button></div>
+      <div class="morning-q">How are you?</div>
+      <div class="subj-faces" id="morningFaces">${faces}</div>
+      <div class="morning-q">Alcohol last night</div>
+      ${dots('morningAlcohol', [[0,'None'],[1,'A drink or two'],[2,'More']])}
+      <div class="morning-q">Illness</div>
+      ${dots('morningUnwell', [[0,'Fine'],[1,'Unwell']])}
+      <div class="score-note" style="margin-top:var(--sp-3); color:rgba(251,250,246,0.6);">
+        A drink or a bug is attributed rather than read as fatigue \u2014 the day still scores
+        honestly, it just stops setting what normal looks like for you.</div>
+      <button type="button" class="primary morning-done">Done</button>
+    </div>`;
+
+  const close = async ()=>{ sheet.remove(); document.removeEventListener('keydown', esc); await markMorningAsked(); };
+  function esc(e){ if(e.key === 'Escape') close(); }
+  document.addEventListener('keydown', esc);
+
+  sheet.addEventListener('click', async e=>{
+    if(e.target === sheet || e.target.closest('.lift-sheet-x') || e.target.closest('.morning-done')){ await close(); return; }
+    const face = e.target.closest('.subj-face');
+    if(face){
+      const n = +face.dataset.v;
+      const clearing = face.classList.contains('on');
+      sheet.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', !clearing && b === face));
+      faceValues[todayStr] = clearing ? undefined : n;
+      await setDayFace(todayStr, clearing ? null : n);
+      paintTodayFaces(); relayoutColumn();
+      return;
+    }
+    const dot = e.target.closest('.subj-dot');
+    if(dot){
+      const box = dot.closest('.subj-scale');
+      const clearing = dot.classList.contains('on');
+      box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', !clearing && b === dot));
+      await setMorningContext(box.id === 'morningAlcohol' ? 'alcohol' : 'unwell',
+        clearing ? null : dot.dataset.v);
+    }
+  });
+  document.body.appendChild(sheet);
+}
+
 function chipSaid(){ const v = faceValues[faceDate()]; return v == null ? null : v; }
 function chipTiming(){
   const said = chipSaid();
