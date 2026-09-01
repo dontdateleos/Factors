@@ -2089,6 +2089,7 @@
     <div id="warmupSection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
         <div class="group-head"><div class="group-title">Warm-up</div><span class="head-est" id="warmupEstimate"></span></div>
+        <div class="chip-row" id="warmupChips" style="display:none;"></div>
         <div class="fields">
           <div id="warmupCards"></div>
           <details class="glossary">
@@ -2114,6 +2115,7 @@
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
         <div class="group-head"><div class="group-title">Cooldown</div><span class="head-est" id="cooldownEstimate"></span></div>
+        <div class="chip-row" id="cooldownChips" style="display:none;"></div>
         <div class="fields">
           <div id="mobilityCards"></div>
           <details class="glossary">
@@ -6280,7 +6282,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.135';
+const APP_VERSION = '2026.08.31.136';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23136,6 +23138,33 @@ function areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag,
   return { cls:'planned', reasonCls:'', text:'Planned session prep' };
 }
 
+// The chips above a drill list: why these areas and not others. Same order of precedence
+// areaReason uses, so a chip can never say something the reason line under the card would
+// contradict. An area with nothing flagged gets no chip — "planned session prep" is the
+// default and does not need saying, and a row of chips that all say the same nothing is
+// worse than no row.
+function drillReasonChips(selected, f){
+  const chips = [];
+  for(const area of (selected || [])){
+    const name = BODY_AREAS[area] || area;
+    const injury = (f.injuryByArea || {})[area];
+    let why = null;
+    if(f.pinnedAreas && f.pinnedAreas.has(area) && !injury) why = 'you picked';
+    else if(injury) why = 'injury';
+    else if((f.loadFlagged || {})[area]) why = 'load up';
+    else if((f.runFlagged || {})[area]) why = 'run volume';
+    else if(area === 'ankles' && f.squatAnkleFlag) why = 'squat depth';
+    if(why) chips.push(`${name} \u00b7 ${why}`);
+  }
+  return chips;
+}
+function paintReasonChips(id, chips){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = chips.map(c=>`<span>${c}</span>`).join('');
+  el.style.display = chips.length ? '' : 'none';
+}
+
 // Post-exercise stretching needs a broader picture than the pre-training warm-up:
 // factor in today's actual runs (worked areas), and note which areas already have
 // logged mobility work today so the card can say so rather than duplicate-suggest.
@@ -23345,6 +23374,8 @@ async function generateWarmup(){
   const rotated = (_needW.length ? _needW : rotatedBase)
     .slice().sort((a, b) => (_ledgerW[a] || 0) - (_ledgerW[b] || 0));
   const { selected, estMinutes, deferred } = selectWithinBudget(rotated, mustKeep, warmupCap, WARMUP_TIME_PER_AREA);
+  paintReasonChips('warmupChips', drillReasonChips(selected,
+    { injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas }));
 
   // Persist which areas actually got warmed up today — previously this was computed
   // fresh on every view and thrown away, meaning "did warm-ups already cover this area
@@ -23714,6 +23745,8 @@ async function generateMobility(){
   const remainingRot = (_needM.length ? _needM : remainingBase)
     .slice().sort((a, b) => (_ledgerM[a] || 0) - (_ledgerM[b] || 0));
   const { selected, estMinutes, deferred } = selectWithinBudget(remainingRot, mustKeep, mobilityCap, MOBILITY_TIME_PER_AREA);
+  paintReasonChips('cooldownChips', drillReasonChips(selected,
+    { injuryByArea, loadFlagged, runFlagged, pinnedAreas }));
 
   // Same reasoning as the warm-up log: post-session stretching is real time under stretch
   // and has to count toward the weekly per-muscle-group ceiling, or the ceiling is
