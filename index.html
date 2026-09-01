@@ -1606,8 +1606,11 @@
   .goal-row-panel:first-child{ margin-top:var(--sp-3); }
   /* A goal's place in the order, as the same chip a card's type wears — in the tab's own
      blue rather than the lime, since that is the page it sits on. */
+  /* --band, not a fixed hue: the rank chip is the same kind of thing as a section's title
+     box, so it takes the colour of whatever tab it is on. It was --block-blue, which is
+     Settings' colour, sitting on the orange of the tab the goals actually live in. */
   .rank-chip{ display:inline-flex; align-items:center; justify-content:center;
-    width:46px; height:46px; border-radius:13px; background:var(--block-blue); color:var(--text);
+    width:46px; height:46px; border-radius:13px; background:var(--band); color:var(--text);
     font-family:var(--mono); font-weight:var(--fw-bold); font-size:24px; line-height:1;
     letter-spacing:0; flex:none; }
   /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
@@ -6272,7 +6275,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.129';
+const APP_VERSION = '2026.08.31.130';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
