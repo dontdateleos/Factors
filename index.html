@@ -6162,7 +6162,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.112';
+const APP_VERSION = '2026.08.31.113';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21701,6 +21701,61 @@ function sessionTitle(block){
   return "Today's plan";
 }
 
+/* WHERE TODAY SITS IN THE WEEK.
+
+   Today could not see the week. The trace above shows seven days of score, and the row under
+   it shows which of those days had a session and how hard it was — but neither says how many
+   sessions the week is meant to hold, so there is no way to tell a third session of five from
+   a fifth of five. That is the fact most likely to change what you do with a session: the same
+   heavy day reads differently when it is the last one of the week than when three more follow.
+
+   Deliberately NOT the block position. That used to be on this page and was taken off on
+   purpose — it lives on Weekly, and stacked over the date it made the busiest corner of the
+   app out of the one that should be calmest. This is a different fact, and it is one line.
+
+   A rest day here is a day the plan holds nothing, which is the same definition
+   isRestDayComing uses, so the two cannot disagree about what a rest day is. */
+async function weekPositionLine(){
+  const dates = getWeekDates();
+  const idx = dates.indexOf(todayStr);
+  if(idx < 0) return '';
+  let sessions = [];
+  try{ sessions = await getAllTrainingSessions(); } catch(e){}
+  const loggedOn = new Set(sessions.map(sn=> sn.date));
+  const planned = [];
+  for(const d of dates){
+    let has = false;
+    for(const slot of ['am','pm']){
+      try{ await window.storage.get(`weekplan:${d}:${slot}`); has = true; } catch(e){}
+    }
+    planned.push(has);
+  }
+  const total = planned.filter(Boolean).length;
+  if(!total) return '';
+  // Which planned session today is: everything planned up to and including today.
+  const ordinal = planned.slice(0, idx + 1).filter(Boolean).length;
+  const ORD = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+  const parts = [];
+  if(planned[idx] && ordinal) parts.push(`${ORD[ordinal] || ordinal + 'th'} of ${total} this week`);
+  else parts.push(`${total} session${total === 1 ? '' : 's'} planned this week`);
+  /* Consecutive days you actually trained, ending yesterday. What the plan said is not part
+     of it: a day you skipped is a day you did not train, and a session you added off-plan is
+     one you did. The fatigue does not know which were intended.
+
+     Counted back over real dates rather than over this week's array, because Monday is not a
+     rest day — a run that starts on Thursday and reaches Tuesday is six days, and stopping
+     at the week boundary would call it one. Capped at a fortnight, past which the number has
+     stopped being news and started being a different problem. */
+  let run = 0;
+  for(let k = 1; k <= 14; k++){
+    const d = new Date(todayStr); d.setDate(d.getDate() - k);
+    if(!loggedOn.has(localDateStr(d))) break;
+    run++;
+  }
+  if(run >= 2) parts.push(`${run} days since a rest`);
+  return parts.join(' \u00b7 ');
+}
+
 async function renderTodayWorkoutSummary(){
   const container = document.getElementById('todayWorkoutSummary');
 
@@ -21710,6 +21765,10 @@ async function renderTodayWorkoutSummary(){
     return;
   }
   const rows = await blockSummaryHtml(block);
+  // Inside the fields rather than in the heading: the heading is sticky, and a second line
+  // there would grow the band that never leaves the screen.
+  let weekLine = '';
+  try{ weekLine = await weekPositionLine(); } catch(e){}
   const startedAt = await loggingStartedAt(todayStr);
   // The marker is the way back in, not just a notice that there is one. Tapping it reopens
   // the session where you left it; the cross beside it is the only thing that throws a draft
@@ -21771,6 +21830,7 @@ async function renderTodayWorkoutSummary(){
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">${sessionTitle(block)}${planEst}</div></div>
       <div class="fields">
+        ${weekLine ? `<div class="score-note" style="margin-top:0;">${weekLine}</div>` : ''}
         ${loggingLine}
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
