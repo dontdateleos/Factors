@@ -2829,6 +2829,38 @@ if(!window.storage){
   console.info('FACTORS: running standalone — using browser localStorage instead of Claude artifact storage.');
 }
 
+/* ---------- CACHE INVALIDATION, AT THE ONE PLACE THAT CANNOT BE FORGOTTEN ----------
+
+   Two read caches sit further down — the training: sessions and the entry: records — and
+   both are only as correct as their invalidation. training: alone has nine writers, several
+   of them in the dev seeder, and entry: has four; hand-placing a call at each is exactly the
+   arrangement that already went wrong once, when two of the four entry: writers did not
+   clear the signal windows they fed.
+
+   So the write path invalidates, and no caller has to know. A new writer added tomorrow is
+   covered by construction. Wraps whichever storage is in play — the artifact host's or the
+   localStorage fallback above — because this runs after both branches have settled.
+
+   The try/catch is for one narrow case: a write during script evaluation, before the cache
+   declarations below have run, would hit the temporal dead zone. Skipping invalidation there
+   is correct rather than merely tolerable — nothing has read the caches yet, so there is
+   nothing stale to clear. */
+(function(){
+  const s = window.storage;
+  if(!s || s.__invalidating) return;
+  const set = s.set.bind(s), del = s.delete.bind(s);
+  const drop = key => {
+    const k = String(key);
+    try{
+      if(k.startsWith('training:')) invalidateTrainingSessions();
+      else if(k.startsWith('entry:')) invalidateSignalWindows();
+    } catch(e){}
+  };
+  s.set = async (key, value)=>{ const r = await set(key, value); drop(key); return r; };
+  s.delete = async (key)=>{ const r = await del(key); drop(key); return r; };
+  s.__invalidating = true;
+})();
+
 /* ---------- THE EYES ----------
    The two capsules in the wordmark are the app's only mark, so rather than draw a second
    pair on the score they are the same pair: on Today they leave the logo, cross the page
@@ -5907,7 +5939,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.94';
+const APP_VERSION = '2026.08.31.95';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6921,12 +6953,36 @@ function pearson(xs, ys){
   return denom === 0 ? 0 : num/denom;
 }
 
+/* ONE READ PER KEY, NOT ONE PER CALLER.
+
+   Sixty-two functions call this, and Today calls it fifty-eight times on a single entry to
+   the tab — each time listing every training: key and reading every one of them back. With
+   six weeks of history that was 290 reads and 58 lists of the 1041/93 the tab was doing;
+   with a year of history it grows without bound, on a phone, on every return to the tab.
+
+   What is cached is the RAW JSON, not the parsed objects, and every call re-parses. That is
+   deliberate: sixty-two call sites get a fresh object graph exactly as they do today, so no
+   caller can alias another's data and this stays a change of cost rather than of behaviour.
+   Parsing thirty small records is microseconds against a storage round-trip each.
+
+   Invalidated by hand wherever training: is written or deleted — the same discipline
+   _sigWindowCache already runs on. A cache is only as correct as its invalidation, so if a
+   new writer appears it must call invalidateTrainingSessions() or this goes stale. */
+let _trainingRaw = null;
+function invalidateTrainingSessions(){ _trainingRaw = null; }
 async function getAllTrainingSessions(){
-  const res = await window.storage.list('training:');
-  if(!res || !res.keys) return [];
+  if(!_trainingRaw){
+    const res = await window.storage.list('training:');
+    if(!res || !res.keys) return [];
+    const raw = [];
+    for(const k of res.keys){
+      try{ raw.push((await window.storage.get(k)).value); } catch(e){}
+    }
+    _trainingRaw = raw;
+  }
   const sessions = [];
-  for(const k of res.keys){
-    try{ const r = await window.storage.get(k); sessions.push(JSON.parse(r.value)); } catch(e){}
+  for(const v of _trainingRaw){
+    try{ sessions.push(JSON.parse(v)); } catch(e){}
   }
   return sessions;
 }
@@ -7130,7 +7186,22 @@ const _sigWindowCache = new Map();
 // somebody will forget. A two-second life collapses a render's worth of calls into one read
 // and cannot outlive the render that made it.
 const SIG_CACHE_MS = 2000;
-function invalidateSignalWindows(){ _sigWindowCache.clear(); }
+/* The windows are cached by date, but each of the seven days the trace draws builds its own
+   sixty-day window, and consecutive windows overlap almost entirely — so the same entry:
+   records were read 546 times against a handful of distinct days. Caching the raw record per
+   date lets the seven windows share one read each. Raw JSON again, re-parsed per caller, for
+   the same reason as the training cache above: identical objects to what the callers get now.
+
+   Cleared alongside the windows, by the one hook every writer to entry: already calls. */
+const _entryRaw = new Map();
+async function readEntryRaw(date){
+  if(_entryRaw.has(date)) return _entryRaw.get(date);
+  let raw = null;
+  try{ raw = (await window.storage.get(keyFor(date))).value; } catch(e){}
+  _entryRaw.set(date, raw);
+  return raw;
+}
+function invalidateSignalWindows(){ _sigWindowCache.clear(); _entryRaw.clear(); }
 async function buildSignalWindow(asOfDate, days){
   const span = days || SIG_BASE_DAYS;
   const cacheKey = `${asOfDate}|${span}`;
@@ -7150,7 +7221,7 @@ async function buildSignalWindowUncached(asOfDate, days){
   const entries = [];
   for(const date of dates){
     let e = null;
-    try{ e = JSON.parse((await window.storage.get(keyFor(date))).value); } catch(err){}
+    try{ e = JSON.parse(await readEntryRaw(date)); } catch(err){}
     entries.push(e ? { ...e, date } : null);
   }
   const present = entries.filter(Boolean);
