@@ -59,6 +59,10 @@
     --bg:#fbfaf6;
     --panel:#ffffff;
     --line:#1c1d17;
+    /* --line is a near-black hairline, which is right on a light fill — a white .type-btn,
+       the skeleton's shimmer, a rule under a coloured band. It is invisible on the tab
+       grounds now that those are dark, so separators that sit on them take this instead. */
+    --hair:rgba(251,250,246,0.16);
     --text:#0c0d0b;
     --header-dark:#1c1c1a;
     --dim:#191a0e;
@@ -472,7 +476,7 @@
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
   .field-row{ display:flex; gap:10px; align-items:center; }
-  .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--hair); }
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
   .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mobility-legend{ margin-bottom:var(--sp-2); }
@@ -612,14 +616,14 @@
   .plan-list{ margin:2px 0; }
   /* 32px of padding around what is usually a single line. The rule between rows already
      separates them; the padding was doing that job a second time. */
-  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:var(--sp-2) 0; }
-  .plan-item + .plan-item{ border-top:1px solid var(--line); }
+  .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); padding:var(--sp-2) 0; }
+  .plan-item + .plan-item{ border-top:1px solid var(--hair); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
      that separates every other exercise is dropped between them. */
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
   .plan-item.ss-row + .plan-item.ss-row{ border-top:none; }
-  .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
+  .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:rgba(251,250,246,0.65); letter-spacing:0.015em; }
   /* The 20px indent aligned these under the row's leading arrow. With the arrow gone it
      drops to the scale — still nested under the name, no longer hanging off nothing. */
   .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:var(--sp-1) 0 0 var(--sp-3); letter-spacing:0.01em; line-height:1.5; }
@@ -799,7 +803,7 @@
   .conf-chevron{ font-size:var(--fs-tag); color:var(--dim); }
   .conf-headline{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); margin-top:2px; text-align:left; letter-spacing:0.01em; }
   .conf-detail{ margin-top:8px; text-align:left; }
-  .conf-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:6px; padding:5px 0; border-top:1px solid var(--line); }
+  .conf-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:6px; padding:5px 0; border-top:1px solid var(--hair); }
   .conf-dot{ width:6px; height:6px; border-radius:50%; }
   .conf-name{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); color:var(--text); }
   .conf-stage{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; }
@@ -1010,7 +1014,7 @@
   /* Sits under the day it builds, inside the same black. The selects keep their light fill
      — they are inputs, and .form-panel already gives its buttons a light one. */
   .wk-line{ display:flex; gap:8px; align-items:baseline; font-family:var(--mono);
-    font-size:var(--fs-tag); letter-spacing:0.04em; padding:3px 0; border-bottom:1px solid var(--line); }
+    font-size:var(--fs-tag); letter-spacing:0.04em; padding:3px 0; border-bottom:1px solid var(--hair); }
   .wk-line:last-child{ border-bottom:none; }
   .wk-line.now .wk-day{ font-weight:var(--fw-bold); }
   .wk-day{ text-transform:uppercase; flex:0 0 34px; }
@@ -1370,7 +1374,7 @@
   .log-fill{ margin-left:auto; flex:0 0 auto; }
   /* Every lift is on the page, so the rows need a line between them or a nine-lift session
      reads as one long form rather than nine things. */
-  #weekExerciseRows > .edit-row + .edit-row{ border-top:1px solid var(--line);
+  #weekExerciseRows > .edit-row + .edit-row{ border-top:1px solid var(--hair);
     padding-top:12px; margin-top:12px; }
   .ex-target-tap{ cursor:pointer; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .ex-target-hint{ text-decoration:underline; white-space:nowrap; }
@@ -1499,13 +1503,13 @@
   .skill-active-row input{ width:auto; flex:none; }
   /* The progression readout, written for the light ground it sits on. The mobility copy
      below re-states the four colours it needs for the black box. */
-  .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--line); }
+  .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
   .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
-    letter-spacing:0.08em; color:var(--dim); margin-bottom:5px; }
-  .skg-bar{ height:8px; background:rgba(12,13,11,0.22); margin-top:2px; }
+    letter-spacing:0.08em; color:rgba(251,250,246,0.65); margin-bottom:5px; }
+  .skg-bar{ height:8px; background:rgba(251,250,246,0.16); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
-  .skg-bar-fill{ height:100%; background:var(--reverse-bg); transform-origin:left center; }
+  .skg-bar-fill{ height:100%; background:var(--bg); transform-origin:left center; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
@@ -1606,8 +1610,8 @@
   .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
 
-  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--line); border-radius:0; color:var(--dim); cursor:pointer; }
-  .plan-pill.active{ color:var(--bg); background:var(--reverse-bg); border-color:var(--border-bold); }
+  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--hair); border-radius:0; color:rgba(251,250,246,0.75); cursor:pointer; }
+  .plan-pill.active{ color:var(--text); background:var(--bg); border-color:var(--bg); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
   /* The warm-up and the post-session stretching are preparation, not the session. Stacked
@@ -1690,6 +1694,9 @@
      "consistent" meant one tab agreeing with itself. */
   .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1);
     border-bottom-width:1px; border-bottom-color:var(--line); }
+  /* .form-panel paints its chevrons and summaries cream, which was right when the head was
+     a black slab and is wrong now the band is the tab's colour. */
+  .group-head .collapse-chevron, .group-head summary{ color:rgba(12,13,11,0.55); }
   .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
@@ -2199,7 +2206,7 @@
     <div class="group form-panel">
       <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
         <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div></div>
-        <span id="mobilityAssessmentChevron" style="font-size:var(--fs-sm); color:rgba(251,250,246,0.7); transition:transform 0.15s;">▾</span>
+        <span id="mobilityAssessmentChevron" class="collapse-chevron" style="font-size:var(--fs-sm); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
         <div id="mobilityAssessmentRows"></div>
@@ -6214,7 +6221,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.116';
+const APP_VERSION = '2026.08.31.117';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13360,7 +13367,7 @@ async function refreshInjuries(){
           <div class="injury-part" style="flex:1;">${inj.part}</div>
           <div class="mini-gauge">
             <svg viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--line)" stroke-width="5"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--hair)" stroke-width="5"/>
               <circle cx="20" cy="20" r="16" fill="none" stroke="${sevColor}" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${CIRC}" stroke-dashoffset="${offset}" transform="rotate(-90 20 20)"/>
             </svg>
@@ -15779,12 +15786,12 @@ function renderProgressRing(percent, size){
   size = size || 34;
   const r = 14, c = 2*Math.PI*r;
   if(percent==null){
-    return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" style="flex-shrink:0;"><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--line)" stroke-width="3"/></svg>`;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" style="flex-shrink:0;"><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--hair)" stroke-width="3"/></svg>`;
   }
   const offset = c * (1 - percent/100);
   const color = percent>=100 ? 'var(--good)' : 'var(--accent)';
   return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" style="flex-shrink:0; transform:rotate(-90deg);">
-    <circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--line)" stroke-width="3"/>
+    <circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--hair)" stroke-width="3"/>
     <circle cx="17" cy="17" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset 0.6s ease;"/>
   </svg>`;
