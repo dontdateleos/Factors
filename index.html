@@ -1032,12 +1032,7 @@
   /* Same shape as the mobility assessment it borrows the picker from: the picker runs the
      full width at the top of the black, and what you picked sits underneath it. */
   .week-wheel-stage{ display:block; }
-  /* The spinner takes the field; the day's workouts under it stay on the ground. Bled to
-     the panel's edges with the padding put back, so the days keep the width they had and
-     the colour runs the full width of the screen. Horizontal only — the wheel's height is
-     three rows exactly and its drag maths is written against that. */
-  .week-day-picker{ --day-row:38px; position:relative; background:var(--field);
-    margin-left:-14px; margin-right:-14px; padding-left:14px; padding-right:14px;
+  .week-day-picker{ --day-row:38px; position:relative;
     height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .week-day-picker:active{ cursor:grabbing; }
@@ -6285,7 +6280,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.132';
+const APP_VERSION = '2026.08.31.133';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
