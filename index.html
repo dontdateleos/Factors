@@ -6162,7 +6162,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.111';
+const APP_VERSION = '2026.08.31.112';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23264,10 +23264,8 @@ async function generateWarmup(){
   // What is written down is what survived, not what was picked. This used to be logged the
   // moment the areas were chosen, several steps before the drills existed; with a trim in
   // between, that record would claim tissue the list never showed you.
-  const warmedAreas = selected.filter(a => drillAreas.includes(a));
-  const warmupSecondsByArea = {};
-  warmedAreas.forEach(a => { warmupSecondsByArea[a] = WARMUP_STATIC_SHARE_PER_AREA * 60; });
-  try{ await window.storage.set(`warmupLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: warmedAreas, secondsByArea: warmupSecondsByArea })); } catch(e){}
+  // The credit for this used to be written here, before you had touched any of it.
+  // renderDrillList owns it now and writes it from the ticks — see writeDrillLog.
   /* Potentiate closes the sequence, and what it is depends on what you are about to do. For
      a lift it is the ramp-up sets on the first movement. For a run it is STRIDES — the step
      most runners skip and the one that actually lifts baseline VO2 into the range that pays
@@ -23305,14 +23303,16 @@ async function generateWarmup(){
   flow.className = 'drill-list';
   const warmItems = [];
   if(raise) warmItems.push({ group:'RAISE', html: raise });
-  drillParts.forEach(d=> warmItems.push({ group:'MOVE', html: d }));
+  // drillAreas runs parallel to drillParts, so each drill carries the tissue it credits.
+  drillParts.forEach((d, i)=> warmItems.push({ group:'MOVE', html: d, area: drillAreas[i] }));
   if(prime) warmItems.push({ group:'PRIME', html: prime });
   const warmDeferred = deferredAreasNote(deferred, 'warm-up');
   if(warmDeferred) warmItems.push(warmDeferred);
   // Counted from the printed doses, like the cool-down, instead of a hand-added constant.
   const warmMins = drillMinutes(warmItems.filter(i=>!i.note).map(i=>i.html));
   renderDrillList(flow, 'warmup', warmItems,
-    document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`);
+    document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`,
+    { logKey:'warmupLog', secondsPerArea: WARMUP_STATIC_SHARE_PER_AREA * 60 });
 }
 
 /* THE ESTIMATE IS COUNTED, NOT ASSUMED.
@@ -23366,20 +23366,66 @@ function drillKey(text){
   for(let i = 0; i < t.length; i++){ h = (h * 31 + t.charCodeAt(i)) | 0; }
   return 'd' + (h >>> 0).toString(36);
 }
-function drillsDone(listKey){
+/* THE TICK REMEMBERS WHAT IT WAS FOR.
+
+   Storing only the keys made a tick's meaning depend on what happened to be on screen. The
+   two sections re-select their areas from the weekly ledger every render, so crediting an
+   area could remove it from the next list — and then the surviving tick matched nothing,
+   the credit came off, the area was selected again, and it oscillated. Caught on a reload:
+   the tick was still there and the five minutes it had earned were not.
+
+   The area is written down with the tick, so the credit is computed from the record alone
+   and no longer cares whether that drill is still being offered. Older records have ids and
+   no areas; they read as ticks that credit nothing, which is what they were. */
+function drillsDoneRaw(listKey){
   try{
     const raw = JSON.parse(localStorage.getItem('drills:' + listKey) || 'null');
-    if(raw && raw.date === todayStr) return new Set(raw.ids || []);
+    if(raw && raw.date === todayStr) return { ids: raw.ids || [], areas: raw.areas || {} };
   } catch(e){}
-  return new Set();
+  return { ids: [], areas: {} };
 }
-function setDrillsDone(listKey, set){
-  try{ localStorage.setItem('drills:' + listKey, JSON.stringify({ date: todayStr, ids: [...set] })); } catch(e){}
+function drillsDone(listKey){ return new Set(drillsDoneRaw(listKey).ids); }
+function setDrillsDone(listKey, set, areaByKey){
+  const prev = drillsDoneRaw(listKey);
+  const areas = Object.assign({}, prev.areas, areaByKey || {});
+  try{ localStorage.setItem('drills:' + listKey, JSON.stringify({ date: todayStr, ids: [...set], areas })); } catch(e){}
 }
 /* items: [{ html, group }] — group starts a labelled run, the way the stretch-down groups
    Roll / Move / Hold. A note (an item with no key) is text that is not a thing to tick. */
-function renderDrillList(host, listKey, items, estEl, estHtml){
+/* WHAT A TICK IS FOR.
+
+   The ticks used to feed nothing. drillsDone was read in this function and nowhere else in
+   the app — it painted the boxes and the counter and stopped there. Meanwhile warmupLog and
+   postMobilityLog, which three separate things read as time actually spent under stretch,
+   were written when the section was GENERATED. So opening Today credited the week's
+   per-area mobility ledger with the whole warm-up and the whole cool-down, and ticking every
+   drill credited nothing.
+
+   Measured before this: zero drills ticked out of seven offered, and the ledger already read
+   triceps 5min, shoulders 5min. The two records were exactly inverted — the one that knew
+   what you did was ignored, and the one that drove decisions knew only what you were shown.
+
+   The log is written from the ticks now, on render and on every tap. An untouched section
+   credits nothing, which is the honest reading of an untouched section. */
+function writeDrillLog(logKey, listKey, secondsPerArea){
+  if(!logKey) return;
+  const rec = drillsDoneRaw(listKey);
+  const areas = [];
+  rec.ids.forEach(k=>{
+    const a = rec.areas[k];
+    if(a && !areas.includes(a)) areas.push(a);
+  });
+  const secondsByArea = {};
+  areas.forEach(a=>{ secondsByArea[a] = secondsPerArea; });
+  try{ window.storage.set(`${logKey}:${todayStr}`, JSON.stringify({ date: todayStr, areas, secondsByArea })); } catch(e){}
+}
+function renderDrillList(host, listKey, items, estEl, estHtml, opts){
+  const logKey = opts && opts.logKey, secPerArea = (opts && opts.secondsPerArea) || 0;
   const done = drillsDone(listKey);
+  // What each drill on screen credits, registered so a tick keeps its meaning after the
+  // list has moved on.
+  const areaByKey = {};
+  items.forEach(it=>{ if(!it.note && it.area) areaByKey[drillKey(it.html)] = it.area; });
   const tickable = items.filter(it=> !it.note);
   let lastGroup = null;
   host.innerHTML = items.map(it=>{
@@ -23402,13 +23448,17 @@ function renderDrillList(host, listKey, items, estEl, estHtml){
       const set = drillsDone(listKey);
       const k = btn.dataset.k;
       if(set.has(k)) set.delete(k); else set.add(k);
-      setDrillsDone(listKey, set);
+      setDrillsDone(listKey, set, areaByKey);
       btn.classList.toggle('on', set.has(k));
       btn.setAttribute('aria-pressed', set.has(k) ? 'true' : 'false');
+      writeDrillLog(logKey, listKey, secPerArea);
       paint();
     });
   });
   paint();
+  // On render, register what is on screen and restate the record. It cannot lose anything
+  // now: the areas map only ever gains entries, and the credit is read from the ticks.
+  if(logKey){ setDrillsDone(listKey, done, areaByKey); writeDrillLog(logKey, listKey, secPerArea); }
 }
 
 // Auto-generated alongside the warm-up and workout when the Today tab renders — no
@@ -23464,9 +23514,8 @@ async function generateMobility(){
   // Same reasoning as the warm-up log: post-session stretching is real time under stretch
   // and has to count toward the weekly per-muscle-group ceiling, or the ceiling is
   // measuring a fraction of actual exposure.
-  const postSecondsByArea = {};
-  selected.forEach(a => { postSecondsByArea[a] = MOBILITY_STATIC_SHARE_PER_AREA * 60; });
-  try{ await window.storage.set(`postMobilityLog:${todayStr}`, JSON.stringify({ date: todayStr, areas: selected, secondsByArea: postSecondsByArea })); } catch(e){}
+  // Written from the ticks by renderDrillList, not from the selection. Being offered a
+  // stretch is not doing it, and this record is read by three things as time under stretch.
 
   // Per F.3 of the exercise intelligence report: reason at the exercise level where
   // possible, using what was actually logged today (not just planned). Alizadeh et al.
@@ -23512,27 +23561,27 @@ async function generateMobility(){
   // glossary is better than a glossary.
   const buckets = { Roll:[], Move:[], Hold:[] };
   const coolSeen = { Roll:new Set(), Move:new Set(), Hold:new Set() };
-  const push = (bucket, text, cls)=>{
+  const push = (bucket, text, cls, area)=>{
     const k = text.toLowerCase();
     if(!text || coolSeen[bucket].has(k)) return;
     coolSeen[bucket].add(k);
-    buckets[bucket].push(cls==='planned' ? text : `<span class="flow-flag ${cls}">${text}</span>`);
+    buckets[bucket].push({ html: cls==='planned' ? text : `<span class="flow-flag ${cls}">${text}</span>`, area });
   };
   selected.forEach(area=>{
     const proto = MOBILITY_LIBRARY[area];
     if(!proto) return;
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, null, pinnedAreas);
     const skipNote = stretchingNotesByArea[area];
-    push('Roll', tighten(trim('foam roll', proto.foamRoll)), r.cls);
-    push('Move', tighten(trim('dynamic', proto.dynamic)), r.cls);
+    push('Roll', tighten(trim('foam roll', proto.foamRoll)), r.cls, area);
+    push('Move', tighten(trim('dynamic', proto.dynamic)), r.cls, area);
     // An area whose static work is already covered by a lift you did today drops out of
     // the hold list rather than adding an "optional" entry to it.
-    if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls);
+    if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls, area);
   });
   coolFlow.className = 'drill-list';
   const coolItems = [];
   Object.keys(buckets).filter(b=>buckets[b].length).forEach(b=>{
-    buckets[b].forEach(t=> coolItems.push({ html:t, group:b }));
+    buckets[b].forEach(t=> coolItems.push({ html:t.html, group:b, area:t.area }));
   });
   /* After a run the jog-down comes before any of this and is not in the library, so it is
      said here. Low impact is an explicit recommendation rather than a preference: additional
@@ -23551,7 +23600,8 @@ async function generateMobility(){
   const coolDeferred = deferredAreasNote(deferred, 'cool-down');
   if(coolDeferred) coolItems.push(coolDeferred);
   renderDrillList(coolFlow, 'cooldown', coolItems,
-    document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.filter(i=>!i.note).map(i=>i.html))}<i class="unit">min</i>`);
+    document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.filter(i=>!i.note).map(i=>i.html))}<i class="unit">min</i>`,
+    { logKey:'postMobilityLog', secondsPerArea: MOBILITY_STATIC_SHARE_PER_AREA * 60 });
 }
 
 /* ---------- EXPORT ALL DATA (closes the loop with Bulk Import) ---------- */
