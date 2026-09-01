@@ -5907,7 +5907,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.92';
+const APP_VERSION = '2026.08.31.93';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21658,8 +21658,29 @@ const TENDINOPATHY_PROTOCOL = {
   refreshRecHistory();
 }
 
+/* A SECTION HIDDEN BY MARKUP DOES NOT NEED ITS CONTENTS BUILT.
+
+   Two sections on Today are hidden deliberately and permanently, and both kept doing the
+   full storage work to fill themselves anyway — measured at 23 reads and a list per entry
+   to the tab, for markup nobody can see. refreshRecHistory alone runs three times per
+   activation, listing every rec: key and reading the newest twenty each time.
+
+   Walks the inline display:none that hides a whole section, rather than asking
+   getComputedStyle or offsetParent: those also read hidden while the tab itself is
+   off-screen, which would make a legitimately visible section skip its first build. The
+   elements still stay in the DOM, so callers need no guarding — the guard belongs here,
+   where the work is, and un-hiding a section brings its contents back with no further
+   change. */
+function sectionHiddenByMarkup(el){
+  for(let n = el; n; n = n.parentElement){
+    if(n.style && n.style.display === 'none') return true;
+  }
+  return false;
+}
+
 async function refreshRecHistory(){
   const list = document.getElementById('recHistory');
+  if(!list || sectionHiddenByMarkup(list)) return;
   try{
     const res = await window.storage.list('rec:');
     if(!res||!res.keys||res.keys.length===0){ list.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg><span>No history yet</span></div>'; return; }
@@ -22062,6 +22083,9 @@ function initWarmupTab(){
 
 async function refreshPlanSourceDisplay(){
   const label = document.getElementById('planSourceLabel');
+  // Same reasoning as refreshRecHistory: #sessionSourceGroup is hidden for good, and this
+  // was reading today's planned exercises and both weekplan slots to write into it.
+  if(!label || sectionHiddenByMarkup(label)) return;
   const plannedExercises = await getPlannedExercisesToday();
   // getPlannedExercisesToday only knows about the strength mirror, so a scheduled run or
   // mobility day reported "no plan saved for today" while the session sat right there on
