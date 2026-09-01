@@ -6282,7 +6282,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.136';
+const APP_VERSION = '2026.08.31.137';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23651,6 +23651,16 @@ function writeDrillLog(logKey, listKey, secondsPerArea){
   areas.forEach(a=>{ secondsByArea[a] = secondsPerArea; });
   try{ window.storage.set(`${logKey}:${todayStr}`, JSON.stringify({ date: todayStr, areas, secondsByArea })); } catch(e){}
 }
+// MOVE is the bucket both lists fall into when a drill is not one of the specific stages —
+// four of the warm-up's five rows and the middle of the cool-down. A plate on all of them
+// named the default, which is the one thing a label never needs to say. The column is still
+// held for those rows so every drill's text starts on the same line.
+// Cased differently by the two generators ('MOVE' and 'Move'), hence the fold.
+function stageLabel(group){
+  if(!group) return '';
+  return String(group).toUpperCase() === 'MOVE' ? '' : group;
+}
+
 function renderDrillList(host, listKey, items, estEl, estHtml, opts){
   const logKey = opts && opts.logKey, secPerArea = (opts && opts.secondsPerArea) || 0;
   const done = drillsDone(listKey);
@@ -23668,7 +23678,7 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
       + `<span class="drill-box" aria-hidden="true"></span>`
-      + (it.group ? `<span class="drill-stage">${it.group}</span>` : '<span class="drill-stage"></span>')
+      + `<span class="drill-stage">${stageLabel(it.group)}</span>`
       + `<span class="drill-text">${it.html}</span></button>`;
   }).join('');
   const paint = ()=>{
