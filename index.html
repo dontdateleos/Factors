@@ -2979,7 +2979,7 @@ const EYE_ANIM = {
 
   // — Reacting to you.
   blinkOnTap:     { on:true, note:'Tap the mark and it blinks back' },
-  glanceAtTab:    { on:true, note:'Looks toward the tab you just tapped, before the wipe' },
+  glanceAtTab:    { on:true, note:'Looks toward the tab you just tapped — at once, or once the mark has landed if it had to fly there' },
   scrollLook:     { on:true, note:'Looks down as you scroll down, up as you scroll up', px:3 },
   rollWithScore:  { on:true, note:'The mark runs through every face and lands on the day’s as the score counts up' },
   glanceAtNumber: { on:true, note:'One look down at the score after landing, then back up' },
@@ -4078,19 +4078,35 @@ function bindEyeTap(){
    it had rendered, and on the rest it was aimed from a slot the mark was about to leave.
    Issued once everything has landed instead: the direction is measured from where the mark
    actually ended up, and there is nothing left running to overwrite it. */
+/* ONLY THE SWITCHES THAT MOVE THE MARK HAVE TO WAIT.
+
+   The reasoning above is about a mark in flight, and it is right about that case: the flight
+   resets the gaze on its way out and aims its own, so a glance issued on the tap is gone
+   before it renders. But that only happens on a switch to or from Today. Between any other
+   two tabs the mark does not move, nothing resets the gaze, and the 780ms wait was buying
+   protection against something that was never going to happen — the look simply arrived late.
+
+   So the wait is now conditional. No flight, and it goes out on the next frame, which is
+   what the note in the animation list claimed all along. In flight, it still waits, and the
+   settle margin comes down from 140ms to 60: 640ms of flight plus a frame or two to land is
+   what the delay is actually for, and the rest of it was slack.
+
+   The scroll-to-top that every switch does would normally drag the gaze with it. It does not
+   fight this, because eyeScrollMuteUntil is already set 900ms ahead a few lines above. */
 let eyeTabGlanceTimer = null;
-function eyeGlanceAtTabSoon(name){
+function eyeGlanceAtTabSoon(name, flying){
   clearTimeout(eyeTabGlanceTimer);
   if(!anim('glanceAtTab')) return;
-  const wait = Math.max(UI_ANIM.tabLift.ms, EYE_FLIGHT_MS) + 140;
-  eyeTabGlanceTimer = setTimeout(()=>{
+  const look = ()=>{
     if(eyeTabName !== name) return;          // a newer tap got there first
     const btn = document.querySelector(`.tab[data-tab="${name}"]`);
     if(!btn) return;
     eyeGlanceAtEl(btn, 5);
     // And nothing idle for a moment, so the look is not cut short by a saccade.
     scheduleIdle(1900);
-  }, wait);
+  };
+  if(!flying){ requestAnimationFrame(look); return; }
+  eyeTabGlanceTimer = setTimeout(look, Math.max(UI_ANIM.tabLift.ms, EYE_FLIGHT_MS) + 60);
 }
 
 function eyeGlanceAtEl(target, px){
@@ -5500,13 +5516,16 @@ function activateTab(name, opts){
   eyeScrollMuteUntil = Date.now() + 900;
   window.scrollTo(0, 0);
 
+  // Whether this switch actually moves the mark. Computed BEFORE the two calls below, since
+  // moveEyes is what changes eyesHome — reading it afterwards always says no.
+  const eyesFlying = name === 'insights' ? (eyesHome !== 'score') : !!eyesLeaving;
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
   else if(eyesLeaving) moveEyes('header', eyesFrom);
   bindEyeTap();
   decorateChevrons(document);
   decorateColophon();
   eyeTabName = name;
-  eyeGlanceAtTabSoon(name);
+  eyeGlanceAtTabSoon(name, eyesFlying);
   eyeCtx.perched = false;
   eyeFormSettled();
   eyeNoteTabForWander();
@@ -6125,7 +6144,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.109';
+const APP_VERSION = '2026.08.31.110';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
