@@ -5905,7 +5905,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.90';
+const APP_VERSION = '2026.08.31.91';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22353,17 +22353,55 @@ async function plannedRunType(){
 // Always keeps the must-keep areas — injuries, and areas you pinned by accepting a
 // mobility card (non-negotiable); trims everything else to fit
 // the time budget, taking `ordered` (already priority-sorted) from the top down.
+/* THE CAP WAS A FLOOR, NOT A CEILING.
+
+   Must-keep areas were added regardless of the budget and everything else was fitted around
+   them, so the cap only ever bound on a healthy day. Measured on an easy run, whose whole
+   cool-down budget is 7 minutes: no injuries gave ~6 min over 3 items, two gave ~12 over 6,
+   four gave ~22 over 12, and four on an interval day gave ~27 minutes over 15 items. A
+   fifteen-drill cool-down after a run is a section nobody finishes, which means the injured
+   areas get skipped along with everything else. The override defeated itself.
+
+   Must-keep areas now get FIRST CLAIM on the budget instead of a seat on top of it, and they
+   keep their full dose — Roll, Move, Hold — rather than being thinned. Past the cap the
+   lowest-priority flagged areas are deferred and named, so the section says what it dropped
+   rather than silently shrinking. One must-keep area always lands even if it alone is over
+   cap: a single flagged injury is never traded away for the arithmetic.
+
+   Two passes rather than one, because the caller's own ordering is not the priority ordering
+   by the time it gets here — both sections re-sort by the weekly stretch ledger, which puts
+   the least-covered area first regardless of why it is on the list. Membership is decided in
+   priority order; the output is emitted in the caller's order, so the drill sequence on
+   screen is unchanged. */
 function selectWithinBudget(ordered, mustKeep, cap, perAreaCost){
-  const selected = [];
+  const keep = new Set();
   let running = 0;
-  ordered.forEach(area=>{
-    const isInjury = !!mustKeep[area];
-    if(isInjury || running + perAreaCost <= cap){
-      selected.push(area);
-      running += perAreaCost;
+  for(const mustPass of [true, false]){
+    for(const area of ordered){
+      if(keep.has(area)) continue;
+      if(!!mustKeep[area] !== mustPass) continue;
+      if(running + perAreaCost <= cap || (mustPass && !keep.size)){
+        keep.add(area);
+        running += perAreaCost;
+      }
     }
-  });
-  return { selected, estMinutes: running };
+  }
+  return {
+    selected: ordered.filter(a=> keep.has(a)),
+    estMinutes: running,
+    deferred: ordered.filter(a=> !keep.has(a) && mustKeep[a])
+  };
+}
+
+// What the section says about the flagged areas it could not fit. Named, not counted — the
+// point of the line is that you can see whether the one you are worried about is in today's
+// list or tomorrow's.
+function deferredAreasNote(deferred, where){
+  if(!deferred || !deferred.length) return null;
+  const names = deferred.map(a=> (BODY_AREAS[a] || a).toLowerCase());
+  const list = names.length === 1 ? names[0]
+    : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  return { note:true, html: `<b>Also flagged</b> \u2014 ${list}. ${names.length === 1 ? 'It did' : 'They did'} not fit today\u2019s ${where} and ${names.length === 1 ? 'is' : 'are'} first in line tomorrow.` };
 }
 
 async function generateWarmup(){
@@ -22426,7 +22464,7 @@ async function generateWarmup(){
   // warm-up entirely — being at the ROM ceiling is no reason to skip movement prep.
   const rotated = (_needW.length ? _needW : rotatedBase)
     .slice().sort((a, b) => (_ledgerW[a] || 0) - (_ledgerW[b] || 0));
-  const { selected, estMinutes } = selectWithinBudget(rotated, mustKeep, warmupCap, WARMUP_TIME_PER_AREA);
+  const { selected, estMinutes, deferred } = selectWithinBudget(rotated, mustKeep, warmupCap, WARMUP_TIME_PER_AREA);
 
   // Persist which areas actually got warmed up today — previously this was computed
   // fresh on every view and thrown away, meaning "did warm-ups already cover this area
@@ -22560,8 +22598,10 @@ async function generateWarmup(){
   flow.className = 'drill-list';
   // The closing phase is real minutes with no dose written on it, so it is added by hand.
   const warmMins = drillMinutes(drillParts) + potentiateMins;
+  const warmDeferred = deferredAreasNote(deferred, 'warm-up');
   renderDrillList(flow, 'warmup', drillParts.map(d=>({ html:d }))
-    .concat([{ html:potentiate, note:true }]),
+    .concat([{ html:potentiate, note:true }])
+    .concat(warmDeferred ? [warmDeferred] : []),
     document.getElementById('warmupEstimate'), `~${warmMins}<i class="unit">min</i>`);
 }
 
@@ -22705,7 +22745,7 @@ async function generateMobility(){
   const _needM = remainingBase.filter(a => mustKeep[a] || _goalAreasM.has(a) || (_ledgerM[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
   const remainingRot = (_needM.length ? _needM : remainingBase)
     .slice().sort((a, b) => (_ledgerM[a] || 0) - (_ledgerM[b] || 0));
-  const { selected, estMinutes } = selectWithinBudget(remainingRot, mustKeep, mobilityCap, MOBILITY_TIME_PER_AREA);
+  const { selected, estMinutes, deferred } = selectWithinBudget(remainingRot, mustKeep, mobilityCap, MOBILITY_TIME_PER_AREA);
 
   // Same reasoning as the warm-up log: post-session stretching is real time under stretch
   // and has to count toward the weekly per-muscle-group ceiling, or the ceiling is
@@ -22794,6 +22834,8 @@ async function generateMobility(){
       ? '<b>Jog down</b> — 5-15 min easing into a walk. After a hard session walk or cycle rather than jog, and keep the whole cool-down under 30 minutes.'
       : '<b>Jog down</b> — let the last 5 minutes decay into a walk. Under 30 minutes all in.' });
   }
+  const coolDeferred = deferredAreasNote(deferred, 'cool-down');
+  if(coolDeferred) coolItems.push(coolDeferred);
   renderDrillList(coolFlow, 'cooldown', coolItems,
     document.getElementById('cooldownEstimate'), `~${drillMinutes(coolItems.filter(i=>!i.note).map(i=>i.html))}<i class="unit">min</i>`);
 }
