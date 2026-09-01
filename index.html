@@ -546,7 +546,7 @@
      this footer were simply not clickable. */
   footer{ position:fixed; bottom:0; left:0; right:0; z-index:5; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
-  button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--border-bold); background:var(--reverse-bg); color:var(--bg); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
+  button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--text); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
   .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
@@ -589,10 +589,10 @@
   .trend-arrow{ font-size:var(--fs-tag); margin-left:4px; }
   .trend-arrow.down{ color:var(--text); }
   .trend-arrow.up{ color:var(--text); }
-  button.primary{ background:var(--reverse-bg); color:var(--bg); border-color:var(--border-bold); font-weight:var(--fw-bold); }
+  button.primary{ background:var(--bg); color:var(--text); border-color:var(--bg); font-weight:var(--fw-bold); }
   button.small{ flex:none; height:31px; padding:0 12px; font-size:var(--fs-tag); }
-  button.outline{ background:var(--bg); color:var(--reverse-bg); }
-  button.outline:active{ background:var(--reverse-bg); color:var(--bg); opacity:1; }
+  button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
+  button.outline:active{ background:var(--bg); color:var(--text); opacity:1; }
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   .log{ margin-top:var(--sp-4); }
@@ -840,7 +840,7 @@
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
   /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
      pseudo-element that a later rule was overriding anyway. */
-  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:var(--sp-3) 8px; border:2px solid var(--border-bold); border-radius:0; }
+  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--bg); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:var(--sp-3) 8px; border:2px solid rgba(251,250,246,0.45); border-radius:0; }
 
   /* A section you FILL IN is a black band across the page; a section you read is not.
      That is the whole rule — it is what tells a form apart from a readout at a glance, and
@@ -977,12 +977,8 @@
   #weeklyTrainingView > #blockEditHome:not(:empty){ background:#000000; }
   .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
   .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
-  /* Buttons are black-on-light by default, which is invisible on the panel. */
-  .form-panel button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  .form-panel button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
-  /* An outlined row is black-on-light by default, same as a button, so it disappeared the
-     moment the goal list moved onto a black panel. */
-  .form-panel .add-row{ color:var(--bg); border-color:rgba(251,250,246,0.45); }
+  /* These three used to be stated here, for the panel only, because the base was written
+     for a light ground. Every ground is dark now, so they are the base. */
   .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .injury-head{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
   .injury-part{ font-weight:var(--fw-bold); font-size:var(--fs-md); letter-spacing:-0.02em; -webkit-text-stroke:0.3px currentColor; }
@@ -6240,7 +6236,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.119';
+const APP_VERSION = '2026.08.31.120';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
