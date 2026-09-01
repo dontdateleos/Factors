@@ -486,7 +486,7 @@
      tab's hue turns a tab of one-line sections — Settings has nine — into a screen of that
      hue with a little text on it; the box says the same thing with a fraction of the area.
      flex:0 1 auto so it hugs its text and still shrinks when the title is long. */
-  .group-title{ flex:0 1 auto; min-width:0; padding:3px 9px;
+  .group-title{ flex:0 1 auto; min-width:0; padding:3px 9px; border-radius:6px;
     background:var(--band); color:var(--text);
     font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em;
     text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
@@ -6282,7 +6282,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.137';
+const APP_VERSION = '2026.08.31.138';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
