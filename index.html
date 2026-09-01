@@ -108,15 +108,18 @@
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
        surfaces fighting. Derived, not picked: 0.08*block + 0.92*#0c0d0b, rounded. */
-    --field-lime:#1b1d10;
-    --field-orange:#1f180f;
-    --field-purple:#1b1a1e;
-    --field-yellow:#1e1c0c;
-    --field-blue:#151d1d;
-    /* Whichever of those five the current tab is on. Every large surface takes it, so the
-       page is one field and the section bands are the only thing on top of it. Set per tab
-       beside --band; this default is Today's, for the first paint before a tab class lands. */
-    --ground:#1b1d10;
+    --field-lime:#212412;
+    --field-orange:#271c11;
+    --field-purple:#201f25;
+    --field-yellow:#25210d;
+    --field-blue:#182324;
+    /* The ground is neutral and the same on every tab. Sampled off the reference: its page
+       is #0c0c0b across 48% of its area, with the tint appearing only in the section fields
+       (25%) and the blocks lifted off those (14%). Three levels, not one — a tinted ground
+       reads as warm because there is nothing neutral left to read it against. */
+    --ground:#0c0d0b;
+    /* The current tab's field, one step up from the ground. Set per tab beside --band. */
+    --field:var(--field-lime);
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
     --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
@@ -239,18 +242,18 @@
      the top of the screen while the rest of it is still travelling, which tears it. */
   main.tab-dealing .group-head{ position:static; }
   .tab-circle-transition{ position:fixed; left:0; right:0; bottom:0; z-index:9999; pointer-events:none; clip-path:circle(0px at 50% 50%); transition:clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--field-lime); }
-  body.tab-training main{ background:transparent; } body.tab-training{ background:var(--field-orange); }
-  body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--field-purple); }
-  body.tab-data main{ background:transparent; } body.tab-data{ background:var(--field-yellow); }
-  body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--field-blue); }
+  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--ground); }
+  body.tab-training main{ background:transparent; } body.tab-training{ background:var(--ground); }
+  body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--ground); }
+  body.tab-data main{ background:transparent; } body.tab-data{ background:var(--ground); }
+  body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--ground); }
   /* The one place each tab's hue is still saturated. The ground is a tint of it, so the
      band reads as the same colour turned all the way up rather than as a second colour. */
-  body.tab-insights{ --band:var(--block-lime); --ground:var(--field-lime); }
-  body.tab-training{ --band:var(--block-orange); --ground:var(--field-orange); }
-  body.tab-injuries{ --band:var(--block-purple); --ground:var(--field-purple); }
-  body.tab-data{ --band:var(--block-yellow); --ground:var(--field-yellow); }
-  body.tab-settings{ --band:var(--block-blue); --ground:var(--field-blue); }
+  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); }
+  body.tab-training{ --band:var(--block-orange); --field:var(--field-orange); }
+  body.tab-injuries{ --band:var(--block-purple); --field:var(--field-purple); }
+  body.tab-data{ --band:var(--block-yellow); --field:var(--field-yellow); }
+  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -478,7 +481,13 @@
   .group-head .group-sub{ order:2; }
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(12,13,11,0.62);
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
-  .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
+  /* The middle of the three levels. A band names the section, this is the section. Bled to
+     the band's own edges where the group does not already bleed — inside .form-panel the
+     panel has done it and doing it twice runs 14px off each side of the screen. */
+  .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2);
+    background:var(--field); }
+  .group:not(.form-panel) > .fields{ margin-left:-14px; margin-right:-14px;
+    padding-left:14px; padding-right:14px; }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--hair); }
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
@@ -5523,8 +5532,8 @@ async function startTodayLogging(){
 // the body.tab-* rules above them, which paint the canvas this backdrop covers, so a
 // rubber-band scroll past the end of the page shows the same colour as the page.
 const TAB_BACKDROP_COLOR = {
-  insights:'var(--field-lime)', training:'var(--field-orange)',
-  injuries:'var(--field-purple)', data:'var(--field-yellow)', settings:'var(--field-blue)'
+  insights:'var(--ground)', training:'var(--ground)',
+  injuries:'var(--ground)', data:'var(--ground)', settings:'var(--ground)'
 };
 // Tabs the app used to have, and where their contents went. Without this a stale caller
 // asking for a retired tab hides every panel and leaves a blank screen — the one failure
@@ -6239,7 +6248,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.123';
+const APP_VERSION = '2026.08.31.124';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
