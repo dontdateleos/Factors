@@ -1675,20 +1675,15 @@
      read at a desk. The box is the app's own square rather than a checkbox control: a real
      input would bring its own platform styling into a page that has none anywhere else. */
   .drill-list{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--text); }
-  /* ---- the evidence block -------------------------------------------------------------
-     A container for content the app is SHOWING you, as opposed to a control you operate: a
-     rule down the left in the tab's colour, a label naming the block and counting it, and a
-     ground lifted off the field so the block has edges. Everything inside it is what was
-     there before — this adds a box, not a behaviour. */
-  .ev{ border-left:3px solid var(--band); background:rgba(251,250,246,0.055);
-    padding:10px 13px; margin-bottom:9px; }
-  .ev:last-child{ margin-bottom:0; }
-  .drill-group{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--dim);
-    margin:var(--sp-2) 0 2px; display:flex; align-items:baseline; gap:8px; }
-  .drill-group:first-child{ margin-top:0; }
-  .drill-group-n{ margin-left:auto; font-weight:var(--fw-normal); letter-spacing:0.06em;
-    font-variant-numeric:tabular-nums; }
+  /* The stage a drill belongs to — RAISE, MOVE, PRIME, ROLL, HOLD — as a plate on its own
+     row rather than a heading over a block of rows. Fixed width so every drill's text
+     starts on the same line whatever its stage is called, and empty on a row that has no
+     stage so the column still holds. */
+  .drill-stage{ flex:none; min-width:52px; text-align:center; align-self:flex-start;
+    font-family:var(--mono); font-size:9.5px; font-weight:var(--fw-bold);
+    letter-spacing:0.09em; text-transform:uppercase;
+    background:var(--reverse-bg); color:var(--dim); padding:4px 6px; margin-top:1px; }
+  .drill-stage:empty{ background:transparent; }
   /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
      exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
      the warm-up and cool-down read a step quieter than the session they bracket. The size
@@ -6285,7 +6280,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.134';
+const APP_VERSION = '2026.08.31.135';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23633,29 +23628,17 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
   const areaByKey = {};
   items.forEach(it=>{ if(!it.note && it.area) areaByKey[drillKey(it.html)] = it.area; });
   const tickable = items.filter(it=> !it.note);
-  // Each area becomes a block with edges rather than a label floating above a run of rows.
-  // This is a wrapper and nothing else: the same buttons, the same keys, the same aria, and
-  // the handler binding below still finds them because it is a descendant query.
-  const blocks = [];
-  let cur = null;
-  items.forEach(it=>{
-    if(!cur || (it.group && it.group !== cur.group)) blocks.push(cur = { group: it.group || null, items: [] });
-    cur.items.push(it);
-  });
-  const rowHtml = it=>{
+  // One list, the same shape as the session's own exercise rows, with each drill's stage
+  // carried on the row instead of as a heading over a block of them. Grouping them into
+  // separate cards made the warm-up and the cool-down read as a different kind of thing
+  // from the session they bracket, which is the one place all three should agree.
+  host.innerHTML = items.map(it=>{
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-box" aria-hidden="true"></span><span class="drill-text">${it.html}</span></button>`;
-  };
-  host.innerHTML = blocks.map(bl=>{
-    const body = bl.items.map(rowHtml).join('');
-    if(!bl.group) return body;
-    // How many of them there are, which the list knew and only ever said as one total at
-    // the top of the section.
-    const n = bl.items.filter(it=> !it.note).length;
-    return `<div class="ev"><div class="drill-group">${bl.group}`
-      + (n ? `<span class="drill-group-n">${n}</span>` : '') + `</div>${body}</div>`;
+      + `<span class="drill-box" aria-hidden="true"></span>`
+      + (it.group ? `<span class="drill-stage">${it.group}</span>` : '<span class="drill-stage"></span>')
+      + `<span class="drill-text">${it.html}</span></button>`;
   }).join('');
   const paint = ()=>{
     if(!estEl) return;
