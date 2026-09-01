@@ -1131,6 +1131,10 @@
   /* On a closed day the chip is a reading, not a button. It keeps its colour and its face —
      that is the record — and stops advertising a tap that would be refused. */
   #todayFaceDock.locked{ cursor:default; }
+  /* Nothing recorded yet: an outline where the answer will sit, so the slot reads as waiting
+     rather than as filled with a neutral rating. */
+  #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(251,250,246,0.32); }
+  #todayFaceDock.asking .dock-word{ color:rgba(251,250,246,0.45); }
   /* Reads out from under the chip, in the chip's own colour, so the word and the mark are
      obviously one statement. Positioned off the chip rather than the band, so it rides with
      it when a three-digit score pushes the number's edge right.
@@ -6121,7 +6125,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.107';
+const APP_VERSION = '2026.08.31.108';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7788,9 +7792,20 @@ function paintTodayFaces(){
   const date = faceDate();
   const v = faceValues[date];
   const editable = faceEditable(date);
-  // A closed day never asks. Unanswered and closed shows nothing at all rather than five
-  // buttons that would quietly write a reconstruction into the record.
-  const asking = editable && (v == null || faceRowOpen === date);
+  /* THE PICKER IS NO LONGER THE RESTING STATE.
+
+     Unanswered used to mean "show five faces", which put seven eye pairs on the first screen
+     — the mark, the five, and whatever the page below was drawing. Two problems with that.
+     The obvious one is that it is a lot of eyes. The other is that each of those five is
+     17.6x26px, with an individual eye 7.1x3.7px: the shapes they are drawing differ by about
+     a pixel at that size, so the scale was rendering at a size that cannot show it.
+
+     Since the morning sheet exists, the page does not have to be the thing that asks. The
+     sheet asks, at 46px, where the faces read. So faceRowOpen is now the only thing that
+     opens the picker, for an unanswered day exactly as for an answered one, and the resting
+     state is a single chip either way: your answer if you gave one, an invitation if you did
+     not. A closed day still shows neither. */
+  const asking = editable && faceRowOpen === date;
   host.classList.toggle('picked', v != null);
   host.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', +b.dataset.v === v));
   // The caption is the question until it is answered, and the answer after — one 9px line
@@ -7804,8 +7819,22 @@ function paintTodayFaces(){
     // Rebuilt content means new eyes, so any blink in flight is talking to elements that no
     // longer exist; the roster restarts with them.
     stopChipIdle();
-    if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; }
+    if(v == null && editable && !asking){
+      // The invitation. Outlined rather than filled, and in the dim ink, so it cannot be
+      // mistaken for a rating you have already given — an "ok" face on a filled chip would
+      // read as an answer of ok. Alive, like the answered chip, because a face that never
+      // moves is a sticker. The word is short by necessity: this chip is 30px wide and the
+      // caption hangs off it, so "How are you?" would run into the week's first tick.
+      dock.style.removeProperty('--face-c');
+      dock.classList.add('asking');
+      dock.classList.remove('locked');
+      dock.setAttribute('aria-label', 'How are you? Tap to rate today');
+      dock.innerHTML = faceEyesHtml(EYE_STATES[3], DOCK_SCALE, 'rgba(251,250,246,0.55)', true)
+        + `<span class="dock-word">How?</span>`;
+    }
+    else if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; dock.classList.remove('asking'); }
     else {
+      dock.classList.remove('asking');
       dock.style.setProperty('--face-c', `var(--face-${v})`);
       dock.classList.toggle('locked', !editable);
       dock.setAttribute('aria-label', editable
@@ -7822,6 +7851,10 @@ function paintTodayFaces(){
   // it does not ask, and it may have nothing recorded — and the layout, reading only "not
   // asking", put an empty plate on screen.
   row.dataset.answered = v == null ? '0' : '1';
+  // Whether the chip has anything to show at all — an answer, or the invitation. The layout
+  // reads this rather than re-deriving it, so the two cannot disagree about whether the slot
+  // beside the number is occupied.
+  row.dataset.dockable = (v != null || editable) ? '1' : '0';
   // The chip is only alive while it is on screen — offsetParent settles that, and it is null
   // until layoutBandColumn has shown it, so this waits a frame.
   requestAnimationFrame(()=>{ if(chipEyes()) scheduleChipIdle(1200); });
@@ -7850,7 +7883,7 @@ function layoutBandColumn(traceShown){
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
   const asking = row.dataset.asking !== '0';
   const answered = row.dataset.answered === '1';
-  const docked = !asking && answered;
+  const docked = !asking && row.dataset.dockable === '1';
   const W = bandColumnWidth(bandRect, numRect, docked);
   // The chip is not the trace and does not go with it: a band too narrow to draw seven ticks
   // is still wide enough to say what you told it this morning.
