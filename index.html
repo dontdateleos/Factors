@@ -5941,7 +5941,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.97';
+const APP_VERSION = '2026.08.31.98';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7312,8 +7312,19 @@ async function buildSignalWindowUncached(asOfDate, days){
       .filter(v=>v != null);
     return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
   };
+  /* The rating is masked for baselining like every other channel, which it was not.
+
+     A night you drank is excluded from the baseline for HRV, resting HR, sleep, respiratory
+     rate and temperature — the reading is real and still scores, but it must not move what
+     normal means. The rating you give the morning after was the one channel exempt from
+     that, so a run of heavy weekends quietly taught the model that feeling rough IS your
+     normal, and an ordinary Tuesday then read as unusually good.
+
+     It matters more here than anywhere else: at 0.28 this is the heaviest weight in
+     Systemic Readiness, above HRV and resting HR. The channel most able to move the score
+     was the one whose sense of normal was most easily corrupted. */
   subjective.subjOverall = normaliseChannel(
-    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), {});
+    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), { baselineMask: drinkMask });
   const subjParts = Object.values(subjective).filter(c=>c.available);
   const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
   // Per-day too: the composite has to rank against your own days like every other channel.
@@ -7325,16 +7336,21 @@ async function buildSignalWindowUncached(asOfDate, days){
   // swings about half as far as any single channel and its 0.28 weight would quietly buy less
   // influence than the number says. Re-standardised against its own distribution so the
   // weights mean what they claim.
-  const rescale = (arr)=>{
-    const obs = arr.filter(v=>v != null);
+  // The mask has to be applied here too, not only inside normaliseChannel. This is a SECOND
+  // standardisation, and it was taking its centre and spread from every day including the
+  // ones the mask exists to exclude — so masking the channel underneath had no effect at
+  // all on what came out. With a single subjective item this pass is the one that decides.
+  // Masked days are still scored; they just do not get a vote on where the middle is.
+  const rescale = (arr, mask)=>{
+    const obs = arr.filter((v, i)=> v != null && (!mask || !mask[i]));
     if(obs.length < 4) return arr;
     const m = obs.reduce((a,b)=>a+b,0) / obs.length;
     const sd = Math.sqrt(obs.reduce((a,b)=>a + (b-m)*(b-m), 0) / (obs.length - 1));
     if(!sd || sd < 1e-9) return arr;
     return arr.map(v=> v == null ? null : Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (v - m) / sd)));
   };
-  const subjZ = rescale(meanAcross('zSeries'));
-  const subjA = rescale(meanAcross('zAcuteSeries'));
+  const subjZ = rescale(meanAcross('zSeries'), drinkMask);
+  const subjA = rescale(meanAcross('zAcuteSeries'), drinkMask);
   const lastOf = (arr)=>{ const v = [...arr].reverse().find(x=>x != null); return v == null ? 0 : v; };
   channels.subjective = subjParts.length ? {
     available: true,
