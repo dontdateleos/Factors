@@ -1684,15 +1684,20 @@
   .drill-group:first-child{ margin-top:0; }
   .drill-group-n{ margin-left:auto; font-weight:var(--fw-normal); letter-spacing:0.06em;
     font-variant-numeric:tabular-nums; }
+  /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
+     exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
+     the warm-up and cool-down read a step quieter than the session they bracket. The size
+     belongs here rather than on .drill-list: the row is what .drill-text inherits from, and
+     the list also holds the notes and area labels, which really are secondary. */
   .drill{ display:flex; align-items:flex-start; gap:10px; width:100%; min-height:44px;
     padding:6px 0; margin:0; background:transparent; border:0; border-radius:0; text-align:left;
-    font-family:var(--sans); font-size:var(--fs-sm); line-height:1.45; letter-spacing:0.005em;
+    font-family:var(--sans); font-size:var(--fs-md); line-height:1.45; letter-spacing:0.005em;
     text-transform:none; font-weight:var(--fw-normal); color:var(--text); cursor:pointer; }
   .drill + .drill{ border-top:1px solid rgba(12,13,11,0.12); }
   .drill-box{ flex:0 0 auto; width:17px; height:17px; margin-top:2px;
     box-shadow:inset 0 0 0 2px var(--border-bold); background:transparent; }
   .drill.on .drill-box{ background:var(--border-bold); }
-  .drill-text{ flex:1; min-width:0; }
+  .drill-text{ flex:1; min-width:0; font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* Struck through AND faded: the strike says done, the fade takes it out of the way of the
      ones that are not. */
   .drill.on .drill-text{ text-decoration:line-through; opacity:0.42; }
@@ -6275,7 +6280,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.130';
+const APP_VERSION = '2026.08.31.131';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
