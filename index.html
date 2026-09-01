@@ -5976,7 +5976,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.100';
+const APP_VERSION = '2026.08.31.101';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6765,6 +6765,20 @@ function updateHeaderCollapse(){
   // header having lost a line.
   const dateEl = document.getElementById('headerDate');
   if(dateEl) dateEl.style.opacity = (1 - progress).toFixed(3);
+  /* Collapsed, this row was 47px carrying 20px of content: a 15px label and the 20px mark
+     perched beside it, inside 30px of padding. Everything else in it is already gone by then
+     — the wordmark is at font-size 0 and the date at opacity 0 — so the padding was sized for
+     a row that no longer exists, on the one band that never leaves the screen.
+
+     Lerped with the same progress as the rest rather than switched at a threshold, so it
+     shrinks with the wordmark instead of stepping once you pass 2px. Set before the perch is
+     computed below, because eyePerchSpot derives the mark's top from the label's own box —
+     which means the mark follows this up on its own and needs no separate adjustment. */
+  const brandEl = document.querySelector('.header-brand');
+  if(brandEl){
+    brandEl.style.paddingTop = lerp(18, 8, progress).toFixed(2) + 'px';
+    brandEl.style.paddingBottom = lerp(12, 6, progress).toFixed(2) + 'px';
+  }
   const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
