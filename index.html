@@ -343,8 +343,10 @@
     text-transform:uppercase; letter-spacing:var(--track-ui);
   }
   /* Uppercase at display size does not want the tight tracking those were drawn with, and
-     mono does not want negative tracking at all — the grid is the point. */
-  .group-title, .rest-word, .score-num{ letter-spacing:0.02em; }
+     mono does not want negative tracking at all — the grid is the point. The score used to
+     be in this list for that reason; it is set in the wordmark now and takes the wordmark's
+     own tracking instead. */
+  .group-title, .rest-word{ letter-spacing:0.02em; }
   .rest-plate{ background:var(--ground); border-top:2px solid var(--bg); margin:0 calc(-1 * var(--gutter));
     padding:var(--sp-4) var(--gutter); }
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
@@ -553,7 +555,15 @@
      fallback for anything that does not know the unit. */
   .digit-well{ display:inline-block; overflow:hidden; height:1em; height:1lh; vertical-align:top; }
   .digit-strip{ display:block; will-change:transform; }
-  .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); line-height:0.92; -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
+  /* The wordmark's treatment, not the interface face: --wordmark at its own -0.035em, and no
+     stroke, because the wordmark does not use one. That makes the score the second thing in
+     the app set in Helvetica — the first being the wordmark itself — which is the point: the
+     number and the name are the two display objects and they now agree.
+     tabular-nums stays. The score rolls through a digit reel, so the figures have to be
+     equal-width or the number shifts sideways as it counts. */
+  .score-num{ font-family:var(--wordmark); font-size:var(--fs-score); font-weight:var(--fw-bold);
+    color:var(--text); line-height:0.92; letter-spacing:-0.035em; -webkit-text-stroke:0;
+    font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
   .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
@@ -958,7 +968,7 @@
      are navigating by, so it stays at full strength however far you have gone. */
   .gauge-wrap, #todayBlockContext{ transition:opacity 0.18s linear; }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
-  .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
+  .today-open .score-num{ color:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
   .today-open .score-note, .today-open .conf-headline,
   .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:var(--dim); }
@@ -6284,7 +6294,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.139';
+const APP_VERSION = '2026.08.31.140';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
