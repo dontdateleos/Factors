@@ -531,6 +531,15 @@
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
   .score-note{ font-size:var(--fs-tag); color:rgba(251,250,246,0.65); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  /* ---- chips -------------------------------------------------------------------------
+     A run of independent facts joined with middots reads as one sentence, and a sentence
+     gets skimmed. Each fact takes its own outline so a glance can pick out the one it came
+     for. Only the lines that really are lists of facts use these — prose stays prose. */
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .chip-row span{ font-family:var(--mono); font-size:10px; letter-spacing:0.1em;
+    text-transform:uppercase; border:1px solid rgba(251,250,246,0.3);
+    color:rgba(251,250,246,0.82); padding:4px 8px; white-space:nowrap;
+    font-weight:var(--fw-medium); }
 
   /* Above the sticky group heads (z-index 3). Without this a head level with the footer takes
      the tap meant for Save or Clear — on Data, at the top of the page, the two buttons in
@@ -6231,7 +6240,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.118';
+const APP_VERSION = '2026.08.31.119';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11244,7 +11253,7 @@ async function renderBlockLoadChart(){
       + `<span class="blc-key blc-key-plan">${isSets ? 'plan' : '4-week average'}</span>`;
     strip.innerHTML = `<div class="blc-head"><span class="score-note blc-cap">${legend}</span>${pills}</div>
       <div class="blc-rows">${rows.join('')}</div>
-      <div class="score-note" style="margin-top:5px; font-weight:700;">${headline}</div>
+      ${chipRow(headline)}
       ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}
       ${notes.length ? `<div class="score-note blc-note">${notes.join(' ')}</div>` : ''}`;
     strip.querySelectorAll('.blc-unit').forEach(btn=>{
@@ -19067,7 +19076,7 @@ async function renderTodayBlockContext(forDate){
     else if(dl) note = 'Planned recovery week — a good score today is the deload working, not a reason to add work back.';
     else if(reintro) note = 'First week back — loads are intentionally ~10% down. Ramping, not testing.';
     else if(phase === 'intensification') note = 'Highest planned volume of the block. If the score is low, this is the week to take that seriously.';
-    el.innerHTML = line + (note ? `<div style="opacity:0.75; margin-top:2px;">${note}</div>` : '');
+    el.innerHTML = chipRow(line) + (note ? `<div style="opacity:0.75; margin-top:6px;">${note}</div>` : '');
   } catch(e){ el.textContent = ''; }
 }
 
@@ -21784,6 +21793,14 @@ function sessionTitle(block){
 
    A rest day here is a day the plan holds nothing, which is the same definition
    isRestDayComing uses, so the two cannot disagree about what a rest day is. */
+// The producers already join their facts with a middot; this is the only thing that knows
+// that separator means "and another one" rather than punctuation.
+function chipRow(text){
+  const parts = String(text || '').split(' \u00b7 ').map(p=>p.trim()).filter(Boolean);
+  if(!parts.length) return '';
+  return `<div class="chip-row">${parts.map(p=>`<span>${p}</span>`).join('')}</div>`;
+}
+
 async function weekPositionLine(){
   const dates = getWeekDates();
   const idx = dates.indexOf(todayStr);
@@ -21899,7 +21916,7 @@ async function renderTodayWorkoutSummary(){
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">${sessionTitle(block)}${planEst}</div></div>
       <div class="fields">
-        ${weekLine ? `<div class="score-note" style="margin-top:0;">${weekLine}</div>` : ''}
+        ${weekLine ? chipRow(weekLine) : ''}
         ${loggingLine}
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
