@@ -1936,7 +1936,30 @@
       <div class="type-btn" data-type="mobility">Mobility</div>
     </div>
 
-    <div id="warmupSection" style="display:none;">
+    <!-- THE SESSION SITS ABOVE THE WARM-UP.
+
+         It used to be third, under the warm-up, and the warm-up is the tallest block on the
+         page: 426px on a strength day. Measured at 393x852 the session's own title landed at
+         y=873 on a strength day and y=851 on an interval day, against a viewport of 852 - so
+         on the two day types with real preparation, finding out what today IS meant
+         scrolling. Only an easy run showed it, at 697.
+
+         The old order was chronological, which is right for DOING a session and wrong for
+         OPENING the app. Most opens are a check on what today holds, not the moment before
+         the warm-up. The card is a summary of the day, not a step in it.
+
+         The two things you actually perform stay adjacent and in order below it - warm up,
+         then cool down - and the log button rides up with the card, which if anything is
+         easier to find at the top than halfway down. -->
+    <div id="todayWorkoutArea">
+      <div id="todayWorkoutSummary"></div>
+      <!-- Where the editor sits when logging is opened from here. It is the same element,
+           moved: a second copy would be a second set of handlers and a second thing to keep
+           in step with the first. -->
+      <div id="todayEditHost"></div>
+    </div>
+
+    <div id="warmupSection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
         <div class="group-head"><div class="group-title">Warm-up <span class="head-est" id="warmupEstimate"></span></div></div>
         <div class="fields">
@@ -1952,13 +1975,6 @@
       </div>
     </div>
 
-    <div id="todayWorkoutArea" style="margin-top:14px;">
-      <div id="todayWorkoutSummary"></div>
-      <!-- Where the editor sits when logging is opened from here. It is the same element,
-           moved: a second copy would be a second set of handlers and a second thing to keep
-           in step with the first. -->
-      <div id="todayEditHost"></div>
-    </div>
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
@@ -6105,7 +6121,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.106';
+const APP_VERSION = '2026.08.31.107';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
