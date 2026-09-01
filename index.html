@@ -5941,7 +5941,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.96';
+const APP_VERSION = '2026.08.31.97';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11451,14 +11451,50 @@ function wireBlockEditorClose(panel){
    outlier. */
 const SESSION_MIN_MINUTES = 4;    // below this it is a mis-tap, not a session
 const SESSION_MAX_MINUTES = 240;  // above it, a session left open rather than a long one
-async function typicalDurationFor(type){
+/* LIKE FOR LIKE, OR NOTHING AT ALL.
+
+   This compared today's session against the median of every session sharing its top-level
+   type, which put a 105-minute long run and a 35-minute recovery jog into the same average
+   as the intervals you are about to do — and then printed the result next to the estimate as
+   though the two were commensurable. The same flaw on the strength side compared an upper
+   push day against every leg day ever logged.
+
+   Matched to the block's own run type or workout tag, and named, so the comparison says what
+   it is rather than leaving you to infer it from two bare numbers. The floor goes from two
+   sessions to three: two is not a median, it is a pair of numbers with a line through them.
+
+   Nothing is printed when the population is too thin. A comparison drawn from two mixed
+   sessions is noise wearing a number's clothes, and the honest form of it is silence. */
+const TYPICAL_MIN_SESSIONS = 3;
+const RUN_TYPE_PLURAL = {
+  easy:'easy runs', tempo:'tempo runs', long:'long runs', interval:'intervals',
+  sprint:'sprint sessions', race:'races', fartlek:'fartlek runs', hills:'hill sessions'
+};
+const WORKOUT_TAG_PLURAL = {
+  full_body:'full body days', upper:'upper body days', lower:'lower body days',
+  push:'push days', pull:'pull days', legs:'leg days'
+};
+async function typicalDurationFor(block){
+  if(!block) return null;
   let sessions = [];
   try{ sessions = await getAllTrainingSessions(); } catch(e){ return null; }
-  const mins = sessions.filter(sn => sn.type === type && sn.durationMin > 0)
-                       .map(sn => sn.durationMin).sort((a,b)=> a - b);
-  if(mins.length < 2) return null;
+  const d = block.details || {};
+  let pool, label;
+  if(block.type === 'run'){
+    const rt = d.runType || 'easy';
+    pool = sessions.filter(sn => sn.type === 'run' && (sn.runType || 'easy') === rt);
+    label = RUN_TYPE_PLURAL[rt] || 'runs';
+  } else if(block.type === 'strength' && d.workoutTag){
+    pool = sessions.filter(sn => sn.type === 'strength' && sn.workoutTag === d.workoutTag);
+    label = WORKOUT_TAG_PLURAL[d.workoutTag] || 'these';
+  } else {
+    pool = sessions.filter(sn => sn.type === block.type);
+    label = block.type === 'strength' ? 'lifts' : 'these';
+  }
+  const mins = pool.filter(sn => sn.durationMin > 0).map(sn => sn.durationMin).sort((a,b)=> a - b);
+  if(mins.length < TYPICAL_MIN_SESSIONS) return null;
   const mid = Math.floor(mins.length / 2);
-  return mins.length % 2 ? mins[mid] : Math.round((mins[mid - 1] + mins[mid]) / 2);
+  return { mins: mins.length % 2 ? mins[mid] : Math.round((mins[mid - 1] + mins[mid]) / 2), label };
 }
 
 /* The last time you did this lift, under its name. Every one of these numbers has been in
@@ -14336,7 +14372,14 @@ function estimateSessionDuration(block, personalPace, personalSets, sessionLengt
     const personalPaceForType = personalPace && personalPace[runType];
     if(d.distanceKm){
       const pace = personalPaceForType || R.running.defaultPaceMinPerKm[runType] || R.running.defaultPaceMinPerKm.easy;
-      const bufferMin = R.running.warmupCooldownMin + (R.running.intervalRecoveryBufferMin[runType]||0);
+      // The recovery buffer belongs to the DEFAULT pace only. The default table is a pure
+      // running pace, so an interval session needs its jogged recoveries added back. A
+      // personal pace is derived from logged durationMin/distanceKm, and that duration
+      // already contains the recoveries — adding the buffer on top counts them twice, which
+      // put nine minutes on every interval estimate the moment personal pace started being
+      // used.
+      const recoveryMin = personalPaceForType ? 0 : (R.running.intervalRecoveryBufferMin[runType] || 0);
+      const bufferMin = R.running.warmupCooldownMin + recoveryMin;
       return Math.round(d.distanceKm * pace + bufferMin);
     }
     return R.running.defaultDurationMin[runType] || R.running.defaultDurationMin.easy;
@@ -21192,16 +21235,24 @@ async function renderTodayWorkoutSummary(){
       const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
       sessionLength = parseInt(setup.sessionLength, 10) || null;
     } catch(e){}
-    let mins = estimateSessionDuration(block, null, null, sessionLength);
+    // Your pace and your set counts, not the placeholder table. estimateSessionDuration has
+    // taken both since it was written and two other callers pass them; this one passed nulls,
+    // so the headline number on Today was the only estimate in the app computed from the
+    // defaults — and defaultPaceMinPerKm.interval is 6.5, the same as easy. Both readers go
+    // through the cached session list, so asking costs nothing.
+    const [personalPace, personalSets] = await Promise.all([
+      getPersonalPaceByType(), getPersonalSetsByCategory()
+    ]);
+    let mins = estimateSessionDuration(block, personalPace, personalSets, sessionLength);
     if(mins != null) mins -= bracketAllowanceMin(block, sessionLength);
     if(mins != null && mins > 0){
       // The estimate, and — once there is a history to check it against — what these actually
       // take you. Two numbers side by side, because the interesting one is the difference.
-      const typical = await typicalDurationFor(block.type);
+      const typical = await typicalDurationFor(block);
       // "est" and "typical" as bare units read as abbreviations you have failed to learn,
       // and the warm-up two sections below says "min" for the same kind of number.
       planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">min</i>${
-        typical ? ` \u00b7 usually ${typical}` : ''}</span>`;
+        typical ? ` \u00b7 ${typical.label} usually ${typical.mins}` : ''}</span>`;
     }
   } catch(e){}
   container.innerHTML = `
