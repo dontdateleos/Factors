@@ -557,6 +557,9 @@
      gets skimmed. Each fact takes its own outline so a glance can pick out the one it came
      for. Only the lines that really are lists of facts use these — prose stays prose. */
   .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* One that follows a band directly is on the ground, not in a field, and needs its own
+     air on both sides rather than the top margin a row inside a field gets. */
+  .group-head + .chip-row{ margin:11px 0 13px; }
   .chip-row span{ font-family:var(--mono); font-size:10px; letter-spacing:0.1em;
     text-transform:uppercase; border:1px solid rgba(251,250,246,0.3);
     color:var(--dim); padding:4px 8px; white-space:nowrap;
@@ -6260,7 +6263,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.126';
+const APP_VERSION = '2026.08.31.127';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21871,8 +21874,9 @@ async function renderTodayWorkoutSummary(){
     return;
   }
   const rows = await blockSummaryHtml(block);
-  // Inside the fields rather than in the heading: the heading is sticky, and a second line
-  // there would grow the band that never leaves the screen.
+  // Between the heading and the fields, so it sits on the ground rather than inside the
+  // section's own colour. Not in the heading itself: that is sticky, and a second line there
+  // would grow the band that never leaves the screen.
   let weekLine = '';
   try{ weekLine = await weekPositionLine(); } catch(e){}
   const startedAt = await loggingStartedAt(todayStr);
@@ -21935,8 +21939,8 @@ async function renderTodayWorkoutSummary(){
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">${sessionTitle(block)}</div>${planEst}</div>
+      ${weekLine ? chipRow(weekLine) : ''}
       <div class="fields">
-        ${weekLine ? chipRow(weekLine) : ''}
         ${loggingLine}
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
