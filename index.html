@@ -100,6 +100,15 @@
     --block-yellow:#f0c419;
     --block-purple:#c2b0f7;
     --block-red:#ff92ac;
+    /* The same five hues at 8% over the page's black. The tab colour stops being a
+       highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
+       lets the section bands below carry the colour at full strength without two saturated
+       surfaces fighting. Derived, not picked: 0.08*block + 0.92*#0c0d0b, rounded. */
+    --field-lime:#1b1d10;
+    --field-orange:#1f180f;
+    --field-purple:#1b1a1e;
+    --field-yellow:#1e1c0c;
+    --field-blue:#151d1d;
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
     --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
@@ -222,11 +231,34 @@
      the top of the screen while the rest of it is still travelling, which tears it. */
   main.tab-dealing .group-head{ position:static; }
   .tab-circle-transition{ position:fixed; left:0; right:0; bottom:0; z-index:9999; pointer-events:none; clip-path:circle(0px at 50% 50%); transition:clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--block-lime); }
-  body.tab-training main{ background:transparent; } body.tab-training{ background:var(--block-orange); }
-  body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--block-purple); }
-  body.tab-data main{ background:transparent; } body.tab-data{ background:var(--block-yellow); }
-  body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--block-blue); }
+  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--field-lime); }
+  body.tab-training main{ background:transparent; } body.tab-training{ background:var(--field-orange); }
+  body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--field-purple); }
+  body.tab-data main{ background:transparent; } body.tab-data{ background:var(--field-yellow); }
+  body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--field-blue); }
+
+  /* ---- what sits on the ground ----------------------------------------------------
+     Most of the app is inside .form-panel, which has painted its own contents light on
+     dark since it was built. These are the components that sit directly on the tab's
+     ground instead, and were reading dark because the ground used to be a saturated
+     colour. They take the same three-step scale .form-panel already uses: full cream for
+     content, 0.65 for labels, 0.42 for notation. Nothing here changes what any of them
+     do — only which side of the contrast they are on. */
+  .drill-text, .gloss-term, .mob-wheel-name, .skill-active-row span{ color:var(--bg); }
+  .drill-group{ color:var(--bg); }
+
+  /* The two skill pickers were drawn for a light ground and say so in their own values —
+     rgba(12,13,11,...) throughout. Same rows, same states, other side. The done row keeps
+     meaning "filled in": it was black-on-colour, so on a dark ground it becomes cream. */
+  #strengthSkillPicker .mob-wheel-focus-line, #mobilitySkillPicker .mob-wheel-focus-line{
+    border-top-color:rgba(251,250,246,0.45); border-bottom-color:rgba(251,250,246,0.45); }
+  #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--bg); }
+  #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:rgba(251,250,246,0.75); }
+  #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--bg); }
+  #strengthSkillPicker .mob-check-row.done .mob-check-num,
+  #strengthSkillPicker .mob-check-row.done .mob-check-text,
+  #mobilitySkillPicker .mob-check-row.done .mob-check-num,
+  #mobilitySkillPicker .mob-check-row.done .mob-check-text{ color:var(--text); }
   .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
   /* Ring beside the number, filling to score/100. Butt caps and a heavy even stroke so it
      reads as a drawn dial rather than a progress widget. */
@@ -413,8 +445,8 @@
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
   .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mobility-legend{ margin-bottom:var(--sp-2); }
-  .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
-  .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:rgba(251,250,246,0.65); cursor:pointer; }
+  .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:rgba(251,250,246,0.65); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   .evidence-badge{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
   .evidence-badge.strong{ background:var(--reverse-bg); color:var(--bg); }
   .evidence-badge.moderate{ background:transparent; border:1.5px solid var(--text); color:var(--text); }
@@ -463,7 +495,7 @@
   .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); line-height:0.92; -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
-  .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  .score-note{ font-size:var(--fs-tag); color:rgba(251,250,246,0.65); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   /* Above the sticky group heads (z-index 3). Without this a head level with the footer takes
      the tap meant for Save or Clear — on Data, at the top of the page, the two buttons in
@@ -1229,7 +1261,7 @@
      label on the page's own colour, not another black plate — it separates the sections
      rather than joining the queue of them. */
   .set-band{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--text); opacity:0.75;
+    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--bg); opacity:0.7;
     padding:var(--sp-3) 0 var(--sp-2); }
   /* Settings is one dark column for the same reason Weekly is: each section carries a 16px
      bottom margin, and where the section's surface is transparent that margin shows the
@@ -1422,15 +1454,6 @@
   #strengthSkillPicker .mob-wheel-score, #mobilitySkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
   #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score,
   #mobilitySkillPicker .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
-  #strengthSkillPicker .mob-wheel-focus-line, #mobilitySkillPicker .mob-wheel-focus-line{
-    border-top-color:rgba(12,13,11,0.45); border-bottom-color:rgba(12,13,11,0.45); }
-  #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--text); }
-  #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:rgba(12,13,11,0.75); }
-  #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--reverse-bg); }
-  #strengthSkillPicker .mob-check-row.done .mob-check-num,
-  #strengthSkillPicker .mob-check-row.done .mob-check-text,
-  #mobilitySkillPicker .mob-check-row.done .mob-check-num,
-  #mobilitySkillPicker .mob-check-row.done .mob-check-text{ color:var(--bg); }
   /* No nowrap: "10-15s x3-5 sets, or 5-7s eccentric x3-5" is a real target string, and
      holding it on one line pushed the document 140px wider than the screen. */
   #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
@@ -1618,7 +1641,7 @@
   .glossary{ margin-top:var(--sp-2); }
   .glossary > summary{ list-style:none; cursor:pointer; display:inline-block;
     font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.06em;
-    text-transform:uppercase; color:var(--dim); padding:var(--sp-1) 0; }
+    text-transform:uppercase; color:rgba(251,250,246,0.65); padding:var(--sp-1) 0; }
   .glossary > summary::-webkit-details-marker{ display:none; }
   .glossary > summary::before{ content:'\25b8'; display:inline-block; width:1em;
     transition:transform 0.12s steps(3,end); }
@@ -1628,7 +1651,7 @@
     color:var(--dim); padding:var(--sp-1) 0 0; }
   /* No text-transform: the stage names are already capitals in the flow, but "30s" and
      "/side" are notation and "30S" is not the thing the line above it says. */
-  .gloss-term{ font-weight:var(--fw-bold); color:var(--text);
+  .gloss-term{ font-weight:var(--fw-bold); color:var(--bg);
     font-size:var(--fs-tag); letter-spacing:0.06em; }
   .gloss-term::after{ content:'\00a0'; }
   /* One heading size for the app. A section title set two steps larger than the sections
@@ -5445,9 +5468,13 @@ async function startTodayLogging(){
   strip.addEventListener('pointercancel', done);
 })();
 
+// The ground each tab is painted on. These are the FIELD tints, not the block colours —
+// the saturated hue now belongs to the section bands, which sit on this. Kept in step with
+// the body.tab-* rules above them, which paint the canvas this backdrop covers, so a
+// rubber-band scroll past the end of the page shows the same colour as the page.
 const TAB_BACKDROP_COLOR = {
-  insights:'var(--block-lime)', training:'var(--block-orange)',
-  injuries:'var(--block-purple)', data:'var(--block-yellow)', settings:'var(--block-blue)'
+  insights:'var(--field-lime)', training:'var(--field-orange)',
+  injuries:'var(--field-purple)', data:'var(--field-yellow)', settings:'var(--field-blue)'
 };
 // Tabs the app used to have, and where their contents went. Without this a stale caller
 // asking for a retired tab hides every panel and leaves a blank screen — the one failure
@@ -6162,7 +6189,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.114';
+const APP_VERSION = '2026.08.31.115';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
