@@ -236,6 +236,13 @@
   body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--field-purple); }
   body.tab-data main{ background:transparent; } body.tab-data{ background:var(--field-yellow); }
   body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--field-blue); }
+  /* The one place each tab's hue is still saturated. The ground is a tint of it, so the
+     band reads as the same colour turned all the way up rather than as a second colour. */
+  body.tab-insights{ --band:var(--block-lime); }
+  body.tab-training{ --band:var(--block-orange); }
+  body.tab-injuries{ --band:var(--block-purple); }
+  body.tab-data{ --band:var(--block-yellow); }
+  body.tab-settings{ --band:var(--block-blue); }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -429,16 +436,40 @@
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
   main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
-  .panel{ display:none; }
+  .panel{ display:none; counter-reset:section; }
   .panel.active{ display:block; }
 
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:var(--sp-3); }
   input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
 
   .group{ margin-bottom:var(--sp-3); background:transparent; }
-  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; row-gap:2px; padding:var(--sp-3) 14px var(--sp-2); border-bottom:2px solid var(--border-bold); margin-left:-14px; margin-right:-14px; }
-  .group-title{ font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em; text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
-  .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0.15px currentColor; }
+  /* ---- the section band ----------------------------------------------------------
+     A head used to be a title with a rule under it, which put it in the same column as the
+     section's own contents and left the reader to work out where one section stopped. It is
+     a band now: the tab's colour at full strength, a counter saying where in the tab you
+     are, the title, and whatever estimate the section already carries pushed to the right
+     edge as a tag. The counter is a CSS counter rather than anything written into the
+     markup, so a section that is hidden is not counted and nothing has to be renumbered. */
+  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline;
+    row-gap:3px; column-gap:10px; padding:var(--sp-2) 14px calc(var(--sp-2) + 1px);
+    background:var(--band); color:var(--text);
+    border-bottom:0; border-top:1px solid rgba(12,13,11,0.3);
+    margin-left:-14px; margin-right:-14px; }
+  .group-head::before{ counter-increment:section;
+    content:counter(section, decimal-leading-zero);
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
+    letter-spacing:0.06em; color:rgba(12,13,11,0.45); flex:none; }
+  /* Flex so the estimate inside it can reach the band's right edge. It is markup-deep in the
+     title — .head-est is a span inside .group-title, not a sibling — and moving it would
+     mean touching every head in the file. */
+  .group-title{ display:flex; align-items:baseline; gap:8px 10px; flex-wrap:wrap;
+    flex:1 1 0%; min-width:0;
+    font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em;
+    text-transform:uppercase; color:var(--text); -webkit-text-stroke:0.4px var(--text); }
+  .group-head .collapse-chevron{ order:1; flex:none; }
+  .group-head .group-sub{ order:2; }
+  .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(12,13,11,0.62);
+    letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
@@ -912,10 +943,9 @@
     background:var(--bg); color:var(--text); border-color:var(--bg); }
   body.tab-injuries header, body.tab-settings header, body.tab-data header,
   body.tab-insights header, body.tab-training header{ border-bottom-color:transparent; }
-  .form-panel .group-head{ margin-left:0; margin-right:0; border-bottom-color:rgba(251,250,246,0.25); }
-  .form-panel .group-title{ color:var(--bg); -webkit-text-stroke:0.4px var(--bg); }
-  .form-panel .group-sub{ color:rgba(251,250,246,0.65); }
-  .form-panel .field-label, .form-panel .head-est{ color:rgba(251,250,246,0.7); }
+  /* The band paints itself the same inside a panel as on the ground; only the bleed differs. */
+  .form-panel .group-head{ margin-left:0; margin-right:0; }
+  .form-panel .field-label{ color:rgba(251,250,246,0.7); }
   /* Consecutive black sections run together as one field. Data and Settings are almost
      entirely forms, so one band each made the tab a zebra — black, tab colour, black, tab
      colour — where every other tab now opens on black once and hands the rest to its own
@@ -1663,7 +1693,15 @@
   .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
-  .head-est{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.05em; }
+  /* Two different things arrive here — a count ("~10min 0/6") and a summary of what the
+     section holds ("Hypertrophy / muscle gain · Running performance"). The tag has to take
+     either, so it shrinks and wraps rather than running off the band's right edge, and is
+     held under two thirds of the width so it can never crowd the title out. */
+  .head-est{ font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
+    letter-spacing:0.08em; text-transform:uppercase; margin-left:auto;
+    flex:0 1 auto; min-width:0; max-width:64%; text-align:right;
+    background:var(--reverse-bg); color:var(--band); padding:2px 7px; }
+  .head-est:empty{ display:none; }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
   /* A stamped plate rather than coloured text. This line can land on black (under the
@@ -1800,26 +1838,13 @@
 
      And a hair more air above the title than below the subtitle, so the pair sits on its
      rule rather than floating in the middle of the band. */
-  .ui-stickyHeads .group-head{
-    background:#000000;
-    /* Black, not cream. The rules were drawn to separate a head from what is above and below
-       it, but the head is already a black slab against a coloured ground — the boundary was
-       doing the job before the line was added, and the line was reading as a seam across it.
-       Kept as borders rather than removed so the box keeps the height it was laid out to. */
-    border-top:2px solid #000000;
-    border-bottom-color:#000000;
-    padding-top:calc(var(--sp-3) - 1px);
-    row-gap:3px;
-  }
-  .ui-stickyHeads .group-head .group-title{
-    color:var(--bg); -webkit-text-stroke-color:var(--bg); letter-spacing:0.05em;
-  }
+  /* The slab and the cream type this used to set are the band's job now, and the band is on
+     whether heads stick or not — so what is left here is the stickiness and the tighter
+     subtitle it needs when it is travelling under the header. */
   .ui-stickyHeads .group-head .group-sub{
     font-family:var(--mono); font-size:10px; letter-spacing:0.01em; line-height:1.4;
-    color:rgba(251,250,246,0.56); -webkit-text-stroke:0;
+    -webkit-text-stroke:0;
   }
-  .ui-stickyHeads .group-head .head-est,
-  .ui-stickyHeads .group-head .collapse-chevron{ color:rgba(251,250,246,0.66); }
   /* The two heads that were already black plates carry the same black edge, so every section
      starts the same way. */
 
@@ -6189,7 +6214,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.115';
+const APP_VERSION = '2026.08.31.116';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
