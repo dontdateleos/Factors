@@ -2964,6 +2964,10 @@ const EYE_ANIM = {
   rareBeat:       { on:true, note:'One open in a few hundred it does something you have not seen', chance:0.004 },
   flightTrail:    { on:true, note:'The eyes lag the plate through the flight and catch up on landing', px:5 },
 
+  // — Fourth batch.
+  jelly:          { on:true, note:'Every arrival wobbles like jelly instead of a single bounce', ms:560 },
+  peek:           { on:true, note:'Now and then it ducks below the edge and peeks back up', px:6, chance:0.04 },
+
   // — Third batch: craft on everything above, rather than new triggers.
   perEyeLag:      { on:true, note:'The two lids move a hair apart, and not always the same one first', minFrac:0.08, maxFrac:0.16 },
   lidVolume:      { on:true, note:'The eye bulges a little as it squeezes shut, like something with substance in it', px:1.4 },
@@ -3371,7 +3375,53 @@ function eyeSpin(){
     { transform:`rotate(280deg) scale(${1+k*0.6},${1-k*0.4})`, offset:0.78 },
     { transform:'rotate(360deg) scale(1,1)' }], 680, { easing:'cubic-bezier(0.5,0,0.2,1)' });
 }
-function eyePop(){ eyeGesture([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(0.94)'},{transform:'scale(1)'}], 400); }
+/* THE ARRIVAL WOBBLES.
+
+   The pop was one overshoot and a settle, which reads as a bounce — a rigid thing landing.
+   Jelly is the same beat given mass: squash and stretch on OPPOSITE axes, crossing back and
+   forth with each swing about a third of the last. That opposition is the whole effect. An
+   even scale changes the mark's size; this changes its shape and gives the size back, which
+   is what makes it read as something soft arriving rather than something small growing.
+
+   Deliberately not on eyeGesture's default spring easing: the decay is already written into
+   the numbers, and a spring on top of a spring reads as a wobble that cannot make its mind
+   up. Linear between the frames lets the values do it.
+
+   One switch over every arrival rather than a call at each site, so "pops in" means the same
+   thing in all five places the mark can appear. */
+function eyeJelly(){
+  return eyeGesture([
+    { transform:'scale(1, 1)' },
+    { transform:'scale(1.24, 0.82)' },
+    { transform:'scale(0.89, 1.15)' },
+    { transform:'scale(1.08, 0.95)' },
+    { transform:'scale(0.97, 1.03)' },
+    { transform:'scale(1.01, 0.99)' },
+    { transform:'scale(1, 1)' }
+  ], EYE_ANIM.jelly.ms, { easing:'linear' });
+}
+function eyePop(){
+  if(anim('jelly')) return eyeJelly();
+  return eyeGesture([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(0.94)'},{transform:'scale(1)'}], 400);
+}
+/* A PEEK. Ducks below the edge, waits a beat, and comes back up.
+
+   The lids do the hiding and the gesture only carries the travel — going through
+   eyeLidPulse means it cannot fight a blink already in flight, which a hand-rolled lid
+   animation here would. It overshoots a pixel and a half on the way back, so it arrives
+   like something popping up rather than sliding into place. */
+function eyePeek(){
+  const open = eyeFullOpen(eyesHome);
+  const d = EYE_ANIM.peek.px;
+  eyeLidPulse(Math.max(2, Math.round(open * 0.12)), 160, 300);
+  return eyeGesture([
+    { transform:'translateY(0)' },
+    { transform:`translateY(${d}px)` },
+    { transform:`translateY(${d}px)` },
+    { transform:'translateY(-1.5px)' },
+    { transform:'translateY(0)' }
+  ], 820, { easing:'ease-in-out' });
+}
 function eyeWiden(){
   const el = eyeSiteEl(); if(!el) return;
   eyePop();
@@ -3528,6 +3578,12 @@ function idleBeat(el){
   }
   if(anim('lookAround') && r < 0.26){
     eyeGaze((Math.random() < 0.5 ? -1 : 1) * EYE_ANIM.lookAround.px, 0, 280, 950);
+    scheduleIdle(); return;
+  }
+  // Its band sits above the glances rather than among them, so it takes its turns from the
+  // blink and leaves the saccade and the look-around at the rates they were tuned to.
+  if(anim('peek') && r < 0.26 + EYE_ANIM.peek.chance){
+    eyePeek();
     scheduleIdle(); return;
   }
   blinkOnce(el, ()=>{
@@ -4385,7 +4441,9 @@ const EYE_NO_PREVIEW = {
   lidVolume:'Watch a blink closely',
   firstOpenOfDay:'Once a day, on opening',
   blearyReturn:'After a week away',
-  rareBeat:'One open in a few hundred'
+  rareBeat:'One open in a few hundred',
+  jelly:'Any time the mark pops in',
+  peek:'Now and then, on its own'
 };
 
 // What each row does when you tap it. Anything not named here falls back to a blink.
@@ -5989,7 +6047,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.102';
+const APP_VERSION = '2026.08.31.103';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
