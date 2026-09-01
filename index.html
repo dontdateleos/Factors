@@ -6125,7 +6125,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.108';
+const APP_VERSION = '2026.08.31.109';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7558,8 +7558,22 @@ async function buildSignalWindowUncached(asOfDate, days){
     if(!sd || sd < 1e-9) return arr;
     return arr.map(v=> v == null ? null : Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (v - m) / sd)));
   };
-  const subjZ = rescale(meanAcross('zSeries'), baselineMask);
-  const subjA = rescale(meanAcross('zAcuteSeries'), baselineMask);
+  /* THE RE-STANDARDISATION ONLY APPLIES IF SOMETHING WAS AVERAGED.
+
+     The note above is exactly right about four items: averaging four independent z-scores
+     halves the spread, so the composite has to be stretched back or its weight buys less
+     than it says. But there is one item now, and averaging one series changes nothing — so
+     there is no halved spread to undo, and the pass stopped correcting and started
+     amplifying. Measured on 40 seeded days: the channel's own z ran -0.15 to +0.21 and came
+     out of here at -2.84 to +3.00, about fourteen times, hard against SIG_CLAMP at the top.
+
+     Three things followed from that. The rating swung the score 42.7 points end to end,
+     against 9.7 for resting HR and 4.8 for HRV. The top of the scale compressed, because 5
+     clamped and 4 did not. And a rating of 3 - your own median, by definition no news at all
+     - came out at +0.65 instead of 0, so an ordinary day read as better than ordinary. */
+  const singleItem = subjParts.length === 1;
+  const subjZ = singleItem ? meanAcross('zSeries')      : rescale(meanAcross('zSeries'), baselineMask);
+  const subjA = singleItem ? meanAcross('zAcuteSeries') : rescale(meanAcross('zAcuteSeries'), baselineMask);
   const lastOf = (arr)=>{ const v = [...arr].reverse().find(x=>x != null); return v == null ? 0 : v; };
   channels.subjective = subjParts.length ? {
     available: true,
@@ -9094,7 +9108,13 @@ function srComponentsAt(win, i, debtZ){
   };
   const saturated = hrvSaturated(win);
   return {
-    subjective: at(win.channels.subjective, 'zSeries'),
+    /* The acute series, not the smoothed one, for the reason already given below about
+       resting HR: an EWMA of a daily reading sits on its own median and never leaves the
+       deadband. It applies with more force here. A rating is an answer about TODAY, and Saw
+       2016 - the citation this channel's weight rests on - is a finding about tracking
+       ACUTE load. Reading it as a seven-day level throws away the property that earned it
+       the heaviest weight in the model. */
+    subjective: at(win.channels.subjective, 'zAcuteSeries'),
     // The guard does not merely discount a saturated HRV reading, it refuses to read it as
     // positive: high vagal tone with a heart rate that does not agree is the documented
     // overreaching signature, not freshness.
