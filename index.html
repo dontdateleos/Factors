@@ -1174,7 +1174,11 @@
     gap:10px; cursor:pointer; background:#000000; color:var(--bg);
     margin:0 -14px; padding:var(--sp-3) 14px var(--sp-2);
     position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; }
-  .card-stack-head #cardStackCounter{ color:var(--bg); }
+  /* One line, always. The row is a sticky handle directly above the session — letting a
+     headline wrap would push the plan down the page every morning the engine had something
+     wordy to say. */
+  .card-stack-head #cardStackCounter{ color:var(--bg); min-width:0; flex:1;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Black-on-light by default, which is invisible on the plate — same inversion the form
      panels do to their own buttons. */
   .card-stack-head #undoDecisionBtn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
@@ -6101,7 +6105,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.105';
+const APP_VERSION = '2026.08.31.106';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13549,6 +13553,16 @@ try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:open') || 'null'
   head.addEventListener('click', toggle);
   head.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(e); } });
 })();
+// The first clause of a card's title. Titles are written as "headline - the reasoning", so
+// splitting on the dash gives the part that names the suggestion without the argument for
+// it. Falls back to the whole title when there is no dash; the row ellipses either way.
+function cardStackHeadline(item){
+  const t = String((item && item.title) || '').trim();
+  if(!t) return '';
+  // Em dash, middot, or a spaced hyphen: all three are used as the same separator across the
+  // card titles, and a spaced hyphen cannot be part of a word.
+  return t.split(/\s+(?:[\u2014\u00b7-])\s+/)[0].trim();
+}
 function showNextCard(){
   const container = document.getElementById('recommendationCards');
   const counter = document.getElementById('cardStackCounter');
@@ -13564,12 +13578,27 @@ function showNextCard(){
     return;
   }
   if(stack) stack.style.display = '';
-  // Closed, it says what is waiting rather than which one of them you are on — "1 of 2" is
-  // an answer to a question you only have once the stack is open.
+  /* CLOSED, IT SAYS WHAT THE SUGGESTION IS.
+
+     It used to say "1 suggestion" — a count, on the one row standing between the score and
+     the session, in the app's smallest type. The number of things waiting is the least
+     interesting fact about them, and it gave you no reason to open the stack beyond
+     curiosity. The whole point of the engine is the sentence inside.
+
+     The headline rather than the whole title. Most titles are "headline &mdash; the reasoning",
+     and the reasoning is what the card is for; the head of it is what a closed row wants.
+     Titles with no dash still overflow one line at this width, so the row ellipses rather
+     than wraps &mdash; a closed handle that grows to two lines pushes the session down the page,
+     which is the thing this row was made small to avoid.
+
+     Still a count when there is more than one, because then the count IS news: it says
+     answering this one does not empty the stack. */
   const left = cardQueue.length - cardQueueIndex;
+  const head = cardStackHeadline(cardQueue[cardQueueIndex]);
   counter.textContent = cardStackOpen
     ? `${cardQueueIndex+1} of ${cardQueue.length}`
-    : `${left} suggestion${left === 1 ? '' : 's'}`;
+    : (head ? head + (left > 1 ? ` \u00b7 +${left - 1} more` : '')
+            : `${left} suggestion${left === 1 ? '' : 's'}`);
   container.style.display = cardStackOpen ? '' : 'none';
   const headRow = document.getElementById('cardStackHead');
   if(headRow) headRow.style.display = '';
