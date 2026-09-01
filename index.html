@@ -465,25 +465,29 @@
      are, the title, and whatever estimate the section already carries pushed to the right
      edge as a tag. The counter is a CSS counter rather than anything written into the
      markup, so a section that is hidden is not counted and nothing has to be renumbered. */
-  .group-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline;
-    row-gap:3px; column-gap:10px; padding:var(--sp-2) 14px calc(var(--sp-2) + 1px);
-    background:var(--band); color:var(--text);
-    border-bottom:0; border-top:1px solid rgba(12,13,11,0.3);
+  /* No space-between: with a long title the estimate wraps to its own line and the spare
+     space went between the counter and the box, pushing the box into the middle of the
+     band. The estimate's own margin-left:auto is what holds it to the right edge. */
+  .group-head{ display:flex; flex-wrap:wrap; align-items:baseline;
+    row-gap:4px; column-gap:10px; padding:var(--sp-2) 14px calc(var(--sp-2) + 1px);
+    background:var(--ground); color:var(--bg);
+    border-bottom:0; border-top:1px solid var(--hair);
     margin-left:-14px; margin-right:-14px; }
   .group-head::before{ counter-increment:section;
     content:counter(section, decimal-leading-zero);
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
-    letter-spacing:0.06em; color:rgba(12,13,11,0.45); flex:none; }
-  /* Flex so the estimate inside it can reach the band's right edge. It is markup-deep in the
-     title — .head-est is a span inside .group-title, not a sibling — and moving it would
-     mean touching every head in the file. */
-  .group-title{ display:flex; align-items:baseline; gap:8px 10px; flex-wrap:wrap;
-    flex:1 1 0%; min-width:0;
+    letter-spacing:0.06em; color:var(--dim); flex:none; }
+  /* The colour is a box around the title, not the whole band. A band that is entirely the
+     tab's hue turns a tab of one-line sections — Settings has nine — into a screen of that
+     hue with a little text on it; the box says the same thing with a fraction of the area.
+     flex:0 1 auto so it hugs its text and still shrinks when the title is long. */
+  .group-title{ flex:0 1 auto; min-width:0; padding:3px 9px;
+    background:var(--band); color:var(--text);
     font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em;
-    text-transform:uppercase; color:var(--text); -webkit-text-stroke:0.4px var(--text); }
+    text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
   .group-head .collapse-chevron{ order:1; flex:none; }
   .group-head .group-sub{ order:2; }
-  .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(12,13,11,0.62);
+  .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   /* The middle of the three levels. A band names the section, this is the section. Bled to
      the band's own edges where the group does not already bleed — inside .form-panel the
@@ -711,8 +715,12 @@
   .day-rolled button{ height:31px; flex:0 0 auto; background:#0c0d0b; color:var(--bg);
     border:2px solid #0c0d0b; }
   .update-banner-x{ font-size:var(--fs-xl); line-height:1; cursor:pointer; padding:0 6px; opacity:0.7; }
-  /* Collapsible Settings sections. Head is a 44px tap target in its own right. */
-  .group-head.collapsible{ display:flex; align-items:center; justify-content:space-between; min-height:44px; -webkit-tap-highlight-color:transparent; }
+  /* Collapsible Settings sections. Head is a 44px tap target in its own right.
+     No justify-content: it used to say space-between, which was right when the head was a
+     row of plain text and wrong now the title is a box — on a long title the estimate wraps
+     to a second line and the spare space went between the counter and the box, stranding it
+     in the middle of the band. The estimate's own margin-left:auto holds it to the right. */
+  .group-head.collapsible{ display:flex; align-items:center; min-height:44px; -webkit-tap-highlight-color:transparent; }
   .collapse-chevron{ font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s; flex:none; margin-left:10px; }
   .group-head.collapsible:active{ opacity:0.6; }
   /* Touch targets. Measured 15 controls under the 44px guideline on Goals — the reorder
@@ -1728,7 +1736,7 @@
     border-bottom-width:1px; border-bottom-color:var(--line); }
   /* .form-panel paints its chevrons and summaries cream, which was right when the head was
      a black slab and is wrong now the band is the tab's colour. */
-  .group-head .collapse-chevron, .group-head summary{ color:rgba(12,13,11,0.55); }
+  .group-head .collapse-chevron, .group-head summary{ color:var(--dim); }
   .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
@@ -1739,7 +1747,7 @@
   .head-est{ font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase; margin-left:auto;
     flex:0 1 auto; min-width:0; max-width:64%; text-align:right;
-    background:var(--reverse-bg); color:var(--band); padding:2px 7px; }
+    color:var(--dim); }
   .head-est:empty{ display:none; }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
@@ -2060,7 +2068,7 @@
          what is below it now is the exercise list, which you scroll to read regardless. -->
     <div id="warmupSection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
-        <div class="group-head"><div class="group-title">Warm-up <span class="head-est" id="warmupEstimate"></span></div></div>
+        <div class="group-head"><div class="group-title">Warm-up</div><span class="head-est" id="warmupEstimate"></span></div>
         <div class="fields">
           <div id="warmupCards"></div>
           <details class="glossary">
@@ -2085,7 +2093,7 @@
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
       <div class="group quiet" style="margin-top:0;">
-        <div class="group-head"><div class="group-title">Cooldown <span class="head-est" id="cooldownEstimate"></span></div></div>
+        <div class="group-head"><div class="group-title">Cooldown</div><span class="head-est" id="cooldownEstimate"></span></div>
         <div class="fields">
           <div id="mobilityCards"></div>
           <details class="glossary">
@@ -2131,7 +2139,7 @@
            nothing on screen ever said the two were connected. Folded by default: it is an
            input you set and revisit, not one you read. -->
       <div class="group form-panel" id="weekGoalsGroup">
-        <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals <span class="head-est" id="weekGoalsSummary"></span></div><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
+        <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals</div><span class="head-est" id="weekGoalsSummary"></span><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
 
           <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
@@ -2176,7 +2184,7 @@
       <!-- The week leads, in the same black band the mobility assessment takes on the
            Body tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
-        <div class="group-head"><div class="group-title">Week <span class="head-est" id="weekBlockPos"></span></div><div class="group-sub">tap a day, tap a workout, change it</div></div>
+        <div class="group-head"><div class="group-title">Week</div><span class="head-est" id="weekBlockPos"></span><div class="group-sub">tap a day, tap a workout, change it</div></div>
         <div class="fields">
           <div class="week-wheel-stage" id="weekWheelStage">
             <div class="week-day-picker" id="weekDayPicker"></div>
@@ -2583,7 +2591,7 @@
          this page anyone does more than once — four taps deep for a control that mostly
          answers "yes, you're current". -->
     <div class="group">
-      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version <span class="head-est" id="versionSummary"></span></div><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version</div><span class="head-est" id="versionSummary"></span><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <!-- The version has changed fifty times today and never once said what moved. -->
@@ -2594,7 +2602,7 @@
     </div>
     <div class="set-band">Your setup</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="devices" style="cursor:pointer;"><div class="group-title">Connect devices <span class="head-est" id="devicesSummary"></span></div><span class="collapse-chevron" data-collapse="devices">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="devices" style="cursor:pointer;"><div class="group-title">Connect devices</div><span class="head-est" id="devicesSummary"></span><span class="collapse-chevron" data-collapse="devices">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="devices" style="display:none;">
         <div id="deviceConnectRow" style="display:flex; gap:10px;"></div>
         <div id="deviceConnectStatus" class="score-note"></div>
@@ -2612,7 +2620,7 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">Goal Profile <span class="head-est" id="goalProfileSummary"></span></div><div class="group-sub">shapes every recovery threshold in here</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">Goal Profile</div><span class="head-est" id="goalProfileSummary"></span><div class="group-sub">shapes every recovery threshold in here</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="goalprofile" style="display:none;">
         <select id="goalProfile">
           <option value="perform">Perform</option>
@@ -2622,7 +2630,7 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="trainingsetup" style="cursor:pointer;"><div class="group-title">Training Setup <span class="head-est" id="trainingSetupSummary"></span></div><div class="group-sub">what the generator builds around</div><span class="collapse-chevron" data-collapse="trainingsetup">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="trainingsetup" style="cursor:pointer;"><div class="group-title">Training Setup</div><span class="head-est" id="trainingSetupSummary"></span><div class="group-sub">what the generator builds around</div><span class="collapse-chevron" data-collapse="trainingsetup">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="trainingsetup" style="display:none;">
         <div class="score-note">Which days can you train?</div>
         <div id="availableDaysCheckboxes" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
@@ -2666,7 +2674,7 @@
 
     <div class="set-band">Your data</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore <span class="head-est" id="backupSummary"></span></div><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
+      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><span class="head-est" id="backupSummary"></span><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
         <div class="score-note">Copies everything out. Paste into Bulk Import on another copy to move your data.</div>
         <div class="log-toggle-row" style="gap:6px;">
           <button id="exportAllBtn">Export all data</button>
@@ -2719,7 +2727,7 @@
          tab colour the way Recent entries did on Data. -->
     <div class="set-band">The engine</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="blinding" style="cursor:pointer;"><div class="group-title">Blind days <span class="head-est" id="blindingSummary"></span></div><div class="group-sub">the only way to know the score is telling the truth</div><span class="collapse-chevron" data-collapse="blinding">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="blinding" style="cursor:pointer;"><div class="group-title">Blind days</div><span class="head-est" id="blindingSummary"></span><div class="group-sub">the only way to know the score is telling the truth</div><span class="collapse-chevron" data-collapse="blinding">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="blinding" style="display:none;">
         <label class="week-deload" for="blindingToggle" style="margin-bottom:10px;">
           <input type="checkbox" id="blindingToggle">
@@ -2731,7 +2739,7 @@
     </div>
 
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="weights" style="cursor:pointer;"><div class="group-title">What the score is made of <span class="head-est" id="weightsSummary"></span></div><div class="group-sub">the weights, and how they have moved for you</div><span class="collapse-chevron" data-collapse="weights">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="weights" style="cursor:pointer;"><div class="group-title">What the score is made of</div><span class="head-est" id="weightsSummary"></span><div class="group-sub">the weights, and how they have moved for you</div><span class="collapse-chevron" data-collapse="weights">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="weights" style="display:none;">
         <div id="learnedWeights"></div>
       </div>
@@ -2743,7 +2751,7 @@
          the toggle existed and sat inside a section with display:none. It comes out; the
          per-animation list it used to sit above stays behind the dev flag. -->
     <div class="group form-panel" id="calmGroup">
-      <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion <span class="head-est" id="calmSummary"></span></div><div class="group-sub">how much the mark does</div><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion</div><span class="head-est" id="calmSummary"></span><div class="group-sub">how much the mark does</div><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="calm" style="display:none;">
         <label class="week-deload" for="eyeCalmToggle">
           <input type="checkbox" id="eyeCalmToggle">
@@ -2754,7 +2762,7 @@
     </div>
 
     <div class="group form-panel dev-only" id="eyesDevGroup">
-      <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark <span class="head-est" id="eyesSummary"></span></div><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="eyes" style="cursor:pointer;"><div class="group-title">The mark</div><span class="head-est" id="eyesSummary"></span><div class="group-sub">what the eyes do, and how much of it</div><span class="collapse-chevron" data-collapse="eyes">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="eyes" style="display:none;">
         <div class="score-note" style="margin-bottom:10px;">Dev only. Tap any row to see it. Untick to switch it off; it takes effect straight away and is remembered.</div>
         <div id="eyeAnimList"></div>
@@ -2939,7 +2947,7 @@
     </div>
 
     <div class="group form-panel" style="border-color:var(--bad);">
-      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh <span class="head-est" id="startFreshSummary"></span></div><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
+      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><span class="head-est" id="startFreshSummary"></span><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
         <div class="score-note">Erases everything permanently. Export a backup first.</div>
         <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
         <div id="clearAllDataResult" class="score-note"></div>
@@ -6252,7 +6260,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.125';
+const APP_VERSION = '2026.08.31.126';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21920,13 +21928,13 @@ async function renderTodayWorkoutSummary(){
       const typical = await typicalDurationFor(block);
       // "est" and "typical" as bare units read as abbreviations you have failed to learn,
       // and the warm-up two sections below says "min" for the same kind of number.
-      planEst = ` <span class="head-est">~${Math.round(mins)}<i class="unit">min</i>${
+      planEst = `<span class="head-est">~${Math.round(mins)}<i class="unit">min</i>${
         typical ? ` \u00b7 ${typical.label} usually ${typical.mins}` : ''}</span>`;
     }
   } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
-      <div class="group-head"><div class="group-title">${sessionTitle(block)}${planEst}</div></div>
+      <div class="group-head"><div class="group-title">${sessionTitle(block)}</div>${planEst}</div>
       <div class="fields">
         ${weekLine ? chipRow(weekLine) : ''}
         ${loggingLine}
