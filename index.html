@@ -998,6 +998,15 @@
      stripe of the tab's orange — and orange is the darkest and most saturated of the six tab
      colours, so a stripe of it reads as a band of something rather than as a gap. The heads'
      own hairlines separate the sections; the gaps were doing that job a second time. */
+  /* The week panel holds two different things. From the wheel down through Generate and
+     the deload row is what you OPERATE — controls belong on the ground, like every other
+     control in the app. The block chart under them is what you READ, so it keeps the field.
+     The chart bleeds to the panel's edges and pulls down over the field's bottom padding,
+     so the colour runs to the end of the panel rather than stopping short of it. */
+  .week-panel > .fields{ background:var(--ground); }
+  #weekBlockStrip{ background:var(--field);
+    margin:0 -14px calc(-1 * var(--sp-3)); padding:var(--sp-3) 14px; }
+
   #weeklyTrainingView > .group{ margin-bottom:0; }
   /* And the column runs to the footer rather than stopping 16px short of it, which left one
      orange strip behind with nothing on either side of it to be a gap between. */
@@ -6263,7 +6272,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.128';
+const APP_VERSION = '2026.08.31.129';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
