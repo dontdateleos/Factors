@@ -6162,7 +6162,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.113';
+const APP_VERSION = '2026.08.31.114';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23257,9 +23257,23 @@ async function generateWarmup(){
   // pool) never carried dosing to begin with. Rather than hand-edit every entry, any drill
   // reaching render without a digit in it gets a sensible default appended, matching the
   // format already used by the drills that do specify one (", 8-10 each side" / ", x8-10").
+  /* Tissue work is time, never reps. The catch-all below hands out a rep count, and three
+     drills in the pool were reaching it that cannot be counted in reps: two foam rolls and a
+     banded distraction. "Foam roll upper back/chest opener x8-10" is not a dose, it is a
+     default that reached a drill it does not describe.
+
+     Narrower than the audit claimed. It read a screenshot where six drills all showed x8-10
+     and called the column uninformative; across the pool of 114 the doses do vary — 68 carry
+     their own, 10 are per-side, 5 are seconds — and five of those six really are banded rep
+     work, because an upper-push day's drills are. Only the foam roll was wrong.
+
+     30-45s rather than the cool-down's 60-90s: a pass before training is brief, and the long
+     one belongs after. hang and plank are in the hold rule for the same reason as the rest of
+     it, though nothing in the pool reaches them today. */
   function withDefaultDose(name){
     if(/\d/.test(name)) return name; // already dosed — don't double up
-    if(/hold|wall-sit|rock/i.test(name)) return `${name}, 20-30s`;
+    if(/foam roll|roller|lacrosse|smash|release|distraction|traction/i.test(name)) return `${name}, 30-45s`;
+    if(/hold|wall-sit|rock|hang|plank/i.test(name)) return `${name}, 20-30s`;
     if(/side|leg|arm|swing|walk|circle|lunge|rotation|twist/i.test(name)) return `${name}, 8-10 each side`;
     return `${name}, x8-10`;
   }
