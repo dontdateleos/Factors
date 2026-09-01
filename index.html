@@ -2219,8 +2219,9 @@
   <!-- INJURIES PANEL -->
   <div class="panel" id="panel-injuries">
     <div class="group form-panel">
-      <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-        <div><div class="group-title">Mobility Assessment</div><div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div></div>
+      <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer;">
+        <div class="group-title">Mobility Assessment</div>
+        <div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div>
         <span id="mobilityAssessmentChevron" class="collapse-chevron" style="font-size:var(--fs-sm); transition:transform 0.15s;">▾</span>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
@@ -6236,7 +6237,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.120';
+const APP_VERSION = '2026.08.31.121';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
