@@ -143,6 +143,11 @@
     --sp-3:16px;   /* inside a section */
     --sp-4:40px;   /* between sections */
     --sp-5:24px;   /* band padding */
+    /* The page's side margin. Everything that bleeds to the screen edge puts exactly this
+       much back, so a band, its field, and the rows inside it all start on one line. Was a
+       literal 14px in thirty-odd places, which is the whole of the difference from the
+       reference — vertically the two were already within a few pixels of each other. */
+    --gutter:22px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
@@ -150,14 +155,14 @@
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
   .app-colophon{ background:var(--ground); padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
-  .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 14px;
+  .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 var(--gutter);
     font-family:var(--sans); font-size:12px; line-height:1.5; letter-spacing:0.01em;
     color:rgba(251,250,246,0.62); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
   .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
   /* touch-action:none because this is the one strip on the page where a vertical drag is
      ours — it sits past the end of the content, so there is nothing left to scroll. */
-  .log-strip{ background:var(--ground); padding:22px 14px calc(90px + env(safe-area-inset-bottom, 0px));
+  .log-strip{ background:var(--ground); padding:22px var(--gutter) calc(90px + env(safe-area-inset-bottom, 0px));
     display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer;
     touch-action:none; user-select:none; -webkit-user-select:none; }
   .log-strip-word{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
@@ -174,7 +179,7 @@
   .colophon-eyes span:last-child{ animation-delay:0.04s; }
   @keyframes colophonBlink{ 0%,92%,100%{ height:11px; } 95%,96.5%{ height:2px; } }
   @media (prefers-reduced-motion: reduce){ .colophon-eyes span{ animation:none; } }
-  header{ padding:18px 14px 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
+  header{ padding:18px var(--gutter) 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
   header .tab{ color:rgba(251,250,246,0.55); }
   h1{ font-family:var(--wordmark); font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
@@ -183,11 +188,11 @@
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
-  .header-brand{ background:var(--ground); margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
+  .header-brand{ background:var(--ground); margin:-18px calc(-1 * var(--gutter)) 0; padding:18px var(--gutter) 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
      and an active tab's colour block runs to its neighbours instead of floating. */
-  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:var(--ground); scrollbar-width:none; }
+  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 calc(-1 * var(--gutter)); padding:0 var(--gutter) 16px; background:var(--ground); scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
   /* flex:1 1 0 rather than a fixed min-width: five equal shares of whatever the phone is.
      It also ends an overflow that had been there the whole time — at 320px the bar was 49px
@@ -319,7 +324,7 @@
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
      to lift them over the mark. At equal specificity that rule wins on order,
      and it was quietly dropping this back into flow as a full-width row. */
-  .header-brand .header-date{ position:absolute; right:14px; z-index:2; text-align:right;
+  .header-brand .header-date{ position:absolute; right:var(--gutter); z-index:2; text-align:right;
     font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg);
     text-transform:uppercase; letter-spacing:0.02em; line-height:1.15; }
   .header-date span{ display:block; }
@@ -340,8 +345,8 @@
   /* Uppercase at display size does not want the tight tracking those were drawn with, and
      mono does not want negative tracking at all — the grid is the point. */
   .group-title, .rest-word, .score-num{ letter-spacing:0.02em; }
-  .rest-plate{ background:var(--ground); border-top:2px solid var(--bg); margin:0 -14px;
-    padding:var(--sp-4) 14px; }
+  .rest-plate{ background:var(--ground); border-top:2px solid var(--bg); margin:0 calc(-1 * var(--gutter));
+    padding:var(--sp-4) var(--gutter); }
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
     line-height:0.9; text-transform:uppercase; color:var(--bg); -webkit-text-stroke:0.6px var(--bg); }
   .rest-note{ font-family:var(--mono); font-size:10px; letter-spacing:0.02em; line-height:1.4;
@@ -450,7 +455,7 @@
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
-  main{ padding:var(--sp-3) 14px var(--sp-3); max-width:520px; margin:0 auto; }
+  main{ padding:var(--sp-3) var(--gutter) var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; counter-reset:section; }
   .panel.active{ display:block; }
 
@@ -469,10 +474,10 @@
      space went between the counter and the box, pushing the box into the middle of the
      band. The estimate's own margin-left:auto is what holds it to the right edge. */
   .group-head{ display:flex; flex-wrap:wrap; align-items:baseline;
-    row-gap:4px; column-gap:10px; padding:var(--sp-2) 14px calc(var(--sp-2) + 1px);
+    row-gap:4px; column-gap:10px; padding:var(--sp-2) var(--gutter) calc(var(--sp-2) + 1px);
     background:var(--ground); color:var(--bg);
     border-bottom:0; border-top:1px solid var(--hair);
-    margin-left:-14px; margin-right:-14px; }
+    margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter)); }
   .group-head::before{ counter-increment:section;
     content:counter(section, decimal-leading-zero);
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
@@ -492,10 +497,10 @@
   /* The middle of the three levels. A band names the section, this is the section. Bled to
      the band's own edges where the group does not already bleed — inside .form-panel the
      panel has done it and doing it twice runs 14px off each side of the screen. */
-  .fields{ padding:var(--sp-3) 14px var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2);
+  .fields{ padding:var(--sp-3) var(--gutter) var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2);
     background:var(--field); }
-  .group:not(.form-panel) > .fields{ margin-left:-14px; margin-right:-14px;
-    padding-left:14px; padding-right:14px; }
+  .group:not(.form-panel) > .fields{ margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter));
+    padding-left:var(--gutter); padding-right:var(--gutter); }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--hair); }
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
@@ -708,12 +713,12 @@
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
      and dismissible because an update you're not ready for shouldn't be a wall. */
   .update-banner{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:center;
-    justify-content:space-between; gap:10px; padding:10px 14px; background:var(--reverse-bg); color:var(--bg);
+    justify-content:space-between; gap:10px; padding:10px var(--gutter); background:var(--reverse-bg); color:var(--bg);
     font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; }
   .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
   .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
   .day-rolled{ display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:12px 14px; background:var(--warn); color:#0c0d0b; font-family:var(--mono);
+    padding:12px var(--gutter); background:var(--warn); color:#0c0d0b; font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui); }
   .day-rolled button{ height:31px; flex:0 0 auto; background:#0c0d0b; color:var(--bg);
     border:2px solid #0c0d0b; }
@@ -808,11 +813,11 @@
   #injuryForm textarea{ min-height:44px; }
   .mob-stage{ margin-top:var(--sp-1); }
   .mob-check{ margin-top:var(--sp-3); }
-  /* Rows bleed to the panel edge so a ticked one fills it. -14px inside .fields, which is
+  /* Rows bleed to the panel edge so a ticked one fills it. One gutter inside .fields, which is
      the only padding left between here and the panel's own edge. 46px minimum: five of
      these is the whole control, and each is its own tap target. */
   .mob-check-row{ display:flex; align-items:center; gap:14px; min-height:46px; cursor:pointer;
-    margin:0 -14px; padding:var(--sp-1) 14px; -webkit-tap-highlight-color:transparent; }
+    margin:0 calc(-1 * var(--gutter)); padding:var(--sp-1) var(--gutter); -webkit-tap-highlight-color:transparent; }
   .mob-check-row:active{ opacity:0.6; }
   .mob-check-num{ flex:none; width:34px; align-self:stretch; display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--bg); }
@@ -873,12 +878,12 @@
   /* A section you FILL IN is a black band across the page; a section you read is not.
      That is the whole rule — it is what tells a form apart from a readout at a glance, and
      it is why Data and Settings only have some of their sections darkened.
-     The -14px escapes main's padding; .group-head bleeds by the same amount on its own, so
+     The bleed escapes main's padding; .group-head bleeds by the same amount on its own, so
      inside a panel that has already escaped it has to stop. */
   /* --sp-3 like every other section, and no padding of its own: .fields already ends with
      16px, so the extra made a black tail under the last control and a section gap half
      again as large as the one between sections everywhere else. */
-  .form-panel{ background:var(--ground); color:var(--bg); margin:0 -14px var(--sp-3); padding-bottom:0; }
+  .form-panel{ background:var(--ground); color:var(--bg); margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding-bottom:0; }
   /* A form panel that OPENS a tab runs into the header instead of starting below main's
      padding — two blacks with a strip of page colour between them read as a seam. Four
      pixels past it rather than exactly to it: layout positions are fractional, so meeting
@@ -910,7 +915,7 @@
      pointermove events arrived and then pointercancel — the browser claimed the gesture before
      the handler had crossed its own engage threshold. A mouse pointer is never cancelled that
      way, which is why it worked everywhere except the device it is for. */
-  .today-open{ touch-action:pan-y; position:relative; background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
+  .today-open{ touch-action:pan-y; position:relative; background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) calc(-1 * var(--gutter)) 0; padding:calc(var(--sp-5) + 44px) var(--gutter) var(--sp-3); }
   /* The last seven days of the same number, at the number's own eye level, out in the band's
      empty right half. Placed and sized in script rather than here: how much room there is
      depends on how wide the score itself is drawn, which is two digits some days and three
@@ -919,7 +924,7 @@
   /* The trace is where you SEE a missed day, so it is where fixing one should start. It was
      pointer-events:none — a picture of a gap with nothing to do about it, while the only
      way to backfill was the date browser on Data, which nothing on this page mentions. */
-  #scoreTrace{ position:absolute; right:14px; display:none; pointer-events:auto; cursor:pointer; }
+  #scoreTrace{ position:absolute; right:var(--gutter); display:none; pointer-events:auto; cursor:pointer; }
   /* Says what the marks are without saying it twice — the number beside them is the score, so
      the only thing left to state is how far back they go. */
   /* 10px rather than 9. The column cannot get any WIDER — it is bounded by the score's own
@@ -966,12 +971,12 @@
      yellow between them and the form was the tab's colour appearing once, in the one place
      it read as an interruption. */
   #panel-data > .session-type:first-child{
-    background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
+    background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) calc(-1 * var(--gutter)) 0; padding:var(--sp-5) var(--gutter) var(--sp-3); }
   #recoveryDataView > .date-row,
   #recoveryDataView > #sleepDebtOut,
   #recoveryDataView > #morningBanner{
-    background:var(--ground); color:var(--bg); margin-left:-14px; margin-right:-14px;
-    padding-left:14px; padding-right:14px; }
+    background:var(--ground); color:var(--bg); margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter));
+    padding-left:var(--gutter); padding-right:var(--gutter); }
   #recoveryDataView > .date-row{ margin-bottom:0; padding-top:var(--sp-2); padding-bottom:var(--sp-2); }
   #recoveryDataView > #sleepDebtOut{ margin-top:0; padding-bottom:var(--sp-3);
     color:rgba(251,250,246,0.75); }
@@ -1005,7 +1010,7 @@
      so the colour runs to the end of the panel rather than stopping short of it. */
   .week-panel > .fields{ background:var(--ground); }
   #weekBlockStrip{ background:var(--field);
-    margin:0 -14px calc(-1 * var(--sp-3)); padding:var(--sp-3) 14px; }
+    margin:0 calc(-1 * var(--gutter)) calc(-1 * var(--sp-3)); padding:var(--sp-3) var(--gutter); }
 
   #weeklyTrainingView > .group{ margin-bottom:0; }
   /* And the column runs to the footer rather than stopping 16px short of it, which left one
@@ -1113,7 +1118,7 @@
   .log-bar{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:stretch;
     background:var(--ground); border-top:2px solid var(--bg);
     padding-bottom:env(safe-area-inset-bottom, 0px); }
-  .log-bar-open{ flex:1; min-width:0; height:auto; padding:11px 14px; background:transparent;
+  .log-bar-open{ flex:1; min-width:0; height:auto; padding:11px var(--gutter); background:transparent;
     border:none; color:var(--bg); display:flex; align-items:baseline; gap:8px; cursor:pointer;
     justify-content:flex-start; }
   .log-bar-name{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
@@ -1156,8 +1161,8 @@
   .today-open.today-open-empty{ margin-top:0; padding-top:0; padding-bottom:0; margin-bottom:0; }
   /* One line standing in for a page of optional fields. Deliberately not a .group — it is a
      control, not a section, and reading as one would put a fifth heading on the page. */
-  .more-toggle{ display:flex; align-items:baseline; gap:8px; cursor:pointer; margin:0 -14px var(--sp-3);
-    padding:14px; background:var(--ground); color:var(--bg); font-family:var(--mono);
+  .more-toggle{ display:flex; align-items:baseline; gap:8px; cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3);
+    padding:14px var(--gutter); background:var(--ground); color:var(--bg); font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui);
     text-transform:uppercase; border-top:2px solid var(--bg); border-bottom:2px solid var(--bg); }
   .more-toggle-sub{ flex:1; min-width:0; font-weight:var(--fw-medium); letter-spacing:0.02em;
@@ -1205,7 +1210,7 @@
   /* Sized and placed to match the trace exactly, directly above it: same right edge, same
      measured width, same 9px caption over a short band. The two of them are one column — what
      you say about today, and what the last seven came to — at the score's own eye level. */
-  #todayFaceRow{ position:absolute; right:14px; display:none; }
+  #todayFaceRow{ position:absolute; right:var(--gutter); display:none; }
   /* Out of the band and into the page: no measuring, full width, and room for the faces to
      be tapped rather than squeezed beside a number.
      On its own black band, and not for decoration — the five face colours were chosen
@@ -1213,7 +1218,7 @@
      a shade off it. Dropped straight onto the page, "good" is lime on lime and invisible.
      The band gives them back the ground they were drawn for. */
   #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
-    background:var(--ground); margin:0 -14px var(--sp-3); padding:var(--sp-3) 14px; }
+    background:var(--ground); margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:var(--sp-3) var(--gutter); }
   #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
     color:rgba(251,250,246,0.65); }
   #todayFaceRow.face-row-flow .subj-faces{ gap:6px; }
@@ -1291,7 +1296,7 @@
      as five options with one of them ticked. */
   .subj-faces.picked .subj-face:not(.on){ opacity:0.38; }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
-    cursor:pointer; margin:0 -14px var(--sp-3); padding:16px 14px; background:var(--accent);
+    cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:16px var(--gutter); background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase; }
   .cta-strip-arrow{ font-size:16px; }
@@ -1302,7 +1307,7 @@
      three of those are headings doing their job and this was the only anomaly. */
   .card-stack-head{ display:flex; justify-content:space-between; align-items:center;
     gap:10px; cursor:pointer; background:var(--ground); color:var(--bg);
-    margin:0 -14px; padding:var(--sp-3) 14px var(--sp-2);
+    margin:0 calc(-1 * var(--gutter)); padding:var(--sp-3) var(--gutter) var(--sp-2);
     position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; }
   /* One line, always. The row is a sticky handle directly above the session — letting a
      headline wrap would push the plan down the page every morning the engine had something
@@ -1427,7 +1432,7 @@
   .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
     color:var(--dim); flex:1; text-align:center; }
   .log-step-arrow{ font-family:var(--mono); font-size:var(--fs-xl); line-height:1; height:auto;
-    padding:2px 14px; background:transparent; color:var(--text);
+    padding:2px var(--gutter); background:transparent; color:var(--text);
     border:2px solid var(--border-bold); flex:0 0 auto; cursor:pointer; }
   .log-step-arrow:disabled{ opacity:0.25; cursor:default; }
   .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
@@ -1464,7 +1469,7 @@
   .lift-sheet, .morning-sheet{ position:fixed; inset:0; z-index:70; background:rgba(12,13,11,0.72);
     display:flex; align-items:flex-end; justify-content:center; }
   .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
-    background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) 14px calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
+    background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
   .morning-q{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin:var(--sp-3) 0 6px; }
   .morning-panel .subj-faces{ display:flex; gap:8px; }
@@ -1537,8 +1542,8 @@
   /* Between the wheel and the ladder: what you tick to put the skill in your sessions. */
   /* Nested in #goalListRows, which now sits at the page's own content edge like every
      other column — so this bleeds by one 14, not two. */
-  #goalListRows > #runStartPanel{ margin-left:-14px; margin-right:-14px; }
-  #goalListRows > #runStartPanel > .group-head{ margin-left:0; margin-right:0; padding-left:14px; padding-right:14px; }
+  #goalListRows > #runStartPanel{ margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter)); }
+  #goalListRows > #runStartPanel > .group-head{ margin-left:0; margin-right:0; padding-left:var(--gutter); padding-right:var(--gutter); }
   .skill-active-row{ display:flex; align-items:center; gap:10px; min-height:44px;
     margin-top:var(--sp-2); font-family:var(--sans); font-size:var(--fs-md);
     font-weight:var(--fw-bold); cursor:pointer; }
@@ -1577,7 +1582,7 @@
      18px down — pulling the box up by that much puts the middle of the letters exactly on
      the card's edge, which is then 50% of the way down the box for the two clips.
      overflow must stay visible or the escaping half is cut off. */
-  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:22px -14px 14px; padding:0 14px 18px; overflow:visible; }
+  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:22px calc(-1 * var(--gutter)) 14px; padding:0 var(--gutter) 18px; overflow:visible; }
   /* The type used to straddle the card's top edge, so the card had no top padding to give.
      A chip sits inside it and needs the air. */
   .rec-head{ display:block; padding-top:14px; margin-bottom:10px; }
@@ -1602,7 +1607,7 @@
   /* The rank used to hang above the panel, which is why there was no top padding and why
      the gap between rows had to be large enough to hold it. The chip sits inside, so the
      panel gets its padding back and the rows can close up. */
-  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:14px 14px var(--sp-3) !important; margin:var(--sp-3) -14px 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
+  .goal-row-panel{ position:relative; border:none !important; border-radius:0; padding:14px var(--gutter) var(--sp-3) !important; margin:var(--sp-3) calc(-1 * var(--gutter)) 0; background:var(--reverse-bg); color:var(--bg); overflow:visible; }
   .goal-row-panel:first-child{ margin-top:var(--sp-3); }
   /* A goal's place in the order, as the same chip a card's type wears — in the tab's own
      blue rather than the lime, since that is the page it sits on. */
@@ -1795,7 +1800,7 @@
      separates it from its content; it does not also need a step. A form-panel bleeds to
      the screen edge, so its own fields put that 14px back. */
   .fields{ padding-left:0; padding-right:0; }
-  .form-panel > .fields{ padding-left:14px; padding-right:14px; }
+  .form-panel > .fields{ padding-left:var(--gutter); padding-right:var(--gutter); }
   .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
@@ -6280,7 +6285,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.133';
+const APP_VERSION = '2026.08.31.134';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
