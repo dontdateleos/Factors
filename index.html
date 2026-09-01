@@ -2234,6 +2234,14 @@
           <button type="button" class="subj-dot" data-v="2">More</button>
         </div>
         <input type="hidden" id="alcohol">
+      </div>
+      <div class="subj-row">
+        <div class="subj-head"><span class="subj-name">Illness</span></div>
+        <div class="subj-scale" id="unwellScale">
+          <button type="button" class="subj-dot" data-v="0">Fine</button>
+          <button type="button" class="subj-dot" data-v="1">Unwell</button>
+        </div>
+        <input type="hidden" id="unwell">
       </div></div>
     </div>
 
@@ -5629,7 +5637,7 @@ tabs.forEach(t=>{
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
 const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin','hrvGarmin','hrvOura',
   'hrvBaseline','restingHR','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery',
-  'subjOverall','wakeClock','alcohol'];
+  'subjOverall','wakeClock','alcohol','unwell'];
 // The four legacy items are still READ from stored entries so old history keeps its meaning,
 // but they no longer have inputs on the form — leaving them in recoveryFieldIds meant every
 // save called getElementById on an element that is not there and threw before writing.
@@ -5705,9 +5713,12 @@ function faceButtonHtml(n){
     + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
     + faceEyesHtml(n, FACE_SCALE, 'currentColor') + `</button>`;
 }
-(function wireAlcohol(){
-  const box = document.getElementById('alcoholScale');
-  const input = document.getElementById('alcohol');
+/* Both context rows behave identically — tap to set, tap again to clear — so they run
+   through one pair of functions rather than two copies that could drift apart. */
+const DOT_SCALES = [['alcoholScale', 'alcohol'], ['unwellScale', 'unwell']];
+function wireDotScale(scaleId, inputId){
+  const box = document.getElementById(scaleId);
+  const input = document.getElementById(inputId);
   if(!box || !input) return;
   box.addEventListener('click', e=>{
     const btn = e.target.closest('.subj-dot');
@@ -5717,12 +5728,16 @@ function faceButtonHtml(n){
     box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', !same && b === btn));
     input.dispatchEvent(new Event('input', { bubbles:true }));
   });
-})();
+}
+DOT_SCALES.forEach(([s, i])=> wireDotScale(s, i));
+// Kept under its old name because two callers use it; it now paints both rows.
 function paintAlcohol(){
-  const box = document.getElementById('alcoholScale');
-  const input = document.getElementById('alcohol');
-  if(!box || !input) return;
-  box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(input.value)));
+  DOT_SCALES.forEach(([scaleId, inputId])=>{
+    const box = document.getElementById(scaleId);
+    const input = document.getElementById(inputId);
+    if(!box || !input) return;
+    box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(input.value)));
+  });
 }
 
 const dateInput = document.getElementById('entryDate');
@@ -5941,7 +5956,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.98';
+const APP_VERSION = '2026.08.31.99';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7270,10 +7285,21 @@ async function buildSignalWindowUncached(asOfDate, days){
   // single-night modifier of overnight HRV there is, larger than most training sessions, and
   // it attacks four contributors at once.
   const drinkMask = entries.map(e=> !!(e && e.alcohol && +e.alcohol > 0));
+  /* A morning you said you were ill is the same kind of reading as a morning after a drink:
+     entirely real, and a false baseline. It scores — a low score on a sick day is the
+     correct answer — but it must not move what normal means, or a week of flu quietly
+     redefines your own average downward and every well day afterwards reads high.
+
+     drinkMask stays alcohol-only because two things downstream are specifically about
+     alcohol: drankLastNight, and the line that says a good part of the drop is last night's
+     drink. Attribution is per-cause; baselining is not, so baselineMask is what every
+     baseline below is computed from. */
+  const unwellMask = entries.map(e=> !!(e && e.unwell && +e.unwell > 0));
+  const baselineMask = entries.map((_, i)=> drinkMask[i] || unwellMask[i]);
   const channels = {
-    hrv:      normaliseChannel(hrvSeries, { log:true, baselineMask:drinkMask }),
-    rhr:      normaliseChannel(rhrSeries, { twoSided:true, baselineMask:drinkMask }),
-    sleep:    normaliseChannel(pick(e=>e.durationHrs), { baselineMask:drinkMask }),
+    hrv:      normaliseChannel(hrvSeries, { log:true, baselineMask }),
+    rhr:      normaliseChannel(rhrSeries, { twoSided:true, baselineMask }),
+    sleep:    normaliseChannel(pick(e=>e.durationHrs), { baselineMask }),
     // Minutes awake in the night: more is worse, so the sign flips.
     wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true }),
     /* Respiratory rate and skin temperature. Both have been synced from Oura since before
@@ -7282,10 +7308,10 @@ async function buildSignalWindowUncached(asOfDate, days){
        rule: they can lower a score and never raise it. Deadbands from the brief, one breath
        and 0.20 C, because normal night-to-night variation in both is real and a score that
        twitches at it is noise. */
-    resp:     bandedChannel(pick(e=>e.respiratoryRate), 1.0, 1.0, drinkMask),
+    resp:     bandedChannel(pick(e=>e.respiratoryRate), 1.0, 1.0, baselineMask),
     // temperature_deviation is already a deviation from Oura's own baseline, so its centre
     // is zero rather than a median of the series.
-    temp:     bandedChannel(pick(e=>e.temperatureDeviation), 0.20, 0.30, drinkMask, 0),
+    temp:     bandedChannel(pick(e=>e.temperatureDeviation), 0.20, 0.30, baselineMask, 0),
     // NOT z-scored. Every other channel asks "is today unusual for you", which for a
     // reliably chaotic sleeper always answers no — the reading would sit at zero however
     // irregular they were. Regularity is absolute, like Windred's SRI, so it is used on its
@@ -7324,7 +7350,7 @@ async function buildSignalWindowUncached(asOfDate, days){
      Systemic Readiness, above HRV and resting HR. The channel most able to move the score
      was the one whose sense of normal was most easily corrupted. */
   subjective.subjOverall = normaliseChannel(
-    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), { baselineMask: drinkMask });
+    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), { baselineMask });
   const subjParts = Object.values(subjective).filter(c=>c.available);
   const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
   // Per-day too: the composite has to rank against your own days like every other channel.
@@ -7349,8 +7375,8 @@ async function buildSignalWindowUncached(asOfDate, days){
     if(!sd || sd < 1e-9) return arr;
     return arr.map(v=> v == null ? null : Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (v - m) / sd)));
   };
-  const subjZ = rescale(meanAcross('zSeries'), drinkMask);
-  const subjA = rescale(meanAcross('zAcuteSeries'), drinkMask);
+  const subjZ = rescale(meanAcross('zSeries'), baselineMask);
+  const subjA = rescale(meanAcross('zAcuteSeries'), baselineMask);
   const lastOf = (arr)=>{ const v = [...arr].reverse().find(x=>x != null); return v == null ? 0 : v; };
   channels.subjective = subjParts.length ? {
     available: true,
@@ -7368,8 +7394,8 @@ async function buildSignalWindowUncached(asOfDate, days){
   return {
     dates, entries, channels, subjective,
     hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
-    hrvBaseline: hrvBaselineFrom(hrvSeries.filter((v, i)=> !drinkMask[i])),
-    wakeMedianMin: wakeMedian, wakeMinutes: wakeMin, drinkMask,
+    hrvBaseline: hrvBaselineFrom(hrvSeries.filter((v, i)=> !baselineMask[i])),
+    wakeMedianMin: wakeMedian, wakeMinutes: wakeMin, drinkMask, unwellMask, baselineMask,
     drankLastNight: !!drinkMask[drinkMask.length - 1],
     rhrBaseline: medianOf(rhrSeries.filter(v=>v != null)),
     observedNights, windowNights: span,
@@ -8344,7 +8370,7 @@ function illnessRadar(win){
   // Resting HR rising is the strongest single channel: +7 bpm median, detected 3-4 days
   // before symptoms in the published cohorts.
   const rhr = win.entries.map(e=> e && e.restingHR != null ? e.restingHR : null);
-  const rhrObs = rhr.filter((v,i)=> v != null && !win.drinkMask[i]);
+  const rhrObs = rhr.filter((v,i)=> v != null && !win.baselineMask[i]);
   if(rhrObs.length >= 10) ch.push({ name:'resting HR', alarms: cusumAlarms(rhr, medianOf(rhrObs), madSigma(rhrObs)) });
   // HRV falling, so the sign is flipped to make a fall an excursion upward.
   const hrvRaw = win.entries.map((e, i)=>{
@@ -8352,7 +8378,7 @@ function illnessRadar(win){
     const v = e[win.hrvSource];
     return v == null ? null : -Math.log(v);
   });
-  const hrvObs = hrvRaw.filter((v,i)=> v != null && !win.drinkMask[i]);
+  const hrvObs = hrvRaw.filter((v,i)=> v != null && !win.baselineMask[i]);
   if(hrvObs.length >= 10) ch.push({ name:'HRV', alarms: cusumAlarms(hrvRaw, medianOf(hrvObs), madSigma(hrvObs)) });
   // Respiratory rate and skin temperature, both rising. These are what the published work
   // actually used — NightSignal and TemPredict are built on temperature and heart rate — so
@@ -8361,7 +8387,7 @@ function illnessRadar(win){
   [['respiratory rate', e=>e.respiratoryRate], ['skin temperature', e=>e.temperatureDeviation]]
     .forEach(([name, get])=>{
       const raw = win.entries.map(e=> e ? (get(e) ?? null) : null);
-      const obs = raw.filter((v,i)=> v != null && !win.drinkMask[i]);
+      const obs = raw.filter((v,i)=> v != null && !win.baselineMask[i]);
       if(obs.length >= 10) ch.push({ name, alarms: cusumAlarms(raw, medianOf(obs), madSigma(obs)) });
     });
   if(ch.length < ILLNESS_MIN_CHANNELS) return { available:false, firing:false };
@@ -8847,7 +8873,7 @@ const SHIFT_RECENT_DAYS = 10, SHIFT_PRIOR_DAYS = 30, SHIFT_MIN_SD = 0.4;
 function hrvVariability(win){
   const src = win.hrvSource;
   if(!src) return { available:false };
-  const series = win.entries.map((e, i)=> (e && !win.drinkMask[i] && e[src] != null) ? Math.log(e[src]) : null);
+  const series = win.entries.map((e, i)=> (e && !win.baselineMask[i] && e[src] != null) ? Math.log(e[src]) : null);
   const cvOf = (arr)=>{
     const v = arr.filter(x=>x != null);
     if(v.length < CV_MIN_OBS) return null;
@@ -8871,7 +8897,7 @@ function hrvVariability(win){
 function baselineShift(win){
   const src = win.hrvSource;
   if(!src) return { available:false };
-  const series = win.entries.map((e, i)=> (e && !win.drinkMask[i] && e[src] != null) ? Math.log(e[src]) : null);
+  const series = win.entries.map((e, i)=> (e && !win.baselineMask[i] && e[src] != null) ? Math.log(e[src]) : null);
   const recent = series.slice(-SHIFT_RECENT_DAYS).filter(v=>v != null);
   const prior  = series.slice(-(SHIFT_RECENT_DAYS + SHIFT_PRIOR_DAYS), -SHIFT_RECENT_DAYS).filter(v=>v != null);
   if(recent.length < 5 || prior.length < 12) return { available:false };
