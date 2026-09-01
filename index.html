@@ -5907,7 +5907,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.93';
+const APP_VERSION = '2026.08.31.94';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6166,6 +6166,11 @@ async function syncPendingAppleHealthData(){
       if(unmatched.length) updated.appleHealthUnmatched = [...(existing.appleHealthUnmatched||[]), ...unmatched];
       await window.storage.set(keyFor(date), JSON.stringify(updated));
     }
+    // The signal windows are built from these entries and cached by date. Two of the four
+    // writers to entry: invalidated that cache and two did not, so an import or an Oura sync
+    // could leave the score reading the window from before the data landed. Both are the
+    // writers that bring in the most at once.
+    invalidateSignalWindows();
 
     if(dateInput.value in byDate){ /* today's form may need refreshing */
       const r = await window.storage.get(keyFor(dateInput.value));
@@ -6445,6 +6450,7 @@ async function syncOuraDataForDate(date){
   // expects, and the app already computes its own trailing baseline internally.
 
   await window.storage.set(keyFor(date), JSON.stringify(updated));
+  invalidateSignalWindows();   // see the note on the Apple Health import above
   return { ...updated, _noDataAtAll: noDataAtAll, _skipped: failures, _empty: emptyEndpoints };
 }
 
