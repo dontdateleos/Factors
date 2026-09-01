@@ -113,6 +113,10 @@
     --field-purple:#1b1a1e;
     --field-yellow:#1e1c0c;
     --field-blue:#151d1d;
+    /* Whichever of those five the current tab is on. Every large surface takes it, so the
+       page is one field and the section bands are the only thing on top of it. Set per tab
+       beside --band; this default is Today's, for the first paint before a tab class lands. */
+    --ground:#1b1d10;
     --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
     --shadow-btn: 6px 6px 0 var(--border-bold);
     --shadow-primary: 4px 4px 0 var(--accent);
@@ -137,7 +141,7 @@
   /* The 90px the body used to carry lives here now: it is the last element on every tab,
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
-  .app-colophon{ background:#000000; padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
+  .app-colophon{ background:var(--ground); padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
   .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 14px;
     font-family:var(--sans); font-size:12px; line-height:1.5; letter-spacing:0.01em;
     color:rgba(251,250,246,0.62); }
@@ -145,7 +149,7 @@
   .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
   /* touch-action:none because this is the one strip on the page where a vertical drag is
      ours — it sits past the end of the content, so there is nothing left to scroll. */
-  .log-strip{ background:#000000; padding:22px 14px calc(90px + env(safe-area-inset-bottom, 0px));
+  .log-strip{ background:var(--ground); padding:22px 14px calc(90px + env(safe-area-inset-bottom, 0px));
     display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer;
     touch-action:none; user-select:none; -webkit-user-select:none; }
   .log-strip-word{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
@@ -171,11 +175,11 @@
      this large wants to. The mark follows: updateHeaderCollapse reads the h1's real left
      rather than assuming the margin. */
   header h1{ color:var(--bg); -webkit-text-stroke:0.6px var(--bg); letter-spacing:-0.045em; margin-left:-9px; }
-  .header-brand{ background:#000000; margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
+  .header-brand{ background:var(--ground); margin:-18px -14px 0; padding:18px 14px 12px; overflow:hidden; }
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
      and an active tab's colour block runs to its neighbours instead of floating. */
-  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:#000000; scrollbar-width:none; }
+  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px 16px; background:var(--ground); scrollbar-width:none; }
   .tabs::-webkit-scrollbar{ display:none; }
   /* flex:1 1 0 rather than a fixed min-width: five equal shares of whatever the phone is.
      It also ends an overflow that had been there the whole time — at 320px the bar was 49px
@@ -229,7 +233,7 @@
      to `auto`; `clip` is the pair that is allowed to stay `visible`. */
   main.tab-dealing{ position:relative; overflow-x:clip; overflow-y:visible; }
   .tab-field{ position:absolute; left:0; right:0; top:0; z-index:1; pointer-events:none;
-    background:#000000; }
+    background:var(--ground); }
   .panel.tab-card{ position:relative; z-index:3; }
   /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
      the top of the screen while the rest of it is still travelling, which tears it. */
@@ -242,11 +246,11 @@
   body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--field-blue); }
   /* The one place each tab's hue is still saturated. The ground is a tint of it, so the
      band reads as the same colour turned all the way up rather than as a second colour. */
-  body.tab-insights{ --band:var(--block-lime); }
-  body.tab-training{ --band:var(--block-orange); }
-  body.tab-injuries{ --band:var(--block-purple); }
-  body.tab-data{ --band:var(--block-yellow); }
-  body.tab-settings{ --band:var(--block-blue); }
+  body.tab-insights{ --band:var(--block-lime); --ground:var(--field-lime); }
+  body.tab-training{ --band:var(--block-orange); --ground:var(--field-orange); }
+  body.tab-injuries{ --band:var(--block-purple); --ground:var(--field-purple); }
+  body.tab-data{ --band:var(--block-yellow); --ground:var(--field-yellow); }
+  body.tab-settings{ --band:var(--block-blue); --ground:var(--field-blue); }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -329,7 +333,7 @@
   /* Uppercase at display size does not want the tight tracking those were drawn with, and
      mono does not want negative tracking at all — the grid is the point. */
   .group-title, .rest-word, .score-num{ letter-spacing:0.02em; }
-  .rest-plate{ background:#000000; border-top:2px solid var(--bg); margin:0 -14px;
+  .rest-plate{ background:var(--ground); border-top:2px solid var(--bg); margin:0 -14px;
     padding:var(--sp-4) 14px; }
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
     line-height:0.9; text-transform:uppercase; color:var(--bg); -webkit-text-stroke:0.6px var(--bg); }
@@ -850,7 +854,7 @@
   /* --sp-3 like every other section, and no padding of its own: .fields already ends with
      16px, so the extra made a black tail under the last control and a section gap half
      again as large as the one between sections everywhere else. */
-  .form-panel{ background:var(--reverse-bg); color:var(--bg); margin:0 -14px var(--sp-3); padding-bottom:0; }
+  .form-panel{ background:var(--ground); color:var(--bg); margin:0 -14px var(--sp-3); padding-bottom:0; }
   /* A form panel that OPENS a tab runs into the header instead of starting below main's
      padding — two blacks with a strip of page colour between them read as a seam. Four
      pixels past it rather than exactly to it: layout positions are fractional, so meeting
@@ -860,13 +864,13 @@
      Weekly — it reads as a gap in the join. And #000000 rather than content black, again
      like the Weekly band: two blacks that touch can't be a shade apart. */
   .panel > .form-panel:first-child, #weeklyTrainingView > .form-panel:first-child{
-    margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:#000000; }
+    margin-top:calc(-1 * (var(--sp-3) + 4px)); padding-top:4px; background:var(--ground); }
   /* .week-panel used to carry that rule by name, from when it opened the tab. Goals opens
      it now, and a negative top margin on a section that is no longer first pulls it up
      THROUGH the one above — which is what put the goal rows under the week's own heading.
      The whole column takes the same black instead, so the sections read as one surface
      rather than as three panels in two shades of nearly-black. */
-  #weeklyTrainingView > .group{ background:#000000; }
+  #weeklyTrainingView > .group{ background:var(--ground); }
   /* Same opening band on the two tabs that don't start with a form. What sits in it
      differs — Goals puts its section head there, Data its view switch — but the band is
      the constant, and every tab now begins by continuing the header rather than by
@@ -882,7 +886,7 @@
      pointermove events arrived and then pointercancel — the browser claimed the gesture before
      the handler had crossed its own engage threshold. A mouse pointer is never cancelled that
      way, which is why it worked everywhere except the device it is for. */
-  .today-open{ touch-action:pan-y; position:relative; background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
+  .today-open{ touch-action:pan-y; position:relative; background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:calc(var(--sp-5) + 44px) 14px var(--sp-3); }
   /* The last seven days of the same number, at the number's own eye level, out in the band's
      empty right half. Placed and sized in script rather than here: how much room there is
      depends on how wide the score itself is drawn, which is two digits some days and three
@@ -938,11 +942,11 @@
      yellow between them and the form was the tab's colour appearing once, in the one place
      it read as an interruption. */
   #panel-data > .session-type:first-child{
-    background:#000000; margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
+    background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) -14px 0; padding:var(--sp-5) 14px var(--sp-3); }
   #recoveryDataView > .date-row,
   #recoveryDataView > #sleepDebtOut,
   #recoveryDataView > #morningBanner{
-    background:#000000; color:var(--bg); margin-left:-14px; margin-right:-14px;
+    background:var(--ground); color:var(--bg); margin-left:-14px; margin-right:-14px;
     padding-left:14px; padding-right:14px; }
   #recoveryDataView > .date-row{ margin-bottom:0; padding-top:var(--sp-2); padding-bottom:var(--sp-2); }
   #recoveryDataView > #sleepDebtOut{ margin-top:0; padding-bottom:var(--sp-3);
@@ -974,7 +978,7 @@
   /* And the column runs to the footer rather than stopping 16px short of it, which left one
      orange strip behind with nothing on either side of it to be a gap between. */
   #weeklyTrainingView > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
-  #weeklyTrainingView > #blockEditHome:not(:empty){ background:#000000; }
+  #weeklyTrainingView > #blockEditHome:not(:empty){ background:var(--ground); }
   .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
   .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
   /* These three used to be stated here, for the panel only, because the base was written
@@ -1074,7 +1078,7 @@
   .pr-plate{ display:inline-block; font-family:var(--mono); font-size:0.86em; font-weight:var(--fw-bold);
     letter-spacing:0.1em; background:var(--accent); color:#0c0d0b; padding:0 5px; margin-left:6px; }
   .log-bar{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:stretch;
-    background:#000000; border-top:2px solid var(--bg);
+    background:var(--ground); border-top:2px solid var(--bg);
     padding-bottom:env(safe-area-inset-bottom, 0px); }
   .log-bar-open{ flex:1; min-width:0; height:auto; padding:11px 14px; background:transparent;
     border:none; color:var(--bg); display:flex; align-items:baseline; gap:8px; cursor:pointer;
@@ -1120,7 +1124,7 @@
   /* One line standing in for a page of optional fields. Deliberately not a .group — it is a
      control, not a section, and reading as one would put a fifth heading on the page. */
   .more-toggle{ display:flex; align-items:baseline; gap:8px; cursor:pointer; margin:0 -14px var(--sp-3);
-    padding:14px; background:var(--reverse-bg); color:var(--bg); font-family:var(--mono);
+    padding:14px; background:var(--ground); color:var(--bg); font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui);
     text-transform:uppercase; border-top:2px solid var(--bg); border-bottom:2px solid var(--bg); }
   .more-toggle-sub{ flex:1; min-width:0; font-weight:var(--fw-medium); letter-spacing:0.02em;
@@ -1176,7 +1180,7 @@
      a shade off it. Dropped straight onto the page, "good" is lime on lime and invisible.
      The band gives them back the ground they were drawn for. */
   #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
-    background:#000000; margin:0 -14px var(--sp-3); padding:var(--sp-3) 14px; }
+    background:var(--ground); margin:0 -14px var(--sp-3); padding:var(--sp-3) 14px; }
   #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
     color:rgba(251,250,246,0.65); }
   #todayFaceRow.face-row-flow .subj-faces{ gap:6px; }
@@ -1264,7 +1268,7 @@
      two sections rather than as the top of one. Measured, the page alternated seven times;
      three of those are headings doing their job and this was the only anomaly. */
   .card-stack-head{ display:flex; justify-content:space-between; align-items:center;
-    gap:10px; cursor:pointer; background:#000000; color:var(--bg);
+    gap:10px; cursor:pointer; background:var(--ground); color:var(--bg);
     margin:0 -14px; padding:var(--sp-3) 14px var(--sp-2);
     position:sticky; top:calc(var(--hdr-h, 0px) - 1px); z-index:3; }
   /* One line, always. The row is a sticky handle directly above the session — letting a
@@ -1311,7 +1315,7 @@
   /* Version opens the tab, so it runs into the header the way every other tab's first
      section does, and the column runs to the footer rather than stopping a gap short of it. */
   #panel-settings > .group:first-child{ margin-top:calc(-1 * (var(--sp-3) + 4px));
-    padding-top:4px; background:#000000; }
+    padding-top:4px; background:var(--ground); }
   #panel-settings > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
   /* The block chart's caption and its unit pills share one line: the pills are the only
      control on the chart and they belong beside the sentence they change. */
@@ -6235,7 +6239,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.122';
+const APP_VERSION = '2026.08.31.123';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
