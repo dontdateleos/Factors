@@ -5242,11 +5242,13 @@ function activateTab(name, opts){
   // already covered — so these must run in order, not fire-and-forget in parallel.
   if(name==='insights'){
     applyTodayStage();
-    refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); renderTodayWorkoutSummary(); initWarmupTab();
-    // Awaited by the two generators below, not fired alongside them: it is what reads the
-    // day's plan into todaySessionType, and a warm-up built before that read is a warm-up
-    // for the wrong session.
+    refreshEyeContext(); generateRecommendations(); renderTodayBlockContext(); initWarmupTab();
+    // Awaited by everything below, not fired alongside it: this is what reads the day's plan
+    // into todaySessionType, and anything built before that read is built for the wrong
+    // session. The workout summary was the one that showed it — on a run day it rendered
+    // against the declared default and announced "No strength today" above a planned run.
     const shaped = Promise.resolve(applyRestDayShape()).catch(()=>{});
+    shaped.then(()=> renderTodayWorkoutSummary());
     // Each section waits on its own generator, so the page shows which half is still
     // thinking rather than one scan standing in for both.
     withEyesBusy(
@@ -5905,7 +5907,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.91';
+const APP_VERSION = '2026.08.31.92';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18095,8 +18097,14 @@ async function applyTypePillVisibility(){
   // there was no pill to tap. Every run-aware branch downstream (the run warm-up areas, the
   // per-run-type warm-up and cool-down budgets, the jog-down) was dead on exactly the days
   // it was written for, and a run got a lift's warm-up.
-  if(scheduled.length && !scheduled.includes(todaySessionType)){
-    todaySessionType = scheduled[0];
+  // Constrained to the three the pills offer. The plan is free to hold a block type this
+  // row has no button for, and adopting one unguarded would leave todaySessionType on a
+  // value with no pill to show it and no branch to handle it — the workout summary would
+  // report "No <that> today" about a day that has exactly that.
+  const OFFERED = ['strength', 'run', 'mobility'];
+  const offered = scheduled.filter(t=> OFFERED.includes(t));
+  if(offered.length && !offered.includes(todaySessionType)){
+    todaySessionType = offered[0];
     pills.querySelectorAll('.type-btn').forEach(b=>
       b.classList.toggle('active', b.dataset.type === todaySessionType));
   }
@@ -18318,8 +18326,11 @@ async function applyTodayStage(){
       } else {
         out.textContent = '';
         showToast('Week built');
+        // applyRestDayShape first and alone: the summary reads todaySessionType, which is
+        // what applyRestDayShape sets from the plan.
+        await applyRestDayShape();
         await Promise.all([generateRecommendations(), renderTodayBlockContext(),
-                           renderTodayWorkoutSummary(), applyRestDayShape()]);
+                           renderTodayWorkoutSummary()]);
         initWarmupTab();
         // Both sections are generated on entering Today, and building the first week never
         // leaves Today — so a new user's first session came with no warm-up and no
