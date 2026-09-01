@@ -1319,7 +1319,19 @@
   .morning-panel .subj-dot.on{ background:var(--accent); color:var(--text); border-color:var(--accent); }
   /* Only the size differs from the row's faces — colour, fill and the picked state are the
      shared .subj-face rules, so the two cannot drift apart. */
-  .morning-panel .subj-face{ height:46px; }
+  .morning-panel .subj-face{ height:46px; overflow:hidden; touch-action:manipulation; }
+  /* The hold's own fill. Rises from the bottom in the face's colour, so the square filling
+     up IS the progress bar rather than a separate one sitting next to it.
+
+     Washed rather than solid, because the eyes are drawn in that same colour: at full
+     strength the fill swallowed the face you were holding, which is the one thing you need
+     to keep seeing. At this weight the rise is still unmistakable and the eyes stay above
+     it. The solid fill belongs to .on, which lands the moment it commits and turns the eyes
+     black against it — so the finish reads as a state change rather than more of the same. */
+  .morning-panel .face-fill{ position:absolute; inset:0; background:var(--face-c); opacity:0.45;
+    transform:scaleY(0); transform-origin:bottom; pointer-events:none; }
+  .morning-panel .subj-face.on .face-fill{ opacity:0; }
+  .morning-panel .subj-face .eyes{ position:relative; z-index:1; }
   /* button.primary is --reverse-bg on --reverse-bg here, which is an invisible primary
      action. On this panel the accent is the only fill that reads. */
   /* button.primary, which this also carries, is one specificity step above a bare class —
@@ -4859,6 +4871,7 @@ const UI_ANIM = {
   tabLift:      { on:true, note:'The tab’s colour fills the page and the new one is dealt up onto it',
                   axis:'Y', ms:440 },
   planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 },
+  faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -5976,7 +5989,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.101';
+const APP_VERSION = '2026.08.31.102';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7958,16 +7971,98 @@ async function maybeAskMorning(){
   function esc(e){ if(e.key === 'Escape') close(); }
   document.addEventListener('keydown', esc);
 
+  /* A HOLD, NOT A TAP.
+
+     This is the heaviest input in the score at 0.28, and the reason to keep the prompt cheap
+     was that a question you cannot dismiss gets answered carelessly. A tap is the cheapest
+     possible answer; a half-second hold is not. The square filling in the face's own colour
+     is the progress — the control shows what it costs rather than putting a bar beside it.
+
+     Only here. The row on the page behind stays a tap: it is the quick correction you make
+     when you already know what you meant, and making it slower would be friction with
+     nothing to buy. The two look different while held, which is what says so.
+
+     Falls back to a plain tap wherever the animation is off — reduced motion, or the switch
+     in Settings — because a hold whose progress you cannot see is a control with no feedback,
+     and holding a button that appears to do nothing is worse than tapping one. Keyboard
+     always commits on Enter or Space for the same reason. */
+  const commitFace = async (face, clearing)=>{
+    const n = +face.dataset.v;
+    sheet.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', !clearing && b === face));
+    faceValues[todayStr] = clearing ? undefined : n;
+    await setDayFace(todayStr, clearing ? null : n);
+    paintTodayFaces(); relayoutColumn();
+  };
+  const holdOn = uiAnim('faceHold');
+  if(holdOn){
+    sheet.querySelectorAll('.subj-face').forEach(btn=>{
+      const fill = document.createElement('span');
+      fill.className = 'face-fill';
+      btn.insertBefore(fill, btn.firstChild);
+    });
+    let timer = null, anim = null, held = null;
+    const stop = ()=>{
+      if(timer) clearTimeout(timer);
+      if(anim){ try{ anim.cancel(); }catch(e){} }
+      if(held) held.classList.remove('holding');
+      timer = null; anim = null; held = null;
+    };
+    sheet.addEventListener('pointerdown', e=>{
+      const face = e.target.closest('.subj-face');
+      if(!face) return;
+      e.preventDefault();
+      stop();
+      held = face;
+      face.classList.add('holding');
+      try{ face.setPointerCapture(e.pointerId); }catch(err){}
+      const fill = face.querySelector('.face-fill');
+      anim = uiPlay(fill, [{ transform:'scaleY(0)' }, { transform:'scaleY(1)' }],
+        { duration: UI_ANIM.faceHold.ms, easing:'linear', fill:'forwards' });
+      // The eyes lean into it while the square fills, and land when it commits.
+      uiPlay(face.querySelector('.eyes'),
+        [{ transform:'scale(1)' }, { transform:'scale(1.18)' }],
+        { duration: UI_ANIM.faceHold.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)', fill:'forwards' });
+      const target = face, clearing = face.classList.contains('on');
+      timer = setTimeout(async ()=>{
+        stop();
+        const f = target.querySelector('.face-fill');
+        if(f) f.style.transform = clearing ? 'scaleY(0)' : 'scaleY(1)';
+        uiPlay(target.querySelector('.eyes'),
+          [{ transform:'scale(1.18)' }, { transform:'scale(0.86)' }, { transform:'scale(1)' }],
+          { duration: 260 });
+        await commitFace(target, clearing);
+      }, UI_ANIM.faceHold.ms);
+    });
+    const release = ()=>{
+      if(!held) return;
+      const fill = held.querySelector('.face-fill');
+      const wasOn = held.classList.contains('on');
+      stop();
+      // Let go early and it drains back rather than freezing part-full, so an abandoned hold
+      // does not leave a square looking half-answered.
+      if(fill) uiPlay(fill, [{ transform:getComputedStyle(fill).transform }, { transform: wasOn ? 'scaleY(1)' : 'scaleY(0)' }], { duration:160 });
+    };
+    sheet.addEventListener('pointerup', release);
+    sheet.addEventListener('pointercancel', release);
+    sheet.addEventListener('pointerleave', release, true);
+  }
+  // Enter and Space commit outright, hold or no hold.
+  sheet.addEventListener('keydown', async e=>{
+    const face = e.target.closest && e.target.closest('.subj-face');
+    if(!face || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    const clearing = face.classList.contains('on');
+    const fill = face.querySelector('.face-fill');
+    if(fill) fill.style.transform = clearing ? 'scaleY(0)' : 'scaleY(1)';
+    await commitFace(face, clearing);
+  });
+
   sheet.addEventListener('click', async e=>{
     if(e.target === sheet || e.target.closest('.lift-sheet-x') || e.target.closest('.morning-done')){ await close(); return; }
     const face = e.target.closest('.subj-face');
     if(face){
-      const n = +face.dataset.v;
-      const clearing = face.classList.contains('on');
-      sheet.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', !clearing && b === face));
-      faceValues[todayStr] = clearing ? undefined : n;
-      await setDayFace(todayStr, clearing ? null : n);
-      paintTodayFaces(); relayoutColumn();
+      if(holdOn) return;                       // the hold owns this control when it is on
+      await commitFace(face, face.classList.contains('on'));
       return;
     }
     const dot = e.target.closest('.subj-dot');
