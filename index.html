@@ -65,7 +65,12 @@
     --hair:rgba(251,250,246,0.16);
     --text:#0c0d0b;
     --header-dark:#1c1c1a;
-    --dim:#191a0e;
+    /* The grey explanatory text is set in, sampled off the reference (#c8c7bc there). It
+       was #191a0e — a near-black, correct when it sat on a saturated ground and invisible
+       once the ground went dark. Forty-five rules used it and only the tab labels had an
+       override, so this is the colour AND the fix for the rest of them. Anything that
+       matters is --bg; this is for the text explaining it. */
+    --dim:#c9c7bc;
     --accent:#c9da4a;
     --accent-ink:#5c6b0f;
     --accent-dim:#e8edc4;
@@ -263,7 +268,6 @@
      content, 0.65 for labels, 0.42 for notation. Nothing here changes what any of them
      do — only which side of the contrast they are on. */
   .drill-text, .gloss-term, .mob-wheel-name, .skill-active-row span{ color:var(--bg); }
-  .drill-group{ color:var(--bg); }
 
   /* The two skill pickers were drawn for a light ground and say so in their own values —
      rgba(12,13,11,...) throughout. Same rows, same states, other side. The done row keeps
@@ -271,7 +275,7 @@
   #strengthSkillPicker .mob-wheel-focus-line, #mobilitySkillPicker .mob-wheel-focus-line{
     border-top-color:rgba(251,250,246,0.45); border-bottom-color:rgba(251,250,246,0.45); }
   #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--bg); }
-  #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:rgba(251,250,246,0.75); }
+  #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:var(--bg); }
   #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--bg); }
   #strengthSkillPicker .mob-check-row.done .mob-check-num,
   #strengthSkillPicker .mob-check-row.done .mob-check-text,
@@ -493,8 +497,8 @@
   .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
   .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mobility-legend{ margin-bottom:var(--sp-2); }
-  .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:rgba(251,250,246,0.65); cursor:pointer; }
-  .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:rgba(251,250,246,0.65); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
+  .mobility-legend-body{ margin-top:8px; font-size:var(--fs-tag); color:var(--dim); line-height:1.6; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   .evidence-badge{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold); padding:2px 6px; letter-spacing:0.02em; white-space:nowrap; display:inline-block; }
   .evidence-badge.strong{ background:var(--reverse-bg); color:var(--bg); }
   .evidence-badge.moderate{ background:transparent; border:1.5px solid var(--text); color:var(--text); }
@@ -543,7 +547,7 @@
   .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold); color:var(--text); line-height:0.92; -webkit-text-stroke:1.2px var(--text); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
-  .score-note{ font-size:var(--fs-tag); color:rgba(251,250,246,0.65); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
+  .score-note{ font-size:var(--fs-tag); color:var(--dim); margin-top:8px; line-height:1.4; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   /* ---- chips -------------------------------------------------------------------------
      A run of independent facts joined with middots reads as one sentence, and a sentence
      gets skimmed. Each fact takes its own outline so a glance can pick out the one it came
@@ -551,7 +555,7 @@
   .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .chip-row span{ font-family:var(--mono); font-size:10px; letter-spacing:0.1em;
     text-transform:uppercase; border:1px solid rgba(251,250,246,0.3);
-    color:rgba(251,250,246,0.82); padding:4px 8px; white-space:nowrap;
+    color:var(--dim); padding:4px 8px; white-space:nowrap;
     font-weight:var(--fw-medium); }
 
   /* Above the sticky group heads (z-index 3). Without this a head level with the footer takes
@@ -575,7 +579,7 @@
   .eye-anim-text{ flex:1; min-width:0; }
   .eye-anim-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.04em; color:var(--bg); }
   .eye-anim-muted{ font-family:var(--sans); text-transform:uppercase; letter-spacing:0.08em; color:var(--warn); margin-left:6px; }
-  .eye-anim-note{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.65); line-height:1.35; }
+  .eye-anim-note{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); line-height:1.35; }
   .eye-anim-play{ flex:none; cursor:pointer; padding:4px 2px; }
   .eye-anim-play .empty-eyes{ --eye-ink:var(--bg); opacity:1; }
   /* Sits in the block it is waiting on, centred, so the section says it is thinking
@@ -645,7 +649,7 @@
      that separates every other exercise is dropped between them. */
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
   .plan-item.ss-row + .plan-item.ss-row{ border-top:none; }
-  .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:rgba(251,250,246,0.65); letter-spacing:0.015em; }
+  .plan-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
   /* The 20px indent aligned these under the row's leading arrow. With the arrow gone it
      drops to the scale — still nested under the name, no longer hanging off nothing. */
   .plan-line{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:var(--sp-1) 0 0 var(--sp-3); letter-spacing:0.01em; line-height:1.5; }
@@ -801,7 +805,7 @@
   .mob-check-row:active{ opacity:0.6; }
   .mob-check-num{ flex:none; width:34px; align-self:stretch; display:flex; align-items:center; justify-content:center;
     font-family:var(--mono); font-size:26px; font-weight:var(--fw-bold); color:var(--bg); }
-  .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:rgba(251,250,246,0.75);
+  .mob-check-text{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg);
     line-height:1.35; letter-spacing:-0.005em; }
   /* Inverted, now the ground is dark: a ticked rung is a LIGHT band the whole way across.
      The staircase reads the same either way — how far the fill has climbed is your level
@@ -810,7 +814,7 @@
   .mob-check-row.done{ background:var(--bg); }
   .mob-check-row.done .mob-check-num, .mob-check-row.done .mob-check-text{ color:var(--text); }
   .mob-check-row.done .mob-check-text{ font-weight:var(--fw-medium); }
-  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:rgba(251,250,246,0.7); text-align:center; margin-top:var(--sp-2); letter-spacing:0.02em; }
+  .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:var(--sp-2); letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
   .conf-head{ display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; }
   /* The score itself is the disclosure now, so the label carries the chevron. */
@@ -941,7 +945,7 @@
   .today-open .score-num{ color:var(--bg); -webkit-text-stroke-color:var(--bg); }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
   .today-open .score-note, .today-open .conf-headline,
-  .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:rgba(251,250,246,0.7); }
+  .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:var(--dim); }
   /* The disclosure opens INSIDE the band, so its panel inverts with everything else. */
   .today-open .conf-name{ color:var(--bg); }
   .today-open .conf-bar{ background:rgba(251,250,246,0.22); }
@@ -971,7 +975,7 @@
   body.tab-insights header, body.tab-training header{ border-bottom-color:transparent; }
   /* The band paints itself the same inside a panel as on the ground; only the bleed differs. */
   .form-panel .group-head{ margin-left:0; margin-right:0; }
-  .form-panel .field-label{ color:rgba(251,250,246,0.7); }
+  .form-panel .field-label{ color:var(--dim); }
   /* Consecutive black sections run together as one field. Data and Settings are almost
      entirely forms, so one band each made the tab a zebra — black, tab colour, black, tab
      colour — where every other tab now opens on black once and hands the rest to its own
@@ -988,8 +992,8 @@
      orange strip behind with nothing on either side of it to be a gap between. */
   #weeklyTrainingView > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
   #weeklyTrainingView > #blockEditHome:not(:empty){ background:var(--ground); }
-  .form-panel label, .form-panel .score-note{ color:rgba(251,250,246,0.75); }
-  .form-panel .collapse-chevron, .form-panel summary{ color:rgba(251,250,246,0.7); }
+  .form-panel label, .form-panel .score-note{ color:var(--dim); }
+  .form-panel .collapse-chevron, .form-panel summary{ color:var(--dim); }
   /* These three used to be stated here, for the panel only, because the base was written
      for a light ground. Every ground is dark now, so they are the base. */
   .injury-card{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
@@ -1288,7 +1292,7 @@
   /* Black-on-light by default, which is invisible on the plate — same inversion the form
      panels do to their own buttons. */
   .card-stack-head #undoDecisionBtn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  .card-stack-chev{ font-size:var(--fs-md); color:rgba(251,250,246,0.7); flex:none;
+  .card-stack-chev{ font-size:var(--fs-md); color:var(--dim); flex:none;
     transition:transform 0.15s; }
   /* A plate that butts against the band above it and the section below. The stack's own
      margins were leaving 14px and 6px of the tab's colour on either side — thin enough to
@@ -1524,7 +1528,7 @@
   .skg-progress:not(:empty){ margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
   .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
-    letter-spacing:0.08em; color:rgba(251,250,246,0.65); margin-bottom:5px; }
+    letter-spacing:0.08em; color:var(--dim); margin-bottom:5px; }
   .skg-bar{ height:8px; background:rgba(251,250,246,0.16); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
   .skg-bar-fill{ height:100%; background:var(--bg); transform-origin:left center; }
@@ -1601,7 +1605,7 @@
      line to itself, and the row is shorter for it. */
   .goal-row-panel .goal-priority-badge{ display:flex; align-items:center; gap:10px; flex:1; }
   .goal-priority-tag{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); }
-  .goal-row-panel .field-label{ color:rgba(251,250,246,0.7); }
+  .goal-row-panel .field-label{ color:var(--dim); }
   .goal-row-panel label{ color:rgba(251,250,246,0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
   .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
@@ -1652,7 +1656,7 @@
     padding:10px 13px; margin-bottom:9px; }
   .ev:last-child{ margin-bottom:0; }
   .drill-group{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:var(--track-ui); text-transform:uppercase; opacity:0.55;
+    letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--dim);
     margin:var(--sp-2) 0 2px; display:flex; align-items:baseline; gap:8px; }
   .drill-group:first-child{ margin-top:0; }
   .drill-group-n{ margin-left:auto; font-weight:var(--fw-normal); letter-spacing:0.06em;
@@ -1703,7 +1707,7 @@
   .glossary{ margin-top:var(--sp-2); }
   .glossary > summary{ list-style:none; cursor:pointer; display:inline-block;
     font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.06em;
-    text-transform:uppercase; color:rgba(251,250,246,0.65); padding:var(--sp-1) 0; }
+    text-transform:uppercase; color:var(--dim); padding:var(--sp-1) 0; }
   .glossary > summary::-webkit-details-marker{ display:none; }
   .glossary > summary::before{ content:'\25b8'; display:inline-block; width:1em;
     transition:transform 0.12s steps(3,end); }
@@ -6248,7 +6252,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.124';
+const APP_VERSION = '2026.08.31.125';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
