@@ -2190,53 +2190,6 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
-      <!-- Generate builds the week FROM these, so they sit above it. The chain used to run
-           across two tabs — pick a goal on Goals, come here, press Generate — which is why
-           nothing on screen ever said the two were connected. Folded by default: it is an
-           input you set and revisit, not one you read. -->
-      <div class="group form-panel" id="weekGoalsGroup">
-        <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals</div><span class="head-est" id="weekGoalsSummary"></span><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
-        <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
-
-          <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
-          <div id="goalListRows"></div>
-          <div class="add-row" id="addGoalRow">+ add goal</div>
-
-      <!-- Moved under the running goal row by loadCurrentGoals, and hidden when there
-           isn't one — it is that goal's own setup, not a section of its own. -->
-      <div class="group form-panel" id="runStartPanel">
-        <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
-        <div class="fields">
-          <div class="field-row"><span class="field-label">Longest run you could do today</span>
-            <select id="runStartLongest">
-              <option value="">— select —</option>
-              <option value="0">I'm starting from scratch</option>
-              <option value="1">Under 2 km / can jog a few minutes</option>
-              <option value="3">Around 3 km / 20-30 min continuous</option>
-              <option value="5">Around 5 km</option>
-              <option value="10">10 km or more</option>
-              <option value="18">Half marathon or beyond</option>
-            </select>
-          </div>
-          <div class="field-row"><span class="field-label">Runs per week recently</span>
-            <select id="runStartFrequency">
-              <option value="">— select —</option>
-              <option value="0">None</option>
-              <option value="1">1-2</option>
-              <option value="3">3-4</option>
-              <option value="5">5+</option>
-            </select>
-          </div>
-          <button class="small" id="saveRunStartBtn">Save running starting point</button>
-          <div id="runStartResult" class="score-note"></div>
-        </div>
-      </div>
-
-      <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
-      <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
-        </div>
-      </div>
-
       <!-- The week leads, in the same black band the mobility assessment takes on the
            Body tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
@@ -2278,6 +2231,53 @@
           <div id="weekBlockStrip"></div>
         </div>
       </div>
+      <!-- Under the week, not above it. Generate still builds FROM these, and the chain
+           used to run across two tabs — pick a goal on Goals, come here, press Generate —
+           which is why they were put on one screen. But a goal is set once and revisited;
+           the week is what the tab is opened for, so the week goes first. Still folded by
+           default: it is an input you set, not one you read. -->
+      <div class="group form-panel" id="weekGoalsGroup">
+        <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
+
+          <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
+          <div id="goalListRows"></div>
+          <div class="add-row" id="addGoalRow">+ add goal</div>
+
+      <!-- Moved under the running goal row by loadCurrentGoals, and hidden when there
+           isn't one — it is that goal's own setup, not a section of its own. -->
+      <div class="group form-panel" id="runStartPanel">
+        <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
+        <div class="fields">
+          <div class="field-row"><span class="field-label">Longest run you could do today</span>
+            <select id="runStartLongest">
+              <option value="">— select —</option>
+              <option value="0">I'm starting from scratch</option>
+              <option value="1">Under 2 km / can jog a few minutes</option>
+              <option value="3">Around 3 km / 20-30 min continuous</option>
+              <option value="5">Around 5 km</option>
+              <option value="10">10 km or more</option>
+              <option value="18">Half marathon or beyond</option>
+            </select>
+          </div>
+          <div class="field-row"><span class="field-label">Runs per week recently</span>
+            <select id="runStartFrequency">
+              <option value="">— select —</option>
+              <option value="0">None</option>
+              <option value="1">1-2</option>
+              <option value="3">3-4</option>
+              <option value="5">5+</option>
+            </select>
+          </div>
+          <button class="small" id="saveRunStartBtn">Save running starting point</button>
+          <div id="runStartResult" class="score-note"></div>
+        </div>
+      </div>
+
+      <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
+      <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
 
       <div id="blockEditHome"><div id="blockEditPanel" style="display:none;"></div></div>
 
@@ -6316,7 +6316,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.141';
+const APP_VERSION = '2026.08.31.142';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
