@@ -18964,10 +18964,13 @@ async function applyRestDayShape(){
   note.textContent = label ? `nothing planned · next session ${label}` : 'nothing planned this week';
 }
 
-/* The morning form's second half, behind one line. Two rules keep it honest: it opens
-   itself whenever anything inside it is holding a value — a field that is both hidden and
-   set is the worst thing a form can do — and the line says how many of them are filled, so
-   collapsed never means unknown. */
+/* The morning form's second half, behind one line. It used to open itself whenever
+   anything inside was holding a value, on the rule that a field both hidden and set is the
+   worst thing a form can do. True — but the count beside the line already says how many
+   are filled, and that is what makes collapsed mean "known, and put away" rather than
+   "unknown". Auto-opening on top of it meant that from the first device reading you ever
+   pasted, the section was open forever after and the collapse did nothing. The line
+   carries the honesty; the section stays shut until you ask for it. */
 const RECOVERY_MORE_IDS = ['sleepScoreOura','sleepScoreGarmin','wakeTimeOura','wakeTimeGarmin',
   'hrvBaseline','hrvStatus','loadRatio','trainingStatus','readinessOura','bodyBattery'];
 function setRecoveryMoreOpen(open){
@@ -18983,7 +18986,6 @@ function syncRecoveryMore(){
   const filled = RECOVERY_MORE_IDS
     .filter(id => (document.getElementById(id)?.value || '').trim()).length;
   if(sum) sum.textContent = filled ? `${filled} filled in` : 'devices and load';
-  if(filled) setRecoveryMoreOpen(true);
 }
 (function wireRecoveryMore(){
   const tog = document.getElementById('recoveryMoreToggle');
