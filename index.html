@@ -6699,7 +6699,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.198';
+const APP_VERSION = '2026.08.31.199';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7319,12 +7319,12 @@ async function renderDeviceConnectRow(){
   try{ const r = await window.storage.get('oura:tokens'); ouraConnected = !!JSON.parse(r.value); } catch(e){}
 
   row.innerHTML = `
-    <button id="ouraQuickBtn" style="flex:none; width:52px; height:52px; padding:0; position:relative; background:none; border:none; box-shadow:none; color:inherit;">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>
-      ${ouraConnected ? '<span style="position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:#3ecf6a; border:1.5px solid currentColor;"></span>' : ''}
+    <button id="ouraQuickBtn" aria-label="${ouraConnected ? 'Oura connected' : 'Connect Oura'}" style="flex:none; width:52px; height:52px; padding:0; position:relative; background:none; border:none; box-shadow:none; color:inherit;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>
+      ${ouraConnected ? '<span aria-hidden="true" style="position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:#3ecf6a; border:1.5px solid currentColor;"></span>' : ''}
     </button>
-    <button id="appleQuickBtn" style="flex:none; width:52px; height:52px; padding:0; background:none; border:none; box-shadow:none; color:inherit;">
-      <svg width="30" height="30" viewBox="3.2 2.65 13 16" fill="currentColor"><path d="M12.15 7.5c-1.1-.08-2.03.6-2.56.6-.53 0-1.35-.58-2.22-.56-1.14.02-2.2.66-2.78 1.68-1.2 2.08-.31 5.16.86 6.85.57.83 1.25 1.76 2.15 1.72.86-.03 1.19-.55 2.23-.55 1.04 0 1.34.55 2.24.53.93-.02 1.51-.85 2.08-1.68.65-.94.92-1.86.93-1.9-.02-.01-1.79-.69-1.81-2.73-.02-1.7 1.39-2.52 1.45-2.56-.8-1.17-2.03-1.3-2.47-1.33-1.02-.09-1.9.6-2.4.6"/><path d="M14.7 5.6c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.99 1.02-.44.5-.82 1.31-.72 2.08.75.06 1.53-.38 2.01-.95z"/></svg>
+    <button id="appleQuickBtn" aria-label="Connect Apple Health" style="flex:none; width:52px; height:52px; padding:0; background:none; border:none; box-shadow:none; color:inherit;">
+      <svg width="30" height="30" viewBox="3.2 2.65 13 16" fill="currentColor" aria-hidden="true"><path d="M12.15 7.5c-1.1-.08-2.03.6-2.56.6-.53 0-1.35-.58-2.22-.56-1.14.02-2.2.66-2.78 1.68-1.2 2.08-.31 5.16.86 6.85.57.83 1.25 1.76 2.15 1.72.86-.03 1.19-.55 2.23-.55 1.04 0 1.34.55 2.24.53.93-.02 1.51-.85 2.08-1.68.65-.94.92-1.86.93-1.9-.02-.01-1.79-.69-1.81-2.73-.02-1.7 1.39-2.52 1.45-2.56-.8-1.17-2.03-1.3-2.47-1.33-1.02-.09-1.9.6-2.4.6"/><path d="M14.7 5.6c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.99 1.02-.44.5-.82 1.31-.72 2.08.75.06 1.53-.38 2.01-.95z"/></svg>
     </button>`;
 
   document.getElementById('ouraQuickBtn').addEventListener('click', async ()=>{
