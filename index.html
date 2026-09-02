@@ -1467,6 +1467,13 @@
   .tc-band-in{ opacity:0; animation:tcBand 420ms linear forwards; animation-delay:calc(var(--tc-ms,1000ms) * 0.62); }
   @keyframes tcDraw{ to{ stroke-dashoffset:0; } }
   @keyframes tcBand{ to{ opacity:1; } }
+  /* Struck through rather than restyled. The rule is drawn at about the speed you would
+     strike it with a pen, so ticking a drill is something you did rather than a state it
+     changed into. */
+  .drill-text{ position:relative; }
+  .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
+    width:0; pointer-events:none; }
+  .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
   /* One slow exhale, once, when a section you have not refreshed in a long time comes on
      screen. Not a badge and not a dot — those stay, and this is gone in a second. */
   @keyframes staleBreath{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.42; transform:scale(0.975); } }
@@ -5323,6 +5330,7 @@ function eyeNoteTabForWander(){
    Exposed on window for the same reason. */
 const UI_ANIM = {
   traceDraw:      { on:true, note:'The trend chart draws its line, and the band fills in behind it', ms:1000 },
+  strikeThrough:  { on:true, note:'A drill you tick is struck through rather than switching to done', ms:300 },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
   overscroll:     { on:true, note:'The page stretches at the top and springs back' },
   countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
@@ -24124,8 +24132,10 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${it.html}</span></button>`;
+      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${it.html}`
+      + `${uiAnim('strikeThrough') ? '<span class="drill-strike"></span>' : ''}</span></button>`;
   }).join('');
+  if(uiAnim('strikeThrough')) host.style.setProperty('--strike-ms', (UI_ANIM.strikeThrough.ms || 300) + 'ms');
   const paint = ()=>{
     if(!estEl) return;
     const n = drillsDone(listKey).size;
