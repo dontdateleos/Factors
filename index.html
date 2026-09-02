@@ -6793,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.208';
+const APP_VERSION = '2026.08.31.209';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21525,10 +21525,23 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // block and re-saved it; Daily itself stayed blank for anything auto-generated.
     await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag: tag }));
 
-    // Alternate days rather than every day. Ingram (2024) found weekly session FREQUENCY
-    // doesn't moderate ROM gains — only cumulative weekly time does — so concentrating the
-    // same minutes into fewer blocks costs nothing and leaves rest days genuinely clear.
-    const mobilityDayThisTime = sessionLength >= 75 ? true : (i % 2 === 0);
+    // This used to alternate — a companion block every OTHER training day below a 75 minute
+    // session length — on the grounds that Ingram (2024) found weekly session frequency does
+    // not moderate ROM gains, only cumulative weekly time, so "concentrating the same minutes
+    // into fewer blocks costs nothing".
+    //
+    // The premise is right and the implementation never concentrated anything. The per-block
+    // budget is Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP) and the cap is 30, so at
+    // any session length of 30 minutes or more the block was ALREADY at its ceiling. Halving
+    // the number of blocks therefore halved the weekly volume outright, with nothing on the
+    // other side of the trade. Measured on a hypertrophy week at 60 minutes: two blocks,
+    // ~1600s total, 0 of 7 areas at the 600s target, best area 420s. Every training day
+    // instead: four blocks, ~3130s, quads_knees 800 and ankles 780 both at target.
+    //
+    // Ingram cuts the same way in reverse — frequency is not a moderator in either direction
+    // — so more frequent blocks at the same dose cost nothing either. The companion only ever
+    // lands on training days, so this does not touch a rest day.
+    const mobilityDayThisTime = true;
     if(includeBulletproofing && multiSessionOk && !comboDates.has(date) && mobilityDayThisTime){
       // Companion mobility now runs the SAME structured builder as a standalone session
       // (Access/Control/Load/Integrate/Goal, level-scaled dosing, need-gated domains),
