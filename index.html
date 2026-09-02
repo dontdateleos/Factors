@@ -6627,7 +6627,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.178';
+const APP_VERSION = '2026.08.31.179';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9197,7 +9197,12 @@ async function buildPrescription(sr){
      The gate is the exception and stays. "Not a training-load reading" is illness or a skinful
      the night before: a safety call, not an optimisation, and one that has no business being
      withheld to keep an experiment tidy. */
-  const p = (sr && sr.available && !sr.held) ? sr.shown : null;
+  /* The rank, not the score. These tiers — bottom fifth, below your usual, top third — are
+     statements about where today sits among your own days, and they were reading `shown`
+     back when `shown` was the percentile. Now that the headline is the score itself, they
+     have to name the percentile explicitly or a scale that clusters around the middle would
+     have the app saying "trim today" almost every day and "room to push" almost never. */
+  const p = (sr && sr.available && !sr.held) ? sr.percentile : null;
   const gated = !!(sr && sr.gateReason);
 
   if(gated || (p != null && p < 20)){
@@ -9919,11 +9924,12 @@ async function computeSystemicReadiness(asOfDate){
   // Every day in the window on the displayed scale, so the seven-day trace can be drawn from
   // one window build instead of one per day — six extra days each rebuilding a sixty-day
   // window was four hundred storage reads for a strip of ticks.
+  /* The trace has to be on whatever scale the headline is, or swiping back through the week
+     compares a rank with a score. Both are the score now. */
   const shownSeries = {};
   win.dates.forEach((d, i)=>{
     if(series[i] == null) return;
-    shownSeries[d] = percentile != null ? pctRank(series[i])
-                   : Math.max(0, Math.min(100, Math.round(series[i] * gate)));
+    shownSeries[d] = Math.max(0, Math.min(100, Math.round(series[i] * gate)));
   });
 
   const sigma = observed.length >= 3
@@ -9941,8 +9947,9 @@ async function computeSystemicReadiness(asOfDate){
     if(!observed.length) return null;
     return Math.round(100 * observed.filter(v=> v < raw).length / observed.length);
   };
-  const shownLow  = half == null ? null : (percentile != null ? pctOf(today.raw - half) : Math.max(0, Math.round(score - half)));
-  const shownHigh = half == null ? null : (percentile != null ? pctOf(today.raw + half) : Math.min(100, Math.round(score + half)));
+  // Bracketing the score, so the interval is in the same units as the reading it qualifies.
+  const shownLow  = half == null ? null : Math.max(0, Math.round((today.raw - half) * gate));
+  const shownHigh = half == null ? null : Math.min(100, Math.round((today.raw + half) * gate));
   const enough = win.completeness >= SR_MIN_COMPLETENESS && maturity >= SR_MIN_MATURITY;
   /* Every computation, with the inputs that decide it. A score that moves between visits is
      the hardest kind of bug to chase from memory — by the time you notice, the thing that
@@ -9968,7 +9975,23 @@ async function computeSystemicReadiness(asOfDate){
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
-    shown: percentile != null ? percentile : score,
+    /* The headline is the score, not the rank of it.
+
+       A percentile ranks you against your own recent days, and those days cluster: measured
+       on a normal history, ten raw points hold the middle half of them, so one raw point
+       became almost seven displayed points. The reading's own error bar is +/-12.5 of those
+       points — so the display was resolving to the integer something it only knows to within
+       a quarter of the scale, and one tap of the morning dial could move it fifty points.
+
+       The rank also moves under you. Identical physiology shows a different number as the
+       history it is ranked against fills in, which is a score that changes when nothing
+       about you has.
+
+       So `shown` is the score itself now — already 0-100, tanh-compressed, and stable
+       against a fixed meaning rather than a moving reference. The percentile is still
+       computed and still true, and now says what it always meant underneath the number:
+       better than N% of your own days. */
+    shown: score,
     shownSeries,
     ciLow: shownLow, ciHigh: shownHigh,
     parts: partsToday, debt: debtZ, win
@@ -14565,12 +14588,17 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   if(srResult && srResult.available){
     setUncertainGaze(srResult.ciLow, srResult.ciHigh);
     const prevNum = parseInt(out.dataset.value || out.textContent);
-    // The percentile of your own days is the honest headline: it cannot saturate, and "68"
-    // means "better than 68% of the days you have logged" rather than 68 of an invented 100.
+    /* The number is the score; the rank is what it says about you. The percentile used to be
+       the headline on the grounds that it cannot saturate — it does, at both ends, and it sat
+       pinned at 98 through most of a day's testing — and that "68" meant something real. The
+       meaning was the good part and it survives, one line down, where it reads as a sentence
+       rather than as a quantity to watch move. */
     const shown = srResult.shown;
     if(!rollNumber(out, prevNum, shown)) animateNumber(out, isNaN(prevNum) ? 0 : prevNum, shown, 500);
     setEyeScore(shown);
+    const rank = srResult.percentile;
     label.textContent = srResult.gateReason ? 'Not a training read'
+      : rank != null ? (rank >= 50 ? `Better than ${rank}% of your days` : `Below ${100 - rank}% of your days`)
       : shown >= 70 ? 'Ready to train'
       : shown >= 40 ? 'On track'
       : shown >= 20 ? 'Ease into it'
@@ -22378,8 +22406,11 @@ async function generateRecommendations(){
   if(scoreHidden){
     reduceSignals.push('Blinded day — readiness signals are held until you log');
   } else if(srResult && srResult.available){
-    if(srResult.shown < 20) reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`);
-    else if(srResult.shown < 40) reduceSignals.push(`Readiness ${srResult.shown} — below your usual`);
+    // Rank for the threshold, score for the number shown — the sentence names both, and
+    // mixing them was what made "Readiness 12 — bottom fifth" read as a score of twelve.
+    const rank = srResult.percentile;
+    if(rank != null && rank < 20) reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`);
+    else if(rank != null && rank < 40) reduceSignals.push(`Readiness ${srResult.shown} — below your usual`);
     if(srResult.gateReason) reduceSignals.push(srResult.gateReason);
   } else {
     if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
@@ -22402,7 +22433,8 @@ async function generateRecommendations(){
   if(scoreHidden){
     // nothing: an "above typical" on a blinded morning is the same leak wearing a hat
   } else if(srResult && srResult.available){
-    if(srResult.shown >= 70 && !srResult.gateReason) addSignals.push(`Readiness ${srResult.shown} — top third of your own days`);
+    if(srResult.percentile != null && srResult.percentile >= 70 && !srResult.gateReason)
+      addSignals.push(`Readiness ${srResult.shown} — top third of your own days`);
   } else {
     if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh) addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`);
     if(capacityLabel === 'above typical') addSignals.push('Predicted Capacity: above typical');
