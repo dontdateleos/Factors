@@ -6699,7 +6699,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.199';
+const APP_VERSION = '2026.08.31.200';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10873,7 +10873,15 @@ const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const container = document.getElementById('availableDaysCheckboxes');
   WEEKDAY_NAMES.forEach(day=>{
     const label = document.createElement('label');
-    label.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:var(--fs-sm);';
+    // 44px tall. Every other checkbox on the tab wraps a full-width label, so the row is the
+    // target and the 13px box is only the marker — 356 by 37 and up. These seven sit in a
+    // horizontal row, so the label shrank to the width of the word and the target came out at
+    // 46 by 19: the smallest control on the tab, and the one that decides which days the
+    // generator is allowed to use. The app has already ruled on this number — the mobility
+    // stepper was rebuilt because its targets were "28px square, well under the 44px
+    // guideline, on a screen used with sweaty hands". This is the same hands.
+    label.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:4px;'
+      + ' font-size:var(--fs-sm); min-height:44px; cursor:pointer;';
     label.innerHTML = `<input type="checkbox" class="avail-day" value="${day}" style="width:auto;"> ${day}`;
     container.appendChild(label);
   });
