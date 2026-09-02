@@ -5556,6 +5556,7 @@ const UI_ANIM = {
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:320 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   rungFill:     { on:true, note:'Ticking a rung fills the ones under it in order rather than all at once', ms:170, stagger:42 },
+  landsWhereSent:{ on:true, note:'A section a card sent you to draws its own rule down as you arrive', ms:520 },
   streakBurst:  { on:true, note:'The mark throws confetti the first time you log on a new day', ms:1100 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -5761,6 +5762,26 @@ function tickLevel(row){
   const num = row.querySelector('.mob-check-num') || row;
   uiPlay(num, [{ transform:'scale(1)' }, { transform:'scale(1.35)', offset:0.4 }, { transform:'scale(1)' }],
     { duration: UI_ANIM.tickLevel.ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' });
+}
+
+/* Accepting a card can hand you to a section on another tab, and the retest prompt now hands
+   you to the one at the very bottom of Body — past two skill ladders and the injuries. You
+   arrive somewhere you did not scroll to, with no sign of which of the four things on screen
+   was meant. A rule drawn down the section's own left edge, once, answers that before you
+   have to work it out: this one, the one that was talking to you. */
+function landsWhereSent(el){
+  if(!uiAnim('landsWhereSent') || !el) return;
+  const rule = document.createElement('div');
+  rule.setAttribute('aria-hidden', 'true');
+  rule.style.cssText = 'position:absolute; left:0; top:0; width:2px; background:var(--band, var(--accent));'
+    + ' height:0; pointer-events:none; border-radius:1px;';
+  const prevPos = getComputedStyle(el).position;
+  if(prevPos === 'static') el.style.position = 'relative';
+  el.appendChild(rule);
+  const a = uiPlay(rule, [{ height:'0%', opacity:1 }, { height:'100%', opacity:1, offset:0.75 }, { height:'100%', opacity:0 }],
+    { duration: UI_ANIM.landsWhereSent.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)' });
+  const clean = ()=>{ rule.remove(); if(prevPos === 'static') el.style.position = ''; };
+  if(a && a.finished) a.finished.then(clean, clean); else setTimeout(clean, UI_ANIM.landsWhereSent.ms + 60);
 }
 
 /* "Tick the last one you can do" is a claim about every rung beneath it as well, and the
@@ -6722,7 +6743,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.203';
+const APP_VERSION = '2026.08.31.204';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -14614,7 +14635,12 @@ async function logRecDecision(type, meta, decision, card, title){
       mobilityAssessmentAutoOpen = true;
       activateTab('injuries');
       const head = document.getElementById('mobilityAssessmentToggleHeader');
-      if(head) setTimeout(()=>head.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+      if(head) setTimeout(()=>{
+        head.scrollIntoView({ behavior:'smooth', block:'start' });
+        // After the scroll has started, so the rule draws on a section that is arriving
+        // rather than on one still off the bottom of the screen.
+        setTimeout(()=> landsWhereSent(head.closest('.group')), 320);
+      }, 60);
     }
     if(type==='deload_suggest' && decision==='accepted'){
       const weekDates = getWeekDates();
