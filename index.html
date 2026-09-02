@@ -6793,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.207';
+const APP_VERSION = '2026.08.31.208';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -24465,7 +24465,32 @@ async function generateMobility(){
   const mobilityContainer = document.getElementById('mobilityCards');
   mobilityContainer.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
   const { ordered, injuryByArea, loadFlagged, runFlagged, ranToday, alreadyStretched, pinnedAreas, mustKeep } = await computePostExerciseAreas();
-  const remaining = ordered.filter(a=> !alreadyStretched[a]);   // skip areas already addressed today — don't spend budget on them
+  let remaining = ordered.filter(a=> !alreadyStretched[a]);   // skip areas already addressed today — don't spend budget on them
+
+  /* This function's own first line calls what it builds post-exercise stretching, and on a
+     rest day there was no exercise. It hides itself when the day IS a mobility session and
+     never asked about the day being nothing at all — the same gap the recommendation cards
+     had, with the same helper sitting unused beside it.
+     Ingram (2024), the meta-analysis the weekly target comes from, is the reason not to
+     just drop the section outright: across 189 studies weekly session FREQUENCY did not
+     moderate ROM gains, and there was "no additional benefit beyond 4 min per session or
+     10 min per week". Both halves of that matter here. Above the weekly target an extra
+     rest-day dose buys nothing, so the area goes. BELOW it the plateau argument does not
+     apply at all — the volume is still productive, and on a strength week the Today
+     warm-up and cool-down are the only stretching there is, so dropping them would take
+     the week further from a target it is already short of rather than closer to it.
+     Injury-flagged and pinned areas stay regardless: that work is rehab, not padding. */
+  if(remaining.length){
+    let restToday = false;
+    try{ restToday = !!(await isRestDayComing(0)).isRest; } catch(e){}
+    if(restToday){
+      let weekLedger = {};
+      try{ weekLedger = await loadWeekStretchLedger(); } catch(e){}
+      remaining = remaining.filter(a =>
+        (pinnedAreas && pinnedAreas.has(a)) || injuryByArea[a] ||
+        (weekLedger[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
+    }
+  }
   if(remaining.length === 0){
     mobilitySection.style.display = 'none';
     return;
