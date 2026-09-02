@@ -1474,6 +1474,9 @@
   .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
+  .drill-bar{ display:block; height:3px; background:rgba(251,250,246,0.14); margin-top:5px; }
+  .drill-bar i{ display:block; height:100%; background:var(--band, var(--accent));
+    width:0; transition:width 260ms cubic-bezier(.3,.9,.3,1); }
   /* One slow exhale, once, when a section you have not refreshed in a long time comes on
      screen. Not a badge and not a dot — those stay, and this is gone in a second. */
   @keyframes staleBreath{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.42; transform:scale(0.975); } }
@@ -5331,6 +5334,7 @@ function eyeNoteTabForWander(){
 const UI_ANIM = {
   traceDraw:      { on:true, note:'The trend chart draws its line, and the band fills in behind it', ms:1000 },
   strikeThrough:  { on:true, note:'A drill you tick is struck through rather than switching to done', ms:300 },
+  sessionProgress:{ on:true, note:'The drill count carries a bar that fills as you cross them off' },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
   overscroll:     { on:true, note:'The page stretches at the top and springs back' },
   countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
@@ -24141,7 +24145,11 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     const n = drillsDone(listKey).size;
     // The count goes beside the estimate rather than replacing it: how long it takes and how
     // far through you are are both worth knowing, and neither is the other.
-    estEl.innerHTML = estHtml + (tickable.length ? ` <span class="drill-count">${n}/${tickable.length}</span>` : '');
+    // The bar under it turns the fraction into a distance — how much is left, without
+    // reading, which is the point when you are on the floor mid-session.
+    const bar = uiAnim('sessionProgress') && tickable.length
+      ? `<span class="drill-bar"><i style="width:${Math.round(n / tickable.length * 100)}%"></i></span>` : '';
+    estEl.innerHTML = estHtml + (tickable.length ? ` <span class="drill-count">${n}/${tickable.length}</span>` : '') + bar;
   };
   host.querySelectorAll('.drill').forEach(btn=>{
     btn.addEventListener('click', ()=>{
