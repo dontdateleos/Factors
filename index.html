@@ -2366,9 +2366,16 @@
     </div>
 
     <div class="group">
-      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, and how much it should change your training</div></div>
+      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, how long it lasts, and what it changes</div></div>
       <div class="fields">
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity fades on its own at a rate the injury type sets. While it's active the generator eases the sessions that load it, and the warm-up targets it first.</div>
+        <!-- Says what the two fields actually do, which the previous wording did not. It read
+             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
+             load it", which put severity in charge of the session. It never was: past the
+             threshold that keeps an injury on the board, the strength plan branches purely on
+             irritability, and a 9 you called low-irritability produced a week identical to no
+             injury at all. Severity's real job is duration — measured on the model itself, a
+             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity is how long it lasts, not how much it changes your training: it decays at a rate the type sets and stops counting at 3, so a general 7 runs about two and a half weeks and a 4 about six days &mdash; tendinopathy longer, a sprain or strain shorter. How much it flares under load is what changes the session. High swaps the movement out, moderate takes a set off it, low leaves the plan alone. The warm-up targets the area either way, and running scales back on severity.</div>
       </div>
       <!-- The list belongs to the section that promises it. It used to render at the bottom
            of "Log new injury", below the submit button and outside any numbered band, so the
@@ -2387,7 +2394,7 @@
 
 
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Log new injury</div><div class="group-sub">add one and the generator starts easing around it</div></div>
+      <div class="group-head"><div class="group-title">Log new injury</div><div class="group-sub">add one and the warm-up and the week start working around it</div></div>
       <div class="fields" id="injuryForm">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
         <div class="field-row"><span class="field-label">Type</span>
@@ -6668,7 +6675,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.188';
+const APP_VERSION = '2026.08.31.189';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
