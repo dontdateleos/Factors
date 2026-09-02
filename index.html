@@ -6323,7 +6323,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.144';
+const APP_VERSION = '2026.08.31.145';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13821,17 +13821,21 @@ function buildRecCard(type, title, signals, confidence, meta){
   return card;
 }
 
-// Shut when the day starts and remembered for the rest of it, so opening the stack once
-// does not mean re-opening it after every render.
-let cardStackOpen = false;
-try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:open') || 'null')?.date === todayStr; } catch(e){}
+// Open when the day starts. A suggestion you have to go looking for is one you will not
+// read, and the sentence inside the card is the whole point of the engine — the closed row
+// was only ever a handle. Shutting it is remembered for the rest of the day, so closing it
+// once does not mean closing it after every render.
+// The key changed with the default: a stale cardStack:open from earlier today would have
+// been read as "they chose to open it", which is now not a choice anyone makes.
+let cardStackOpen = true;
+try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:closed') || 'null')?.date !== todayStr; } catch(e){}
 (function wireCardStackHead(){
   const head = document.getElementById('cardStackHead');
   if(!head) return;
   const toggle = e=>{
     if(e.target.closest('#undoDecisionBtn')) return;   // Undo is its own button, not the handle
     cardStackOpen = !cardStackOpen;
-    try{ localStorage.setItem('cardStack:open', JSON.stringify(cardStackOpen ? { date: todayStr } : null)); } catch(e2){}
+    try{ localStorage.setItem('cardStack:closed', JSON.stringify(cardStackOpen ? null : { date: todayStr })); } catch(e2){}
     showNextCard();
   };
   head.addEventListener('click', toggle);
