@@ -6693,7 +6693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.194';
+const APP_VERSION = '2026.08.31.195';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11562,13 +11562,19 @@ document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', a
     const saved = await saveMobilityAssessment(scores);
     if(!saved) throw new Error('save failed');
     result.textContent = 'Assessment saved — generated mobility work will now prioritize your lowest-scoring domains.';
-    result.style.color = 'var(--text)';
+    // Cleared, not set. Every live result note in the app used to paint itself
+    // var(--text) — the ink for LIGHT surfaces — onto a dark panel, which measured between
+    // 1.00 and 1.23 to 1 at all nine of them. The stylesheet was already right: with no
+    // inline colour these inherit the panel's grey at 9.3 to 11.5 to 1. So the fix is to
+    // stop overriding it. Clearing rather than deleting the line matters in one place —
+    // the regression suite paints itself --good or --bad, and this is what resets it.
+    result.style.color = '';
     showToast('Assessment saved');
     flashConfirm(document.getElementById('saveMobilityAssessmentBtn'));
     await renderMobilityAssessment(true);
   } catch(e){
     result.textContent = 'Save failed — try again.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   }
 });
 
@@ -16601,14 +16607,14 @@ async function saveGoalsFromForm(resultElId){
     result.textContent = autoSetCount > 0
       ? `Goals saved. ${autoSetCount} target${autoSetCount>1?'s':''} auto-set from your recent training — check the goal below for details.`
       : 'Goals saved.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast('Goals saved');
     flashConfirm(document.getElementById(resultElId === 'saveFunctionResult' ? 'saveFunctionBtn' : 'saveGoalsBtn'));
     await refreshGoalDependents();
     await renderMobilityProgression();
     await renderExerciseProgression();
   } catch(e){
-    result.textContent = 'Save failed — try again.'; result.style.color = 'var(--text)';
+    result.textContent = 'Save failed — try again.'; result.style.color = '';
   }
 }
 document.getElementById('saveGoalsBtn').addEventListener('click', ()=> saveGoalsFromForm('saveGoalsResult'));
@@ -20796,7 +20802,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     if(first.result.error){
       const desc = describeWeekResult(first.result, 1, false);
       result.innerHTML = faultLine(desc.code || 'GENERATE HALTED \u00b7 SEE BELOW', desc.error);
-      result.style.color = 'var(--text)';
+      result.style.color = '';
       return;
     }
 
@@ -20804,7 +20810,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const validLines = lines.filter(l => l.text);
     if(validLines.length===0){
       result.innerHTML = faultLine('NO EMPTY DAYS \u00b7 CLEAR ONE FIRST', 'Generate only fills days that are empty. Clear a day, or clear the week.');
-      result.style.color = 'var(--text)';
+      result.style.color = '';
       renderWeekGrid();
       return;
     }
@@ -20841,7 +20847,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
       msg += ` Est. ${parts.join(' · ')}. (Work/rest/warm-up timing from research-based defaults; set counts per exercise and running pace use your own logged history where available, category/type defaults otherwise.)`;
     }
     result.innerHTML = msg;
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     // The generated week persists but the reason for it didn't: this explanation only
     // existed in the DOM from the moment Generate was pressed, so any reload left the
     // section that explains the week blank while the week itself was still there.
@@ -20851,7 +20857,7 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     dealPlanThroughWeek(afterFilled.filter(d => beforeFilled.indexOf(d) < 0));
   } catch(e){
     result.innerHTML = faultLine('GENERATE FAILED \u00b7 TRY AGAIN', 'Something threw partway through. Nothing was written.');
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   } finally {
     eyesDone();
   }
@@ -24575,11 +24581,11 @@ document.getElementById('seedTestScenarioBtn').addEventListener('click', async (
   try{
     const count = await seedTestScenario(scenario);
     result.textContent = `Seeded ${count} record(s). Reload Today/Warm-up/Trends to see the effect.`;
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast('Test scenario seeded');
   } catch(e){
     result.textContent = 'Seeding failed — try again.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   }
 });
 
@@ -24603,12 +24609,12 @@ document.getElementById('clearAllDataBtn').addEventListener('click', async (e)=>
       try{ await window.storage.delete(key); count++; } catch(e){}
     }
     result.textContent = `Deleted ${count} record(s). Reloading...`;
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast('All data cleared');
     setTimeout(()=> location.reload(), 1200);
   } catch(e){
     result.textContent = 'Clear failed — try again.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   }
 });
 
@@ -24918,7 +24924,7 @@ document.getElementById('runScenarioSuiteBtn').addEventListener('click', async (
     showToast(`Regression suite: ${passed}/${results.length} passed`);
   } catch(e){
     progress.textContent = 'Suite failed to run — see console.';
-    progress.style.color = 'var(--text)';
+    progress.style.color = '';
     console.error(e);
   } finally {
     btn.disabled = false; btn.textContent = 'Run regression suite';
@@ -24930,11 +24936,11 @@ document.getElementById('clearTestDataBtn').addEventListener('click', async ()=>
   try{
     const count = await clearTestData();
     result.textContent = count ? `Cleared ${count} test record(s).` : 'No test data was seeded.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast('Test data cleared');
   } catch(e){
     result.textContent = 'Clear failed — try again.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   }
 });
 
@@ -24974,7 +24980,7 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     output.value = json;
     output.select();
     result.textContent = `Exported ${count} of ${keys.length} key(s). Copy takes it to the clipboard in one tap — paste into Bulk Import on another copy of this app.`;
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     // Dated so "Backup & Restore" can say when you last did this. It said nothing at all
     // before, which is the one fact that decides whether you need to do it again.
     try{ await window.storage.set('settings:lastExport', JSON.stringify({ at: Date.now() })); } catch(e){}
@@ -24989,7 +24995,7 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     URL.revokeObjectURL(url);
   } catch(e){
     result.textContent = 'Export failed — storage may not be reachable right now.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
   }
 });
 
@@ -25002,12 +25008,12 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
     data = JSON.parse(input.value);
   } catch(e){
     result.textContent = 'Invalid JSON — check the pasted content and try again.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     return;
   }
   if(typeof data !== 'object' || Array.isArray(data) || data === null){
     result.textContent = 'Expected an object of key → value pairs.';
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     return;
   }
 
@@ -25046,12 +25052,12 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
   if(failedKeys.length === 0){
     result.textContent = `Imported ${succeeded} of ${keys.length} key(s) successfully.`
       + (snapKey ? ` Everything that was here first was saved as ${snapKey} — paste that record's "data" back through this box to undo it.` : '');
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast(`Imported ${succeeded} records`);
     input.value = '';
   } else {
     result.textContent = `Imported ${succeeded} of ${keys.length}. Failed: ${failedKeys.join(', ')} — storage may still be down; try again later, the rest of your pasted data is still in the box above.`;
-    result.style.color = 'var(--text)';
+    result.style.color = '';
     showToast('Some records failed to import', true);
   }
 
