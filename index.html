@@ -2371,6 +2371,12 @@
         <button type="button" class="head-action" id="mobilityAssessmentStartBtn" aria-expanded="false" aria-controls="mobilityAssessmentBody">Take the test</button>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
+        <!-- The one condition worth stating on a five-rung self-rating. The rungs are far
+             too coarse for most of the measurement protocol to matter here — ankles steps
+             5cm at the toe between rungs, against about 0.5cm of drift from time of day —
+             so a panel of conditions would be friction bought with nothing. The spine half
+             is not measurement hygiene at all: it is the reason not to bend first thing. -->
+        <div class="score-note">Rate these at roughly the same time of day each time &mdash; and not in the first two hours after waking if you&rsquo;re rating your spine. Most of the day&rsquo;s disc-height loss happens in the first hour up, and forward bending early costs more than it gives.</div>
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note note-live"></div>
@@ -6687,7 +6693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.192';
+const APP_VERSION = '2026.08.31.193';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
