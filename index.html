@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.160';
+const APP_VERSION = '2026.08.31.161';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22312,7 +22312,16 @@ async function generateRecommendations(){
   const reduceSignals = [];
   // Readiness speaks first when it is available; the older scores stay as the fallback for
   // anyone whose baseline is not built yet.
-  if(srResult && srResult.available){
+  /* On a blinded morning none of the score-derived signals may appear. The headline hides
+     the number and then the card underneath printed "Adaptive score 100" in full, which
+     gave the whole thing away — and a worded version ("below your usual") gives away the
+     same thing, because it is the direction, not the digits, that changes what you do.
+     Everything else the card knows — load ratio, a hard run in the last 48h, an open injury
+     — is not derived from this morning's reading and still speaks. */
+  const scoreHidden = !!(srResult && srResult.held);
+  if(scoreHidden){
+    reduceSignals.push('Blinded day — readiness signals are held until you log');
+  } else if(srResult && srResult.available){
     if(srResult.shown < 20) reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`);
     else if(srResult.shown < 40) reduceSignals.push(`Readiness ${srResult.shown} — below your usual`);
     if(srResult.gateReason) reduceSignals.push(srResult.gateReason);
@@ -22333,8 +22342,10 @@ async function generateRecommendations(){
   if(recentHardRun) reduceSignals.push('Hard/quality run in the last 48h — contributing recovery load independent of strength-specific volume');
 
   const addSignals = [];
-  if(!(srResult && srResult.available) && targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
-  if(srResult && srResult.available){
+  if(!scoreHidden && !(srResult && srResult.available) && targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
+  if(scoreHidden){
+    // nothing: an "above typical" on a blinded morning is the same leak wearing a hat
+  } else if(srResult && srResult.available){
     if(srResult.shown >= 70 && !srResult.gateReason) addSignals.push(`Readiness ${srResult.shown} — top third of your own days`);
   } else {
     if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh) addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`);
