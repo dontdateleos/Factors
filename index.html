@@ -3282,6 +3282,7 @@ const EYE_ANIM = {
   refusesHeld:    { on:true, note:'Starts the glance down at a held score, then turns away instead' },
   weekArc:        { on:true, note:'Fresher at the start of a training week, worn by the end of it' },
   dilate:         { on:true, note:'The eye opens up a little in the dark' },
+  wink:           { on:true, note:'One eye, rarely, when a logged lift beats your best' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
@@ -3971,6 +3972,21 @@ function dilateFactor(){
   return 1 + dark * 0.16;
 }
 
+/* A WINK, ON A PR ONLY. There is a comment at blinkOnce explaining why the idle blink is
+   never one-eyed: a wink is a thing you do AT someone, and that is too pointed for something
+   that blinks all day. Which is exactly why it works here — a lift that beats your best is
+   the one moment the mark should be pointed. Nowhere else, and never on the idle. */
+function eyeWink(){
+  if(!anim('wink') || eyeMotionOff()) return;
+  const el = eyeSiteEl(); if(!el) return;
+  const spans = el.querySelectorAll('.eyes span');
+  if(spans.length < 2) return;
+  const one = spans[0];
+  one.style.transition = 'transform 120ms cubic-bezier(.3,.9,.3,1)';
+  one.style.transform = 'scaleY(0.06)';
+  setTimeout(()=>{ one.style.transform = ''; setTimeout(()=>{ one.style.transition = ''; }, 240); }, 210);
+}
+
 /* 2. IT LOOKS AWAY WHILE YOU RATE YOURSELF. The morning face is the one input the app must
    not lead — it is the reason a blinded day exists at all. And the mark sat watching you
    choose. It shuts while the row is open and opens again once you have answered.
@@ -4638,6 +4654,7 @@ window.addEventListener('scroll', ()=>{
 // the best estimated 1RM for the same lift in everything logged before today.
 async function eyeCheckPR(session){
   if(!anim('widenOnPR') || !session || session.type !== 'strength' || !session.exercises) return false;
+  setTimeout(eyeWink, 520);   // after the widen, so surprise reads before the wink about it
   const best = {};
   for(const e of session.exercises){
     if(!e.name || !e.weight || !e.reps) continue;
