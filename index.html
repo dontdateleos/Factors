@@ -150,7 +150,13 @@
     --gutter:22px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
+  /* The document's default ink. It was --text, from when the page was cream — which meant
+     that anything rendered without a colour of its own inherited near-black onto a dark
+     ground and simply did not appear. Every element that genuinely wants dark ink sits on
+     a light fill and pins its own colour, so flipping the default fixes what was invisible
+     and changes nothing that was not: measured across all six tabs and all three Data
+     views, 1 element fixed, 0 broken. The default should be the ink the page mostly is. */
+  body{ margin:0; background:var(--bg); color:var(--bg); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
   /* The 90px the body used to carry lives here now: it is the last element on every tab,
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
@@ -6339,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.156';
+const APP_VERSION = '2026.08.31.157';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
