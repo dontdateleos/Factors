@@ -2815,6 +2815,8 @@
         </label>
         <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. One training day a week, picked at random and locked in before it arrives, the number is held back until the session is logged — which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
         <div class="score-note" id="blindingStats" style="margin-top:8px;"></div>
+        <div id="placeboEffect" style="margin-top:12px;"></div>
+        <div id="scoreValidity" style="margin-top:12px;"></div>
       </div>
     </div>
 
@@ -6345,7 +6347,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.163';
+const APP_VERSION = '2026.08.31.164';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8698,20 +8700,96 @@ async function renderBlindingStats(){
   let sessions = [];
   try{ sessions = await getAllTrainingSessions(); } catch(e){}
   const tagged = sessions.filter(s=>s.scoreBlinded != null);
-  if(tagged.length < 6){ el.textContent = tagged.length ? `${tagged.length} sessions tagged so far — a comparison needs a few more.` : ''; return; }
+  // The two readings below say their own "not yet" and have their own thresholds, so they
+  // are always drawn. Returning before them left a fresh account with two silent gaps where
+  // a promise about what is being measured should be.
   const mean = a => a.length ? a.reduce((x,y)=>x+y,0) / a.length : null;
   const rpeOf = g => mean(g.filter(s=>s.sessionRpe).map(s=>s.sessionRpe));
   const volOf = g => mean(g.filter(s=>s.totalVolume).map(s=>s.totalVolume));
   const blind = tagged.filter(s=>s.scoreBlinded), seen = tagged.filter(s=>!s.scoreBlinded);
-  if(blind.length < 3 || seen.length < 3){ el.textContent = `${blind.length} blinded, ${seen.length} seen — not enough on one side yet.`; return; }
+  const finish = ()=>{ renderPlaceboEffect(tagged); renderScoreValidity(tagged); renderLearnedWeights(); };
+  if(tagged.length < 6){ el.textContent = tagged.length ? `${tagged.length} sessions tagged so far — a comparison needs a few more.` : ''; return finish(); }
+  if(blind.length < 3 || seen.length < 3){ el.textContent = `${blind.length} blinded, ${seen.length} seen — not enough on one side yet.`; return finish(); }
   const bits = [`${blind.length} blinded vs ${seen.length} seen.`];
   const bv = volOf(blind), sv = volOf(seen);
   if(bv && sv) bits.push(`Volume ${Math.round(bv)} vs ${Math.round(sv)} kg.`);
   const br = rpeOf(blind), sr2 = rpeOf(seen);
   if(br && sr2) bits.push(`Effort ${br.toFixed(1)} vs ${sr2.toFixed(1)}.`);
-  bits.push('A gap between them is the score changing your behaviour rather than describing it.');
+  bits.push('A raw gap between them is not yet an effect — blinded days are not dealt out evenly across good and bad mornings, so the two columns are not comparing like with like. The two readings below are.');
   el.textContent = bits.join(' ');
-  renderLearnedWeights();
+  finish();
+}
+
+/* YOUR OWN PLACEBO EFFECT.
+
+   The blunt blinded-vs-seen average above is confounded and says so: a morning you happened
+   to be blinded on is not a morning matched to the one you were not. The question that
+   actually means something is conditional — WHEN THE SCORE WAS LOW, did seeing it cost you
+   anything? Same reading, one day you were shown it and one day you were not.
+
+   So sessions are banded by the score they were logged against, using the person's own
+   tertiles rather than fixed cutoffs, and blinded is compared with seen inside each band.
+   The low band is the one that matters: a deflated number is the documented harm, and this
+   is the only place anyone measures their own. */
+const PLACEBO_MIN_PER_CELL = 4;
+function bandOf(score, lo, hi){ return score < lo ? 'low' : score >= hi ? 'high' : 'mid'; }
+async function renderPlaceboEffect(tagged){
+  const el = document.getElementById('placeboEffect');
+  if(!el) return;
+  const scored = tagged.filter(s=>s.morningScore != null && s.totalVolume);
+  if(scored.length < PLACEBO_MIN_PER_CELL * 2){
+    el.innerHTML = `<div class="score-note">Your placebo effect: <b>not yet</b>. It needs ${PLACEBO_MIN_PER_CELL} blinded and ${PLACEBO_MIN_PER_CELL} seen sessions at a similar morning score, and there are ${scored.length} sessions carrying a score so far. Sessions logged before this was added do not carry one.</div>`;
+    return;
+  }
+  const vals = scored.map(s=>s.morningScore).sort((a,b)=>a-b);
+  const lo = vals[Math.floor(vals.length / 3)];
+  const hi = vals[Math.floor(vals.length * 2 / 3)];
+  const rows = [];
+  for(const band of ['low','mid','high']){
+    const inBand = scored.filter(s=>bandOf(s.morningScore, lo, hi) === band);
+    const bl = inBand.filter(s=>s.scoreBlinded), sn = inBand.filter(s=>!s.scoreBlinded);
+    if(bl.length < PLACEBO_MIN_PER_CELL || sn.length < PLACEBO_MIN_PER_CELL){
+      rows.push(`<div class="log-entry"><span>${band} mornings</span><span>${bl.length} blinded / ${sn.length} seen — needs ${PLACEBO_MIN_PER_CELL} of each</span></div>`);
+      continue;
+    }
+    const bm = mean(bl.map(s=>s.totalVolume)), sm = mean(sn.map(s=>s.totalVolume));
+    const pct = Math.round((sm - bm) / bm * 100);
+    // Seen minus blinded: a negative number is volume the sight of the score cost you.
+    const word = pct === 0 ? 'no difference'
+      : pct < 0 ? `<b>${Math.abs(pct)}% less</b> when you saw it`
+                : `<b>${pct}% more</b> when you saw it`;
+    rows.push(`<div class="log-entry"><span>${band} mornings</span><span>${word} (${bl.length}v${sn.length})</span></div>`);
+  }
+  el.innerHTML = `<div class="score-note" style="margin-bottom:6px;">Your placebo effect — the same morning reading, seen or hidden.</div>${rows.join('')}`
+    + `<div class="score-note" style="margin-top:6px;">On low mornings this is the number no wearable company has ever published about its own score.</div>`;
+}
+
+/* DOES THE SCORE PREDICT ANYTHING.
+
+   The prior question, and the one the app has never asked itself. The weights learn from
+   blinded days, but nothing checks whether the thing they are learning has any signal in it
+   at all. On a blinded day the score cannot have influenced the session, so a correlation
+   between the two is the only honest estimate of whether the morning reading tells you
+   anything about the day. If it is flat, the app should say so in its own settings. */
+const VALIDITY_MIN = 8;
+async function renderScoreValidity(tagged){
+  const el = document.getElementById('scoreValidity');
+  if(!el) return;
+  const usable = tagged.filter(s=>s.scoreBlinded && s.morningScore != null && s.sessionRpe && s.totalVolume);
+  if(usable.length < VALIDITY_MIN){
+    el.innerHTML = `<div class="score-note">Does the score predict your day? <b>Not enough honest days yet</b> — ${usable.length} of ${VALIDITY_MIN}. Only blinded sessions can answer this, so it is roughly ${VALIDITY_MIN} weeks from a standing start.</div>`;
+    return;
+  }
+  const xs = usable.map(s=>s.morningScore);
+  // Volume per unit of effort: what the session got done for what it cost. A score that
+  // means anything should say something about this before the day starts.
+  const ys = usable.map(s=>s.totalVolume / s.sessionRpe);
+  const r = pearson(xs, ys);
+  const pctVar = Math.round(r * r * 100);
+  const verdict = Math.abs(r) < 0.2
+    ? `On the days it could not have influenced you, the score explains <b>almost none</b> of how your session actually went (r=${r.toFixed(2)}). That is worth knowing, and it is not what the score claims.`
+    : `On the days it could not have influenced you, the score explains <b>${pctVar}%</b> of the variation in what your session got done per unit of effort (r=${r.toFixed(2)}).`;
+  el.innerHTML = `<div class="score-note">${verdict} From ${usable.length} blinded sessions. This is the only version of this sentence anyone can currently support — every other readiness score is checked, if at all, against days it was visible on.</div>`;
 }
 
 /* What the engine has actually concluded, shown rather than applied silently. The whole
@@ -10370,9 +10448,11 @@ async function renderSettingsSummaries(){
     put('weightsSummary', L ? `learned from ${L.n} session${L.n===1?'':'s'}` : 'starting weights');
   } catch(e){ put('weightsSummary', 'starting weights'); }
   try{
-    const blindOn = (await window.storage.get('settings:blinding')).value === 'true';
-    put('blindingSummary', blindOn ? 'on' : 'off');
-  } catch(e){ put('blindingSummary', 'off'); }
+    // On unless explicitly turned off, and the throw on a missing key is the never-touched
+    // case — the same rule the toggle itself uses. This had its own copy of the old one and
+    // was relabelling a running feature "off" a moment after the toggle said otherwise.
+    put('blindingSummary', (await window.storage.get('settings:blinding')).value !== 'false' ? 'on' : 'off');
+  } catch(e){ put('blindingSummary', 'on'); }
   try{
     const calm = document.getElementById('eyeCalmToggle');
     put('calmSummary', calm && calm.checked ? 'calm' : 'full');
@@ -12855,6 +12935,17 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       // session logged on a blinded day is the only kind whose outcome the prediction cannot
       // have influenced.
       const wasBlind = await isBlindDay(date);
+      // The score this morning actually carried, recorded with the session rather than
+      // recomputed later. Two reasons: the sixty-day window that produces it only reaches
+      // back sixty days, so a year of sessions cannot be scored retrospectively at all; and
+      // the weights move as the engine learns, which would have last spring's session judged
+      // against this spring's model. Held or not, the number existed — writing it down is
+      // what lets a blinded day be compared with a seen one at the same reading.
+      let morningScore = null;
+      try{
+        const sr = await computeSystemicReadiness(date);
+        if(sr && sr.available) morningScore = sr.shown;
+      } catch(e){}
       const session = {
         // The same session however many times you go back into it: the key and the timestamp
         // are the ones it was first written with, so a correction corrects rather than
@@ -12862,7 +12953,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         date, slot, type:'strength',
         timestamp: blockEditLoggedTs || Date.now(),
         sessionRpe: isNaN(rpe) ? null : rpe,
-        scoreBlinded: wasBlind,
+        scoreBlinded: wasBlind, morningScore,
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
         notes: (document.getElementById('weekSessionNotes') || {}).value || '',
         exercises, totalVolume
