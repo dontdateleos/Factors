@@ -6445,6 +6445,19 @@ function localDateStr(date = new Date()){
   const d = String(date.getDate()).padStart(2,'0');
   return `${y}-${m}-${d}`;
 }
+// The mirror of localDateStr: a 'YYYY-MM-DD' key back to the local midnight it names.
+// `new Date('2026-09-02')` is UTC midnight by spec, so subtracting it from Date.now() —
+// a local instant — measures across the timezone offset rather than across real elapsed
+// time. West of UTC that reads a little early, which passes as ordinary decay. East of it
+// the elapsed time goes NEGATIVE, and something recorded this morning reads as not having
+// happened yet. Anything that parses a stored date key and then compares it to now should
+// come through here.
+function localDateFrom(dateStr){
+  if(dateStr instanceof Date) return dateStr;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || ''));
+  if(!m) return new Date(dateStr);
+  return new Date(+m[1], +m[2] - 1, +m[3]);
+}
 const todayStr = localDateStr();
 // The app is a home-screen PWA that can sit open across midnight, so the header date is
 // re-read on every wake rather than written once at load. todayStr is not re-derived: a
@@ -6651,7 +6664,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.186';
+const APP_VERSION = '2026.08.31.187';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13858,13 +13871,20 @@ async function renderSystemConfidence(){
 })();
 
 /* ---------- INJURIES ---------- */
+// Onset is a date key off a date input, and it is measured against Date.now(), so it has to
+// be read as LOCAL midnight — see localDateFrom. Parsed as UTC it ran the decay across the
+// timezone offset: ten hours out in Sydney, enough that an injury logged that morning read
+// 7.03 for an initial of 7, above a value a decay curve cannot exceed, printed on the card
+// next to the words "initial 7". The seven-day trace inherited the same sign error and
+// dropped its most recent bar, which — with three bars needed before it draws at all — kept
+// the trace blank a day longer than it should have been.
 function severityNow(initial, onsetDate, halfLife){
-  const days = (Date.now() - new Date(onsetDate).getTime()) / (1000*60*60*24);
+  const days = (Date.now() - localDateFrom(onsetDate).getTime()) / (1000*60*60*24);
   const current = initial * Math.pow(0.5, days/halfLife);
   return Math.max(0, current);
 }
 function severityAtDaysAgo(initial, onsetDate, halfLife, daysAgo){
-  const days = ((Date.now() - daysAgo*86400000) - new Date(onsetDate).getTime()) / (1000*60*60*24);
+  const days = ((Date.now() - daysAgo*86400000) - localDateFrom(onsetDate).getTime()) / (1000*60*60*24);
   if(days < 0) return null; // injury didn't exist yet at that point
   return Math.max(0, initial * Math.pow(0.5, days/halfLife));
 }
