@@ -6627,7 +6627,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.179';
+const APP_VERSION = '2026.08.31.180';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7981,6 +7981,39 @@ async function buildSignalWindowUncached(asOfDate, days){
     return e[hrvRec.source] ?? null;
   });
   const rhrSeries = pick(e=>e.restingHR);
+  /* WHAT YOU DID TO YOURSELF, which the score had no way of knowing.
+
+     Eight channels of sleep, autonomic signal and self-report, and not one of them could
+     tell a rest day from the morning after a brutal session. That is the classic missing
+     term in a readiness model: the recovery half was measured in detail and the thing being
+     recovered from was not measured at all.
+
+     Yesterday's load, not today's — today's session has not happened when the score is read,
+     and a day is scored on what it is carrying into it. Decayed over three days because the
+     cost of a hard session does not land entirely the next morning: 60% of yesterday, 30% of
+     the day before, 10% of the one before that.
+
+     Strength is tonnage; a run is its distance at roughly 90kg-equivalent per kilometre, so
+     the two land on one scale rather than the runs reading as rest. */
+  const loadByDate = {};
+  try{
+    for(const sn of await getAllTrainingSessions()){
+      if(!sn || !sn.date) continue;
+      const vol = sn.type === 'run'
+        ? (sn.distanceKm || 0) * 90
+        : (sn.totalVolume || 0);
+      if(vol > 0) loadByDate[sn.date] = (loadByDate[sn.date] || 0) + vol;
+    }
+  } catch(err){}
+  const SR_LOAD_DECAY = [0.6, 0.3, 0.1];
+  const loadSeries = dates.map((_, i)=>{
+    // A day with no history behind it in this window has no acute load to report, rather
+    // than a zero — zero is "you did nothing", which is a real and different reading.
+    if(i < SR_LOAD_DECAY.length) return null;
+    let acute = 0;
+    SR_LOAD_DECAY.forEach((k, back)=>{ acute += k * (loadByDate[dates[i - 1 - back]] || 0); });
+    return acute;
+  });
   // Wake time as minutes past midnight, unwrapped around the median so a 00:30 riser and a
   // 23:30 riser are not read as twenty-three hours apart.
   const wakeMin = pick(e=>{
@@ -8029,6 +8062,9 @@ async function buildSignalWindowUncached(asOfDate, days){
   const channels = {
     hrv:      normaliseChannel(hrvSeries, { log:true, baselineMask }),
     rhr:      normaliseChannel(rhrSeries, { twoSided:true, baselineMask }),
+    // Inverted: carrying more than your usual load into a morning is a reason to be less
+    // ready, and carrying less is a reason to be more.
+    load:     normaliseChannel(loadSeries, { invert:true, baselineMask }),
     sleep:    normaliseChannel(pick(e=>e.durationHrs), { baselineMask }),
     // Minutes awake in the night: more is worse, so the sign flips.
     wake:     normaliseChannel(pick(e=>e.wakeTimeOura ?? e.wakeTimeGarmin), { invert:true }),
@@ -9768,19 +9804,25 @@ function cnsWindowLine(cr){
    It is level with hrvTrend now: joint-first, not dominant. The stable autonomic signal and
    the one thing that knows about your life, weighted the same. */
 const SR_WEIGHTS = {
-  subjective:  0.200,  // Saw 2016 — highest sensitivity of any category, and the only channel
+  subjective:  0.180,  // Saw 2016 — highest sensitivity of any category, and the only channel
                        // that sees psychosocial load at all. Level with hrvTrend, not above it.
-  hrvTrend:    0.200,  // the stable autonomic signal, insensitive to single nights by design
-  rhr:         0.156,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  hrvTrend:    0.180,  // the stable autonomic signal, insensitive to single nights by design
+  rhr:         0.140,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  /* What you are carrying into the morning, decayed over the three days behind it. The score
+     had eight channels about recovery and none about the thing being recovered from, so a
+     rest day and the morning after a hard session read identically if you happened to sleep
+     the same. Ten per cent: enough to be felt, and below every physiological channel,
+     because it is an input to fatigue rather than a measurement of it. */
+  load:        0.100,
   // Duration and fragmentation together — the brief defines this component as duration
   // against personal need times an efficiency term, and minutes-awake is that term. It was
   // briefly a ninth component of its own, which pushed the weights to 1.05 and quietly
   // diluted every other one.
-  sleep:       0.133,  // acute and largely behavioural, so below the physiology
-  hrvAcute:    0.089,  // damped, so one catastrophic night registers without noise driving it
-  sleepDebt:   0.089,  // Van Dongen — accrues linearly, no adaptation
-  regularity:  0.056,  // Windred 2023 — predicts independently of duration, near-zero cost
-  illnessCh:   0.077   // respiratory rate and skin temperature, negative-only
+  sleep:       0.120,  // acute and largely behavioural, so below the physiology
+  hrvAcute:    0.080,  // damped, so one catastrophic night registers without noise driving it
+  sleepDebt:   0.080,  // Van Dongen — accrues linearly, no adaptation
+  regularity:  0.050,  // Windred 2023 — predicts independently of duration, near-zero cost
+  illnessCh:   0.070   // respiratory rate and skin temperature, negative-only
 };
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
@@ -9822,6 +9864,10 @@ function srComponentsAt(win, i, debtZ){
        ACUTE load. Reading it as a seven-day level throws away the property that earned it
        the heaviest weight in the model. */
     subjective: at(win.channels.subjective, 'zAcuteSeries'),
+    /* Acute, like the rating and for the same reason: this is a question about the last few
+       days, and an EWMA of it would sit on its own median and never say anything. The decay
+       across three days is already the smoothing. */
+    load: at(win.channels.load, 'zAcuteSeries'),
     // The guard does not merely discount a saturated HRV reading, it refuses to read it as
     // positive: high vagal tone with a heart rate that does not agree is the documented
     // overreaching signature, not freshness.
@@ -14598,6 +14644,10 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     setEyeScore(shown);
     const rank = srResult.percentile;
     label.textContent = srResult.gateReason ? 'Not a training read'
+      // The ends read badly as percentages — "Below 100% of your days" is a sentence nobody
+      // says — so they get words instead of a number.
+      : rank === 0   ? 'Lower than any day you have logged'
+      : rank === 100 ? 'Better than every day you have logged'
       : rank != null ? (rank >= 50 ? `Better than ${rank}% of your days` : `Below ${100 - rank}% of your days`)
       : shown >= 70 ? 'Ready to train'
       : shown >= 40 ? 'On track'
