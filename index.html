@@ -6693,7 +6693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.195';
+const APP_VERSION = '2026.08.31.196';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21490,15 +21490,28 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // deliberately held back, so a full week came out with something on all seven days.
     // Only take an empty day while more than one is left; otherwise ride along on a
     // training day's pm slot, which is already what happens when there are none.
-    const spendEmpty = remaining.length > 1 ? remaining[0] : null;
-    const mobDate = spendEmpty || placedDates[placedDates.length-1];
+    //
+    // Unless you have said no two-a-days, in which case riding along is not available and
+    // the held-back rest day is the lesser cost — this was the one writer of a pm slot
+    // with no multiSessionOk check at all, while the companion mobility and post-run
+    // writers either side of it both have one. With the setting off it put a second
+    // session on a training day every single week, and not rarely: the first Generate
+    // auto-creates a mobility skill goal for you, so the rider is live for everyone from
+    // their second Generate onwards whether or not they ever asked for a mobility goal.
+    const spendEmpty = (multiSessionOk ? remaining.length > 1 : remaining.length > 0)
+      ? remaining[0] : null;
+    // Nowhere of its own to go and no permission to double up. Skipping is what the two
+    // neighbouring writers already do in exactly this position — the skill's own
+    // progression still appears inside the mobility blocks that do get placed.
+    const mobDate = (!spendEmpty && !multiSessionOk) ? null
+                  : (spendEmpty || placedDates[placedDates.length-1]);
     // pm either way now. Riding along on a training day was always pm; a day of its own
     // used to be am, which put the skill's loaded end-range work at the stiffest hour of
     // the day for no reason other than the day being free.
     const slot = 'pm';
     const loadedROMCoverage = await getRecentLoadedROMCoverage();
-    const stretches = mobilityGoals.flatMap(sg => buildMobilitySkillStretches(sg, 0, loadedROMCoverage, 'maintenance'));
-    try{
+    const stretches = mobDate ? mobilityGoals.flatMap(sg => buildMobilitySkillStretches(sg, 0, loadedROMCoverage, 'maintenance')) : [];
+    if(mobDate) try{
       let existingStretches = [];
       try{
         const r = await window.storage.get(`weekplan:${mobDate}:${slot}`);
