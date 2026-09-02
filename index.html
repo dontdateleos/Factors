@@ -3243,8 +3243,9 @@ const EYE_ANIM = {
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
-  looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
+  looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
+  readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
   holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 },
@@ -3828,9 +3829,30 @@ function eyeRatingAvert(){
   }
 }
 
-
-
-
+/* 3. NOW AND THEN IT READS WITH YOU. focusGaze watches the field you are typing in; nothing
+   ever looked at prose. When you open a long explanation the gaze tracks one line, left to
+   right, at reading pace — and then stops, because a mark that did this every time would be
+   a mark you learn to ignore. A third of the time, and never twice running. */
+let lastReadAt = 0;
+function eyeReadAlong(el){
+  if(!anim('readsWithYou') || eyeMotionOff()) return;
+  const words = (el.textContent || '').trim().length;
+  if(words < 220) return;                       // not enough to be worth reading
+  const c = EYE_ANIM.readsWithYou.chance ?? 0.34;
+  if(Math.random() > c) return;
+  if(Date.now() - lastReadAt < 45000) return;   // never twice in quick succession
+  lastReadAt = Date.now();
+  stopIdle();
+  const span = 7, step = 66;
+  let x = -span;
+  const walk = () => {
+    if(x > span){ eyeGaze(0, 0, 320); scheduleIdle(1200); return; }
+    eyeGaze(x, 1.5, step);
+    x += 1.6;
+    setTimeout(walk, step);
+  };
+  setTimeout(walk, 220);
+}
 let blinkTimer = null;
 let blinkSeq = 0;   // bumped to strand the timers of a blink that has been superseded
 
@@ -6598,6 +6620,7 @@ function setCollapsed(key, collapsed){
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
   animateCollapse(body, collapsed);
+  if(!collapsed && body) eyeReadAlong(body);
   // The class is what closes the chevron when it is a pair of eyes; the rotation is what
   // turns the caret when it is not. Both are set, and each is inert in the other's case.
   if(chev){
