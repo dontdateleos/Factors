@@ -1884,6 +1884,15 @@
     flex:0 1 auto; min-width:0; max-width:64%; text-align:right;
     color:var(--dim); }
   .head-est:empty{ display:none; }
+  /* The session-length ceiling is machinery you never see. The generator fits a day to it by
+     trimming exercises off the end, and the only trace left on screen is a bare "~55min" with
+     nothing to measure it against. This is that number against the setting it was fitted to:
+     full bar, your session length; the fill, what the day actually estimates at. */
+  .budget-bar{ position:relative; height:2px; margin:2px var(--gutter) 12px; background:var(--hair);
+    border-radius:1px; overflow:hidden; }
+  .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
+    background:var(--band, var(--accent)); border-radius:1px; }
+  .budget-bar.over > i{ background:var(--bad); }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
   /* A stamped plate rather than coloured text. This line can land on black (under the
@@ -5557,6 +5566,7 @@ const UI_ANIM = {
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
   rungFill:     { on:true, note:'Ticking a rung fills the ones under it in order rather than all at once', ms:170, stagger:42 },
   landsWhereSent:{ on:true, note:'A section a card sent you to draws its own rule down as you arrive', ms:520 },
+  budgetBar:    { on:true, note:'Today\u2019s session carries a bar showing its length against your setting', ms:620 },
   streakBurst:  { on:true, note:'The mark throws confetti the first time you log on a new day', ms:1100 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -5782,6 +5792,20 @@ function landsWhereSent(el){
     { duration: UI_ANIM.landsWhereSent.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)' });
   const clean = ()=>{ rule.remove(); if(prevPos === 'static') el.style.position = ''; };
   if(a && a.finished) a.finished.then(clean, clean); else setTimeout(clean, UI_ANIM.landsWhereSent.ms + 60);
+}
+
+/* The bar fills from empty on each render, so the day's length reads as an amount rather than
+   as a static mark you stop seeing. The pitch for this one also promised a recoil when the
+   trim loop drops an exercise — that is not built, and could not be: the trim runs during
+   generation, not while anyone is looking at Today, so there is nothing on screen to recoil. */
+function budgetBar(root){
+  const fill = root && root.querySelector('.budget-bar > i');
+  if(!fill) return;
+  const pct = (fill.dataset.pct || '0') + '%';
+  fill.style.width = pct;
+  if(!uiAnim('budgetBar')) return;
+  uiPlay(fill, [{ width:'0%' }, { width: pct }],
+    { duration: UI_ANIM.budgetBar.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)' });
 }
 
 /* "Tick the last one you can do" is a claim about every rung beneath it as well, and the
@@ -6743,7 +6767,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.204';
+const APP_VERSION = '2026.08.31.205';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22506,7 +22530,7 @@ async function renderTodayWorkoutSummary(){
   // them said nothing, so the page gave you two thirds of a number. For strength the
   // engine's estimate bundles a general warm-up and cooldown allowance into the total —
   // subtracted here, because those two sections are already counting it themselves.
-  let planEst = '';
+  let planEst = '', budgetBarHtml = '';
   try{
     let sessionLength = null;
     try{
@@ -22531,11 +22555,20 @@ async function renderTodayWorkoutSummary(){
       // and the warm-up two sections below says "min" for the same kind of number.
       planEst = `<span class="head-est">~${Math.round(mins)}<i class="unit">min</i>${
         typical ? ` \u00b7 ${typical.label} usually ${typical.mins}` : ''}</span>`;
+      // Only when there is a ceiling to draw it against. Without a session length the bar
+      // would be a proportion of nothing.
+      if(sessionLength > 0){
+        const pct = Math.max(2, Math.min(100, Math.round((mins / sessionLength) * 100)));
+        budgetBarHtml = `<div class="budget-bar${mins > sessionLength ? ' over' : ''}" role="img"`
+          + ` aria-label="About ${Math.round(mins)} minutes against your ${sessionLength} minute setting">`
+          + `<i data-pct="${pct}"></i></div>`;
+      }
     }
   } catch(e){}
   container.innerHTML = `
     <div class="group" style="margin-top:0;">
       <div class="group-head"><div class="group-title">${sessionTitle(block)}</div>${planEst}</div>
+      ${budgetBarHtml}
       ${weekLine ? chipRow(weekLine) : ''}
       <div class="fields">
         ${loggingLine}
@@ -22545,6 +22578,7 @@ async function renderTodayWorkoutSummary(){
         <button class="primary" id="goLogWorkoutBtn">Log this workout</button>
       </div>
     </div>`;
+  budgetBar(container);
   container.querySelectorAll('.ex-flag').forEach(el=>{
     const key = decodeURIComponent(el.dataset.exKey || '');
     const kind = el.dataset.kind;
