@@ -6648,7 +6648,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.181';
+const APP_VERSION = '2026.08.31.182';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -16660,6 +16660,43 @@ function applyRunTierCeiling(tierKey, ceiling){
   if(ceiling.tierCap) rank = Math.min(rank, RUN_TIER_RANK[ceiling.tierCap]);
   if(ceiling.tierDrop) rank = Math.max(1, rank - ceiling.tierDrop);
   return RUN_TIER_BY_RANK[rank] || 'base';
+}
+
+/* Restored. These three went out with the dead-code pass: getSelfReportedRunTier really was
+   uncalled, and the helper that removed it absorbed the comment block above it — which had
+   these three underneath it, all of them live. suggestRunTier calls the third one on every
+   generate, so a week could not be built at all for anyone with a running goal, and the two
+   above it back the running start-point form. A single-occurrence scan cannot see that: each
+   of these was called exactly once, from somewhere the scan was not looking at. */
+// Self-assessed running starting point. suggestRunTier needs four weeks of logged running
+// before it can place anyone, which meant a capable runner spent a month on 30-second
+// walk-run intervals before the app noticed. Two questions resolve that on day one, and
+// logged history overrides it as soon as there's enough to be more reliable.
+// Where in the beginner progression to start. Every option under 2km resolved to the
+// beginner tier and every beginner started at level 1, so "I'm starting from scratch" and
+// "I can jog a few minutes" produced an identical plan — 30 seconds of running at a time
+// for someone who just said they can run for minutes. Someone who can already jog a few
+// minutes starts at the 3-minute interval; deliberately below what they reported, since
+// the protocol's whole premise is that beginners fail by starting too hard.
+function runStartLevelFromSelfReport(longestKm){
+  if(longestKm == null || longestKm < 1) return 0;   // from scratch -> run 30s / walk 90s
+  if(longestKm < 2) return 3;                        // a few minutes -> run 3min / walk 90s
+  return 0;                                          // 3km+ leaves the beginner tree entirely
+}
+function runTierFromSelfReport(longestKm, perWeek){
+  if(longestKm == null) return null;
+  if(longestKm < 2) return 'beginner';
+  if(longestKm < 5) return 'consolidation';
+  if(longestKm >= 10 && perWeek >= 5) return 'intermediate';
+  if(longestKm >= 18) return 'intermediate';
+  return 'base';
+}
+async function getSelfReportedRunRecord(){
+  try{
+    const v = JSON.parse((await window.storage.get('settings:runStartingPoint')).value);
+    const tier = runTierFromSelfReport(v.longestKm, v.perWeek);
+    return tier ? { tier, date: v.date || todayStr } : null;
+  } catch(e){ return null; }
 }
 
 async function suggestRunTier(){
