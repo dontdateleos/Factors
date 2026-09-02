@@ -2858,7 +2858,13 @@
       <div class="fields collapsible-body" data-collapse="blinding" style="display:none;">
         <label class="week-deload" for="blindingToggle" style="margin-bottom:10px;">
           <input type="checkbox" id="blindingToggle">
-          <span>Hide the score on one day in five, until I have logged</span>
+          <!-- Was "one day in five, until I have logged" — two things wrong at once. The
+               frequency was left over from before the pick moved to one training day a week,
+               so it contradicted the paragraph four lines below it that describes what the
+               code actually does; and the sentence had lost its object, stopping dead at
+               "logged". The label is the line people read, because it is the one attached to
+               the control they are deciding about. -->
+          <span>Hide the score on one training day a week, until I&rsquo;ve logged that day&rsquo;s session</span>
         </label>
         <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. One training day a week, picked at random and locked in before it arrives, the number is held back until the session is logged — which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
         <div class="score-note note-live" id="blindingStats" style="margin-top:8px;"></div>
@@ -6693,7 +6699,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.197';
+const APP_VERSION = '2026.08.31.198';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
