@@ -3270,9 +3270,17 @@ const EYE_CALM_KEEP = ['plateIsHome','toastEyes','nodOnSave','busyEverywhere','w
                        'blinkByScore','wince','widenOnPR','mirrorYourFace'];
 let eyeCalm = false;
 try{ eyeCalm = localStorage.getItem('eyes:calm') === '1'; }catch(e){}
-/* Only the rows you have actually changed are stored, as a sparse map of key -> false.
-   Storing all forty-two would freeze the defaults: a behaviour added later would arrive
-   switched to whatever the file said the day you last touched this panel. */
+/* Only the rows you have actually changed are stored. Storing all forty-two would freeze
+   the defaults: a behaviour added later would arrive switched to whatever the file said the
+   day you last touched this panel.
+
+   It used to store a sparse map of key -> false, which quietly assumed every default was
+   on. The moment one of them defaults to off — chevronEyes now does — that scheme can
+   record turning a thing OFF but not turning it back ON: the row would flip in the panel,
+   write nothing, and be off again on the next load. Diffed against the defaults instead,
+   so it remembers a change in either direction and stays just as sparse. */
+const EYE_ANIM_DEFAULTS = {};
+for(const k in EYE_ANIM) EYE_ANIM_DEFAULTS[k] = EYE_ANIM[k].on;
 function loadEyeAnimPrefs(){
   let saved = null;
   try{ saved = JSON.parse(localStorage.getItem('eyes:anim') || 'null'); }catch(e){}
@@ -3281,7 +3289,7 @@ function loadEyeAnimPrefs(){
 }
 function saveEyeAnimPrefs(){
   const diff = {};
-  for(const k in EYE_ANIM) if(!EYE_ANIM[k].on) diff[k] = false;
+  for(const k in EYE_ANIM) if(EYE_ANIM[k].on !== EYE_ANIM_DEFAULTS[k]) diff[k] = EYE_ANIM[k].on;
   try{ localStorage.setItem('eyes:anim', JSON.stringify(diff)); }catch(e){}
 }
 loadEyeAnimPrefs();
