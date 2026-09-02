@@ -6687,7 +6687,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.190';
+const APP_VERSION = '2026.08.31.191';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11481,11 +11481,14 @@ async function renderMobilityAssessment(skipCollapse){
     const box = head && head.querySelector('.group-title');
     if(box){ box.classList.remove('stale-breath'); void box.offsetWidth; box.classList.add('stale-breath'); }
   }
-  // Always closed on render. It used to expand itself whenever the assessment was missing
-  // or had gone stale, which put an eleven-domain rating wheel — the tallest thing on the
-  // tab — between you and the injury you came to log. The test is optional and on demand:
-  // the summary says where you stand, the button opens it when you want it.
-  setMobilityAssessmentOpen(false);
+  // Closed on render unless something asked for it by name. It used to expand itself
+  // whenever the assessment was missing or had gone stale, which put an eleven-domain
+  // rating wheel — the tallest thing on the tab — between you and the injury you came to
+  // log. The test is optional and on demand: the summary says where you stand, the button
+  // opens it when you want it, and accepting the retest card counts as asking.
+  const wantOpen = mobilityAssessmentAutoOpen;
+  mobilityAssessmentAutoOpen = false;
+  setMobilityAssessmentOpen(wantOpen);
 }
 // One place that owns the open state, so the button label, the aria and the panel cannot
 // disagree — which is what happens when a toggle writes some of them and a re-render the rest.
@@ -14293,6 +14296,7 @@ const REC_TONE = {
   add:'up', prescription_add:'up',
   reduce:'down', prescription_reduce:'down', deload_suggest:'down',
   modify:'side', prescription_modify:'side',
+  mobility_retest:'side',
   hold:'flat', week_review:'flat', block_review:'flat'
 };
 
@@ -14312,7 +14316,10 @@ const REC_TYPE_SYMBOL = {
   // week held down. Five bars rather than four for the same reason: it is a longer thing.
   deload_suggest: { label:'Deload', svg: recBarsSvg([14, 14, 4, 4, 4], { w:2.6, gap:1.8 }) },
   week_review:    { label:'Week',   svg: recBarsSvg([5, 9, 6, 11, 8, 10, 7], { w:2, gap:1.4, rail:true }) },
-  block_review:   { label:'Block',  svg: recBarsSvg([10, 13, 15, 6], { w:4, gap:2 }) }
+  block_review:   { label:'Block',  svg: recBarsSvg([10, 13, 15, 6], { w:4, gap:2 }) },
+  // A ruler's ticks, not a trend: this card is not telling you a direction, it is saying
+  // today is a day a measurement would mean something.
+  mobility_retest:{ label:'Retest', svg: recBarsSvg([5, 14, 5, 14, 5], { w:2, gap:1.8, rail:true }) }
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
@@ -14506,6 +14513,15 @@ async function logRecDecision(type, meta, decision, card, title){
     if(decision==='accepted' && meta && meta.mobilityArea){
       await pinMobilityArea(meta.mobilityArea);
       await refreshMobilityPlacements();
+    }
+    // Accepting a retest prompt should put you IN the test, not on the tab that contains it.
+    // The card is the only place the trigger is explained, so it hands straight off rather
+    // than leaving you to find a button whose label does not mention any of this.
+    if(type==='mobility_retest' && decision==='accepted'){
+      mobilityAssessmentAutoOpen = true;
+      activateTab('injuries');
+      const head = document.getElementById('mobilityAssessmentToggleHeader');
+      if(head) setTimeout(()=>head.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
     }
     if(type==='deload_suggest' && decision==='accepted'){
       const weekDates = getWeekDates();
@@ -16306,6 +16322,10 @@ async function advanceSkillLevel(skill, category){
     const sg = (record.skillGoals||[]).find(s=>s.category===category && s.skill===skill);
     if(!sg) return false;
     sg.levelIndex = sg.levelIndex + 1;
+    // When, not just what. A level gained is one of the three moments a mobility retest is
+    // worth spending — the joint has demonstrably changed — and without a date there is no
+    // way to tell a level gained this morning from one gained in March.
+    sg.advancedOn = todayStr;
     const result = await window.storage.set(key, JSON.stringify(record));
     return !!result;
   } catch(e){ return false; }
@@ -18622,6 +18642,11 @@ let mobilityStepIndex = 0;
 // What the header button offers when the panel is shut. Declared with the rest of the
 // assessment's state rather than beside the toggle, so it exists before the first render.
 let mobilityAssessmentLabel = 'Take the test';
+// A one-shot request to arrive with the panel already open. Accepting the retest card
+// switches tabs, and activateTab re-renders the assessment — so opening the panel from the
+// card directly gets closed again a moment later by that render. The render is the last
+// thing to run, so the render is what has to be told.
+let mobilityAssessmentAutoOpen = false;
 let mobilityDraftScores = null;
 let mobilityWheelBound = false;
 
@@ -22496,6 +22521,77 @@ async function buildBlockReviewCard(){
            signals, confidence:null, meta:{} };
 }
 
+// ---------- MOBILITY RETEST PROMPT ----------
+// The screen is on demand — it opens from its own button and nothing drags it open. But
+// "whenever you want" quietly means "never" for a test whose whole value is being repeated
+// under matched conditions, so three moments ask. They are the ones the measurement
+// literature actually points at, rather than a calendar tick:
+//
+//   deload's last day  — rested, low fatigue, and already recurring on the block's own
+//                        4-8 week rhythm, so it needs no schedule of its own
+//   a skill levelled   — the joint has demonstrably changed since the last reading
+//   an injury cleared  — the thing that was suppressing that region has gone
+//
+// A floor of 28 days sits under all three. Below four weeks the noise in these tests is
+// larger than the adaptation you would be reading: published minimal detectable change is
+// 4.7 degrees on ankle dorsiflexion and 10.1 on a straight-leg raise, against 2-5 degrees
+// of drift from time of day alone. Testing more often than that measures the morning.
+const MOBILITY_RETEST_FLOOR_DAYS = 28;
+async function buildMobilityRetestCard(){
+  const existing = await getMobilityAssessment();
+  const age = assessmentAgeDays(existing);
+  // Never rated is not a RE-test. The section's own button covers that case, and a prompt
+  // for it would fire every morning until it was answered, which is the nagging this whole
+  // design is trying not to do.
+  if(!existing || age == null || age < MOBILITY_RETEST_FLOOR_DAYS) return null;
+
+  const reasons = [];
+
+  try{
+    const pos = await getBlockPosition(todayStr);
+    if(localDateFrom(todayStr).getDay() === 0 && isDeloadPosition(pos.weekInBlock, pos.length)){
+      reasons.push(`Last day of a deload \u2014 rested, and on the ${pos.length}-week rhythm the block already runs.`);
+    }
+  } catch(e){}
+
+  try{
+    const goals = await getCurrentGoals(todayStr);
+    const moved = ((goals && goals.skillGoals) || []).filter(sg =>
+      sg.category === 'mobility' && sg.advancedOn &&
+      (localDateFrom(todayStr) - localDateFrom(sg.advancedOn)) / 86400000 <= 2);
+    if(moved.length){
+      const trees = PROGRESSION_TREES.mobility || {};
+      const names = moved.map(sg => (trees[sg.skill] && trees[sg.skill].label) || sg.skill).join(' and ');
+      reasons.push(`${names} moved a level \u2014 the joints behind it have changed since the last reading.`);
+    }
+  } catch(e){}
+
+  try{
+    const res = await window.storage.list('injury:');
+    const cleared = [];
+    for(const k of (res && res.keys) || []){
+      let inj; try{ inj = JSON.parse((await window.storage.get(k)).value); } catch(e){ continue; }
+      if(!inj || inj.resolved || !inj.date) continue;
+      const now = severityNow(inj.initialSeverity, inj.date, inj.halfLife);
+      const yday = severityAtDaysAgo(inj.initialSeverity, inj.date, inj.halfLife, 1);
+      // Crossed the line since yesterday, rather than merely being below it — otherwise
+      // every long-healed injury in storage would re-trigger this on any qualifying day.
+      if(yday != null && yday >= REC_THRESH.injurySeverityFlag && now < REC_THRESH.injurySeverityFlag){
+        cleared.push(inj.part);
+      }
+    }
+    if(cleared.length){
+      reasons.push(`${cleared.join(' and ')} dropped below the flag \u2014 whatever it was holding back should read differently now.`);
+    }
+  } catch(e){}
+
+  if(!reasons.length) return null;
+
+  reasons.push(`Last rated ${stamp(existing.lastUpdated)}, ${age} days ago. Test at the same time of day as last time, and not within two hours of waking if you are rating your spine \u2014 a reading taken under different conditions is a different reading.`);
+  return { type:'mobility_retest', title:'Good day to re-run the mobility screen',
+           signals: reasons, confidence:null, meta:{ retestAge: age } };
+}
+
 async function buildWeekReviewCard(){
   if(new Date(todayStr).getDay() !== 0) return null;   // 0 = Sunday
   const dates = getWeekDates();
@@ -22910,12 +23006,16 @@ const TENDINOPATHY_PROTOCOL = {
   // The block closes on the same day a week does, so both can land at once; the larger one
   // goes first, because it is the frame the week sits inside.
   const blockCard = await buildBlockReviewCard();
+  // Sits with the reviews rather than the prescriptions: it does not change today's
+  // session, it asks for a measurement on a day the measurement would mean something.
+  const retestCard = await buildMobilityRetestCard();
 
   // "hold" cards are the engine's null result — "nothing corroborated, carry on" — stated
   // as a card you then have to accept or dismiss. Filtered at the render point rather
   // than at the six places they're built, so the reasoning stays in one piece and this
   // is one line to undo.
   cardQueue = cardQueue.filter(c => c.type !== 'hold');
+  if(retestCard) cardQueue.unshift(retestCard);
   if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
   if(blockCard) cardQueue.unshift(blockCard);
   // Last, after the reviews are on the front: anything already answered today comes straight
