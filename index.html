@@ -64,7 +64,6 @@
        grounds now that those are dark, so separators that sit on them take this instead. */
     --hair:rgba(251,250,246,0.16);
     --text:#0c0d0b;
-    --header-dark:#1c1c1a;
     /* The grey explanatory text is set in, sampled off the reference (#c8c7bc there). It
        was #191a0e — a near-black, correct when it sat on a saturated ground and invisible
        once the ground went dark. Forty-five rules used it and only the tab labels had an
@@ -72,16 +71,13 @@
        matters is --bg; this is for the text explaining it. */
     --dim:#c9c7bc;
     --accent:#c9da4a;
-    --accent-ink:#5c6b0f;
     --accent-dim:#e8edc4;
     --bad:#e8391a;
     --warn:#d98a00;
     --good:#5c6b0f;
-    --bone:#e9e2c8;
     --reverse-bg:#0c0d0b;   /* dark fill for buttons/badges — independent of --text */
     --on-light:#0c0d0b;     /* text on any light fill (inputs, tags, outline buttons) */
     --on-light-dim:#191a0e; /* secondary text on a light fill */
-    --ink:#0c0d0b;
     /* ONE FACE. The whole interface is set in IBM Plex Mono — the register the boot line was
        written in, applied to everything rather than to the handful of places that had earned
        it. What used to be a sans/mono split is now a split of TREATMENT inside one family:
@@ -114,7 +110,6 @@
        lets the section bands below carry the colour at full strength without two saturated
        surfaces fighting. Derived, not picked: 0.08*block + 0.92*#0c0d0b, rounded. */
     --field-lime:#212412;
-    --field-orange:#271c11;
     --field-purple:#201f25;
     --field-yellow:#25210d;
     --field-blue:#182324;
@@ -126,9 +121,6 @@
     --ground:#0c0d0b;
     /* The current tab's field, one step up from the ground. Set per tab beside --band. */
     --field:var(--field-lime);
-    --shadow-sm: 4px 4px 0 rgba(12,13,11,0.9);
-    --shadow-btn: 6px 6px 0 var(--border-bold);
-    --shadow-primary: 4px 4px 0 var(--accent);
     /* Vertical rhythm. Nineteen distinct spacing values were in use across the six tabs —
        1,2,3,4,5,6,7,8,10,11,12,14,16,20,22,24,26,28 — which is why the page read as
        slightly-off rather than obviously wrong. These five replace them for everything
@@ -266,9 +258,7 @@
   .panel.tab-card{ position:relative; z-index:3; }
   /* A card is a rigid thing. Sticky headings inside one that is mid-flight try to stick to
      the top of the screen while the rest of it is still travelling, which tears it. */
-  main.tab-dealing .group-head{ position:static; }
-  .tab-circle-transition{ position:fixed; left:0; right:0; bottom:0; z-index:9999; pointer-events:none; clip-path:circle(0px at 50% 50%); transition:clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--ground); }
+  main.tab-dealing .group-head{ position:static; }  body.tab-insights main{ background:transparent; } body.tab-insights{ background:var(--ground); }
   body.tab-training main{ background:transparent; } body.tab-training{ background:var(--ground); }
   body.tab-injuries main{ background:transparent; } body.tab-injuries{ background:var(--ground); }
   body.tab-data main{ background:transparent; } body.tab-data{ background:var(--ground); }
@@ -637,7 +627,7 @@
   footer button + button{ margin-left:-2px; }
   button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--text); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
-  .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
+  .type-btn:active, .tab:active { transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
   .empty-state svg{ width:28px; height:28px; opacity:0.5; stroke-width:2.5; }
   /* One mark across every empty block reads as the app talking; a different piece of
@@ -699,20 +689,7 @@
      beside it stays --dim, which is the hierarchy this rule always meant. */
   .log-entry > span:first-child{ font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); letter-spacing:-0.01em; }
   .log-entry > span:last-child{ flex:none; text-align:right; }
-  .mobility-cat-label{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
-  .mobility-cat-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:3px 0 3px 10px; }
-  /* Same hierarchy as .log-entry: the exercise leads, the dose follows quietly. */
-  .mobility-cat-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
-  .mobility-cat-item .mob-dose{ font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); letter-spacing:0.015em; }
-  /* Modality tag inside a stretching card — small, uppercase, sits inline ahead of the
-     drill so three modalities read as one wrapped line rather than three stacked ones. */
-  /* Fixed width so ROLL / DYNAMIC / STATIC line up as a column and the drills beside
-     them start at the same x — the sequence is meant to be worked in order, so it should
-     read as an ordered list rather than three ragged sentences. */
-  /* The how-to cue. Deliberately quiet — it's there when you don't know the movement and
-     easy to skip past when you do. */
-  .mob-cue{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); padding:1px 0 4px 0; letter-spacing:0.01em; }
-  /* Today's plan renders strength, running and mobility through one row shape: a bold
+  .mobility-cat-label{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }  /* Today's plan renders strength, running and mobility through one row shape: a bold
      name with its dose beside it, then any number of labelled detail lines underneath.
      Each block type used to invent its own layout, and the two-column rows in particular
      pushed prescriptions to the right edge where they wrapped badly on a phone. */
@@ -818,31 +795,12 @@
      the stacked checkboxes hit. */
   button, select{ position:relative; }
   button::after, select::after{ content:''; position:absolute; left:0; right:0; top:-9px; bottom:-9px; pointer-events:auto; }
-  /* <select> is a replaced element and won't render ::after at all, so the technique
-     above does nothing for it. The row absorbs the extra reach instead: a taller row with
-     the select centred means a tap landing above or below still finds it, without the
-     control itself growing. */
-  .field-row:has(select), .edit-row:has(select), .week-controls:has(select),
-  .goal-row:has(select), .skill-goal-row:has(select){ min-height:44px; align-items:center; }
-  /* Skill goal rows: selects on one line, everything else tucked under them. */
-  .skg-line{ display:flex; gap:6px; align-items:center; width:100%; }
-  /* Category is narrow — it only ever says Exercise or Mobility — so the skill name gets
-     the room. Three selects on one line truncated all three to "Mob… Pike… 2. St…". */
-  .skg-line .skg-skill{ flex:1 1 auto; min-width:0; }
-  .skg-level{ width:100%; margin-top:6px; }
-  .skg-line .remove-row{ flex:none; }
-  .skg-detail{ margin:4px 0 0; line-height:1.45; }
-  .skg-maint{ display:flex; align-items:center; gap:7px; margin-top:6px; font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
-  .skg-maint input{ width:auto; flex:none; margin:0; }
-  .skg-auto-note{ margin-top:4px; }
-  /* Catch-all for select rows that aren't one of the named row classes — the selects in
+  .field-row:has(select), .edit-row:has(select), .goal-row:has(select) { min-height:44px; align-items:center; }  /* Catch-all for select rows that aren't one of the named row classes — the selects in
      the week controls and skill-goal editor sit in plain flex containers. */
   div:has(> select):not(.fields):not(.panel){ min-height:44px; align-items:center; }
   /* Isolated controls — full-width rows and standalone actions — can also grow sideways. */
   .fields > button::after, .field-row > select:only-of-type::after, button.primary::after{ left:-6px; right:-6px; }
-  /* Paired controls stay within their own width so neighbours can't collide. */
-  .mob-step-nav button::after, .goal-move-up::after, .goal-move-down::after,
-  .week-controls button::after{ left:0; right:0; }
+  .goal-move-up::after, .goal-move-down::after { left:0; right:0; }
 
   /* Checkboxes render at 13px, well under the 44px guideline. Expanding each one with a
      pseudo-element made adjacent checkboxes overlap and steal each other's taps, so the
@@ -1535,12 +1493,7 @@
   .row-filled{ animation:rowFilled 0.7s steps(3, end); }
   @keyframes rowFilled{ 0%,100%{ background:transparent; } 20%,60%{ background:var(--accent-dim); } }
   .log-step-pos{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.09em;
-    color:var(--dim); flex:1; text-align:center; }
-  .log-step-arrow{ font-family:var(--mono); font-size:var(--fs-xl); line-height:1; height:auto;
-    padding:2px var(--gutter); background:transparent; color:var(--text);
-    border:2px solid var(--border-bold); flex:0 0 auto; cursor:pointer; }
-  .log-step-arrow:disabled{ opacity:0.25; cursor:default; }
-  .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    color:var(--dim); flex:1; text-align:center; }  .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .rest-clock{ font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     letter-spacing:0.02em; font-variant-numeric:tabular-nums; min-width:64px; }
   .rest-clock.running{ color:var(--bad); }
@@ -1664,9 +1617,7 @@
   .skg-bar-fill{ height:100%; background:var(--bg); transform-origin:left center; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }
-  .goal-priority-num{ font-size:var(--fs-num); font-weight:var(--fw-bold); letter-spacing:-0.025em; }
-  .goal-row-controls{ display:flex; gap:10px; align-items:center; }
+  .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }  .goal-row-controls{ display:flex; gap:10px; align-items:center; }
   .goal-row-controls button{ padding:2px 8px; }
   .goal-row .field-row{ margin-bottom:8px; }
   #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--wordmark); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
@@ -1785,11 +1736,7 @@
   .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(251,250,246,0.22); }
   .rec-actions{ display:flex; gap:8px; margin-top:16px; }
   .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
-
-  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--hair); border-radius:0; color:var(--dim); cursor:pointer; }
-  .plan-pill.active{ color:var(--text); background:var(--bg); border-color:var(--bg); }
-  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
+  .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
   /* The warm-up and the post-session stretching are preparation, not the session. Stacked
      cards — a heading, a reason, a dosed drill list, a rule under each — gave them the
@@ -1833,15 +1780,7 @@
   .drill-count{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
     opacity:0.6; margin-left:6px; }
   .drill-note{ font-size:var(--fs-sm); line-height:1.45; opacity:0.75; padding:10px 0 0;
-    margin-top:var(--sp-2); border-top:1px solid rgba(12,13,11,0.12); }
-  .flow-seg{ display:inline; }
-  /* An arrow rather than a bullet: this is a sequence you move through in order, and the
-     separator is the only thing left carrying that once the rules came out. */
-  .flow-seg + .flow-seg::before{ content:' → '; color:var(--dim); font-weight:var(--fw-bold); }
-  .flow-area{ font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase;
-    letter-spacing:0.07em; white-space:nowrap; }
-  .flow-area::after{ content:'\00a0'; }
-  /* THE FLAGS STOP COLOURING THE TEXT.
+    margin-top:var(--sp-2); border-top:1px solid rgba(12,13,11,0.12); }  /* THE FLAGS STOP COLOURING THE TEXT.
 
      A drill was tinted by the reason its area got picked: red for an injury, amber for a
      load flag. As a signal it had two problems. There is no key for it anywhere, so a
@@ -1853,9 +1792,7 @@
      The classes stay in the markup. The reason each drill is on the list is still carried on
      the element and still correct; it simply is not painted any more, and restoring it is
      one line if it ever earns a legend to go with it. */
-  .flow-flag.injury, .flow-flag.load{ color:inherit; }
-  .flow-note{ color:var(--dim); }
-  /* A section that is now five lines tall does not need a section-sized gap under it. */
+  .flow-flag.injury, .flow-flag.load{ color:inherit; }  /* A section that is now five lines tall does not need a section-sized gap under it. */
   .group.quiet > .fields{ padding-top:var(--sp-2); padding-bottom:0; }
   /* The chevron here used to hide the section. Hiding it was a workaround for its size,
      and the size is fixed; what the section actually needed was somewhere to say what
@@ -5497,7 +5434,6 @@ const UI_ANIM = {
   sessionProgress:{ on:true, note:'The drill count carries a bar that fills as you cross them off' },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
   overscroll:     { on:true, note:'The page stretches at the top and springs back' },
-  countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
   flipReorder:  { on:true, note:'Reordered goals slide past each other instead of teleporting', ms:340 },
   chipActsOut:  { on:true, note:'A card’s chip acts out its own symbol as the card lands', ms:520 },
   rankFlip:     { on:true, note:'A goal’s rank turns over when its place changes', ms:300 },
@@ -6642,7 +6578,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.172';
+const APP_VERSION = '2026.08.31.173';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
