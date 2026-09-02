@@ -583,7 +583,12 @@
   /* Above the sticky group heads (z-index 3). Without this a head level with the footer takes
      the tap meant for Save or Clear — on Data, at the top of the page, the two buttons in
      this footer were simply not clickable. */
-  footer{ position:fixed; bottom:0; left:0; right:0; z-index:5; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--bg); border-top:2px solid var(--border-bold); display:flex; gap:0; }
+  /* The action bar is a bar over the content, so it takes the ground like every other
+     bar in the app. It used to be cream, which was right when the page under it was
+     cream — but .primary fills itself cream and .outline draws itself cream, both
+     written for a dark ground, so on a cream bar the fill and the outline both
+     disappeared and the strip read as a blank white slab with a word floating in it. */
+  footer{ position:fixed; bottom:0; left:0; right:0; z-index:5; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--ground); border-top:1px solid var(--hair); display:flex; gap:0; }
   footer button{ border-radius:0; margin:0 -1px; }
   button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--text); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
@@ -6330,7 +6335,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.148';
+const APP_VERSION = '2026.08.31.149';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
