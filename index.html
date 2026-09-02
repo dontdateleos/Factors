@@ -1460,6 +1460,20 @@
      got — it stayed near-black at 55% and the chart's axis numbers and dates sat at 1.21
      on the tinted field. The same grey every other caption in the app uses. */
   .tc-tick{ font-family:var(--mono); font-size:9px; fill:var(--dim); }
+  /* The line draws itself and the band arrives behind it. The band second is what makes it
+     read as uncertainty around a line rather than as a shape with a line on top. */
+  .tc-draw{ stroke-dasharray:var(--tc-len); stroke-dashoffset:var(--tc-len);
+    animation:tcDraw var(--tc-ms,1000ms) cubic-bezier(.3,.8,.3,1) forwards; }
+  .tc-band-in{ opacity:0; animation:tcBand 420ms linear forwards; animation-delay:calc(var(--tc-ms,1000ms) * 0.62); }
+  @keyframes tcDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes tcBand{ to{ opacity:1; } }
+  /* One slow exhale, once, when a section you have not refreshed in a long time comes on
+     screen. Not a badge and not a dot — those stay, and this is gone in a second. */
+  @keyframes staleBreath{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.42; transform:scale(0.975); } }
+  .stale-breath{ animation:staleBreath 1200ms ease-in-out 1; }
+  /* The whole page stretches at the top rather than stopping dead. */
+  main{ transition:transform 480ms cubic-bezier(.2,1.4,.4,1); }
+  body.overscrolling main{ transition:transform 90ms linear; }
   #trendChart svg{ display:block; }
   /* The device chips name which watch a number came from. With no watch connected there is
      one box per fact and the chip is answering a question nobody asked. */
@@ -5308,6 +5322,10 @@ function eyeNoteTabForWander(){
    one row per behaviour, `on` to switch it off, and the numbers beside it are the tuning.
    Exposed on window for the same reason. */
 const UI_ANIM = {
+  traceDraw:      { on:true, note:'The trend chart draws its line, and the band fills in behind it', ms:1000 },
+  staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
+  overscroll:     { on:true, note:'The page stretches at the top and springs back' },
+  countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
   flipReorder:  { on:true, note:'Reordered goals slide past each other instead of teleporting', ms:340 },
   chipActsOut:  { on:true, note:'A card’s chip acts out its own symbol as the card lands', ms:520 },
   rankFlip:     { on:true, note:'A goal’s rank turns over when its place changes', ms:300 },
@@ -6469,7 +6487,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.169';
+const APP_VERSION = '2026.08.31.170';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23189,11 +23207,28 @@ function drawTrendChart(host, points, colours, band, label){
     return `<text x="${X(i).toFixed(1)}" y="${TREND_H - 3}" text-anchor="middle" class="tc-tick">${t}</text>`;
   }).join('');
   const dots = points.map((p, i)=> `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="2" fill="${colours.line}"/>`).join('');
+  /* The one screen in the app that arrived fully formed while everything around it moved.
+     The line draws left to right and the band fills in behind it — the band second, because
+     arriving first makes it a shape with a line on top rather than the uncertainty around a
+     reading. Path length is measured after mount; before that it has none. */
+  const draw = uiAnim('traceDraw');
+  const dcls = draw ? ' class="tc-draw"' : '';
+  const bcls = draw ? ' tc-band-in' : '';
   host.innerHTML = `<svg viewBox="0 0 ${w} ${TREND_H}" width="100%" height="${TREND_H}" aria-hidden="true">`
-    + ticks + bandPath
-    + `<path d="${area}" fill="${band ? 'none' : colours.fill}" stroke="none"/>`
-    + `<path d="${path}" fill="none" stroke="${colours.line}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+    + ticks + (bandPath ? bandPath.replace('<path ', `<path class="${bcls.trim()}" `) : '')
+    + `<path class="${bcls.trim()}" d="${area}" fill="${band ? 'none' : colours.fill}" stroke="none"/>`
+    + `<path${dcls} d="${path}" fill="none" stroke="${colours.line}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
     + dots + xLabels + `</svg>`;
+  if(draw){
+    const p = host.querySelector('path.tc-draw');
+    if(p){
+      const len = p.getTotalLength();
+      p.style.setProperty('--tc-len', len);
+      p.style.setProperty('--tc-ms', (UI_ANIM.traceDraw.ms || 1000) + 'ms');
+    }
+    host.querySelectorAll('.tc-band-in').forEach(b=>
+      b.style.setProperty('--tc-ms', (UI_ANIM.traceDraw.ms || 1000) + 'ms'));
+  }
   const round = v => Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
   host.setAttribute('aria-label',
     `${label} over ${points.length} points: ` + points.map(p=>round(p.y)).join(', '));
