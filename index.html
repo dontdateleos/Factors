@@ -1002,7 +1002,7 @@
     padding-left:var(--gutter); padding-right:var(--gutter); }
   #recoveryDataView > .date-row{ margin-bottom:0; padding-top:var(--sp-2); padding-bottom:var(--sp-2); }
   #recoveryDataView > #sleepDebtOut{ margin-top:0; padding-bottom:var(--sp-3);
-    color:rgba(251,250,246,0.75); }
+    color:var(--dim); }
   /* This said the above for one pill row on one tab. It is the base now. */
   body.tab-injuries header, body.tab-settings header, body.tab-data header,
   body.tab-insights header, body.tab-training header{ border-bottom-color:transparent; }
@@ -1302,7 +1302,7 @@
   #todayFaceDock .dock-word{ position:absolute; left:50%; transform:translateX(-50%);
     top:100%; margin-top:3px;
     font-family:var(--mono); font-size:9px; letter-spacing:0.08em; text-transform:uppercase;
-    color:rgba(251,250,246,0.7); white-space:nowrap; pointer-events:none; }
+    color:var(--dim); white-space:nowrap; pointer-events:none; }
   /* The digits sit over the chip. Their own stacking context, so "behind" is a fact rather
      than a source-order accident — chip 1, digits 2, and the column above both, because the
      gauge is a full-width flex box whose empty half lies right across the row and would
@@ -1700,12 +1700,12 @@
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
   /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
      used to lose its own left edge. */
-  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:rgba(251,250,246,0.72); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(251,250,246,0.22); }
+  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(251,250,246,0.22); }
   .rec-actions{ display:flex; gap:8px; margin-top:16px; }
   .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
 
-  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--hair); border-radius:0; color:rgba(251,250,246,0.75); cursor:pointer; }
+  .plan-pill{ font-family:var(--sans); font-size:var(--fs-tag); padding:8px 12px; border:2px solid var(--hair); border-radius:0; color:var(--dim); cursor:pointer; }
   .plan-pill.active{ color:var(--text); background:var(--bg); border-color:var(--bg); }
   /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
@@ -6330,7 +6330,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.147';
+const APP_VERSION = '2026.08.31.148';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
