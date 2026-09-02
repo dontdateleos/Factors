@@ -667,6 +667,12 @@
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); padding:var(--sp-2) 0; }
   .plan-item + .plan-item{ border-top:1px solid var(--hair); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
+  /* Emphasis inside grey prose. The explanatory text is --dim; a figure or a name inside it
+     that the sentence exists to deliver goes to full cream, so a paragraph can be skimmed
+     for the thing it is about. The band is the one light surface that carries prose, so a
+     bold word there goes the other way. */
+  b, strong{ color:var(--bg); font-weight:var(--fw-bold); }
+  .group-head b, .group-head strong{ color:var(--text); }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
      that separates every other exercise is dropped between them. */
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
@@ -6324,7 +6330,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.146';
+const APP_VERSION = '2026.08.31.147';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9667,7 +9673,7 @@ async function computeSleepDebt(){
       const e = JSON.parse(r.value);
       if(e.durationHrs!=null){ debt += Math.max(0, 8 - e.durationHrs); n++; }
     }
-    out.textContent = n ? `Sleep debt: ${debt.toFixed(1)}h over trailing ${n} logged nights (vs 8hr/night target)` : 'Sleep debt: —';
+    out.innerHTML = n ? `Sleep debt: <b>${debt.toFixed(1)}h</b> over trailing ${n} logged nights (vs 8hr/night target)` : 'Sleep debt: —';
   } catch(e){ out.textContent='Sleep debt: —'; }
 }
 
@@ -22172,18 +22178,18 @@ async function buildWeekReviewCard(){
   }
 
   const signals = [];
-  signals.push(`${sessions.length} of ${status.plannedTotal} planned session${status.plannedTotal===1?'':'s'} logged, across ${daysTrained.size} day${daysTrained.size===1?'':'s'}.`);
+  signals.push(`<b>${sessions.length} of ${status.plannedTotal}</b> planned session${status.plannedTotal===1?'':'s'} logged, across <b>${daysTrained.size} day${daysTrained.size===1?'':'s'}</b>.`);
   if(sets > 0 || plannedSets > 0){
-    signals.push(`${sets} set${sets===1?'':'s'}${plannedSets ? ` against ${plannedSets} planned` : ''}${volume > 0 ? ` · ${Math.round(volume/1000)}k kg moved` : ''}.`);
+    signals.push(`<b>${sets} set${sets===1?'':'s'}</b>${plannedSets ? ` against ${plannedSets} planned` : ''}${volume > 0 ? ` · <b>${Math.round(volume/1000)}k kg</b> moved` : ''}.`);
   }
   // Named, not counted: "2 missed" leaves you to work out which two.
   const missedDays = [...new Set(status.missed.map(m=>m.date))].sort();
   if(missedDays.length){
-    signals.push(`Missed: ${missedDays.map(d=>WEEK_DAY_LABELS[dates.indexOf(d)] || d).join(', ')}. Not carried forward — next week is planned from what is still necessary, not from what was skipped.`);
+    signals.push(`Missed: <b>${missedDays.map(d=>WEEK_DAY_LABELS[dates.indexOf(d)] || d).join(', ')}</b>. Not carried forward — next week is planned from what is still necessary, not from what was skipped.`);
   } else if(status.evaluableTotal > 0){
     signals.push('Nothing missed.');
   }
-  if(loggedStreak >= 2) signals.push(`${loggedStreak}-day logging streak going into next week.`);
+  if(loggedStreak >= 2) signals.push(`<b>${loggedStreak}-day</b> logging streak going into next week.`);
 
   let title = 'Week closed';
   try{
