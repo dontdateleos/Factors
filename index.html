@@ -2370,6 +2370,16 @@
       <div class="fields">
         <div class="score-note">Log what hurts, 1&ndash;10. Severity fades on its own at a rate the injury type sets. While it's active the generator eases the sessions that load it, and the warm-up targets it first.</div>
       </div>
+      <!-- The list belongs to the section that promises it. It used to render at the bottom
+           of "Log new injury", below the submit button and outside any numbered band, so the
+           section headed "what's sore" held a paragraph and nothing else while what was sore
+           sat under the form for adding one. Hidden entirely when nothing is logged: an empty
+           state saying "no injuries, enjoy it" is a section-sized way of reporting that a
+           section is empty. -->
+      <div class="log" id="injuryListSection" style="display:none;">
+        <div class="log-title">Active &amp; recent injuries</div>
+        <div id="injuryList"></div>
+      </div>
     </div>
 
 
@@ -2410,12 +2420,6 @@
       </div>
     </div>
 
-    <!-- Hidden entirely when nothing is logged: an empty state saying "no injuries,
-         enjoy it" is a section-sized way of reporting that a section is empty. -->
-    <div class="log" id="injuryListSection" style="display:none;">
-      <div class="log-title">Active &amp; recent injuries</div>
-      <div id="injuryList"></div>
-    </div>
 
       <!-- The two skill ladders are one system and always were: same skillGoals array, same
            picker, same levels. loadCurrentGoals already seeded both from whichever tab you
@@ -6664,7 +6668,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.187';
+const APP_VERSION = '2026.08.31.188';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
