@@ -6347,7 +6347,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.164';
+const APP_VERSION = '2026.08.31.165';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7406,6 +7406,25 @@ async function getAllTrainingSessions(){
   for(const v of _trainingRaw){
     try{ sessions.push(JSON.parse(v)); } catch(e){}
   }
+  /* Chronological, always. This came back in whatever order storage.list happened to yield,
+     which is not a defined order and not necessarily the same one twice. Two things read
+     these as a time series and were quietly reading a shuffled one:
+
+     learnWeights takes lag1Autocorr of the outcome series to work out how many effective
+     observations it really has. Autocorrelation of a permuted series is not a smaller number,
+     it is a meaningless one — measured on this data, reordering the same 25 sessions moved
+     n_eff from 25 to 10.7 and the hrvTrend weight by 22%, which moved the composite score.
+     That is a score that changes when nothing about you has.
+
+     And capacityIndex says it compares against "the most recent prior sessions of that type",
+     which needs the sessions to be in an order for "most recent" to mean anything.
+
+     Ascending by date, then by slot, so am reads before pm on the same day. Callers that
+     already sort are unaffected — sorting a sorted list is the same list. */
+  sessions.sort((a, b)=>
+    String(a.date || '').localeCompare(String(b.date || '')) ||
+    String(a.slot || '').localeCompare(String(b.slot || '')) ||
+    ((a.timestamp || 0) - (b.timestamp || 0)));
   return sessions;
 }
 
