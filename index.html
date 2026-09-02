@@ -6687,7 +6687,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.191';
+const APP_VERSION = '2026.08.31.192';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -19205,10 +19205,18 @@ async function generateMobilityProgram(numSessions, forcedDates, sessionType){
     integrateCursor++;
     stretches.forEach(s=>{ if(s.domain) coveredSoFar[s.domain] = true; });
 
+    // Afternoon, not morning. Range of motion climbs across the day — whole-body
+    // flexibility by about 3cm, ankle dorsiflexion 1.9 degrees, lateral spine flexion 4.4 —
+    // so the same session done at 07:00 is done through less range than the same session
+    // done at 16:00. The spine case is not just a smaller dose, it is a worse one: 54% of
+    // the day's disc-height loss happens in the first hour up, and early-morning forward
+    // bending puts roughly 300% more bending stress through the discs. The LOAD rung for
+    // spine and hamstrings is Jefferson curls and loaded pikes, which is exactly the
+    // movement that costs the most to do first thing.
     try{
-      await window.storage.get(`weekplan:${date}:am`); // already occupied — skip silently
+      await window.storage.get(`weekplan:${date}:pm`); // already occupied — skip silently
     } catch(e){
-      await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
+      await window.storage.set(`weekplan:${date}:pm`, JSON.stringify({
         type:'mobility',
         details: { stretches, notes: 'Auto-generated — Access/Control/Load/Integrate rotate through your domains, Goal tracks real progression' + trimNote }
       }));
@@ -21434,7 +21442,10 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // training day's pm slot, which is already what happens when there are none.
     const spendEmpty = remaining.length > 1 ? remaining[0] : null;
     const mobDate = spendEmpty || placedDates[placedDates.length-1];
-    const slot = spendEmpty ? 'am' : 'pm';
+    // pm either way now. Riding along on a training day was always pm; a day of its own
+    // used to be am, which put the skill's loaded end-range work at the stiffest hour of
+    // the day for no reason other than the day being free.
+    const slot = 'pm';
     const loadedROMCoverage = await getRecentLoadedROMCoverage();
     const stretches = mobilityGoals.flatMap(sg => buildMobilitySkillStretches(sg, 0, loadedROMCoverage, 'maintenance'));
     try{
