@@ -1882,7 +1882,7 @@
      out a third of the width it was allowed and three lines tall. */
   #toast{ position:fixed; left:0; right:0; margin:0 auto; width:fit-content; bottom:90px;
     display:flex; align-items:center;
-    transform:translateY(var(--toast-from, 20px)); background:var(--accent); color:var(--bg); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100;
+    transform:translateY(var(--toast-from, 20px)); background:var(--accent); color:var(--text); font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); letter-spacing:0.03em; padding:12px 20px; border-radius:0; border:2px solid var(--bg); opacity:0; pointer-events:none; transition:opacity 0.1s steps(2,end), transform 0.12s steps(3,end); z-index:100;
     max-width:min(320px, calc(100vw - 36px)); white-space:normal; line-height:1.4; }
   /* Flex so the mark stays beside a message that now wraps instead of being pushed onto a
      line of its own above it. */
@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.157';
+const APP_VERSION = '2026.08.31.158';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
