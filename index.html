@@ -6793,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.209';
+const APP_VERSION = '2026.08.31.210';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -19122,6 +19122,7 @@ async function getMobilityDomainsNeedingWork(activeGoalSkills){
     }
     needed.push({ domain, category, reason, isGoal, level: score });
   });
+
   return needed;
 }
 
@@ -19198,10 +19199,22 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
   // nothing at all — measured at five of nine domains on zero seconds across three
   // sessions. Priority still decides who goes first; coverage decides who goes next.
   const covered = coveredSoFar || {};
-  // Drop domains already at the weekly ceiling from goal-skill work. Their tissue has had
-  // the productive dose; more is session time another area could use.
+  // Drop domains already at the weekly ceiling. Their tissue has had the productive dose;
+  // more is session time another area could use.
+  //
+  // Goal domains used to be exempt from exactly that, which contradicted the sentence above
+  // it and let them eat the week: measured across seven training days, quads_knees took
+  // 1260s and ankles 1170s against a 600s target while four other areas sat short. Every
+  // second past 600 is dead by the same Ingram finding the target comes from — "no
+  // additional benefit beyond 10 min per week" — so the exemption was spending the week's
+  // budget on the one thing that provably could not use it.
+  //
+  // The goal's own progression is not affected. That comes from the separate mobilityGoals
+  // pass into goalStretches, which is why the Deep Squat drill survives in a session whose
+  // prep domains have all been dropped. What stops is the general ACCESS volume charged to
+  // an area that is already done.
   const withinBudget = (neededDomains||[]).filter(n =>
-    servesGoal(n.domain) || !areaAtCeiling(MOBILITY_DOMAIN_TO_AREA[n.domain] || n.domain));
+    !areaAtCeiling(MOBILITY_DOMAIN_TO_AREA[n.domain] || n.domain));
   // The goal tiebreak here is the same policy getPrioritizedMobilityDomains applies, and
   // the two have to agree or this one silently wins — it runs last. Reordering the caller
   // alone changed nothing at all: a maintained goal domain was demoted upstream and then
