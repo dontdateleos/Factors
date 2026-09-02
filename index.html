@@ -1481,9 +1481,7 @@
      screen. Not a badge and not a dot — those stay, and this is gone in a second. */
   @keyframes staleBreath{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.42; transform:scale(0.975); } }
   .stale-breath{ animation:staleBreath 1200ms ease-in-out 1; }
-  /* The whole page stretches at the top rather than stopping dead. */
-  main{ transition:transform 480ms cubic-bezier(.2,1.4,.4,1); }
-  body.overscrolling main{ transition:transform 90ms linear; }
+
   #trendChart svg{ display:block; }
   /* The device chips name which watch a number came from. With no watch connected there is
      one box per fact and the chip is answering a question nobody asked. */
@@ -3789,6 +3787,8 @@ function stopEyeIdle(){ if(eyeIdleAnim){ try{ eyeIdleAnim.cancel(); }catch(e){} 
    the taper would flicker the expression the score is trying to show. */
 const BLINK_CLOSED = '2px';
 
+
+
 /* ---------- THREE THINGS THE MARK DOES ABOUT SLEEP, PRIVACY AND READING ----------
 
    1. HOW FRESH THE WHITE IS. Every other tired cue in here is about training —
@@ -5336,7 +5336,6 @@ const UI_ANIM = {
   strikeThrough:  { on:true, note:'A drill you tick is struck through rather than switching to done', ms:300 },
   sessionProgress:{ on:true, note:'The drill count carries a bar that fills as you cross them off' },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
-  overscroll:     { on:true, note:'The page stretches at the top and springs back' },
   countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
   flipReorder:  { on:true, note:'Reordered goals slide past each other instead of teleporting', ms:340 },
   chipActsOut:  { on:true, note:'A card’s chip acts out its own symbol as the card lands', ms:520 },
@@ -6499,7 +6498,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.170';
+const APP_VERSION = '2026.08.31.171';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10934,6 +10933,7 @@ function skillPickerGoals(category){
 
 
 
+let staleBreathShown = null;
 async function renderMobilityAssessment(skipCollapse){
   const container = document.getElementById('mobilityAssessmentRows');
   const existing = await getMobilityAssessment();
@@ -11144,6 +11144,16 @@ async function renderMobilityAssessment(skipCollapse){
   if(skipCollapse) return;
   const body = document.getElementById('mobilityAssessmentBody');
   const chevron = document.getElementById('mobilityAssessmentChevron');
+  /* One slow exhale, the first time a stale assessment comes on screen in a visit. The
+     summary already says "worth re-testing" in grey text you have to be looking at to see;
+     this is what makes you look. Once per visit per staleness — never a badge, which stays,
+     and never twice, which is nagging. */
+  if(isStale && uiAnim('staleBreath') && staleBreathShown !== staleDays){
+    staleBreathShown = staleDays;
+    const head = document.getElementById('mobilityAssessmentToggleHeader');
+    const box = head && head.querySelector('.group-title');
+    if(box){ box.classList.remove('stale-breath'); void box.offsetWidth; box.classList.add('stale-breath'); }
+  }
   if(assessedCount === 0 || isStale){
     // Expand for a first-time rating, and again once it's gone stale — an out-of-date
     // assessment is the same problem as no assessment, just less visible.
