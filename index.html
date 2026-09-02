@@ -2072,7 +2072,7 @@
       <!-- Bodyweight is load-bearing and was never asked for. computeAthleteLevel returns
            {error:'no-bodyweight'} without it, calisthenics volume counts as zero because a
            pull-up with a blank load is a pull-up moving nothing, and the BW button's own
-           error tells you to go to "Data tab, under Everything else". One optional box here
+           error tells you to go to "Settings, under Body metrics". One optional box here
            is cheaper than every one of those. Optional, because a week can still be built
            without it — it is the difference between the plan knowing your scale and not. -->
       <div class="group form-panel">
@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.158';
+const APP_VERSION = '2026.08.31.159';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -12507,9 +12507,10 @@ async function openBlockEditor(date, slot, block, opts){
         if(metrics && metrics.weight != null){
           weightInput.value = metrics.weight;
         } else {
-          // Body metrics are on Data, not Settings. Sending someone to the wrong tab is
-          // worse than not answering: they go, they do not find it, and the app was wrong.
-          showToast('No bodyweight saved yet — Data tab, under Everything else');
+          // Sending someone to the wrong tab is worse than not answering: they go, they
+          // do not find it, and the app was wrong. Body metrics moved to Settings, so this
+          // and the two other pointers to them moved with it.
+          showToast('No bodyweight saved yet — Settings, under Body metrics');
         }
       });
       const tagsToggle = row.querySelector('.ex-tags-toggle');
@@ -15702,7 +15703,7 @@ async function benchmarkAndSuggestTarget(goalType){
   if(goalType==='strength' || goalType==='hypertrophy'){
     const sex = (await window.storage.get('settings:strengthStandardSex').then(r=>r.value).catch(()=>null)) || 'male';
     const level = await computeStrengthLevel(sex);
-    if(level.error) return { phase:'benchmarking', reason:'No bodyweight logged yet — log your weight (Data → Recovery → Body Metrics) so a target can be calculated.' };
+    if(level.error) return { phase:'benchmarking', reason:'No bodyweight logged yet — log your weight (Settings → Body metrics) so a target can be calculated.' };
     // Prefer whichever standard lift has the most recent data — reflects what the person
     // actually trains, rather than always defaulting to squat regardless of their history.
     const lifts = Object.entries(level.lifts).filter(([,v])=>v);
@@ -15820,7 +15821,7 @@ async function renderAthleteLevel(){
 
   let html = '<div class="log-title">Strength (e1RM from logged sets, ±1 tier honest uncertainty)</div>';
   if(strength.error === 'no-bodyweight'){
-    html += '<div class="log-entry">Log bodyweight (Recovery tab → Body Metrics) to calculate this.</div>';
+    html += '<div class="log-entry">Log bodyweight (Settings → Body metrics) to calculate this.</div>';
   } else {
     const liftLabels = { squat:'Squat', bench:'Bench Press', deadlift:'Deadlift', ohp:'Overhead Press' };
     let anyFound = false;
