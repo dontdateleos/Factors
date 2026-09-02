@@ -6651,7 +6651,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.183';
+const APP_VERSION = '2026.08.31.184';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18760,6 +18760,20 @@ const MOBILITY_LOAD_DOSE = {
   2: { sets:3, holdSeconds:20, rangeNote:'through your current range' },
   3: { sets:3, holdSeconds:20, rangeNote:'full range' }
 };
+// Both ladders have three rungs; the assessed scale they are indexed by runs 1-5. A bare
+// `TABLE[level] || TABLE[1]` therefore handed a 4 or a 5 the rung written for a 1 — a domain
+// rated at the top of your own assessment was prescribed 'partial range, only where you have
+// control', more cautiously than the 3 below it. Above the top rung means AT the top rung:
+// a level-5 domain reaching here is a goal domain being maintained, and the top rung is what
+// maintaining it means. Clamped rather than given its own 4 and 5 keys, so each rung still
+// has exactly one definition and the bounds come from the table instead of a constant that
+// could drift away from it.
+function doseForLevel(table, level){
+  const rungs = Object.keys(table).map(Number);
+  const lo = Math.min(...rungs), hi = Math.max(...rungs);
+  const n = Math.round(Number(level));
+  return table[Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : lo];
+}
 async function getMobilityDomainsNeedingWork(activeGoalSkills){
   const assessment = await getMobilityAssessment();
   const scores = (assessment && assessment.scores) || {};
@@ -18913,8 +18927,8 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
     const spec = sessionType==='maintenance'
       ? MOBILITY_MAINTENANCE_DOSE
       : (cat === 'load'
-          ? (MOBILITY_LOAD_DOSE[level] || MOBILITY_LOAD_DOSE[1])
-          : (MOBILITY_LEVEL_DOSE[level] || MOBILITY_LEVEL_DOSE[1]));
+          ? doseForLevel(MOBILITY_LOAD_DOSE, level)
+          : doseForLevel(MOBILITY_LEVEL_DOSE, level));
     otherStretches.push({ name, area: MOBILITY_DOMAIN_TO_AREA[domain] || '', category: cat, domain, reason,
       ...mobilityDose(name, spec) });
     return true;
