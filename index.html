@@ -2243,6 +2243,7 @@
            the week is what the tab is opened for, so the week goes first. Still folded by
            default: it is an input you set, not one you read. -->
       <div class="group form-panel" id="weekGoalsGroup">
+        <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals</div><span class="head-est" id="weekGoalsSummary"></span><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
 
           <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
@@ -6322,7 +6323,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.143';
+const APP_VERSION = '2026.08.31.144';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
