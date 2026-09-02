@@ -1893,6 +1893,10 @@
   .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
     background:var(--band, var(--accent)); border-radius:1px; }
   .budget-bar.over > i{ background:var(--bad); }
+  /* Where the productive band begins on the weekly-stretch bar. */
+  .skg-bar{ position:relative; }
+  .skg-bar-floor{ position:absolute; top:-2px; bottom:-2px; width:1px;
+    background:var(--bg); opacity:0.55; }
   /* The learning is the most interesting thing in here and it was nine static percentages
      with an arrow beside them. The bar is the weight; the tick is where that weight started,
      left in place so the distance travelled is still readable after the movement stops. */
@@ -6793,7 +6797,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.211';
+const APP_VERSION = '2026.08.31.212';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -20258,7 +20262,11 @@ function skillProgressHtml(o){
     + `<div class="score-note" style="margin-top:4px;">${o.levelText}</div>`
     + `<div class="score-note" style="margin-top:3px;">${o.note}</div>`;
   if(o.subBar != null){
-    html += `<div class="skg-bar thin"><div class="skg-bar-fill" style="width:${Math.min(100, Math.round(o.subBar))}%;"></div></div>`;
+    // A tick where the productive band starts, so the bar shows the same three places the
+    // sentence under it names rather than reading as one long way to fail.
+    const floorTick = o.subFloorPct != null
+      ? `<i class="skg-bar-floor" style="left:${Math.min(100, Math.round(o.subFloorPct))}%;"></i>` : '';
+    html += `<div class="skg-bar thin"><div class="skg-bar-fill" style="width:${Math.min(100, Math.round(o.subBar))}%;"></div>${floorTick}</div>`;
   }
   if(o.subNote) html += `<div class="score-note" style="margin-top:2px;">${o.subNote}</div>`;
   if(o.advanceLabel){
@@ -20312,16 +20320,34 @@ async function renderMobilityProgression(){
     const tree = PROGRESSION_TREES.mobility[sg.skill];
     // The second bar is weekly time under stretch against the target — mobility advances
     // on accumulated exposure, where the strength side counts practice days.
+    // A band, not a pass mark. 10 min/week is where Ingram's curve stops improving, not
+    // where it starts working: the chronic spline knots at 3, 8, 16 and 173 min and is close
+    // to flat by 10, and the review it cites is explicit that 5-10 min/week improves ROM
+    // against under 5. Reporting "7 of 10 min" as a bar that never fills reads as failure
+    // for a week that is doing a real and productive dose — so the sentence names which of
+    // the three places you are in, and the bar still measures against the maximum.
     let subBar = null, subNote = '';
     if(adv.progress && adv.progress.weeklySeconds){
-      const wk = Math.round(adv.progress.weeklySeconds/60);
+      const secs = adv.progress.weeklySeconds;
+      // Floored, not rounded. 280s rounds to "5 min" and then the sentence says you are
+      // under the 5 minutes it takes — a line that argues with itself on screen. Flooring
+      // keeps the figure and the verdict on the same side of the threshold.
+      const wk = Math.floor(secs/60);
       const tgt = Math.round(MOBILITY_WEEKLY_TARGET_SECONDS/60);
-      subBar = (adv.progress.weeklySeconds/MOBILITY_WEEKLY_TARGET_SECONDS)*100;
-      subNote = `${wk} of ~${tgt} min/week under stretch${adv.progress.weeksAtDose ? ` \u00b7 ${adv.progress.weeksAtDose} week${adv.progress.weeksAtDose===1?'':'s'} at target` : ''}.`;
+      const floor = Math.round(MOBILITY_WEEKLY_FLOOR_SECONDS/60);
+      subBar = (secs/MOBILITY_WEEKLY_TARGET_SECONDS)*100;
+      const where = secs >= MOBILITY_WEEKLY_TARGET_SECONDS
+        ? `at the point gains stop improving`
+        : secs >= MOBILITY_WEEKLY_FLOOR_SECONDS
+          ? `in the productive band \u2014 ${floor}\u2013${tgt} min is where range actually moves`
+          : `under the ${floor} min a week it takes to move range at all`;
+      subNote = `${wk} min/week under stretch, ${where}.${
+        adv.progress.weeksAtDose ? ` ${adv.progress.weeksAtDose} week${adv.progress.weeksAtDose===1?'':'s'} at the full dose.` : ''}`;
     }
     target.innerHTML = deloadNote + skillProgressHtml({ skill: sg.skill, category:'mobility',
       levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
-      note: adv.note, subBar, subNote, advanceLabel: adv.action === 'advance' ? adv.nextLevel : null });
+      note: adv.note, subBar, subNote, advanceLabel: adv.action === 'advance' ? adv.nextLevel : null,
+      subFloorPct: (MOBILITY_WEEKLY_FLOOR_SECONDS / MOBILITY_WEEKLY_TARGET_SECONDS) * 100 });
     bindSkillAdvanceButtons(target, renderMobilityProgression);
   } catch(e){}
 }
