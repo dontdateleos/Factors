@@ -1412,8 +1412,15 @@
   .blc-row:last-child{ margin-bottom:0; }
   .blc-wk{ flex:0 0 14px; font-family:var(--mono); font-size:var(--fs-md); color:var(--bg); }
   .blc-track{ flex:1; min-width:0; position:relative; background:rgba(251,250,246,0.10); }
-  .blc-bar{ position:absolute; left:0; top:0; bottom:0; }
-  .blc-tick{ position:absolute; top:-3px; bottom:-3px; width:3px; }
+  /* Grown from the left by growBars, which scales on X — without an origin it would open
+     from the middle outwards, which is not how a week accumulates. */
+  .blc-bar{ position:absolute; left:0; top:0; bottom:0; transform-origin:left center; }
+  /* The plan marker lands after the bar that is being measured against it, so you read what
+     you did before what you were asked for. Transform only: the tick's opacity is set inline
+     per row and an opacity keyframe would overwrite it. */
+  .blc-tick{ position:absolute; top:-3px; bottom:-3px; width:3px; transform-origin:center; }
+  .blc-tick.arrive{ animation:blcTick 260ms cubic-bezier(.2,.9,.3,1) both; animation-delay:var(--tick-delay,0ms); }
+  @keyframes blcTick{ from{ transform:scaleY(0.25); } to{ transform:scaleY(1); } }
   .blc-fig{ flex:0 0 auto; min-width:58px; text-align:right; font-family:var(--mono);
     font-size:var(--fs-tag); color:var(--bg); white-space:nowrap;
     font-variant-numeric:tabular-nums; }
@@ -5570,7 +5577,10 @@ function animateCollapse(body, collapsed){
 /* 6 — A bar rendered at its final width was always that long. Growing it says the number
    was arrived at. Staggered, because a row of them all growing together is one gesture
    rather than several readings. */
-const UI_BAR_SELECTOR = '.conf-bar-fill, .skg-bar-fill, .vol-bar-fill';
+/* .blc-bar is the week strip on Weekly — what you actually logged against what the block
+   asked for. It was the one bar chart in the app that arrived at full width while the
+   confidence bars and the block-history bars beside it grew. */
+const UI_BAR_SELECTOR = '.conf-bar-fill, .skg-bar-fill, .vol-bar-fill, .blc-bar';
 let growBarsQueued = false;
 // Every re-render replaces its bars, so a new element has no flag and grows; the same
 // element at the same width does not grow twice. Keying on the width rather than a bare
@@ -6569,7 +6579,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.174';
+const APP_VERSION = '2026.08.31.175';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11706,7 +11716,7 @@ async function renderBlockLoadChart(){
         <div class="blc-wk" style="font-weight:${isNow ? 700 : 400}; opacity:${isNow ? 1 : 0.55};">${label}</div>
         <div class="blc-track" style="height:${TRACK_H}px;">
           <div class="blc-bar" style="width:${pct.toFixed(1)}%; background:${ink};"></div>
-          ${refPct != null ? `<div class="blc-tick" style="left:${Math.min(99.2, refPct).toFixed(1)}%; background:${PLAN_INK}; opacity:${ref > 0 ? 1 : 0.45};"></div>` : ''}
+          ${refPct != null ? `<div class="blc-tick${uiAnim('growBars') ? ' arrive' : ''}" style="left:${Math.min(99.2, refPct).toFixed(1)}%; background:${PLAN_INK}; opacity:${ref > 0 ? 1 : 0.45}; --tick-delay:${260 + rows.length * UI_ANIM.growBars.stagger}ms;"></div>` : ''}
         </div>
         <div class="blc-fig" style="opacity:${isNow ? 1 : 0.55};">${figure}</div>
       </div>`);
