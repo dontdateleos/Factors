@@ -1431,7 +1431,10 @@
   .blc-key-plan{ color:var(--block-yellow); }
   /* Dark ink: this chart sits on the Data tab's own yellow, not on the black band the score
      trace lives in, and cream ticks were all but invisible on it. */
-  .tc-tick{ font-family:var(--mono); font-size:9px; fill:rgba(12,13,11,0.55); }
+  /* SVG text paints with fill, so this never picked up the ink flip the rest of the app
+     got — it stayed near-black at 55% and the chart's axis numbers and dates sat at 1.21
+     on the tinted field. The same grey every other caption in the app uses. */
+  .tc-tick{ font-family:var(--mono); font-size:9px; fill:var(--dim); }
   #trendChart svg{ display:block; }
   /* The device chips name which watch a number came from. With no watch connected there is
      one box per fact and the chip is answering a question nobody asked. */
@@ -1863,7 +1866,7 @@
      the screen edge, so its own fields put that 14px back. */
   .fields{ padding-left:0; padding-right:0; }
   .form-panel > .fields{ padding-left:var(--gutter); padding-right:var(--gutter); }
-  .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:2px solid var(--border-bold); border-left:3px solid var(--dim); background:transparent; border-radius:0; margin-bottom:8px; line-height:1.5; }
+  .trend-flag{ font-family:var(--sans); font-size:var(--fs-sm); padding:10px 12px; border:1px solid var(--hair); border-left:3px solid var(--dim); background:transparent; color:var(--dim); border-radius:0; margin-bottom:8px; line-height:1.5; }
   .trend-flag.up{ border-left-color:var(--accent); }
   .trend-flag.down{ border-left-color:var(--bad); }
   /* --toast-from is which way it comes in: up from below when you tapped low, down from
@@ -6336,7 +6339,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.155';
+const APP_VERSION = '2026.08.31.156';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -22844,7 +22847,7 @@ function drawTrendChart(host, points, colours, band, label){
     const v = yMax - (yMax - yMin) * f;
     const y = TREND_PAD_T + innerH * f;
     const txt = Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
-    return `<line x1="${TREND_PAD_L}" y1="${y.toFixed(1)}" x2="${w - TREND_PAD_R}" y2="${y.toFixed(1)}" stroke="rgba(12,13,11,0.16)" stroke-width="1"/>`
+    return `<line x1="${TREND_PAD_L}" y1="${y.toFixed(1)}" x2="${w - TREND_PAD_R}" y2="${y.toFixed(1)}" stroke="var(--hair)" stroke-width="1"/>`
          + `<text x="${TREND_PAD_L - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="tc-tick">${txt}</text>`;
   }).join('');
   const step = Math.max(1, Math.ceil(points.length / 6));
