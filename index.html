@@ -1592,10 +1592,27 @@
      18px down — pulling the box up by that much puts the middle of the letters exactly on
      the card's edge, which is then 50% of the way down the box for the two clips.
      overflow must stay visible or the escaping half is cut off. */
-  .rec-card{ position:relative; border:none; border-radius:0; background:var(--reverse-bg); color:var(--bg); margin:22px calc(-1 * var(--gutter)) 14px; padding:0 var(--gutter) 18px; overflow:visible; }
+  /* The card was a black plate on a saturated ground. The ground is that same black now, so
+     the plate stopped existing — what was left was loose content with no edges. It is built
+     from the page's own parts instead: a head on the ground carrying a rounded type box and
+     the confidence at the right edge, then a body in a field, which is what every section on
+     Today already does.
+     --tone is what the card is asking of you. The glyph draws it and the colour says it. */
+  .rec-card{ position:relative; border:none; background:transparent; color:var(--bg);
+    margin:22px calc(-1 * var(--gutter)) 14px; padding:0 var(--gutter); overflow:visible;
+    --tone:var(--dim); --tone-ink:var(--text); --tone-field:rgba(251,250,246,0.06); }
+  .rec-card.tone-up  { --tone:var(--block-lime);   --tone-ink:var(--text); --tone-field:var(--field-lime); }
+  .rec-card.tone-down{ --tone:var(--bad);          --tone-ink:var(--bg);   --tone-field:#241413; }
+  .rec-card.tone-side{ --tone:var(--block-yellow); --tone-ink:var(--text); --tone-field:var(--field-yellow); }
   /* The type used to straddle the card's top edge, so the card had no top padding to give.
      A chip sits inside it and needs the air. */
-  .rec-head{ display:block; padding-top:14px; margin-bottom:10px; }
+  .rec-head{ display:flex; align-items:center; gap:10px; padding-top:14px; margin-bottom:11px; }
+  /* Says what the glyph beside it means. Same box a section's title sits in — the tone's
+     colour rather than the tab's, and the ink flips on the red because dark on --bad is not
+     a reading. */
+  .rec-type{ background:var(--tone); color:var(--tone-ink); border-radius:6px; padding:3px 9px;
+    font-size:var(--fs-md); font-weight:var(--fw-bold); letter-spacing:-0.02em;
+    text-transform:uppercase; flex:0 1 auto; min-width:0; }
   /* Offset with top, not margin: a negative top margin on the card's first child collapses
      straight out through the card (which has no top padding or border) and moves the card
      itself, leaving the word exactly where it started. */
@@ -1634,9 +1651,12 @@
   /* Square, like every other box in the app. The 13px radius made this the one rounded
      rectangle in the whole interface, which is its own kind of off-key before you get to
      what was inside it. */
-  .rec-symbol{ display:inline-flex; align-items:center; justify-content:center;
-    width:46px; height:46px; border-radius:0; background:var(--block-lime); color:var(--text); }
-  .rec-symbol svg{ display:block; width:30px; height:30px; }
+  /* Small, and beside the word rather than above it: it was a 46px plate carrying a glyph
+     nobody had been told the meaning of. --tone, not a hardcoded lime — the same fix the
+     goal rank chips needed. */
+  .rec-symbol{ display:inline-flex; align-items:center; justify-content:center; flex:none;
+    width:26px; height:22px; border-radius:4px; background:var(--tone); color:var(--tone-ink); }
+  .rec-symbol svg{ display:block; width:17px; height:17px; }
   .rec-symbol-text{ font-family:var(--mono); font-weight:var(--fw-bold); font-size:16px;
     letter-spacing:0.04em; }
   /* Chip and tag side by side rather than stacked: the number no longer needs a whole
@@ -1658,10 +1678,12 @@
      underlying scale has room for — low, medium and high are the only values the engine
      produces, so the ruler shows 2, 3 and 5 of 5 and never invents a precision the number
      does not have. The word stays in the aria-label; the sighted reading is the length. */
-  .conf-ruler{ display:flex; gap:2px; margin-top:7px; }
+  .conf-ruler{ display:flex; gap:2px; margin-left:auto; flex:none; }
   .conf-ruler i{ display:block; width:9px; height:4px; background:rgba(251,250,246,0.22); }
   .conf-ruler i.on{ background:var(--bg); }
-  .rec-body{ padding:0; }
+  /* The field, bled back out to the screen edges the card's own padding pulled in from. */
+  .rec-body{ background:var(--tone-field);
+    margin:0 calc(-1 * var(--gutter)); padding:14px var(--gutter) 18px; }
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
   /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
      used to lose its own left edge. */
@@ -6294,7 +6316,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.140';
+const APP_VERSION = '2026.08.31.141';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13705,6 +13727,18 @@ function recBarsSvg(heights, o){
     : '';
   return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${bars}${rail}</svg>`;
 }
+// What a card is asking of you, which is a different axis from what it is about. The glyph
+// already draws the shape — bars climbing, bars coming down — and this puts the same reading
+// in the colour, so the kind of news is legible before a word is read. Four, not two: doing
+// less and doing something different are not the same instruction, and a report is not an
+// instruction at all.
+const REC_TONE = {
+  add:'up', prescription_add:'up',
+  reduce:'down', prescription_reduce:'down', deload_suggest:'down',
+  modify:'side', prescription_modify:'side',
+  hold:'flat', week_review:'flat', block_review:'flat'
+};
+
 const REC_TYPE_SYMBOL = {
   add:            { label:'Add',    svg: recBarsSvg([4, 7, 10, 14]) },    // climbing
   reduce:         { label:'Reduce', svg: recBarsSvg([14, 10, 7, 4]) },    // coming down
@@ -13744,10 +13778,15 @@ function buildRecCard(type, title, signals, confidence, meta){
   if(type === 'reduce' && anim('wince')) setTimeout(eyeWince, 250);
   const isReview = type === 'week_review' || type === 'block_review';
   const card = document.createElement('div');
-  card.className = `rec-card ${type}`;
+  card.className = `rec-card ${type} tone-${REC_TONE[type] || 'flat'}`;
+  // The label the symbol already carries for a screen reader, said out loud. A type with no
+  // symbol used to fall through to two letters — "PU", "PR" — which is a label for nobody.
+  const sym = REC_TYPE_SYMBOL[type];
+  const typeLabel = (sym && sym.label) || String(type).replace(/_/g, ' ');
   card.innerHTML = `
     <div class="rec-head">
       ${recSymbolHtml(type)}
+      <span class="rec-type">${typeLabel}</span>
       ${confidence ? confRulerHtml(confidence) : ''}
     </div>
     <div class="rec-body">
