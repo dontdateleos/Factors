@@ -657,7 +657,12 @@
      more visual weight than the reps beside it and the list read as undifferentiated
      text. Promoting the left span is what makes a session scannable — you find the
      exercise first, then read its numbers. */
-  .log-entry > span:first-child{ font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-0.01em; }
+     The promotion was written as var(--text), back when this list sat on a cream panel.
+     Every ground is dark now, so that near-black was painting the name at contrast 1.00 on
+     the ground behind it — the left half of Trends' recent entries and of Workout
+     History's block rows was blank. Cream is the promotion on a dark ground; the value
+     beside it stays --dim, which is the hierarchy this rule always meant. */
+  .log-entry > span:first-child{ font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); letter-spacing:-0.01em; }
   .log-entry > span:last-child{ flex:none; text-align:right; }
   .mobility-cat-label{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:0.04em; color:var(--text); text-transform:uppercase; -webkit-text-stroke:0.2px currentColor; }
   .mobility-cat-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--text); padding:3px 0 3px 10px; }
@@ -739,7 +744,7 @@
     font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
     color:var(--bg); background:var(--reverse-bg); padding:1px 5px; margin-right:6px;
     border-radius:3px; vertical-align:baseline; white-space:nowrap; }
-  .log-entry:hover{ color:var(--text); }
+  .log-entry:hover{ color:var(--bg); }
 
   /* Update banner — pinned to the bottom so it never covers the score or the tab bar,
      and dismissible because an update you're not ready for shouldn't be a wall. */
@@ -6331,7 +6336,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.154';
+const APP_VERSION = '2026.08.31.155';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
