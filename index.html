@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.159';
+const APP_VERSION = '2026.08.31.160';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -14412,7 +14412,12 @@ async function renderScoreTrace(todayScore){
   }
   await loadFaceValues(faceWindow);
   layoutBandColumn(false);
-  if(todayScore == null){ pendingScoreDate = null; return; }
+  // A held score is not an absent history. Today gets no mark — a hole, which is exactly
+  // what the strip already draws for a day you did not log — but the six days behind it are
+  // not blinded and have nothing to hide. Returning here blanked the entire trace on the one
+  // morning in seven the blinding is meant to make trustworthy, which reads as the app
+  // breaking rather than the app keeping a promise. The "fewer than three real scores" guard
+  // further down is what actually handles having nothing to draw.
 
   // Six days back plus today. A day with no entry is a hole, not a zero — it simply has no
   // mark, and the swipe steps over it rather than landing on nothing.
@@ -14471,7 +14476,10 @@ async function renderScoreTrace(todayScore){
       scoreSessions[sn.date] = Math.max(scoreSessions[sn.date] || 0, r);
     });
   } catch(e){ scoreSessions = {}; }
+  // Land on the most recent day that has a mark. Normally that is today; on a held morning
+  // today is the hole, and selecting it would open the trace on nothing.
   scoreDayIndex = scoreDays.length - 1;
+  while(scoreDayIndex > 0 && scoreDays[scoreDayIndex].score == null) scoreDayIndex--;
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
   const lbl = document.getElementById('overallScoreLabel');
