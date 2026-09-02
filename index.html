@@ -1048,6 +1048,27 @@
   #weeklyTrainingView > .group:last-child{ margin-bottom:calc(-1 * var(--sp-3)); }
   #weeklyTrainingView > #blockEditHome:not(:empty){ background:var(--ground); }
   .form-panel label, .form-panel .score-note{ color:var(--dim); }
+  /* PROSE THAT ONLY EXPLAINS GETS A RULE DOWN ITS LEFT.
+
+     A note attached to a control is part of the control and reads as one thing with it. A
+     paragraph that only describes how something works is a different kind of writing, and it
+     was set identically — same size, same grey, same left edge as the fields above it, so the
+     eye had no way to tell "here is a number to enter" from "here is what that number does".
+
+     The rule is the section's own band colour, so the aside belongs to the part of the app it
+     is explaining rather than being a second accent. The text drops back from --dim as well:
+     this is the one kind of writing you can skip and lose nothing, and it should look like it.
+
+     Opt-out rather than opt-in. .note-live marks the notes that carry a value or the result
+     of something you just did — a sleep debt, an export finishing, a save confirming. Those
+     are readings, not description, and a rule down the side of one would promise an
+     explanation that never arrives. Anything new is prose until it says otherwise. */
+  .score-note:not(.note-live){
+    border-left:2px solid var(--band, var(--accent));
+    padding:1px 0 1px 11px;
+    color:rgba(251,250,246,0.62);
+  }
+  .form-panel .score-note:not(.note-live){ color:rgba(251,250,246,0.62); }
   .form-panel .collapse-chevron, .form-panel summary{ color:var(--dim); }
   /* These three used to be stated here, for the panel only, because the base was written
      for a light ground. Every ground is dark now, so they are the base. */
@@ -2103,12 +2124,12 @@
     <div id="scoreTrace" role="img" aria-label=""></div>
     <!-- Where the answer comes to rest: at the number's right edge, tucked behind it. -->
     <button type="button" id="todayFaceDock"></button>
-    <div id="baselineStatus" class="score-note" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
+    <div id="baselineStatus" class="score-note note-live" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
     <!-- The block position line used to sit here — "Block 1 · week 1/4 · accumulation". It is
          true and it is not urgent: the same thing is on Weekly, where you go to look at the
          block. Today opens on a number and a plan now. The element stays so the swipe through
          the week can still write into it; it is display:none until something needs it. -->
-    <div id="todayBlockContext" class="score-note" style="display:none; text-align:center; font-size:var(--fs-tag);"></div>
+    <div id="todayBlockContext" class="score-note note-live" style="display:none; text-align:center; font-size:var(--fs-tag);"></div>
     </div>
     <!-- Where the faces live before there is a score. The column inside the band is measured
          against the number's edge, so with no number there is nowhere for it to sit — and
@@ -2257,7 +2278,7 @@
             </label>
             <button class="small outline" id="clearAllWeekBtn">Clear all</button>
           </div>
-          <div id="deloadSuggestedNote" class="score-note" style="display:none;"></div>
+          <div id="deloadSuggestedNote" class="score-note note-live" style="display:none;"></div>
           <div id="weekBlockStrip"></div>
         </div>
       </div>
@@ -2300,12 +2321,12 @@
             </select>
           </div>
           <button class="small" id="saveRunStartBtn">Save running starting point</button>
-          <div id="runStartResult" class="score-note"></div>
+          <div id="runStartResult" class="score-note note-live"></div>
         </div>
       </div>
 
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
-      <div id="saveGoalsResult" class="score-note" style="margin-top:8px;"></div>
+      <div id="saveGoalsResult" class="score-note note-live" style="margin-top:8px;"></div>
         </div>
       </div>
 
@@ -2318,7 +2339,7 @@
       <div class="group form-panel" id="whyWeekGroup">
         <div class="group-head collapsible" data-collapse="whyweek" style="cursor:pointer;"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div><span class="collapse-chevron collapsed" data-collapse="whyweek">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="whyweek" style="display:none;">
-          <div id="generateProgramResult" class="score-note"></div>
+          <div id="generateProgramResult" class="score-note note-live"></div>
           <div id="weekSessionList"></div>
         </div>
       </div>
@@ -2337,7 +2358,7 @@
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
-        <div id="saveMobilityAssessmentResult" class="score-note"></div>
+        <div id="saveMobilityAssessmentResult" class="score-note note-live"></div>
       </div>
     </div>
 
@@ -2437,7 +2458,7 @@
       </div>
 
       <button class="primary" id="saveFunctionBtn">Save skill goals &amp; assessment</button>
-      <div id="saveFunctionResult" class="score-note" style="margin-top:8px; margin-bottom:20px;"></div>
+      <div id="saveFunctionResult" class="score-note note-live" style="margin-top:8px; margin-bottom:20px;"></div>
 
 
   </div>
@@ -2470,7 +2491,7 @@
       </div>
     </div>
     <div class="score-note" style="display:none;">Adaptive compares today against your trailing 7-day average. Target compares against fixed goals (8hr sleep, ≤1 wake event, HRV at rolling baseline). Equal-weighted v1 — placeholder until backtested.</div>
-    <div class="score-note" id="sleepDebtOut">Sleep debt: —</div>
+    <div class="score-note note-live" id="sleepDebtOut">Sleep debt: —</div>
 
     <!-- THE MORNING CHECK-IN. It used to open with eighteen fields, six of which were three
          facts asked twice — a Garmin box and an Oura box for the same sleep score, the same
@@ -2616,7 +2637,7 @@
         <div id="trendChart" role="img" aria-label=""></div>
       </div>
     </div>
-    <div class="score-note" id="chartMetricNote" style="display:none;"></div>
+    <div class="score-note note-live" id="chartMetricNote" style="display:none;"></div>
     <div id="trendFlags"></div>
     <div class="score-note">Full history, no windowing — this is the view for spotting slow multi-month drift that trailing 7-14 day windows elsewhere in the app won't show.</div>
 
@@ -2652,8 +2673,8 @@
       <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <!-- The version has changed fifty times today and never once said what moved. -->
-        <div id="whatChanged" class="score-note"></div>
-        <div id="updateCheckResult" class="score-note"></div>
+        <div id="whatChanged" class="score-note note-live"></div>
+        <div id="updateCheckResult" class="score-note note-live"></div>
         <button id="checkUpdateBtn" class="outline">Check for update</button>
       </div>
     </div>
@@ -2662,7 +2683,7 @@
       <div class="group-head collapsible" data-collapse="devices" style="cursor:pointer;"><div class="group-title">Connect devices</div><span class="head-est" id="devicesSummary"></span><span class="collapse-chevron" data-collapse="devices">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="devices" style="display:none;">
         <div id="deviceConnectRow" style="display:flex; gap:10px;"></div>
-        <div id="deviceConnectStatus" class="score-note"></div>
+        <div id="deviceConnectStatus" class="score-note note-live"></div>
         <!-- Disconnect, Test connection and the last-attempt debug line all live in
              ouraConnectionStatus, which was display:none — so a connection that stopped
              working had no reachable way to reconnect it and nothing on screen said why.
@@ -2693,7 +2714,7 @@
         <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
         <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
         <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
-        <div class="score-note" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
+        <div class="score-note note-live" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
         <button id="updateBodyMetricsBtn">Update body metrics</button>
       </div>
     </div>
@@ -2727,7 +2748,7 @@
             <option value="8">8 weeks</option>
           </select>
         </div>
-        <div id="blockPositionNote" class="score-note">—</div>
+        <div id="blockPositionNote" class="score-note note-live">—</div>
         <div class="field-row"><button class="small outline" id="resetBlockBtn">Start a new block from this week</button></div>
         <div class="score-note">Same results in less time, not better results — applied only when a session won't otherwise fit. Expect sessions to feel harder.</div>
         <div class="score-note">Bands count as bodyweight; barbells, dumbbells, cables and machines don't.</div>
@@ -2749,12 +2770,12 @@
           <button id="copyExportBtn" class="outline">Copy</button>
         </div>
         <textarea id="exportOutput" readonly placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
-        <div id="exportResult" class="score-note"></div>
+        <div id="exportResult" class="score-note note-live"></div>
 
         <div class="score-note" style="margin-top:16px;">Writes exported data back in. For migrations and recovery, not daily use.</div>
         <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <button id="bulkImportBtn">Import</button>
-        <div id="bulkImportResult" class="score-note"></div>
+        <div id="bulkImportResult" class="score-note note-live"></div>
       </div>
     </div>
     <div style="display:none;">
@@ -2776,7 +2797,7 @@
           <button id="clearTestDataBtn" class="outline">Clear test data</button>
           <button id="seedTestScenarioBtn" class="primary">Seed scenario</button>
         </div>
-        <div id="testDataResult" class="score-note"></div>
+        <div id="testDataResult" class="score-note note-live"></div>
       </div>
     </div>
     <div class="group" style="border-color:var(--bad);">
@@ -2784,7 +2805,7 @@
       <div class="fields">
         <div class="score-note">Runs the real decision engine and reports PASS/FAIL. Wipes all storage — export a backup first.</div>
         <button id="runScenarioSuiteBtn" class="primary">Run regression suite</button>
-        <div id="scenarioSuiteProgress" class="score-note"></div>
+        <div id="scenarioSuiteProgress" class="score-note note-live"></div>
         <div id="scenarioSuiteResults"></div>
       </div>
     </div>
@@ -2808,7 +2829,7 @@
           <span>Hide the score on one day in five, until I have logged</span>
         </label>
         <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. One training day a week, picked at random and locked in before it arrives, the number is held back until the session is logged — which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
-        <div class="score-note" id="blindingStats" style="margin-top:8px;"></div>
+        <div class="score-note note-live" id="blindingStats" style="margin-top:8px;"></div>
         <div id="placeboEffect" style="margin-top:12px;"></div>
         <div id="scoreValidity" style="margin-top:12px;"></div>
       </div>
@@ -3026,7 +3047,7 @@
       <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><span class="head-est" id="startFreshSummary"></span><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
         <div class="score-note">Erases everything permanently. Export a backup first.</div>
         <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
-        <div id="clearAllDataResult" class="score-note"></div>
+        <div id="clearAllDataResult" class="score-note note-live"></div>
       </div>
     </div>
   </div>
@@ -6627,7 +6648,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.180';
+const APP_VERSION = '2026.08.31.181';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
