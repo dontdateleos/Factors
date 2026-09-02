@@ -5555,6 +5555,7 @@ const UI_ANIM = {
   scoreGlitch:  { on:true, note:'A day you swipe to tears itself in rather than simply appearing', ms:340 },
   markGlitch:   { on:true, note:'How long the mark\'s own tear lasts — whether it happens at all is the eyes\' own row', ms:320 },
   tickLevel:    { on:true, note:'Ticking a level in a picker lands with a beat', ms:340 },
+  rungFill:     { on:true, note:'Ticking a rung fills the ones under it in order rather than all at once', ms:170, stagger:42 },
   streakBurst:  { on:true, note:'The mark throws confetti the first time you log on a new day', ms:1100 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -5760,6 +5761,23 @@ function tickLevel(row){
   const num = row.querySelector('.mob-check-num') || row;
   uiPlay(num, [{ transform:'scale(1)' }, { transform:'scale(1.35)', offset:0.4 }, { transform:'scale(1)' }],
     { duration: UI_ANIM.tickLevel.ms, easing:'cubic-bezier(0.34,1.4,0.5,1)' });
+}
+
+/* "Tick the last one you can do" is a claim about every rung beneath it as well, and the
+   markup already agrees — the rows below the tapped one carry .done. They simply all
+   appeared at once, which reads as a state the list was already in rather than as something
+   your tap just said. Filling them in order is the sentence acted out: you can do the
+   fourth, so you can do the first three. The tapped rung lands last, where tickLevel's
+   bounce is already waiting for it. */
+function rungFill(container, level){
+  if(!uiAnim('rungFill') || !container) return;
+  const c = UI_ANIM.rungFill;
+  for(let l = 1; l <= level; l++){
+    const row = container.querySelector(`.mob-check-row[data-level="${l}"]`);
+    if(!row) continue;
+    uiPlay(row, [{ opacity:0.3, transform:'translateX(-5px)' }, { opacity:1, transform:'none' }],
+      { duration: c.ms, delay: (l - 1) * c.stagger, easing:'ease-out' });
+  }
 }
 
 /* 9 — A list that appears all at once was always there. A short stagger is the cheapest way
@@ -6704,7 +6722,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.202';
+const APP_VERSION = '2026.08.31.203';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11383,13 +11401,19 @@ async function renderMobilityAssessment(skipCollapse){
         return;
       }
       mobilityDraftScores[domain] = lvl;
-      if(mobilityStepIndex < MOBILITY_DOMAINS.length-1) mobilityStepIndex++;
-      // After the re-render, not before: the row that was tapped is thrown away by it, so
-      // an animation started on the old one goes with it. The render is async, so this
-      // waits on it rather than on a frame.
-      renderMobilityAssessment(true).then(()=>{
-        tickLevel(document.querySelector(`#mobilityAssessmentRows .mob-check-row[data-level="${lvl}"]`));
-      });
+      // Animate on the rows you actually tapped, THEN advance. It used to re-render first
+      // and animate afterwards, which put the movement on the next domain's rungs — a fill
+      // down to four on a domain nobody had rated yet, and a bounce on a row that was not
+      // the row that was pressed. The rating is recorded above, immediately; only the wheel
+      // moving on waits, and only for as long as the fill takes to reach its last rung.
+      const rows = document.getElementById('mobilityAssessmentRows');
+      rungFill(rows, lvl);
+      tickLevel(rows && rows.querySelector(`.mob-check-row[data-level="${lvl}"]`));
+      const settle = uiAnim('rungFill') ? (lvl - 1) * UI_ANIM.rungFill.stagger + 90 : 0;
+      setTimeout(()=>{
+        if(mobilityStepIndex < MOBILITY_DOMAINS.length-1) mobilityStepIndex++;
+        renderMobilityAssessment(true);
+      }, settle);
     });
   });
 
