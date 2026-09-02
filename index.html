@@ -6793,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.210';
+const APP_VERSION = '2026.08.31.211';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -19908,6 +19908,28 @@ async function renderTodayBlockContext(forDate){
 async function loadWeekStretchLedger(){
   const ledger = {};
   const weekDates = getWeekDates();
+  // Loaded full-ROM work counts toward the same target — see LOADED_ROM_CREDIT_SECONDS.
+  // Read off logged sessions rather than planned ones, so it is credit for work done.
+  try{
+    for(const sn of await getAllTrainingSessions()){
+      if(!sn || sn.type !== 'strength' || !sn.exercises) continue;
+      if(!weekDates.includes(sn.date)) continue;
+      const creditedThisSession = new Set();
+      sn.exercises.forEach(e=>{
+        const lib = e.exerciseId ? EXERCISE_LIBRARY[e.exerciseId] : null;
+        // Only long-length loaded work. A short-range machine movement does not train range
+        // of motion just because it was loaded — the same test getLoadedROMDomains applies.
+        if(!lib || !lib.longLengthBias) return;
+        [e.area, e.secondaryArea].filter(Boolean).forEach(area=>{
+          // Once per area per session: three squat variants in one day is one exposure of
+          // that pattern, not three.
+          if(creditedThisSession.has(area)) return;
+          creditedThisSession.add(area);
+          ledger[area] = (ledger[area] || 0) + LOADED_ROM_CREDIT_SECONDS;
+        });
+      });
+    }
+  } catch(e){}
   for(const pfx of ['warmupLog:', 'postMobilityLog:', 'stretchLedger:']){
     try{
       const logs = await window.storage.list(pfx);
@@ -20125,6 +20147,22 @@ const MOBILITY_SKILL_MIN_WEEKS_AT_LEVEL = {
 const MOBILITY_SKILL_TEST_SETS = 2;
 const MOBILITY_SKILL_TEST_SECONDS = 30;
 const MOBILITY_WEEKLY_TARGET_SECONDS = 600;    // 10 min/week of STATIC stretching (Ingram 2024)
+// The threshold where stretching starts working, as opposed to where it stops improving.
+// Ingram's chronic spline puts its knots at 3, 8, 16 and 173 min/week and is close to flat
+// by 10, and the review it cites (Thomas et al.) is explicit: "static stretching for either
+// 5-10 or more than 10 min per week improved ROM compared with less than 5 min per week".
+// So 5 minutes is the floor and 10 is the ceiling of useful, and everything between is a
+// real dose. A week sitting at 7.5 min an area is inside the band, not failing a target.
+const MOBILITY_WEEKLY_FLOOR_SECONDS = 300;     // 5 min/week — below this it does not work
+// Loaded work through full range is worth the same as stretching for ROM, not a fraction of
+// it: an 8-week RCT (Afonso/Warneke line of work, BMC Sports Sci Med Rehabil 2024) found
+// full-ROM resistance training equally effective as static stretching for hip and lower back
+// flexibility while also adding strength, which is the same conclusion Alizadeh reached at
+// ES 0.73. getLoadedROMDomains already finds the domains that got it and the needs list
+// already SKIPS them — but nothing ever credited the work, so doing the thing the evidence
+// recommends made the target look less met. One exposure is credited what one block of
+// dedicated stretching credits a domain, measured at ~112s across every configuration.
+const LOADED_ROM_CREDIT_SECONDS = 112;
 const MOBILITY_WEEKLY_PRODUCTIVE_SECONDS = 300; // 5 min/week — minimum productive (Thomas et al.)
 const MOBILITY_SESSION_CAP_SECONDS = 240;      // 4 min/session — beyond this adds nothing
 const MOBILITY_MIN_WEEKS_AT_DOSE = 2;          // sustained, not a single big week
