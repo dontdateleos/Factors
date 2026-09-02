@@ -6793,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.206';
+const APP_VERSION = '2026.08.31.207';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23230,6 +23230,24 @@ const TENDINOPATHY_PROTOCOL = {
   // than at the six places they're built, so the reasoning stays in one piece and this
   // is one line to undo.
   cardQueue = cardQueue.filter(c => c.type !== 'hold');
+
+  // A card that changes today's session has nothing to change on a day with no session in
+  // it. "Window to push volume or intensity today" on a rest day is advice about a workout
+  // that does not exist — and accepting it is worse than useless: logRecDecision writes a
+  // todayAdjustment for the date, which sits there doing nothing until something IS planned
+  // for that day and then silently applies to it.
+  //
+  // Only the six that drive applyTodayAdjustment go. The week and block reviews look
+  // backwards, a deload suggestion is about the week rather than today, and the retest
+  // prompt is if anything BETTER on a rest day — rested and unfatigued is the condition the
+  // test wants. Filtered here, beside the hold filter, rather than at the eight places cards
+  // are pushed, so the reasoning stays in one piece.
+  const SESSION_CARD_TYPES = ['add', 'reduce', 'modify',
+                              'prescription_add', 'prescription_reduce', 'prescription_modify'];
+  let restToday = false;
+  try{ restToday = !!(await isRestDayComing(0)).isRest; } catch(e){}
+  if(restToday) cardQueue = cardQueue.filter(c => !SESSION_CARD_TYPES.includes(c.type));
+
   if(retestCard) cardQueue.unshift(retestCard);
   if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
   if(blockCard) cardQueue.unshift(blockCard);
