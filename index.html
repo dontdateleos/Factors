@@ -2540,7 +2540,7 @@
 
     <div class="more-toggle" id="recoveryMoreToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="recoveryMore">
       <span>Everything else</span>
-      <span class="more-toggle-sub" id="recoveryMoreSummary">device readings, load, body metrics</span>
+      <span class="more-toggle-sub" id="recoveryMoreSummary">device readings and load</span>
       <span class="more-toggle-chev">&#9662;</span>
     </div>
 
@@ -2587,18 +2587,6 @@
       <div class="fields">
         <div class="field-row" style="display:none;"><span class="field-label">Readiness</span><span class="src-tag oura">OURA</span><input type="number" id="readinessOura" placeholder="0-100"></div>
         <div class="field-row"><span class="field-label">Body Battery</span><span class="src-tag secondary">GARMIN</span><input type="number" id="bodyBattery" placeholder="0-100"></div>
-      </div>
-    </div>
-
-    <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Body metrics</div><div class="group-sub">fixed until updated</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Height (cm)</span><input type="number" step="0.1" id="bodyHeight"></div>
-        <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
-        <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
-        <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
-        <div class="score-note" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
-        <button id="updateBodyMetricsBtn">Update body metrics</button>
       </div>
     </div>
 
@@ -2712,6 +2700,17 @@
           <option value="balanced">Balanced</option>
           <option value="longevity">Longevity</option>
         </select>
+      </div>
+    </div>
+    <div class="group form-panel">
+      <div class="group-head collapsible" data-collapse="bodymetrics" style="cursor:pointer;"><div class="group-title">Body metrics</div><span class="head-est" id="bodyMetricsSummary"></span><div class="group-sub">fixed until updated</div><span class="collapse-chevron" data-collapse="bodymetrics">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="bodymetrics" style="display:none;">
+        <div class="field-row"><span class="field-label">Height (cm)</span><input type="number" step="0.1" id="bodyHeight"></div>
+        <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
+        <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
+        <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
+        <div class="score-note" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
+        <button id="updateBodyMetricsBtn">Update body metrics</button>
       </div>
     </div>
     <div class="group form-panel">
@@ -6279,7 +6278,12 @@ document.getElementById('updateBodyMetricsBtn').addEventListener('click', async 
   const bodyFat = parseFloat(document.getElementById('bodyFat').value);
   const note = document.getElementById('bodyMetricsLastUpdated');
   if(isNaN(height) && isNaN(weight)){ showToast('Enter at least height or weight', true); note.textContent = 'Enter at least height or weight.'; return; }
-  const date = dateInput.value;
+  /* Stamped today, not dateInput.value. These live in Settings now, where the Data tab's
+     date picker is neither visible nor meant to apply — and reading it there would let a
+     day spent looking back at an old entry silently back-date your current weight. Reads
+     carry the latest stamp at or before the day being asked about, so today is the one
+     stamp that means "this is true from now on". */
+  const date = todayStr;
   const record = { date, height: isNaN(height)?null:height, weight: isNaN(weight)?null:weight, bodyFat: isNaN(bodyFat)?null:bodyFat };
   try{
     const result = await window.storage.set(`bodymetrics:${date}`, JSON.stringify(record));
@@ -6345,7 +6349,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.152';
+const APP_VERSION = '2026.08.31.153';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6487,7 +6491,7 @@ async function checkForUpdate(){
 // re-renders like that, and re-opening the same section on every visit is a tap you already
 // paid for.
 const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
-                             'blinding', 'weights', 'version', 'legal', 'calm'];
+                             'bodymetrics', 'blinding', 'weights', 'version', 'legal', 'calm'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
@@ -18996,7 +19000,7 @@ function syncRecoveryMore(){
   const sum = document.getElementById('recoveryMoreSummary');
   const filled = RECOVERY_MORE_IDS
     .filter(id => (document.getElementById(id)?.value || '').trim()).length;
-  if(sum) sum.textContent = filled ? `${filled} filled in` : 'devices, load, body';
+  if(sum) sum.textContent = filled ? `${filled} filled in` : 'devices and load';
   if(filled) setRecoveryMoreOpen(true);
 }
 (function wireRecoveryMore(){
