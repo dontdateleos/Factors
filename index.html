@@ -3238,7 +3238,7 @@ const EYE_ANIM = {
   blinkOnReturn:  { on:true, note:'A blink when you come back to the app after a look away', afterMs:20000 },
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
-  chevronEyes:    { on:true, note:'The collapse chevrons are the mark, shut when the section is' },
+  chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
   holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 },
@@ -6362,7 +6362,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.167';
+const APP_VERSION = '2026.08.31.168';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
