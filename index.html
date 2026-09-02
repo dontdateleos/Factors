@@ -1893,6 +1893,14 @@
   .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
     background:var(--band, var(--accent)); border-radius:1px; }
   .budget-bar.over > i{ background:var(--bad); }
+  /* The learning is the most interesting thing in here and it was nine static percentages
+     with an arrow beside them. The bar is the weight; the tick is where that weight started,
+     left in place so the distance travelled is still readable after the movement stops. */
+  .weight-bar{ position:relative; height:3px; margin:3px 0 9px; background:var(--hair); border-radius:2px; }
+  .weight-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
+    background:var(--band, var(--accent)); border-radius:2px; }
+  .weight-bar > u{ position:absolute; top:-3px; bottom:-3px; width:1px;
+    background:var(--dim); opacity:0.7; text-decoration:none; }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
   /* A stamped plate rather than coloured text. This line can land on black (under the
@@ -5567,6 +5575,7 @@ const UI_ANIM = {
   rungFill:     { on:true, note:'Ticking a rung fills the ones under it in order rather than all at once', ms:170, stagger:42 },
   landsWhereSent:{ on:true, note:'A section a card sent you to draws its own rule down as you arrive', ms:520 },
   budgetBar:    { on:true, note:'Today\u2019s session carries a bar showing its length against your setting', ms:620 },
+  weightsDrift: { on:true, note:'Each channel\u2019s bar travels from its starting weight to the one your data learned', ms:760, stagger:55 },
   streakBurst:  { on:true, note:'The mark throws confetti the first time you log on a new day', ms:1100 },
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
@@ -5792,6 +5801,23 @@ function landsWhereSent(el){
     { duration: UI_ANIM.landsWhereSent.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)' });
   const clean = ()=>{ rule.remove(); if(prevPos === 'static') el.style.position = ''; };
   if(a && a.finished) a.finished.then(clean, clean); else setTimeout(clean, UI_ANIM.landsWhereSent.ms + 60);
+}
+
+/* Each channel starts at the weight it shipped with and travels to the one your own data
+   learned, so the panel shows the DISTANCE rather than just the destination. The tick stays
+   at the starting position after the movement ends — an animation nobody happened to be
+   looking at should still leave the fact behind. Staggered, because nine bars moving at once
+   is a shimmer and nine moving in sequence is a list being read out. */
+function weightsDrift(root){
+  const fills = root ? [...root.querySelectorAll('.weight-bar > i')] : [];
+  fills.forEach((fill, i)=>{
+    const to = (fill.dataset.to || '0') + '%';
+    fill.style.width = to;
+    if(!uiAnim('weightsDrift')) return;
+    uiPlay(fill, [{ width: (fill.dataset.from || '0') + '%' }, { width: to }],
+      { duration: UI_ANIM.weightsDrift.ms, delay: i * UI_ANIM.weightsDrift.stagger,
+        easing:'cubic-bezier(0.3,0.9,0.3,1)' });
+  });
 }
 
 /* The bar fills from empty on each render, so the day's length reads as an amount rather than
@@ -6767,7 +6793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.205';
+const APP_VERSION = '2026.08.31.206';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6916,6 +6942,9 @@ try{
 } catch(e){}
 function setCollapsed(key, collapsed){
   if(key === 'scorelog' && !collapsed) renderScoreSamples();
+  // The panel is collapsed by default, so a render-time animation plays to nobody. Same
+  // shape as the line above: the section opening is the moment worth spending it on.
+  if(key === 'weights' && !collapsed) weightsDrift(document.getElementById('learnedWeights'));
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
   animateCollapse(body, collapsed);
@@ -9314,18 +9343,27 @@ async function renderLearnedWeights(){
     el.innerHTML = '<div class="score-note">Still using the starting weights. They move once there are a dozen or so logged sessions to check them against.</div>';
     return;
   }
+  // Every bar is drawn against the same ceiling, so their lengths are comparable to each
+  // other rather than each being a proportion of itself.
+  const ceiling = Math.max(...Object.keys(SR_WEIGHTS).map(k=>Math.max(L.weights[k], SR_WEIGHTS[k]))) || 1;
   const rows = Object.keys(SR_WEIGHTS).map(k=>{
     const now = L.weights[k], prior = SR_WEIGHTS[k];
     const d = L.detail[k];
     const pct = Math.round(now * 100);
     const delta = now > prior * 1.05 ? 'up' : (now < prior * 0.95 ? 'down' : 'level');
     const arrow = delta === 'up' ? '↑' : delta === 'down' ? '↓' : '–';
+    const toPct = Math.max(1, Math.round((now / ceiling) * 100));
+    const fromPct = Math.max(1, Math.round((prior / ceiling) * 100));
     return `<div class="load-row" style="color:var(--text);">
       <span class="load-name" style="opacity:0.75;">${SR_COMPONENT_LABELS[k] || k}</span>
       <span class="load-val">${pct}%<i class="unit">of the score</i></span>
-      <span class="load-delta">${arrow}${d ? ` r=${d.r}` : ' no data'}</span></div>`;
+      <span class="load-delta">${arrow}${d ? ` r=${d.r}` : ' no data'}</span></div>
+      <div class="weight-bar" role="img" aria-label="${SR_COMPONENT_LABELS[k] || k}: started at ${
+        Math.round(prior * 100)}%, now ${pct}%"><i data-from="${fromPct}" data-to="${toPct}"></i>`
+      + `<u style="left:${fromPct}%;"></u></div>`;
   }).join('');
   el.innerHTML = rows + `<div class="score-note" style="margin-top:8px;">From ${L.n} logged sessions, ${L.blinded} of them blinded. Correlations are shrunk by their own error bar and by how much independent information the run of days actually carries, so a weight moves slowly and never inverts — a negative on this little data is noise, and letting it flip would have the app rewarding bad sleep.</div>`;
+  weightsDrift(el);
 }
 (function wireBlinding(){
   const t = document.getElementById('blindingToggle');
