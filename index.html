@@ -2813,7 +2813,7 @@
           <input type="checkbox" id="blindingToggle">
           <span>Hide the score on one day in five, until I have logged</span>
         </label>
-        <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. On a blinded day the number is held back until the session is logged, which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
+        <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. One training day a week, picked at random and locked in before it arrives, the number is held back until the session is logged — which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
         <div class="score-note" id="blindingStats" style="margin-top:8px;"></div>
       </div>
     </div>
@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.161';
+const APP_VERSION = '2026.08.31.162';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7999,7 +7999,7 @@ function faceDate(){
    to Wednesday and tapping a face rewrote Wednesday. Both directions of that are wrong.
    Changing a rating you have already given, after you know how the session went, is the exact
    contamination the blinded-day feature exists to prevent — the whole argument for hiding the
-   number on a random fifth of mornings is that seeing it changes what you do, and a rating you
+   number on one morning a week is that seeing it changes what you do, and a rating you
    can revise afterwards is worse than one you saw. And answering a day you left blank is not
    recovering a reading, it is inventing one: "how did I feel last Tuesday" is a reconstruction,
    and it lands in the same z-scored distribution as the ones taken at the time.
@@ -8614,7 +8614,7 @@ async function loadFaceValues(dates){
 
 /* ---------- RANDOMISED SCORE-BLINDING ----------
    Nobody in the industry does this, and it is the only route to a score that can ever be
-   checked. Two things fall out of hiding the number on a random fifth of days.
+   checked. Two things fall out of hiding the number on one training day a week.
 
    First, uncontaminated labels: on a blinded day the session result was not influenced by
    the prediction, so it is the only kind of day whose outcome can honestly be used to test
@@ -8628,14 +8628,60 @@ async function loadFaceValues(dates){
 
    The choice is deterministic per date, so it cannot be rerolled by reloading until the
    number appears — which would defeat the whole point. */
-const BLIND_RATE = 0.2;
-let blindingOn = false;
-function blindHash(date){
+let blindingOn = true;
+function blindHash(seed){
   let h = 2166136261;
-  for(let i = 0; i < date.length; i++){ h ^= date.charCodeAt(i); h = Math.imul(h, 16777619); }
+  for(let i = 0; i < seed.length; i++){ h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
   return ((h >>> 0) % 1000) / 1000;
 }
-function isBlindDay(date){ return blindingOn && blindHash(date || todayStr) < BLIND_RATE; }
+
+/* ONE BLINDED DAY A WEEK, ON A DAY YOU ARE ACTUALLY TRAINING.
+
+   It used to be a per-date coin weighted to a fifth, which meant two things it should not
+   have. Roughly two blinded days in seven landed on rest days, where there is no session to
+   label and hiding the number buys nothing at all. And the count drifted — some weeks got
+   none, some got three.
+
+   Picking one day per week from the days that have a session costs no evidence and asks for
+   less. A fifth of 365 is 73 blinded mornings a year, of which the ~5-in-7 that are training
+   days leave about 52 usable labels; one per week is 52 usable labels out of 52 blinded
+   mornings. Same evidence, twenty fewer mornings without a number.
+
+   The pick is locked the first time a week asks for it, so it cannot be rerolled by
+   reloading, and it cannot be moved by editing the plan on the day. It is only ever
+   recomputed when the day it chose is still in the future and has since lost its session —
+   the case where leaving it would waste the week. */
+async function hasPlannedSession(date){
+  try{ return !!JSON.parse((await window.storage.get(`planned_session:${date}`)).value); }
+  catch(e){ return false; }
+}
+async function blindDayForWeek(wk){
+  let locked = null;
+  try{ locked = JSON.parse((await window.storage.get(`blindpick:${wk}`)).value); } catch(e){}
+  if(locked && locked.date){
+    // Locked for today or any day already past, always. Only a future pick that has lost
+    // its session is worth re-drawing, and a future day is one you cannot be reading a held
+    // score on, so re-drawing it reveals nothing.
+    if(locked.date <= todayStr) return locked.date;
+    if(await hasPlannedSession(locked.date)) return locked.date;
+  }
+  const days = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(wk); d.setDate(d.getDate() + i);
+    days.push(localDateStr(d));
+  }
+  const training = [];
+  for(const d of days){ if(await hasPlannedSession(d)) training.push(d); }
+  if(!training.length) return null;   // a week with nothing planned has nothing to label
+  const pick = training[Math.floor(blindHash(wk) * training.length) % training.length];
+  try{ await window.storage.set(`blindpick:${wk}`, JSON.stringify({ week: wk, date: pick, at: Date.now() })); } catch(e){}
+  return pick;
+}
+async function isBlindDay(date){
+  if(!blindingOn) return false;
+  const d = date || todayStr;
+  return (await blindDayForWeek(weekKey(d))) === d;
+}
 async function loggedToday(date){
   try{
     const res = await window.storage.list('training:' + (date || todayStr));
@@ -8643,7 +8689,7 @@ async function loggedToday(date){
   } catch(e){ return false; }
 }
 async function scoreIsHeld(){
-  if(!isBlindDay(todayStr)) return false;
+  if(!(await isBlindDay(todayStr))) return false;
   return !(await loggedToday(todayStr));
 }
 async function renderBlindingStats(){
@@ -8700,12 +8746,16 @@ async function renderLearnedWeights(){
 (function wireBlinding(){
   const t = document.getElementById('blindingToggle');
   if(!t) return;
+  // On unless you have turned it off. storage.get throws on a missing key, so the catch is
+  // the never-touched-this case — and that has to leave blindingOn at its default rather
+  // than silently falling to off, which is what an unset setting used to mean here.
   window.storage.get('settings:blinding').then(r=>{
-    blindingOn = r.value === 'true';
+    blindingOn = r.value !== 'false';
+  }).catch(()=>{ blindingOn = true; }).then(()=>{
     t.checked = blindingOn;
     const sum = document.getElementById('blindingSummary');
     if(sum) sum.textContent = blindingOn ? 'on' : 'off';
-  }).catch(()=>{});
+  });
   t.addEventListener('change', async ()=>{
     blindingOn = t.checked;
     try{ await window.storage.set('settings:blinding', String(blindingOn)); } catch(e){}
@@ -12795,7 +12845,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       // The label the learning engine needs: was the score visible while this was done. A
       // session logged on a blinded day is the only kind whose outcome the prediction cannot
       // have influenced.
-      const wasBlind = isBlindDay(date);
+      const wasBlind = await isBlindDay(date);
       const session = {
         // The same session however many times you go back into it: the key and the timestamp
         // are the ones it was first written with, so a correction corrects rather than
