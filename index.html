@@ -1610,13 +1610,16 @@
      of these are the only marks on the wheel that mean "you are training this", and a
      digit on its own would read as another level number. */
   /* The assessment wheel carries the same disc, holding the level you have ticked rather
-     than a rank. Same yellow either side of the app: on this tab it is the only warm mark
-     on a black panel, which is what makes a rated domain findable while scrolling. */
+     than a rank. Orange, not the yellow it used to be: yellow belonged to this tab back when
+     Body was purple and Data was yellow, and once Body took the red it was a third warm
+     colour sitting between a red band and a red tab for no reason. Orange is the one warm
+     mark left that is not a tab, which is exactly what a disc on a black panel wants —
+     findable while scrolling, and not mistakable for a section. */
   .mob-wheel-score .skill-rank{ color:var(--text); }
   .skill-rank{ display:inline-flex; align-items:center; justify-content:center;
     width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
     font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
-    background:var(--block-yellow); color:var(--text); }
+    background:var(--block-orange); color:var(--text); }
   #strengthSkillPicker .mob-wheel-item, #mobilitySkillPicker .mob-wheel-item{ color:var(--text); }
   #strengthSkillPicker .mob-wheel-score, #mobilitySkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
   #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score,
@@ -6648,7 +6651,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.182';
+const APP_VERSION = '2026.08.31.183';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
