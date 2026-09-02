@@ -6345,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.162';
+const APP_VERSION = '2026.08.31.163';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8780,7 +8780,16 @@ async function buildPrescription(sr){
   const lines = [];
   let kind = null, title = null;
 
-  const p = sr && sr.available ? sr.shown : null;
+  /* The morning score does not steer a blinded day. Hiding the number while still trimming
+     the sets from it would leave the session shaped by the prediction anyway, and the label
+     the day exists to produce would be contaminated by the exact thing it is meant to be
+     clean of — the outcome has to be what you do unguided, or it cannot be used to ask
+     whether the guidance was any good.
+
+     The gate is the exception and stays. "Not a training-load reading" is illness or a skinful
+     the night before: a safety call, not an optimisation, and one that has no business being
+     withheld to keep an experiment tidy. */
+  const p = (sr && sr.available && !sr.held) ? sr.shown : null;
   const gated = !!(sr && sr.gateReason);
 
   if(gated || (p != null && p < 20)){
