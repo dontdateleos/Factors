@@ -6627,7 +6627,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.177';
+const APP_VERSION = '2026.08.31.178';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7647,14 +7647,38 @@ function flashConfirm(el){
 /* ---------- PREDICTED CAPACITY (correlation-weighted, fit from real data) ---------- */
 function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
 function stdev(arr){ const m=mean(arr); return Math.sqrt(arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length) || 0; }
-function pearson(xs, ys){
+function pearson(xs, ys, ws){
   const n = xs.length;
   if(n < 2) return 0;
-  const mx = mean(xs), my = mean(ys);
+  /* Weights are optional and default to one apiece, so every existing caller is unchanged.
+     They exist for one caller: learnWeights, which has always computed a weight per session —
+     full for a blinded day, a quarter for one where you had seen the score — carried it into
+     its pairs, and then handed this function two bare arrays. The weight was calculated,
+     passed, and never read, so the blinded days it exists to privilege counted exactly the
+     same as the contaminated ones. */
+  const w = ws || null;
+  const sw = w ? w.reduce((a,b)=>a+b, 0) : n;
+  if(sw <= 0) return 0;
+  const wi = i => w ? w[i] : 1;
+  let mx = 0, my = 0;
+  for(let i=0;i<n;i++){ mx += wi(i)*xs[i]; my += wi(i)*ys[i]; }
+  mx /= sw; my /= sw;
   let num=0, dx2=0, dy2=0;
-  for(let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; num+=dx*dy; dx2+=dx*dx; dy2+=dy*dy; }
+  for(let i=0;i<n;i++){
+    const dx=xs[i]-mx, dy=ys[i]-my, k=wi(i);
+    num += k*dx*dy; dx2 += k*dx*dx; dy2 += k*dy*dy;
+  }
   const denom = Math.sqrt(dx2*dy2);
   return denom === 0 ? 0 : num/denom;
+}
+/* Kish's effective sample size. Twenty-five sessions of which four carry full weight and the
+   rest a quarter are not twenty-five observations, and pretending otherwise would hand the
+   shrinkage below an error bar it has not earned. */
+function kishN(ws){
+  if(!ws || !ws.length) return 0;
+  const s = ws.reduce((a,b)=>a+b, 0);
+  const s2 = ws.reduce((a,b)=>a+b*b, 0);
+  return s2 === 0 ? 0 : (s*s)/s2;
 }
 
 /* ONE READ PER KEY, NOT ONE PER CALLER.
@@ -8235,12 +8259,14 @@ async function learnWeights(asOfDate){
   keys.forEach(k=>{
     const pts = paired.filter(p=> p.parts[k] != null && !isNaN(p.parts[k]));
     if(pts.length < LEARN_MIN_SESSIONS){ learned[k] = SR_WEIGHTS[k]; return; }
-    const xs = pts.map(p=>p.parts[k]), ys = pts.map(p=>p.y);
-    let r = pearson(xs, ys);
-    // n_eff, not n. Autocorrelated daily series make a naive interval far too narrow, and
-    // the whole point of this is not to be confidently wrong.
+    const xs = pts.map(p=>p.parts[k]), ys = pts.map(p=>p.y), ws = pts.map(p=>p.w);
+    let r = pearson(xs, ys, ws);
+    // n_eff, not n, and twice over. Weighting the correlation means the sample is smaller
+    // than its count — Kish's formula says how much smaller — and the daily series is
+    // autocorrelated on top of that, which makes a naive interval far too narrow. Both
+    // discounts apply, because the whole point of this is not to be confidently wrong.
     const rho = lag1Autocorr(xs);
-    const nEff = Math.max(2, effectiveN(pts.length, rho));
+    const nEff = Math.max(2, effectiveN(kishN(ws) || pts.length, rho));
     // Only the part of the correlation bigger than its own error bar counts.
     const se = (1 - r * r) / Math.sqrt(nEff - 1);
     const shrunk = Math.sign(r) * Math.max(0, Math.abs(r) - se);
