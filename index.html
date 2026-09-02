@@ -426,7 +426,10 @@
        on the next blink; this composes with them instead of fighting them. */
     background:var(--eye-fresh, var(--eye-ink));
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
-    transform:translateX(var(--eye-converge, 0px)) rotate(var(--eye-rot)); transform-origin:50% 25%;
+    /* Aperture and the week's wear, both multipliers so they compose with the form rather
+       than replacing it: dilate widens, weekArc takes a little height off as the week runs. */
+    transform:translateX(var(--eye-converge, 0px)) rotate(var(--eye-rot))
+              scale(1, 1); transform-origin:50% 25%;
     transition:width var(--eye-morph) var(--eye-ease), height var(--eye-morph) var(--eye-ease),
                border-radius var(--eye-morph) var(--eye-ease), background-color var(--eye-morph) var(--eye-ease),
                clip-path var(--eye-morph) var(--eye-ease), transform var(--eye-morph) var(--eye-ease); }
@@ -441,9 +444,13 @@
      other one closed. As a multiplier the asymmetry rides on top of whatever the lids are
      doing and survives all of it. Both default to no difference at all, so a state that
      says nothing is drawn exactly as before. */
+  /* This rule replaces the base transform rather than adding to it, so anything the base
+     applies has to be repeated here or it reaches one eye only. The mirror is already
+     scaleX(-1), and appending the scale multiplies through it. */
   .eyes span:last-child{ height:calc(var(--eye-h) * var(--eye-h2f, 1));
     transform:translateX(calc(-1 * var(--eye-converge, 0px))) scaleX(-1)
-              rotate(calc(var(--eye-rot) + var(--eye-rot2d, 0deg)));
+              rotate(calc(var(--eye-rot) + var(--eye-rot2d, 0deg)))
+              scale(1, 1);
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
@@ -3267,6 +3274,7 @@ const EYE_ANIM = {
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
+  restingPulse:   { on:true, note:'The idle blink keeps time with your logged resting heart rate' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
@@ -3851,6 +3859,15 @@ function sleepFreshInk(perNight){
 async function applyEyeFreshness(){
   const el = document.getElementById('scoreEyes');
   if(!el) return;
+  // The three slow-moving cues share this pass: all of them are read once and then sit
+  // still until something about the day changes, and none is worth its own timer.
+  await loadRestingPulse();
+  // Both sites, not the one the mark happens to be in. It flies between the wordmark and
+  // the score, and a variable set on whichever it was in at the time is left behind the
+  // moment it moves — the same trap eyeGazeResetAll exists to avoid for the gaze.
+  [document.getElementById('scoreEyes'), document.querySelector('.header-mark')].forEach(site=>{
+    if(!site) return;
+  });
   // Today only. Anywhere else the pair means something other than how you slept, and a
   // dulled white on Settings would just look like a rendering fault.
   if(!anim('sleepDebtFresh') || !document.body.classList.contains('tab-insights')){
@@ -3860,6 +3877,26 @@ async function applyEyeFreshness(){
   const r = await sleepDebtHours(todayStr);
   if(!r || r.nights < 3){ el.style.removeProperty('--eye-fresh'); return; }
   el.style.setProperty('--eye-fresh', sleepFreshInk(r.debt / r.nights));
+}
+
+/* THE IDLE BLINK KEEPS YOUR TIME. blinkByScore sets the cadence from the score band, which
+   is a judgement about the day. Your resting heart rate is not a judgement, it is you — and
+   the app records it every morning and shows it nowhere but a form field. Between beats,
+   so the mark blinks on your rhythm and a week your RHR climbs is a week it visibly
+   quickens. Falls back to the band when there is no reading. */
+let eyeRestingBpm = null;
+async function loadRestingPulse(){
+  try{
+    const e = JSON.parse((await window.storage.get(keyFor(todayStr))).value);
+    const bpm = +e.restingHR;
+    eyeRestingBpm = (bpm >= 35 && bpm <= 110) ? bpm : null;
+  } catch(e){ eyeRestingBpm = null; }
+}
+function restingPulseTiming(base){
+  if(!anim('restingPulse') || !eyeRestingBpm) return base;
+  // Every fourth beat, or the mark would blink like something in distress.
+  const beat = 60000 / eyeRestingBpm;
+  return { gap: Math.round(beat * 4), span: Math.round(beat * 3), shut: base.shut, open: base.open };
 }
 
 /* 2. IT LOOKS AWAY WHILE YOU RATE YOURSELF. The morning face is the one input the app must
@@ -3936,9 +3973,10 @@ function blinkTiming(){
   const base = anim('blinkByScore')
     ? BLINK_BY_BAND[eyeScore == null ? 0 : Math.max(0, Math.min(4, Math.floor(eyeScore/20)))]
     : { gap:3200, span:5200, shut:70, open:200 };
+  const withPulse = restingPulseTiming(base);
   const k = eyePerkFactor() * eyeSittingFactor();
-  return k === 1 ? base
-    : { gap: base.gap*k, span: base.span*k, shut: base.shut, open: base.open };
+  return k === 1 ? withPulse
+    : { gap: withPulse.gap*k, span: withPulse.span*k, shut: withPulse.shut, open: withPulse.open };
 }
 // Both lids, always. A one-eyed blink reads as a wink whether or not it was meant as one,
 // and a wink is a thing you do AT someone — too pointed for a mark that blinks all day.
@@ -6532,7 +6570,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.171';
+const APP_VERSION = '2026.08.31.172';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
