@@ -6693,7 +6693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.193';
+const APP_VERSION = '2026.08.31.194';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11513,13 +11513,51 @@ document.getElementById('mobilityAssessmentToggleHeader').addEventListener('clic
   const body = document.getElementById('mobilityAssessmentBody');
   setMobilityAssessmentOpen(body.style.display === 'none');
 });
-document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', async ()=>{
+// A two-rung jump is not a measurement error, it is a claim — and since the level now picks
+// how hard the loaded movement is, not just how many sets of it, an optimistic tick buys a
+// weighted variant at end range rather than an extra set. So it is questioned rather than
+// clamped: the evidence is that range gains show as roughly one rung across four to six
+// weeks, which makes two a thing worth being asked about and not a thing worth refusing.
+// Only ever after a first assessment, and only for domains that already had a rating — a
+// first rating of anything is not a jump from anywhere.
+const MOBILITY_JUMP_WARN_RUNGS = 2;
+function mobilityRungJumps(next, prev){
+  if(!prev) return [];
+  return MOBILITY_DOMAINS
+    .filter(d => prev[d] != null && next[d] != null && (next[d] - prev[d]) >= MOBILITY_JUMP_WARN_RUNGS)
+    .map(d => ({ domain: d, from: prev[d], to: next[d] }));
+}
+document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', async (e)=>{
   const result = document.getElementById('saveMobilityAssessmentResult');
   const scores = {};
   document.querySelectorAll('.mobility-domain-row').forEach(row=>{
     const activeBtn = row.querySelector('.rating-btn.active');
     if(activeBtn) scores[row.dataset.domain] = parseInt(activeBtn.dataset.level, 10);
   });
+
+  // Ratings made against an older wording are not on this scale, so there is nothing to
+  // have jumped from — same reason renderMobilityAssessment drops them rather than showing
+  // them pre-ticked.
+  let prevScores = null;
+  try{
+    const rec = JSON.parse((await window.storage.get('settings:mobilityAssessment')).value);
+    if(rec && rec.scaleVersion === MOBILITY_SCALE_VERSION) prevScores = rec.scores || null;
+  } catch(err){}
+  const jumps = mobilityRungJumps(scores, prevScores);
+  if(jumps.length){
+    const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+    const named = jumps.map(j=>`${cap(j.domain)} ${j.from} \u2192 ${j.to}`).join(', ');
+    // Cream, not var(--text). These result notes sit on a dark panel and --text is the ink
+    // for light surfaces — it measures 1.23:1 here, which is a warning nobody can read.
+    result.textContent = `${named}. Range usually moves about one rung across four to six weeks, and the rating picks how hard the loaded movement is, not just how much of it \u2014 so a jump this size prescribes a harder variant straight away. Hold Save to confirm it, or step it back and let the next retest carry it.`;
+    result.style.color = 'var(--bg)';
+    if(!await confirmInPlace(e.currentTarget, { mode:'hold', holdMs:1600, label:'Hold to confirm' })){
+      result.textContent = `Not saved. ${named} is still ticked \u2014 adjust it, or hold Save to confirm.`;
+      result.style.color = 'var(--bg)';
+      return;
+    }
+  }
+
   try{
     const saved = await saveMobilityAssessment(scores);
     if(!saved) throw new Error('save failed');
