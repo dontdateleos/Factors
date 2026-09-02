@@ -2364,88 +2364,6 @@
 
   <!-- INJURIES PANEL -->
   <div class="panel" id="panel-injuries">
-    <div class="group form-panel">
-      <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer;">
-        <div class="group-title">Mobility Assessment</div>
-        <div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div>
-        <button type="button" class="head-action" id="mobilityAssessmentStartBtn" aria-expanded="false" aria-controls="mobilityAssessmentBody">Take the test</button>
-      </div>
-      <div class="fields" id="mobilityAssessmentBody" style="display:none;">
-        <!-- The one condition worth stating on a five-rung self-rating. The rungs are far
-             too coarse for most of the measurement protocol to matter here — ankles steps
-             5cm at the toe between rungs, against about 0.5cm of drift from time of day —
-             so a panel of conditions would be friction bought with nothing. The spine half
-             is not measurement hygiene at all: it is the reason not to bend first thing. -->
-        <div class="score-note">Rate these at roughly the same time of day each time &mdash; and not in the first two hours after waking if you&rsquo;re rating your spine. Most of the day&rsquo;s disc-height loss happens in the first hour up, and forward bending early costs more than it gives.</div>
-        <div id="mobilityAssessmentRows"></div>
-        <button id="saveMobilityAssessmentBtn">Save assessment</button>
-        <div id="saveMobilityAssessmentResult" class="score-note note-live"></div>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, how long it lasts, and what it changes</div></div>
-      <div class="fields">
-        <!-- Says what the two fields actually do, which the previous wording did not. It read
-             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
-             load it", which put severity in charge of the session. It never was: past the
-             threshold that keeps an injury on the board, the strength plan branches purely on
-             irritability, and a 9 you called low-irritability produced a week identical to no
-             injury at all. Severity's real job is duration — measured on the model itself, a
-             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity is how long it lasts, not how much it changes your training: it decays at a rate the type sets and stops counting at 3, so a general 7 runs about two and a half weeks and a 4 about six days &mdash; tendinopathy longer, a sprain or strain shorter. How much it flares under load is what changes the session. High swaps the movement out, moderate takes a set off it, low leaves the plan alone. The warm-up targets the area either way, and running scales back on severity.</div>
-      </div>
-      <!-- The list belongs to the section that promises it. It used to render at the bottom
-           of "Log new injury", below the submit button and outside any numbered band, so the
-           section headed "what's sore" held a paragraph and nothing else while what was sore
-           sat under the form for adding one. Hidden entirely when nothing is logged: an empty
-           state saying "no injuries, enjoy it" is a section-sized way of reporting that a
-           section is empty. -->
-      <div class="log" id="injuryListSection" style="display:none;">
-        <div class="log-title">Active &amp; recent injuries</div>
-        <div id="injuryList"></div>
-      </div>
-    </div>
-
-
-
-
-
-    <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Log new injury</div><div class="group-sub">add one and the warm-up and the week start working around it</div></div>
-      <div class="fields" id="injuryForm">
-        <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
-        <div class="field-row"><span class="field-label">Type</span>
-          <select id="injuryType">
-            <option value="general">General</option>
-            <option value="tendinopathy">Tendinopathy</option>
-            <option value="sprain_strain">Sprain / Strain</option>
-          </select>
-        </div>
-        <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
-        <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
-        <div class="field-row"><span class="field-label">Movement that hurts</span>
-          <select id="injuryMovement">
-            <option value="">Not movement-specific</option>
-            <option value="squat">Squat pattern</option>
-            <option value="hinge">Hinge pattern (deadlift/RDL)</option>
-            <option value="push">Push pattern (press)</option>
-            <option value="pull">Pull pattern (row/pull-up)</option>
-            <option value="isolation">Isolation/single-joint only</option>
-          </select>
-        </div>
-        <div class="field-row"><span class="field-label">Irritability</span>
-          <select id="injuryIrritability">
-            <option value="low">Low — rarely flares with load</option>
-            <option value="moderate">Moderate — flares with heavier load</option>
-            <option value="high">High — flares easily, avoid loading directly</option>
-          </select>
-        </div>
-        <button class="primary" id="addInjuryBtn">Add injury</button>
-      </div>
-    </div>
-
-
       <!-- The two skill ladders are one system and always were: same skillGoals array, same
            picker, same levels. loadCurrentGoals already seeded both from whichever tab you
            were on — only the markup had them on separate tabs. -->
@@ -2491,6 +2409,87 @@
 
       <button class="primary" id="saveFunctionBtn">Save skill goals &amp; assessment</button>
       <div id="saveFunctionResult" class="score-note note-live" style="margin-top:8px; margin-bottom:20px;"></div>
+
+    <!-- One section, not two. "Injuries" held an explanation and the list of what hurts;
+         "Log new injury" held the form for adding one. They are the same subject and were
+         only ever split because the form arrived later — which left the tab reading as two
+         numbered bands for one idea, and put a submit button between what is sore and the
+         means of saying so. -->
+    <div class="group form-panel">
+      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, how long it lasts, and what it changes</div></div>
+      <div class="fields">
+        <!-- Says what the two fields actually do, which the previous wording did not. It read
+             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
+             load it", which put severity in charge of the session. It never was: past the
+             threshold that keeps an injury on the board, the strength plan branches purely on
+             irritability, and a 9 you called low-irritability produced a week identical to no
+             injury at all. Severity's real job is duration — measured on the model itself, a
+             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity is how long it lasts, not how much it changes your training: it decays at a rate the type sets and stops counting at 3, so a general 7 runs about two and a half weeks and a 4 about six days &mdash; tendinopathy longer, a sprain or strain shorter. How much it flares under load is what changes the session. High swaps the movement out, moderate takes a set off it, low leaves the plan alone. The warm-up targets the area either way, and running scales back on severity.</div>
+      </div>
+      <!-- The list belongs to the section that promises it. It used to render at the bottom
+           of "Log new injury", below the submit button and outside any numbered band, so the
+           section headed "what's sore" held a paragraph and nothing else while what was sore
+           sat under the form for adding one. Hidden entirely when nothing is logged: an empty
+           state saying "no injuries, enjoy it" is a section-sized way of reporting that a
+           section is empty. -->
+      <div class="log" id="injuryListSection" style="display:none;">
+        <div class="log-title">Active &amp; recent injuries</div>
+        <div id="injuryList"></div>
+      </div>
+      <!-- Titled the same way the list above it is, so the section reads as two blocks
+           under one heading rather than a form that starts without warning. -->
+      <div class="log-title" style="margin-top:18px;">Log a new one</div>
+      <div class="fields" id="injuryForm">
+        <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
+        <div class="field-row"><span class="field-label">Type</span>
+          <select id="injuryType">
+            <option value="general">General</option>
+            <option value="tendinopathy">Tendinopathy</option>
+            <option value="sprain_strain">Sprain / Strain</option>
+          </select>
+        </div>
+        <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
+        <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
+        <div class="field-row"><span class="field-label">Movement that hurts</span>
+          <select id="injuryMovement">
+            <option value="">Not movement-specific</option>
+            <option value="squat">Squat pattern</option>
+            <option value="hinge">Hinge pattern (deadlift/RDL)</option>
+            <option value="push">Push pattern (press)</option>
+            <option value="pull">Pull pattern (row/pull-up)</option>
+            <option value="isolation">Isolation/single-joint only</option>
+          </select>
+        </div>
+        <div class="field-row"><span class="field-label">Irritability</span>
+          <select id="injuryIrritability">
+            <option value="low">Low — rarely flares with load</option>
+            <option value="moderate">Moderate — flares with heavier load</option>
+            <option value="high">High — flares easily, avoid loading directly</option>
+          </select>
+        </div>
+        <button class="primary" id="addInjuryBtn">Add injury</button>
+      </div>
+    </div>
+
+    <div class="group form-panel">
+      <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer;">
+        <div class="group-title">Mobility Assessment</div>
+        <div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div>
+        <button type="button" class="head-action" id="mobilityAssessmentStartBtn" aria-expanded="false" aria-controls="mobilityAssessmentBody">Take the test</button>
+      </div>
+      <div class="fields" id="mobilityAssessmentBody" style="display:none;">
+        <!-- The one condition worth stating on a five-rung self-rating. The rungs are far
+             too coarse for most of the measurement protocol to matter here — ankles steps
+             5cm at the toe between rungs, against about 0.5cm of drift from time of day —
+             so a panel of conditions would be friction bought with nothing. The spine half
+             is not measurement hygiene at all: it is the reason not to bend first thing. -->
+        <div class="score-note">Rate these at roughly the same time of day each time &mdash; and not in the first two hours after waking if you&rsquo;re rating your spine. Most of the day&rsquo;s disc-height loss happens in the first hour up, and forward bending early costs more than it gives.</div>
+        <div id="mobilityAssessmentRows"></div>
+        <button id="saveMobilityAssessmentBtn">Save assessment</button>
+        <div id="saveMobilityAssessmentResult" class="score-note note-live"></div>
+      </div>
+    </div>
 
 
   </div>
@@ -6699,7 +6698,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.200';
+const APP_VERSION = '2026.08.31.201';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
