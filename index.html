@@ -412,7 +412,10 @@
      .eye-motion holds the endless idle loop and every one-shot gesture, all of them WAAPI
      animations that sort above the loop while they play and hand back to it after. */
   .eye-gaze{ display:flex; align-items:center; justify-content:center;
-    transform:translate(var(--eye-gaze-x, 0px), var(--eye-gaze-y, 0px));
+    /* Two channels. The gaze is where the mark is deliberately looking; the drift is how
+       steady it is while it looks there. Added, so uncertainty does not cancel a glance. */
+    transform:translate(calc(var(--eye-gaze-x, 0px) + var(--eye-drift-x, 0px)),
+                        calc(var(--eye-gaze-y, 0px) + var(--eye-drift-y, 0px)));
     /* Overshoots and settles rather than easing flat to a stop, matching the flight. */
     transition:transform var(--eye-gaze-ms, 0.26s) var(--eye-gaze-ease, cubic-bezier(0.34,1.32,0.5,1)); }
   .eye-motion{ display:flex; align-items:center; gap:var(--eye-gap);
@@ -3275,6 +3278,7 @@ const EYE_ANIM = {
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
   restingPulse:   { on:true, note:'The idle blink keeps time with your logged resting heart rate' },
+  uncertainGaze:  { on:true, note:'Unsteady while the score is unsure, settling as the baseline matures' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
@@ -3897,6 +3901,29 @@ function restingPulseTiming(base){
   // Every fourth beat, or the mark would blink like something in distress.
   const beat = 60000 / eyeRestingBpm;
   return { gap: Math.round(beat * 4), span: Math.round(beat * 3), shut: base.shut, open: base.open };
+}
+
+/* UNSTEADY WHILE THE SCORE IS UNSURE. The readiness interval is already computed and shown
+   as two small numbers in a bracket. Rendered as steadiness it is the one cue in here that
+   makes the app more honest rather than more charming: you see it is unsure before you read
+   what it claims. Settles to nothing as the baseline matures. */
+let uncertainTimer = null, uncertainAmp = 0;
+function setUncertainGaze(ciLow, ciHigh){
+  clearInterval(uncertainTimer); uncertainTimer = null;
+  const span = (ciLow != null && ciHigh != null) ? Math.abs(ciHigh - ciLow) : 0;
+  // Under six points of interval is a settled reading and gets no drift at all.
+  uncertainAmp = (!anim('uncertainGaze') || span < 6) ? 0 : Math.min(2.6, (span - 6) / 7);
+  if(!uncertainAmp || eyeMotionOff()) return;
+  const t0 = performance.now();
+  uncertainTimer = setInterval(()=>{
+    if(document.hidden || faceRowOpen != null) return;
+    // performance.now, not Date.now: monotonic, and a wall clock that does not move (a
+    // device asleep, a test with a fixed time) would otherwise freeze the drift at zero.
+    const t = performance.now() - t0;
+    const el = eyeGazeEl(); if(!el) return;
+    el.style.setProperty('--eye-drift-x', (Math.sin(t/430) * uncertainAmp).toFixed(2) + 'px');
+    el.style.setProperty('--eye-drift-y', (Math.cos(t/670) * uncertainAmp * 0.55).toFixed(2) + 'px');
+  }, 90);
 }
 
 /* 2. IT LOOKS AWAY WHILE YOU RATE YOURSELF. The morning face is the one input the app must
@@ -14588,6 +14615,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
   // sessions, which on a Push/Pull/Legs split compares a chest day to a leg day, and which
   // halves on a deload week by design.
   if(srResult && srResult.held){
+    setUncertainGaze(null, null);   // nothing to be unsure about while nothing is shown
     // The number exists and is deliberately not shown. Said plainly, because a blank score
     // that looks broken would spend exactly the trust this is meant to build.
     out.innerHTML = SCORE_PLACEHOLDER_SVG;
@@ -14597,6 +14625,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     return null;
   }
   if(srResult && srResult.available){
+    setUncertainGaze(srResult.ciLow, srResult.ciHigh);
     const prevNum = parseInt(out.dataset.value || out.textContent);
     // The percentile of your own days is the honest headline: it cannot saturate, and "68"
     // means "better than 68% of the days you have logged" rather than 68 of an invented 100.
