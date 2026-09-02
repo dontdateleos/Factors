@@ -3243,6 +3243,7 @@ const EYE_ANIM = {
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
+  looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
@@ -3801,6 +3802,30 @@ async function applyEyeFreshness(){
   const r = await sleepDebtHours(todayStr);
   if(!r || r.nights < 3){ el.style.removeProperty('--eye-fresh'); return; }
   el.style.setProperty('--eye-fresh', sleepFreshInk(r.debt / r.nights));
+}
+
+/* 2. IT LOOKS AWAY WHILE YOU RATE YOURSELF. The morning face is the one input the app must
+   not lead — it is the reason a blinded day exists at all. And the mark sat watching you
+   choose. It shuts while the row is open and opens again once you have answered.
+
+   Driven from paintTodayFaces rather than from the five places faceRowOpen is assigned, so
+   it cannot fall out of step with the row it is reacting to. */
+let eyeAverted = false;
+function eyeRatingAvert(){
+  const open = anim('looksAway') && faceRowOpen != null;
+  if(open === eyeAverted) return;
+  eyeAverted = open;
+  const el = eyeSiteEl();
+  if(!el) return;
+  if(open){
+    stopIdle();
+    el.style.setProperty('--eye-morph', '150ms');
+    el.style.setProperty('--eye-h', BLINK_CLOSED);
+  } else {
+    el.style.setProperty('--eye-morph', '260ms');
+    applyEyeForm(el, eyesHome);
+    setTimeout(()=>{ el.style.removeProperty('--eye-morph'); scheduleIdle(700); }, 300);
+  }
 }
 
 
@@ -8188,6 +8213,9 @@ function paintTodayFaces(){
   // The chip is only alive while it is on screen — offsetParent settles that, and it is null
   // until layoutBandColumn has shown it, so this waits a frame.
   requestAnimationFrame(()=>{ if(chipEyes()) scheduleChipIdle(1200); });
+  // Reads faceRowOpen, which this function has just acted on, so the mark's eyes and the
+  // row they are about are never a paint apart.
+  eyeRatingAvert();
 }
 /* The faces and the trace are one column, sharing a right edge, a measured width and a
    vertical centre — and the centre is the score's, not the band's, because the band's own
