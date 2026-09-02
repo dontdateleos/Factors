@@ -108,7 +108,7 @@
     --block-blue:#7dd8ef;
     --block-yellow:#f0c419;
     --block-purple:#c2b0f7;
-    --block-red:#ff92ac;
+    --block-red:#ff5a3c;
     /* The same five hues at 8% over the page's black. The tab colour stops being a
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
@@ -118,6 +118,7 @@
     --field-purple:#201f25;
     --field-yellow:#25210d;
     --field-blue:#182324;
+    --field-red:#271510;
     /* The ground is neutral and the same on every tab. Sampled off the reference: its page
        is #0c0c0b across 48% of its area, with the tint appearing only in the section fields
        (25%) and the blocks lifted off those (14%). Three levels, not one — a tinted ground
@@ -222,13 +223,22 @@
      there to be found by shape, and two things at full strength read as two things. */
   .tab.active svg{ opacity:1; }
   .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
-  .tab[data-tab="insights"].active{ background:var(--block-lime); }
-  .tab[data-tab="training"].active{ background:var(--block-orange); }
+  /* The bar reads left to right as one walk down the wheel: 67deg, 48deg, 9deg, then round
+     past zero to 255deg and 192deg. It used to jump 67, 26, 255, 48, 192 — forward, back,
+     across and back — which is no order at all.
 
-  .tab[data-tab="injuries"].active{ background:var(--block-purple); }
-  .tab[data-tab="data"].active{ background:var(--block-yellow); }
-  /* Settings inherits the blue Goals used to hold: red is the loudest thing in the palette
-     and it was spending it on the tab you visit least. */
+     Orange came out to make room. A real red sits at 9deg and orange at 26deg: seventeen
+     degrees apart, so keeping both spent two of five tabs on what reads as one colour.
+     Orange is not retired, it just stops being a tab — it names the tab above the wordmark.
+
+     Red lands on Body, which is the tab about pain, flare-ups and tissue that will not
+     recover. It shares a hue with --bad, and here that is the point rather than a clash.
+     Settings keeps the blue: red is the loudest thing in the palette and spending it on the
+     tab you visit least was always the wrong trade. */
+  .tab[data-tab="insights"].active{ background:var(--block-lime); }
+  .tab[data-tab="training"].active{ background:var(--block-yellow); }
+  .tab[data-tab="injuries"].active{ background:var(--block-red); }
+  .tab[data-tab="data"].active{ background:var(--block-purple); }
   .tab[data-tab="settings"].active{ background:var(--block-blue); }
   /* The coloured backdrop is flat colour. It used to carry an ordered dot screen — black at
      13% on a 4px grid, offset on a second pass — meant to stop the colour reading as flat
@@ -266,9 +276,9 @@
   /* The one place each tab's hue is still saturated. The ground is a tint of it, so the
      band reads as the same colour turned all the way up rather than as a second colour. */
   body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); }
-  body.tab-training{ --band:var(--block-orange); --field:var(--field-orange); }
-  body.tab-injuries{ --band:var(--block-purple); --field:var(--field-purple); }
-  body.tab-data{ --band:var(--block-yellow); --field:var(--field-yellow); }
+  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); }
+  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); }
+  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); }
   body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); }
 
   /* ---- what sits on the ground ----------------------------------------------------
@@ -5460,8 +5470,8 @@ function slidePanelIn(panel, name, replay){
 // Settings took the blue when Goals retired. These two maps kept saying red, so the sliding
 // indicator and the tab-switch wipe both went pink on the way to a blue page — the colour
 // was gone from the stylesheet and still in the motion.
-const UI_TAB_COLOUR = { insights:'--block-lime', training:'--block-orange', injuries:'--block-purple',
-                        data:'--block-yellow', settings:'--block-blue' };
+const UI_TAB_COLOUR = { insights:'--block-lime', training:'--block-yellow', injuries:'--block-red',
+                        data:'--block-purple', settings:'--block-blue' };
 function moveTabIndicator(name, animate){
   if(!uiAnim('tabIndicator')) return;
   const bar = document.querySelector('.tabs');
@@ -6347,7 +6357,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.165';
+const APP_VERSION = '2026.08.31.166';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
