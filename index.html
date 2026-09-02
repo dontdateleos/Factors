@@ -1481,7 +1481,9 @@
      screen. Not a badge and not a dot — those stay, and this is gone in a second. */
   @keyframes staleBreath{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.42; transform:scale(0.975); } }
   .stale-breath{ animation:staleBreath 1200ms ease-in-out 1; }
-
+  /* The whole page stretches at the top rather than stopping dead. */
+  main{ transition:transform 480ms cubic-bezier(.2,1.4,.4,1); }
+  body.overscrolling main{ transition:transform 90ms linear; }
   #trendChart svg{ display:block; }
   /* The device chips name which watch a number came from. With no watch connected there is
      one box per fact and the chip is answering a question nobody asked. */
@@ -3787,7 +3789,38 @@ function stopEyeIdle(){ if(eyeIdleAnim){ try{ eyeIdleAnim.cancel(); }catch(e){} 
    the taper would flicker the expression the score is trying to show. */
 const BLINK_CLOSED = '2px';
 
-
+/* The top of the page stopped dead. It stretches now and springs back, and the mark leans
+   with it — it is pinned up there anyway, and a mark that ignores the page moving is the
+   one thing that gives away that it is drawn rather than sitting on it. Touch only: a mouse
+   wheel has no rubber band to borrow, and faking one there reads as a bug. */
+(function wireOverscroll(){
+  let y0 = null, pulling = false;
+  const main = () => document.querySelector('main');
+  const end = () => {
+    if(!pulling) return;
+    pulling = false; y0 = null;
+    document.body.classList.remove('overscrolling');
+    const m = main(); if(m) m.style.transform = '';
+    eyeGaze(0, 0, 420);
+  };
+  document.addEventListener('touchstart', e=>{
+    if(!uiAnim('overscroll') || e.touches.length !== 1) return;
+    y0 = window.scrollY <= 0 ? e.touches[0].clientY : null;
+  }, { passive:true });
+  document.addEventListener('touchmove', e=>{
+    if(y0 == null || !uiAnim('overscroll')) return;
+    const dy = e.touches[0].clientY - y0;
+    if(dy <= 0){ end(); return; }
+    pulling = true;
+    document.body.classList.add('overscrolling');
+    // Resisted, not followed: a linear pull would let you drag the page off the screen.
+    const give = Math.min(46, Math.pow(dy, 0.72));
+    const m = main(); if(m) m.style.transform = `translateY(${give.toFixed(1)}px)`;
+    eyeGaze(0, Math.min(5, give / 9), 90);
+  }, { passive:true });
+  document.addEventListener('touchend', end, { passive:true });
+  document.addEventListener('touchcancel', end, { passive:true });
+})();
 
 /* ---------- THREE THINGS THE MARK DOES ABOUT SLEEP, PRIVACY AND READING ----------
 
@@ -5336,6 +5369,7 @@ const UI_ANIM = {
   strikeThrough:  { on:true, note:'A drill you tick is struck through rather than switching to done', ms:300 },
   sessionProgress:{ on:true, note:'The drill count carries a bar that fills as you cross them off' },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
+  overscroll:     { on:true, note:'The page stretches at the top and springs back' },
   countersTick:   { on:true, note:'Any figure that has changed rolls, not only the score' },
   flipReorder:  { on:true, note:'Reordered goals slide past each other instead of teleporting', ms:340 },
   chipActsOut:  { on:true, note:'A card’s chip acts out its own symbol as the card lands', ms:520 },
