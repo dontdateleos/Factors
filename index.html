@@ -688,6 +688,12 @@
 
   .log{ margin-top:var(--sp-4); }
   .log-title{ font-family:var(--sans); font-size:var(--fs-tag);  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
+  /* The injury list and the form's own title sit outside .fields, which is the thing that
+     carries the gutter — so both bled to the screen edge while every line around them was
+     inset 22px. They are content, not a band, so they take the gutter too. Measured: the
+     list title and the injury card were starting their ink at 0 against the explainer's 22,
+     which only became obvious once the list and the form ended up in the same section. */
+  .gutter-inset{ padding-left:var(--gutter); padding-right:var(--gutter); }
   .log-entry{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 0; cursor:pointer; letter-spacing:0.015em; font-weight:var(--fw-medium); }
   /* Every .log-entry follows the same shape: name on the left, value on the right. They
      were rendering at identical size, weight and colour, so an exercise name carried no
@@ -2433,13 +2439,13 @@
            sat under the form for adding one. Hidden entirely when nothing is logged: an empty
            state saying "no injuries, enjoy it" is a section-sized way of reporting that a
            section is empty. -->
-      <div class="log" id="injuryListSection" style="display:none;">
+      <div class="log gutter-inset" id="injuryListSection" style="display:none;">
         <div class="log-title">Active &amp; recent injuries</div>
         <div id="injuryList"></div>
       </div>
       <!-- Titled the same way the list above it is, so the section reads as two blocks
            under one heading rather than a form that starts without warning. -->
-      <div class="log-title" style="margin-top:18px;">Log a new one</div>
+      <div class="log-title gutter-inset" style="margin-top:18px;">Log a new one</div>
       <div class="fields" id="injuryForm">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
         <div class="field-row"><span class="field-label">Type</span>
@@ -6698,7 +6704,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.201';
+const APP_VERSION = '2026.08.31.202';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
