@@ -518,6 +518,18 @@
     font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em;
     text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
   .group-head .collapse-chevron{ order:1; flex:none; }
+  /* A section you OPEN gets a chevron; a test you TAKE gets a button that says so. The
+     mobility screen is the second kind — it is not content to read, it is a thing you sit
+     down and do — and it used to announce itself by springing open on its own whenever it
+     was unrated or stale. Behind a button it is available whenever you want it and never
+     in the way, which is the whole point of an optional test. */
+  .group-head .head-action{ order:1; flex:none; margin-left:auto;
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.08em; text-transform:uppercase;
+    background:transparent; color:var(--bg);
+    border:1px solid rgba(251,250,246,0.45); border-radius:4px;
+    padding:4px 10px; min-height:0; width:auto; cursor:pointer; }
+  .group-head .head-action:hover{ border-color:var(--bg); }
   .group-head .group-sub{ order:2; }
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
@@ -2356,7 +2368,7 @@
       <div class="group-head" id="mobilityAssessmentToggleHeader" style="cursor:pointer;">
         <div class="group-title">Mobility Assessment</div>
         <div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div>
-        <span id="mobilityAssessmentChevron" class="collapse-chevron" style="font-size:var(--fs-sm); transition:transform 0.15s;">▾</span>
+        <button type="button" class="head-action" id="mobilityAssessmentStartBtn" aria-expanded="false" aria-controls="mobilityAssessmentBody">Take the test</button>
       </div>
       <div class="fields" id="mobilityAssessmentBody" style="display:none;">
         <div id="mobilityAssessmentRows"></div>
@@ -6675,7 +6687,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.189';
+const APP_VERSION = '2026.08.31.190';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11448,38 +11460,49 @@ async function renderMobilityAssessment(skipCollapse){
       : (staleDays != null && staleDays >= MOBILITY_REASSESS_DAYS)
         ? `Last rated ${stamp(existing.lastUpdated)} — worth re-testing`
         : `${assessedCount} of ${MOBILITY_DOMAINS.length} domains assessed`;
+  // What the button offers depends only on whether there is anything to re-take. The
+  // stale and outdated-scale cases are carried by the summary line above it, which already
+  // says which of the two it is; putting that in the button as well would make the label
+  // change under someone for a reason the label has no room to explain.
+  mobilityAssessmentLabel = assessedCount === 0 ? 'Take the test' : 'Retest';
+  const startBtn = document.getElementById('mobilityAssessmentStartBtn');
+  const bodyEl = document.getElementById('mobilityAssessmentBody');
+  if(startBtn && bodyEl && bodyEl.style.display === 'none') startBtn.textContent = mobilityAssessmentLabel;
   if(skipCollapse) return;
-  const body = document.getElementById('mobilityAssessmentBody');
-  const chevron = document.getElementById('mobilityAssessmentChevron');
+  const body = bodyEl;
   /* One slow exhale, the first time a stale assessment comes on screen in a visit. The
      summary already says "worth re-testing" in grey text you have to be looking at to see;
      this is what makes you look. Once per visit per staleness — never a badge, which stays,
-     and never twice, which is nagging. */
+     and never twice, which is nagging. Now that nothing springs open on its own, this is
+     the only thing that asks, which is the right amount of asking for an optional test. */
   if(isStale && uiAnim('staleBreath') && staleBreathShown !== staleDays){
     staleBreathShown = staleDays;
     const head = document.getElementById('mobilityAssessmentToggleHeader');
     const box = head && head.querySelector('.group-title');
     if(box){ box.classList.remove('stale-breath'); void box.offsetWidth; box.classList.add('stale-breath'); }
   }
-  if(assessedCount === 0 || isStale){
-    // Expand for a first-time rating, and again once it's gone stale — an out-of-date
-    // assessment is the same problem as no assessment, just less visible.
-    body.style.display = 'flex';
-    chevron.style.transform = 'rotate(180deg)';
-  } else {
-    body.style.display = 'none';
-    chevron.style.transform = 'rotate(0deg)';
+  // Always closed on render. It used to expand itself whenever the assessment was missing
+  // or had gone stale, which put an eleven-domain rating wheel — the tallest thing on the
+  // tab — between you and the injury you came to log. The test is optional and on demand:
+  // the summary says where you stand, the button opens it when you want it.
+  setMobilityAssessmentOpen(false);
+}
+// One place that owns the open state, so the button label, the aria and the panel cannot
+// disagree — which is what happens when a toggle writes some of them and a re-render the rest.
+function setMobilityAssessmentOpen(open){
+  const body = document.getElementById('mobilityAssessmentBody');
+  const btn = document.getElementById('mobilityAssessmentStartBtn');
+  if(!body || !btn) return;
+  body.style.display = open ? 'flex' : 'none';
+  btn.textContent = open ? 'Close' : mobilityAssessmentLabel;
+  btn.setAttribute('aria-expanded', String(open));
+  if(open){
+    body.classList.remove('snap-reveal'); void body.offsetWidth; body.classList.add('snap-reveal');
   }
 }
 document.getElementById('mobilityAssessmentToggleHeader').addEventListener('click', ()=>{
   const body = document.getElementById('mobilityAssessmentBody');
-  const chevron = document.getElementById('mobilityAssessmentChevron');
-  const isHidden = body.style.display === 'none';
-  body.style.display = isHidden ? 'flex' : 'none';
-  chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-  if(isHidden){
-    body.classList.remove('snap-reveal'); void body.offsetWidth; body.classList.add('snap-reveal');
-  }
+  setMobilityAssessmentOpen(body.style.display === 'none');
 });
 document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', async ()=>{
   const result = document.getElementById('saveMobilityAssessmentResult');
@@ -18596,6 +18619,9 @@ const MOBILITY_DOMAIN_TO_SKILL = { ankles:'deepsquat', calves:null, knees:'deeps
 // Stepper state. Draft scores are held here rather than in storage so tapping through
 // the assessment doesn't write nine times; the existing Save button still commits.
 let mobilityStepIndex = 0;
+// What the header button offers when the panel is shut. Declared with the rest of the
+// assessment's state rather than beside the toggle, so it exists before the first render.
+let mobilityAssessmentLabel = 'Take the test';
 let mobilityDraftScores = null;
 let mobilityWheelBound = false;
 
