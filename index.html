@@ -524,6 +524,11 @@
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--on-light); }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; min-width:0; }
+  /* A time input was never in the rule above, so it kept flex-basis auto and sized itself
+     to its own picker — 102px in a column of 227px fields, one box visibly short of the
+     right edge. Only inside a field-row: the standalone date picker above the form is not
+     in a column and should stay its own width. */
+  .field-row > input[type=time]{ flex:1 1 0; min-width:0; }
   /* Sizes for controls and labels now come from the base rules above, which every tab
      shares — these panels no longer need their own. */
   /* flex-shrink was 0, which meant the min-width:0 beside it could never take effect —
@@ -6340,7 +6345,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.151';
+const APP_VERSION = '2026.08.31.152';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
