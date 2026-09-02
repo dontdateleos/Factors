@@ -3279,6 +3279,7 @@ const EYE_ANIM = {
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
   restingPulse:   { on:true, note:'The idle blink keeps time with your logged resting heart rate' },
   uncertainGaze:  { on:true, note:'Unsteady while the score is unsure, settling as the baseline matures' },
+  refusesHeld:    { on:true, note:'Starts the glance down at a held score, then turns away instead' },
   sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
@@ -3926,6 +3927,21 @@ function setUncertainGaze(ciLow, ciHigh){
   }, 90);
 }
 
+/* IT WILL NOT LOOK AT A HELD SCORE. glanceAtNumber has the mark look down at the number once
+   it lands. On a blinded morning there is no number to look at, so it starts the glance and
+   turns away instead — the rule as a character rather than as an empty space. */
+function eyeGlanceOrRefuse(){
+  if(!anim('glanceAtNumber')) return;
+  scoreIsHeld().then(held=>{
+    if(held && anim('refusesHeld')){
+      eyeGaze(0, 4, 200);
+      setTimeout(()=>eyeGaze(-7, -1, 320, 900), 220);
+      return;
+    }
+    eyeGaze(0, 5, 240, 700); eyeConvergeFor(40);
+  }).catch(()=>{ eyeGaze(0, 5, 240, 700); eyeConvergeFor(40); });
+}
+
 /* 2. IT LOOKS AWAY WHILE YOU RATE YOURSELF. The morning face is the one input the app must
    not lead — it is the reason a blinded day exists at all. And the mark sat watching you
    choose. It shuts while the row is open and opens again once you have answered.
@@ -4182,7 +4198,7 @@ function moveEyes(dest, from, snap){
     if(anim('tearOnFlight')) playGlitch(dest === 'header' ? header : score, 'markGlitch', EYE_ANIM.tearOnFlight.px);
     if(dest === 'header' && anim('popOnArrival')) eyePop();
     // A look down at the number it just landed above, so the arrival has a point.
-    if(dest === 'score' && anim('glanceAtNumber')) setTimeout(()=>{ eyeGaze(0, 5, 240, 620); eyeConvergeFor(40); }, 160);
+    if(dest === 'score' && anim('glanceAtNumber')) setTimeout(eyeGlanceOrRefuse, 160);
     firstOpenOfDay();
     eyeRareBeat();
     scheduleIdle(dest === 'score' ? 1100 : 2600);
@@ -4372,7 +4388,7 @@ function eyeRollThroughStates(score, delayMs, ms){
     if(i < seq.length){ eyeRollTimer = setTimeout(advance, step); return; }
     eyeRollTimer = setTimeout(()=>{
       done();
-      if(anim('glanceAtNumber')){ eyeGaze(0, 5, 240, 700); eyeConvergeFor(40); }
+      eyeGlanceOrRefuse();
       scheduleIdle(1600);
     }, step);
   };
