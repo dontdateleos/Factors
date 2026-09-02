@@ -2795,6 +2795,12 @@
          tab colour the way Recent entries did on Data. -->
     <div class="set-band">The engine</div>
     <div class="group form-panel">
+      <div class="group-head collapsible" data-collapse="scorelog" style="cursor:pointer;"><div class="group-title">Why the score moved</div><span class="head-est" id="scoreSamplesSummary"></span><div class="group-sub">every recomputation this visit, and what changed with it</div><span class="collapse-chevron" data-collapse="scorelog">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="scorelog" style="display:none;">
+        <div id="scoreSamples"></div>
+      </div>
+    </div>
+    <div class="group form-panel">
       <div class="group-head collapsible" data-collapse="blinding" style="cursor:pointer;"><div class="group-title">Blind days</div><span class="head-est" id="blindingSummary"></span><div class="group-sub">the only way to know the score is telling the truth</div><span class="collapse-chevron" data-collapse="blinding">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="blinding" style="display:none;">
         <label class="week-deload" for="blindingToggle" style="margin-bottom:10px;">
@@ -3738,6 +3744,48 @@ function stopEyeIdle(){ if(eyeIdleAnim){ try{ eyeIdleAnim.cancel(); }catch(e){} 
    Wherever they are sitting, the eyes blink now and then, so the mark reads as something
    looking back rather than as two shapes. Height only: a blink that also moved the tilt or
    the taper would flicker the expression the score is trying to show. */
+/* ---------- WHY DID THE SCORE MOVE ----------
+   A ring of the last twenty computations. It is not a log for its own sake: the panel below
+   diffs consecutive samples and names the field that changed, because "my score keeps
+   changing" is answerable only if the app remembers what it was made of at the time. */
+const SCORE_SAMPLES = [];
+function recordScoreSample(s){
+  const last = SCORE_SAMPLES[SCORE_SAMPLES.length - 1];
+  // Identical readings are not worth a row. Only a computation that differs from the one
+  // before it tells you anything, and a screenful of the same number hides the one that moved.
+  if(last && Object.keys(s).every(k => k === 'at' || last[k] === s[k])) return;
+  SCORE_SAMPLES.push(s);
+  if(SCORE_SAMPLES.length > 20) SCORE_SAMPLES.shift();
+}
+const SCORE_FIELD_LABEL = {
+  raw:'raw score', pct:'percentile', gate:'gate', gated:'gate reason', held:'held',
+  present:'inputs present', complete:'window completeness', mature:'baseline maturity',
+  avail:'readiness available', learnedN:'sessions learned from', wsum:'sum of weights'
+};
+function renderScoreSamples(){
+  const el = document.getElementById('scoreSamples');
+  if(!el) return;
+  if(SCORE_SAMPLES.length < 2){
+    el.innerHTML = '<div class="score-note">The score has been computed '
+      + SCORE_SAMPLES.length + ' time' + (SCORE_SAMPLES.length === 1 ? '' : 's')
+      + ' this visit and has not changed. If it moves, what moved with it appears here.</div>';
+    return;
+  }
+  const rows = [];
+  for(let i = 1; i < SCORE_SAMPLES.length; i++){
+    const a = SCORE_SAMPLES[i-1], b = SCORE_SAMPLES[i];
+    const moved = Object.keys(SCORE_FIELD_LABEL).filter(k => a[k] !== b[k]);
+    const t = new Date(b.at).toTimeString().slice(0,8);
+    rows.push(`<div class="log-entry"><span>${t} · ${a.shown} → ${b.shown}</span><span>`
+      + (moved.length
+          ? moved.map(k=>`${SCORE_FIELD_LABEL[k]} ${a[k]} → ${b[k]}`).join(' · ')
+          : 'nothing measured changed')
+      + `</span></div>`);
+  }
+  el.innerHTML = rows.reverse().join('')
+    + `<div class="score-note" style="margin-top:8px;">Newest first, this visit only. If the score moves and the right-hand column says <b>nothing measured changed</b>, the movement is in the render rather than the reading — which is the half of the problem this cannot see.</div>`;
+}
+
 const BLINK_CLOSED = '2px';
 
 /* The top of the page stopped dead. It stretches now and springs back, and the mark leans
@@ -6579,7 +6627,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.175';
+const APP_VERSION = '2026.08.31.176';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6721,12 +6769,13 @@ async function checkForUpdate(){
 // re-renders like that, and re-opening the same section on every visit is a tap you already
 // paid for.
 const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
-                             'bodymetrics', 'blinding', 'weights', 'version', 'legal', 'calm'];
+                             'bodymetrics', 'scorelog', 'blinding', 'weights', 'version', 'legal', 'calm'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
 } catch(e){}
 function setCollapsed(key, collapsed){
+  if(key === 'scorelog' && !collapsed) renderScoreSamples();
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
   animateCollapse(body, collapsed);
@@ -9854,6 +9903,21 @@ async function computeSystemicReadiness(asOfDate){
   const shownLow  = half == null ? null : (percentile != null ? pctOf(today.raw - half) : Math.max(0, Math.round(score - half)));
   const shownHigh = half == null ? null : (percentile != null ? pctOf(today.raw + half) : Math.min(100, Math.round(score + half)));
   const enough = win.completeness >= SR_MIN_COMPLETENESS && maturity >= SR_MIN_MATURITY;
+  /* Every computation, with the inputs that decide it. A score that moves between visits is
+     the hardest kind of bug to chase from memory — by the time you notice, the thing that
+     moved is three renders back. The last twenty are kept so the Settings panel can say what
+     actually changed instead of asking you to remember. One object, no storage write, gone
+     on reload. Recorded here rather than beside the score above, where `enough` and the rest
+     are still in their dead zone and reading them threw on every call. */
+  recordScoreSample({
+    at: Date.now(), shown: percentile != null ? percentile : score,
+    raw: +today.raw.toFixed(4), pct: percentile, gate: +gate.toFixed(3),
+    gated: gateReason || null, held,
+    present: +today.weightPresent.toFixed(3), complete: +win.completeness.toFixed(3),
+    mature: +maturity.toFixed(3), avail: enough && today.weightPresent > 0,
+    learnedN: learned ? learned.n : null,
+    wsum: learned ? +Object.values(learned.weights).reduce((a,b)=>a+b, 0).toFixed(4) : null
+  });
   return {
     available: enough && today.weightPresent > 0,
     refused: !enough && today.weightPresent > 0,
@@ -10710,6 +10774,10 @@ async function renderSettingsSummaries(){
     const L = await learnWeights(todayStr);
     put('weightsSummary', L ? `learned from ${L.n} session${L.n===1?'':'s'}` : 'starting weights');
   } catch(e){ put('weightsSummary', 'starting weights'); }
+  try{
+    const n = SCORE_SAMPLES.length;
+    put('scoreSamplesSummary', n < 2 ? 'steady' : (n - 1) + ' change' + (n === 2 ? '' : 's'));
+  } catch(e){}
   try{
     // On unless explicitly turned off, and the throw on a missing key is the never-touched
     // case — the same rule the toggle itself uses. This had its own copy of the old one and
