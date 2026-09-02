@@ -6693,7 +6693,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.196';
+const APP_VERSION = '2026.08.31.197';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -24972,6 +24972,26 @@ if(copyExportBtnEl) copyExportBtnEl.addEventListener('click', async ()=>{
     showToast('Selected — press copy');
   }
 });
+// Not every value in storage is JSON. settings:goalProfile and eyes:lastOpen are written as
+// bare strings, and the collection loops below all read with JSON.parse — so both fell through
+// a catch and were silently left out of the backup. One of them is the mark's last-opened date
+// and costs nothing; the other is the goal profile, whose own subtitle says it shapes every
+// recovery threshold in the app. Restoring onto a new phone put every threshold back to default
+// with nothing on screen to say so, and the pre-import snapshot lost it by the same route, so
+// the undo path was missing it too.
+//
+// Tagged rather than stored bare, because an untagged string is ambiguous: a key that
+// legitimately holds the JSON text "hello" parses to the same thing a raw hello does, and
+// writing it back unquoted would corrupt it. Older backups carry no __raw and are unaffected.
+function backupValueFrom(rawValue){
+  try{ return JSON.parse(rawValue); }
+  catch(e){ return { __raw: String(rawValue) }; }
+}
+function storageValueFor(backupValue){
+  return (backupValue && typeof backupValue === 'object' && typeof backupValue.__raw === 'string')
+    ? backupValue.__raw
+    : JSON.stringify(backupValue);
+}
 document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
   const output = document.getElementById('exportOutput');
   const result = document.getElementById('exportResult');
@@ -24985,9 +25005,9 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
     for(const key of keys){
       try{
         const r = await window.storage.get(key);
-        data[key] = JSON.parse(r.value);
+        data[key] = backupValueFrom(r.value);
         count++;
-      } catch(e){ /* skip unreadable key, don't fail the whole export */ }
+      } catch(e){ /* the key itself would not read — nothing to write down */ }
     }
     const json = JSON.stringify(data, null, 2);
     output.value = json;
@@ -25040,7 +25060,7 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
     const before = {};
     for(const k of ((listRes && listRes.keys) || [])){
       if(k.startsWith('snapshot:')) continue;      // never snapshot the snapshots
-      try{ before[k] = JSON.parse((await window.storage.get(k)).value); } catch(e){}
+      try{ before[k] = backupValueFrom((await window.storage.get(k)).value); } catch(e){}
     }
     snapKey = `snapshot:${Date.now()}`;
     await window.storage.set(snapKey, JSON.stringify({ at: Date.now(), reason: 'before import', data: before }));
@@ -25054,7 +25074,7 @@ document.getElementById('bulkImportBtn').addEventListener('click', async ()=>{
 
   for(const key of keys){
     try{
-      const res = await window.storage.set(key, JSON.stringify(data[key]));
+      const res = await window.storage.set(key, storageValueFor(data[key]));
       if(!res) throw new Error('no result');
       succeeded++;
     } catch(e){
