@@ -420,7 +420,11 @@
   /* --eye-converge turns the two eyes toward each other. Opposite signs, applied outside
      the mirror on the second one, so both move inward rather than both moving right. */
   .eyes span{ display:block; width:calc(var(--eye-w) + var(--eye-squish, 0px)); height:var(--eye-h);
-    border-radius:var(--eye-r) var(--eye-r) var(--eye-rb) var(--eye-rb); background:var(--eye-ink);
+    border-radius:var(--eye-r) var(--eye-r) var(--eye-rb) var(--eye-rb);
+    /* --eye-fresh overlays --eye-ink and nothing else sets it. The site vars write --eye-ink
+       inline on every form change, so anything that painted the ink directly was overwritten
+       on the next blink; this composes with them instead of fighting them. */
+    background:var(--eye-fresh, var(--eye-ink));
     clip-path:polygon(0% 0%, 100% 0%, 100% 100%, var(--eye-bl) 100%);
     transform:translateX(var(--eye-converge, 0px)) rotate(var(--eye-rot)); transform-origin:50% 25%;
     transition:width var(--eye-morph) var(--eye-ease), height var(--eye-morph) var(--eye-ease),
@@ -3239,6 +3243,7 @@ const EYE_ANIM = {
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
   chevronEyes:    { on:false, note:'The collapse chevrons are the mark, shut when the section is' },
+  sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
   sittingSettles: { on:true, note:'The longer you are in the app in one visit, the slower the idle gets', overMin:20, maxExtra:0.6 },
   holdGaze:       { on:true, note:'Press and hold the mark and it looks straight at you until you let go', afterMs:340 },
@@ -3757,6 +3762,50 @@ function stopEyeIdle(){ if(eyeIdleAnim){ try{ eyeIdleAnim.cancel(); }catch(e){} 
    looking back rather than as two shapes. Height only: a blink that also moved the tilt or
    the taper would flicker the expression the score is trying to show. */
 const BLINK_CLOSED = '2px';
+
+/* ---------- THREE THINGS THE MARK DOES ABOUT SLEEP, PRIVACY AND READING ----------
+
+   1. HOW FRESH THE WHITE IS. Every other tired cue in here is about training —
+   sessionHeaviness after a hard one, deloadFatigue through a deload week. Nothing was about
+   sleep, which the app computes to a tenth of an hour and then prints once, in grey, on a
+   tab you may not open. So the white of the eyes carries it: rested and it is full cream,
+   and it dulls as the debt builds.
+
+   It is the colour rather than the lids on purpose. Lids are spoken for, and a heavy lid
+   reads as "this is a bad day" — a judgement. A dull white reads as "you are short of
+   sleep", which is a fact you can do something about tonight.
+
+   Today only, and only on the cream pair at the score. The header mark sits on the lime
+   plate in dark ink, where dulling would push it toward the plate and disappear. */
+const SLEEP_FRESH_FLOOR = [168, 165, 155];      // where a fully spent white lands
+/* Per night short, not hours owed in total. The cumulative figure grows with how many nights
+   you have logged, so the same sleep would dull the eyes further every week simply for having
+   more data behind it — the mark would be reporting the length of your history. An average
+   shortfall is the same number whether it is read over four nights or fourteen. */
+function sleepFreshInk(perNight){
+  const floor = (EYE_ANIM.sleepDebtFresh && EYE_ANIM.sleepDebtFresh.floorPerNight) || 1.5;
+  const k = Math.max(0, Math.min(1, (perNight - 0.25) / (floor - 0.25)));
+  const full = [251, 250, 246];
+  const c = full.map((v, i)=> Math.round(v + (SLEEP_FRESH_FLOOR[i] - v) * k));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
+async function applyEyeFreshness(){
+  const el = document.getElementById('scoreEyes');
+  if(!el) return;
+  // Today only. Anywhere else the pair means something other than how you slept, and a
+  // dulled white on Settings would just look like a rendering fault.
+  if(!anim('sleepDebtFresh') || !document.body.classList.contains('tab-insights')){
+    el.style.removeProperty('--eye-fresh');
+    return;
+  }
+  const r = await sleepDebtHours(todayStr);
+  if(!r || r.nights < 3){ el.style.removeProperty('--eye-fresh'); return; }
+  el.style.setProperty('--eye-fresh', sleepFreshInk(r.debt / r.nights));
+}
+
+
+
+
 let blinkTimer = null;
 let blinkSeq = 0;   // bumped to strand the timers of a blink that has been superseded
 
@@ -5662,6 +5711,9 @@ function activateTab(name, opts){
   // Measured before the panel swap below hides it, since a hidden panel has no boxes.
   const wasOnToday = document.getElementById('panel-insights').classList.contains('active');
   const eyesLeaving = wasOnToday && name !== 'insights' && eyesHome === 'score';
+  // Freshness belongs to Today. Applied after the body class settles below, and cleared on
+  // the way out so the pair does not carry last night's sleep onto a tab about something else.
+  setTimeout(applyEyeFreshness, 0);
   let eyesFrom = null;
   if(eyesLeaving){
     const r = document.getElementById('scoreEyes').getBoundingClientRect();
@@ -6370,7 +6422,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.168';
+const APP_VERSION = '2026.08.31.169';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9855,20 +9907,28 @@ function computeCapacityFromValues(pairs, todayVals){
   return { available:true, score, z:predictedZ, label, n: pairs.length, topLabel };
 }
 
-async function computeSleepDebt(){
-  const out = document.getElementById('sleepDebtOut');
+/* Hours owed against an 8h target across the last fourteen logged nights. Split out of
+   computeSleepDebt because the mark now reads it too, and two copies of a number this
+   visible would eventually disagree — the readout saying one thing and the eyes another. */
+async function sleepDebtHours(asOf){
   try{
     const res = await window.storage.list('entry:');
-    if(!res||!res.keys){ out.textContent='Sleep debt: —'; return; }
-    const dates = res.keys.map(k=>k.replace('entry:','')).filter(d=>d<=dateInput.value).sort().reverse().slice(0,14);
-    let debt = 0, n=0;
+    if(!res || !res.keys) return null;
+    const dates = res.keys.map(k=>k.replace('entry:','')).filter(d=>d <= asOf).sort().reverse().slice(0,14);
+    let debt = 0, n = 0;
     for(const d of dates){
-      const r = await window.storage.get(keyFor(d));
-      const e = JSON.parse(r.value);
-      if(e.durationHrs!=null){ debt += Math.max(0, 8 - e.durationHrs); n++; }
+      const e = JSON.parse((await window.storage.get(keyFor(d))).value);
+      if(e.durationHrs != null){ debt += Math.max(0, 8 - e.durationHrs); n++; }
     }
-    out.innerHTML = n ? `Sleep debt: <b>${debt.toFixed(1)}h</b> over trailing ${n} logged nights (vs 8hr/night target)` : 'Sleep debt: —';
-  } catch(e){ out.textContent='Sleep debt: —'; }
+    return n ? { debt, nights:n } : null;
+  } catch(e){ return null; }
+}
+async function computeSleepDebt(){
+  const out = document.getElementById('sleepDebtOut');
+  const r = await sleepDebtHours(dateInput.value);
+  out.innerHTML = r
+    ? `Sleep debt: <b>${r.debt.toFixed(1)}h</b> over trailing ${r.nights} logged nights (vs 8hr/night target)`
+    : 'Sleep debt: —';
 }
 
 async function getTrailingAverages(beforeDate){
@@ -14589,6 +14649,9 @@ let scoreSessions = {};        // date -> the hardest session RPE logged that da
 const SESSION_FACE_SCALE = 0.30;
 
 async function renderScoreTrace(todayScore){
+  // Also here, not only on the tab swap: a night logged while you are already on Today
+  // changes the debt, and the white should follow it without waiting for you to leave.
+  applyEyeFreshness();
   const host = document.getElementById('scoreTrace');
   if(!host) return;
   host.style.display = 'none';
