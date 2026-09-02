@@ -6073,23 +6073,6 @@ document.querySelectorAll('#dataViewPills .type-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateDataSubView(btn.dataset.view));
 });
 
-// Generates an organic "wobbly circle" as a polygon point list — a few overlaid sine
-// waves at different frequencies/phases perturb the radius smoothly around the circle,
-// which reads as hand-drawn rather than jagged (pure per-point random noise would look
-// spiky instead). Same angular positions used for both the tiny starting point and the
-// full-size end shape so clip-path can morph smoothly between them.
-function wobblyPolygonPoints(cx, cy, radius, wobbleAmount, seeds, numPoints, biasAngle, biasStrength){
-  const pts = [];
-  for(let i=0; i<numPoints; i++){
-    const angle = (i/numPoints) * Math.PI * 2;
-    const wobble = (Math.sin(angle*3+seeds[0])*0.5 + Math.sin(angle*5+seeds[1])*0.3 + Math.sin(angle*2+seeds[2])*0.4) / 1.2;
-    const directionalBias = biasAngle!=null ? Math.cos(angle - biasAngle) * biasStrength : 0;
-    const r = radius * (1 + wobbleAmount*wobble + directionalBias);
-    pts.push(`${(cx + r*Math.cos(angle)).toFixed(1)}px ${(cy + r*Math.sin(angle)).toFixed(1)}px`);
-  }
-  return pts.join(', ');
-}
-
 /* The tab transition. The new page is dealt up over the old one from the bottom edge, and
    the old one recedes a little and dims underneath it.
 
@@ -13458,24 +13441,6 @@ const VOLUME_LANDMARKS = {
   neck:        { mev: 3, mavLow: 5,  mavHigh: 9,  mrv: 12 }
 };
 
-async function getWeeklySetsPerArea(dates){
-  const sessions = await getAllTrainingSessions();
-  const setsByArea = {};
-  sessions.forEach(s=>{
-    if(s.type!=='strength' || !s.exercises || !dates.includes(s.date)) return;
-    s.exercises.forEach(e=>{
-      const sets = e.sets || 0;
-      if(e.area){
-        setsByArea[e.area] = (setsByArea[e.area]||0) + sets*(e.secondaryArea ? VOLUME_SPLIT.primary : 1.0);
-      }
-      if(e.secondaryArea){
-        setsByArea[e.secondaryArea] = (setsByArea[e.secondaryArea]||0) + sets*VOLUME_SPLIT.secondary;
-      }
-    });
-  });
-  return setsByArea;
-}
-
 // Personal training tolerance: distinct from Predicted Capacity (which predicts TODAY's
 // capacity from recovery inputs). This asks a different question — at what weekly
 // training volume does THIS person's recovery trend actually start to decline. Reuses
@@ -13532,141 +13497,6 @@ async function computeTrainingTolerance(){
     flagged: r < -0.3 && (avgRecoveryLower - avgRecoveryUpper) >= 5
   };
 }
-
-// The Actual vs target section was removed from the weekly view. Kept, and guarded, so
-// restoring it is putting its container back rather than rebuilding the calculation.
-async function renderMacroInsights(){
-  const body = document.getElementById('macroInsightsBody');
-  if(!body) return;
-  body.innerHTML = '<div class="skeleton tall"></div>';
-
-  const thisWeekDates = getWeekDates();
-  const thisWeek = await getWeekVolumeTotals(thisWeekDates);
-
-  let priorStrengthSum=0, priorRunSum=0, priorWeeksCounted=0;
-  for(let w=1; w<=4; w++){
-    const dates = shiftWeek(thisWeekDates, w);
-    const totals = await getWeekVolumeTotals(dates);
-    if(totals.strengthVolume>0 || totals.runDistance>0){
-      priorStrengthSum += totals.strengthVolume;
-      priorRunSum += totals.runDistance;
-      priorWeeksCounted++;
-    }
-  }
-  const avgStrength = priorWeeksCounted ? priorStrengthSum/priorWeeksCounted : null;
-  const avgRun = priorWeeksCounted ? priorRunSum/priorWeeksCounted : null;
-
-  let html = '';
-  const strengthPct = (avgStrength && avgStrength>0) ? Math.round(((thisWeek.strengthVolume-avgStrength)/avgStrength)*100) : null;
-  html += `<div class="log-entry"><span>Strength volume</span><span>${thisWeek.strengthVolume.toLocaleString()} kg${strengthPct!=null?` (${strengthPct>=0?'+':''}${strengthPct}% vs avg)`:' (no history yet)'}</span></div>`;
-  const runPct = (avgRun && avgRun>0) ? Math.round(((thisWeek.runDistance-avgRun)/avgRun)*100) : null;
-  html += `<div class="log-entry"><span>Running distance</span><span>${thisWeek.runDistance.toFixed(1)}km${runPct!=null?` (${runPct>=0?'+':''}${runPct}% vs avg)`:' (no history yet)'}</span></div>`;
-
-  if(thisWeek.runDistance > 0){
-    const allSessions = await getAllTrainingSessions();
-    const thisWeekRuns = allSessions.filter(s=>s.type==='run' && thisWeekDates.includes(s.date));
-    const hardDist = thisWeekRuns.filter(s=>['tempo','interval'].includes(s.runType)).reduce((a,s)=>a+(s.distanceKm||0),0);
-    const hardPct = Math.round((hardDist/thisWeek.runDistance)*100);
-    const hardColor = hardPct > 25 ? 'var(--bad)' : 'var(--good)';
-    html += `<div class="log-entry"><span>Tempo + interval share</span><span style="color:${hardColor};">${hardPct}% of weekly distance${hardPct>25?' — above the ~20-25% guardrail':''}</span></div>`;
-  }
-
-  const sessions = await getAllTrainingSessions();
-  const areaTotalsThisWeek = {};
-  const areaTotalsPrior = {};
-  sessions.forEach(s=>{
-    if(s.type!=='strength' || !s.exercises) return;
-    const inThisWeek = thisWeekDates.includes(s.date);
-    const daysAgo = (new Date(todayStr) - new Date(s.date))/(1000*60*60*24);
-    const inPriorWindow = daysAgo>=7 && daysAgo<35;
-    s.exercises.forEach(e=>{
-      Object.keys(BODY_AREAS).forEach(area=>{
-        const v = exerciseAreaVolume(e, area);
-        if(v>0){
-          if(inThisWeek) areaTotalsThisWeek[area] = (areaTotalsThisWeek[area]||0)+v;
-          if(inPriorWindow) areaTotalsPrior[area] = (areaTotalsPrior[area]||0)+v;
-        }
-      });
-    });
-  });
-
-  const areaLines = Object.keys(areaTotalsThisWeek).map(area=>{
-    const thisWk = areaTotalsThisWeek[area];
-    const priorAvg = areaTotalsPrior[area] ? areaTotalsPrior[area]/4 : null;
-    let flag = '';
-    if(priorAvg && priorAvg>0){
-      const pct = Math.round(((thisWk-priorAvg)/priorAvg)*100);
-      if(Math.abs(pct)>=25) flag = ` ${pct>0?'▲':'▼'} ${pct>0?'+':''}${pct}%`;
-    }
-    return { area, thisWk, flag };
-  }).sort((a,b)=>b.thisWk-a.thisWk);
-
-  const weekSets = await getWeeklySetsPerArea(thisWeekDates);
-  const landmarkAreas = Object.keys(weekSets).filter(a=>VOLUME_LANDMARKS[a]);
-  const flagByArea = {};
-  areaLines.forEach(l=>{ flagByArea[l.area] = l.flag; });
-  if(landmarkAreas.length){
-    html += '<div class="log-title" style="margin-top:12px;">By area</div>';
-    landmarkAreas.sort((a,b)=>weekSets[b]-weekSets[a]).forEach(area=>{
-      const sets = Math.round(weekSets[area]*10)/10;
-      const l = VOLUME_LANDMARKS[area];
-      let note = '';
-      let color = 'var(--dim)';
-      if(sets < l.mev){ note = `under ${l.mev}`; color = 'var(--bad)'; }
-      else if(sets > l.mrv){ note = `over ${l.mrv}`; color = 'var(--bad)'; }
-      else if(sets >= l.mavLow && sets <= l.mavHigh){ note = 'in range'; color = 'var(--good)'; }
-      else note = 'ok';
-      html += `<div class="log-entry"><span>${BODY_AREAS[area]}</span><span style="color:${color};">${sets} sets · ${note}${flagByArea[area]||''}</span></div>`;
-    });
-    html += `<details class="mobility-legend" style="margin-top:6px;"><summary>What these numbers mean</summary><div class="mobility-legend-body">Set counts are against MEV / MAV / MRV — minimum effective, typical productive, and upper range before diminishing returns. General landmarks, not personalised: soreness resolution and performance trend matter more than hitting an exact number.</div></details>`;
-
-    const currentGoal = await getCurrentGoals(todayStr);
-    const topGoal = currentGoal && currentGoal.list && currentGoal.list[0];
-    if(topGoal){
-      const gt = topGoal.type;
-      let goalNote = '';
-      if(gt === 'hypertrophy'){
-        goalNote = 'Hypertrophy is your top goal — aim for the upper end of each range if recovery allows.';
-      } else if(gt === 'strength'){
-        goalNote = 'These come from hypertrophy research — a rough sanity check for strength work, not a target.';
-      } else if(gt === 'running'){
-        goalNote = 'Running is your top goal — stay at the lower end to protect run quality.';
-      }
-      if(goalNote) html += `<div class="score-note" style="margin-top:6px; color:var(--accent);">${goalNote}</div>`;
-    }
-  }
-
-  const tolerance = await computeTrainingTolerance();
-  if(tolerance && !tolerance.insufficientData){
-    html += '<div class="log-title" style="margin-top:16px;">Training Tolerance</div>';
-  }
-  if(tolerance.insufficientData){
-    // Nothing rendered — a heading plus "see Today for status" is redirection, not insight.
-  } else if(tolerance.flagged){
-    html += `<div class="log-entry"><span style="color:var(--text);">Higher-volume weeks tend to cost you recovery</span></div>`;
-    html += `<div class="score-note">Weeks above ~${tolerance.medianVolume} (combined load) are followed by recovery scores averaging ${tolerance.avgRecoveryLower - tolerance.avgRecoveryUpper}pts lower than lighter weeks (r=${tolerance.r.toFixed(2)}, n=${tolerance.n} weeks). This is a correlation from your own history, not a hard ceiling — worth watching, not a rule.</div>`;
-  } else {
-    html += `<div class="log-entry">No clear volume-vs-recovery pattern yet (r=${tolerance.r.toFixed(2)}, n=${tolerance.n} weeks) — your recovery doesn't show a strong relationship to weekly volume in this window.</div>`;
-  }
-
-  // Mobility exposure floor. Volume for lifting and running was already tracked here;
-  // mobility had no weekly view at all, so a domain getting nothing all week was
-  // invisible. Reported, not auto-corrected — the fix is usually a session, not a tweak.
-  try{
-    const mobGoals = await getOrCreateAutoMobilityGoal();
-    const under = await getUnderExposedDomains(thisWeekDates, mobGoals.map(g=>g.skill));
-    if(under.length){
-      const names = under.slice(0,4).map(u=>`${u.domain} ${Math.round(u.seconds/60*10)/10}min`).join(' · ');
-      html += `<div class="log-entry"><span>Mobility coverage</span><span>${under.length} below floor</span></div>`
-        + `<div class="score-note">Under ${Math.round(MOBILITY_WEEKLY_MIN_SECONDS/60)}min this week: ${names}${under.length>4?' …':''}</div>`;
-    } else {
-      html += `<div class="log-entry"><span>Mobility coverage</span><span>all domains met</span></div>`;
-    }
-  } catch(e){}
-
-  body.innerHTML = html;
-}
-
 
 /* ---------- SYSTEM CONFIDENCE ----------
    What the engine is actually driving from, per subsystem, and what unlocks next.
@@ -16432,36 +16262,6 @@ function goalTargetValue(p){
   return null;
 }
 
-// Ring percent: 'higher is better' (weight/distance) = current/target. 'lower is better'
-// (speed/time) = target/current, so hitting the target time exactly reads as 100% either way.
-// Returns null (not 0%) when there's no computable target — an empty ring, not a claim of
-// zero progress.
-async function computeGoalRingPercent(goal){
-  const target = goalTargetValue(goal);
-  if(target==null) return null;
-  const current = await getGoalCurrentValue(goal);
-  if(current==null || !current.value) return null;
-  const ratio = current.better==='lower' ? (target/current.value) : (current.value/target);
-  return Math.min(100, Math.max(0, Math.round(ratio*100)));
-}
-
-function renderProgressRing(percent, size){
-  size = size || 34;
-  const r = 14, c = 2*Math.PI*r;
-  if(percent==null){
-    return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" style="flex-shrink:0;"><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--hair)" stroke-width="3"/></svg>`;
-  }
-  const offset = c * (1 - percent/100);
-  const color = percent>=100 ? 'var(--good)' : 'var(--accent)';
-  return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" style="flex-shrink:0; transform:rotate(-90deg);">
-    <circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--hair)" stroke-width="3"/>
-    <circle cx="17" cy="17" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset 0.6s ease;"/>
-  </svg>`;
-}
-
-
-
 // Deliberately simple linear interpolation between current baseline and target —
 // "structured and easy to follow" checkpoints, not a fabricated periodization curve.
 function buildGoalTimeline(startValue, startDate, endValue, endDate){
@@ -16638,131 +16438,6 @@ async function classifyGoalAdaptation(goal){
 
   return { status, recentBest, priorBest, pctChange: Math.round(pctChange*1000)/10, recentCount: recent.length, priorCount: prior.length, loadTrend, interpretation };
 }
-
-async function renderSingleGoalProgress(p){
-  let html = '';
-  if((p.type==='strength' || p.type==='hypertrophy') && p.targetExercise && p.targetWeight){
-    const sessions = await getAllTrainingSessions();
-    let best = null;
-    sessions.forEach(s=>{
-      if(s.type==='strength' && s.exercises){
-        s.exercises.forEach(e=>{
-          if(e.name && e.name.trim().toLowerCase()===p.targetExercise.trim().toLowerCase() && e.weight){
-            if(!best || e.weight > best.weight || (e.weight===best.weight && s.date > best.date)) best = { weight: e.weight, date: s.date };
-          }
-        });
-      }
-    });
-    if(best){
-      const remaining = p.targetWeight - best.weight;
-      html += `<div class="log-entry"><span>${p.targetExercise}</span><span>${best.weight}kg (as of ${best.date}) → target ${p.targetWeight}kg${remaining>0?` — ${remaining.toFixed(1)}kg to go`:' — target reached'}</span></div>`;
-      if(p.autoBenchmarked) html += `<div class="score-note">Target auto-set from your recent lifts, not chosen by you directly — edit it above anytime.</div>`;
-    } else {
-      html += `<div class="log-entry"><span>${p.targetExercise}</span><span>No logged sessions found yet for this exercise name</span></div>`;
-    }
-  } else if(p.type==='running' && p.targetDistance && p.targetTime){
-    // Finds runs within ±15% of target distance, projects each to an equivalent time at
-    // the exact target distance using that run's own pace, takes the best projection.
-    // This is a pace-based estimate, not a race result — flagged as such in the UI.
-    const sessions = await getAllTrainingSessions();
-    const now = new Date(todayStr);
-    let bestProjected = null;
-    sessions.forEach(s=>{
-      if(s.type==='run' && s.distanceKm && s.durationMin){
-        const daysAgo = (now-new Date(s.date))/(1000*60*60*24);
-        const withinRange = Math.abs(s.distanceKm - p.targetDistance) / p.targetDistance <= 0.15;
-        if(daysAgo>=0 && daysAgo<=60 && withinRange){
-          const paceMinPerKm = s.durationMin / s.distanceKm;
-          const projectedTime = paceMinPerKm * p.targetDistance;
-          if(!bestProjected || projectedTime < bestProjected.time) bestProjected = { time: projectedTime, date: s.date, actualDistance: s.distanceKm };
-        }
-      }
-    });
-    if(bestProjected){
-      const remaining = bestProjected.time - p.targetTime;
-      const fmtTime = m => `${Math.floor(m)}:${Math.round((m%1)*60).toString().padStart(2,'0')}`;
-      html += `<div class="log-entry"><span>Best pace, projected to ${p.targetDistance}km</span><span>~${fmtTime(bestProjected.time)} (from ${bestProjected.actualDistance}km on ${bestProjected.date}) → target ${fmtTime(p.targetTime)}${remaining>0?` — ${fmtTime(remaining)} to shave`:' — target pace reached'}</span></div>`;
-      html += `<div class="score-note">Pace-projected from a nearby-distance run, not an actual timed effort at ${p.targetDistance}km — treat as a rough estimate.</div>`;
-      if(p.autoBenchmarked) html += `<div class="score-note">Target auto-set from your recent runs, not chosen by you directly — edit it above anytime.</div>`;
-    } else {
-      html += `<div class="log-entry"><span>Speed progress</span><span>No runs within ~15% of ${p.targetDistance}km logged in the last 60 days yet</span></div>`;
-    }
-  } else if(p.type==='running' && p.targetDistance){
-    const sessions = await getAllTrainingSessions();
-    const now2 = new Date(todayStr);
-    let longest = null;
-    sessions.forEach(s=>{
-      if(s.type==='run' && s.distanceKm){
-        const daysAgo = (now2-new Date(s.date))/(1000*60*60*24);
-        if(daysAgo>=0 && daysAgo<=30 && (!longest || s.distanceKm>longest.distanceKm)) longest = s;
-      }
-    });
-    if(longest){
-      html += `<div class="log-entry"><span>Longest run (30d)</span><span>${longest.distanceKm}km (${longest.date}) → target ${p.targetDistance}km</span></div>`;
-    } else {
-      html += `<div class="log-entry"><span>Running progress</span><span>No runs logged in the last 30 days yet</span></div>`;
-    }
-  } else if(['strength','hypertrophy','running'].includes(p.type)){
-    const suggestion = await benchmarkAndSuggestTarget(p.type);
-    if(!suggestion){
-      html += `<div class="log-entry"><span>Progress</span><span>No specific trackable target set — add a target exercise/weight or distance above to track automatically</span></div>`;
-    } else if(suggestion.phase==='calibration'){
-      html += `<div class="log-title" style="margin-top:8px;">Calibration week</div>`;
-      html += `<div class="score-note">${suggestion.reason}</div>`;
-      if(suggestion.starterExercises){
-        html += `<div class="log-entry"><span>This week, try</span><span>${suggestion.starterExercises.join(', ')}</span></div>`;
-      } else if(suggestion.starterRunType){
-        html += `<div class="log-entry"><span>This week</span><span>${suggestion.starterRunType}</span></div>`;
-      }
-      html += `<div class="score-note">${suggestion.starterNote}</div>`;
-    } else if(suggestion.phase==='benchmarking'){
-      html += `<div class="log-title" style="margin-top:8px;">Benchmarking phase</div>`;
-      html += `<div class="score-note">${suggestion.reason}</div>`;
-    } else {
-      html += `<div class="log-title" style="margin-top:8px;">Suggested target</div>`;
-      if(suggestion.exerciseName){
-        html += `<div class="log-entry"><span>${suggestion.exerciseName}</span><span>${suggestion.currentValue}kg now → ${suggestion.targetWeight}kg by ${suggestion.targetDate}</span></div>`;
-      } else {
-        const fmtTime = m => `${Math.floor(m)}:${Math.round((m%1)*60).toString().padStart(2,'0')}`;
-        html += `<div class="log-entry"><span>5K</span><span>${fmtTime(suggestion.currentValue)} now → ${fmtTime(suggestion.targetTime)} by ${suggestion.targetDate}</span></div>`;
-      }
-      html += `<div class="score-note">${suggestion.reason}</div>`;
-      html += `<button class="small apply-suggested-target" data-goal-index="${p._index}" data-goal-type="${p.type}" style="margin-top:6px;">Apply this target</button>`;
-    }
-  } else {
-    html += `<div class="log-entry"><span>Progress</span><span>No specific trackable target set — add a target exercise/weight or distance above to track automatically</span></div>`;
-  }
-
-  if(p.timeline && p.timeline.length){
-    html += '<div class="log-title" style="margin-top:8px;">Timeline</div>';
-    const current = await getGoalCurrentValue(p);
-    const now = new Date(todayStr);
-    p.timeline.forEach(cp=>{
-      const passed = new Date(cp.date) <= now;
-      let status = 'upcoming';
-      if(passed && current){
-        const onTrack = current.better==='higher' ? current.value >= cp.expectedValue : current.value <= cp.expectedValue;
-        status = onTrack ? 'on track' : 'behind';
-      }
-      html += `<div class="log-entry"><span>${cp.date}</span><span style="font-weight:${status==='behind'?'700':'400'};">${cp.expectedValue}${p.timelineUnit} — ${status}</span></div>`;
-    });
-    html += '<div class="score-note">Straight-line checkpoints between your baseline and target — a simple pace-check, not a periodization plan.</div>';
-  }
-
-  if(!p.isMaintenance && (p.type==='strength' || p.type==='hypertrophy' || (p.type==='running' && p.targetDistance))){
-    const adaptation = await classifyGoalAdaptation(p);
-    if(adaptation.status !== 'insufficient_data'){
-      const statusLabels = { improving_fast:'Improving fast', improving:'Improving', plateauing:'Plateauing', declining:'Declining' };
-      html += `<div class="log-title" style="margin-top:8px;">Recent trend</div>`;
-      html += `<div class="log-entry"><span>${statusLabels[adaptation.status]}</span><span>${adaptation.pctChange>0?'+':''}${adaptation.pctChange}% vs. the ${ADAPTATION_WINDOW_DAYS} days before that</span></div>`;
-      if(adaptation.interpretation) html += `<div class="score-note">${adaptation.interpretation}</div>`;
-    } else {
-      html += `<div class="score-note" style="margin-top:8px;">${adaptation.reason}</div>`;
-    }
-  }
-  return html;
-}
-
 
 // The Progress section this used to fill is gone — it restated goal by goal what "This
 // block" says once and what each skill row already carries. These two are what it also
@@ -18716,39 +18391,6 @@ async function getMobilityAssessment(){
 // a level can't silently drive months of prescriptions after it stopped being true.
 const MOBILITY_REASSESS_DAYS = 42;
 
-// Weekly floor per domain. The stretching literature treats accumulated weekly duration
-// as a key moderator of ROM change, but nothing here tracked it — per-domain exposure was
-// whatever fell out of however many mobility sessions happened to be generated. On a
-// strength-heavy week that can be zero, which is how a domain quietly detrains.
-const MOBILITY_WEEKLY_MIN_SECONDS = 180;
-async function getWeeklyDomainExposure(dates){
-  const seconds = {};
-  for(const date of dates){
-    for(const slot of ['am','pm']){
-      try{
-        const blk = JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value);
-        if(blk.type !== 'mobility') continue;
-        (blk.details.stretches||[]).forEach(s=>{
-          if(!s.domain) return;
-          seconds[s.domain] = (seconds[s.domain]||0) + (s.sets||2)*(s.holdSeconds||30);
-        });
-      } catch(e){}
-    }
-  }
-  return seconds;
-}
-
-// Domains that a mobility GOAL or a genuine deficit says should be worked, but which the
-// week as planned leaves below the floor. Surfaced rather than auto-fixed: topping up
-// would mean inventing session time the person hasn't got.
-async function getUnderExposedDomains(dates, activeGoalSkills){
-  const needed = await getMobilityDomainsNeedingWork(activeGoalSkills);
-  const exposure = await getWeeklyDomainExposure(dates);
-  return needed
-    .map(n => ({ domain: n.domain, seconds: exposure[n.domain] || 0 }))
-    .filter(n => n.seconds < MOBILITY_WEEKLY_MIN_SECONDS)
-    .sort((a,b) => a.seconds - b.seconds);
-}
 function assessmentAgeDays(assessment){
   if(!assessment || !assessment.lastUpdated) return null;
   const days = (new Date(todayStr) - new Date(assessment.lastUpdated)) / (1000*60*60*24);
@@ -19793,40 +19435,6 @@ const RUN_WARMUP_BY_TYPE = {
 };
 
 
-// Self-assessed running starting point. suggestRunTier needs four weeks of logged running
-// before it can place anyone, which meant a capable runner spent a month on 30-second
-// walk-run intervals before the app noticed. Two questions resolve that on day one, and
-// logged history overrides it as soon as there's enough to be more reliable.
-// Where in the beginner progression to start. Every option under 2km resolved to the
-// beginner tier and every beginner started at level 1, so "I'm starting from scratch" and
-// "I can jog a few minutes" produced an identical plan — 30 seconds of running at a time
-// for someone who just said they can run for minutes. Someone who can already jog a few
-// minutes starts at the 3-minute interval; deliberately below what they reported, since
-// the protocol's whole premise is that beginners fail by starting too hard.
-function runStartLevelFromSelfReport(longestKm){
-  if(longestKm == null || longestKm < 1) return 0;   // from scratch -> run 30s / walk 90s
-  if(longestKm < 2) return 3;                        // a few minutes -> run 3min / walk 90s
-  return 0;                                          // 3km+ leaves the beginner tree entirely
-}
-function runTierFromSelfReport(longestKm, perWeek){
-  if(longestKm == null) return null;
-  if(longestKm < 2) return 'beginner';
-  if(longestKm < 5) return 'consolidation';
-  if(longestKm >= 10 && perWeek >= 5) return 'intermediate';
-  if(longestKm >= 18) return 'intermediate';
-  return 'base';
-}
-async function getSelfReportedRunRecord(){
-  try{
-    const v = JSON.parse((await window.storage.get('settings:runStartingPoint')).value);
-    const tier = runTierFromSelfReport(v.longestKm, v.perWeek);
-    return tier ? { tier, date: v.date || todayStr } : null;
-  } catch(e){ return null; }
-}
-async function getSelfReportedRunTier(){
-  const rec = await getSelfReportedRunRecord();
-  return rec ? rec.tier : null;
-}
 document.getElementById('saveRunStartBtn').addEventListener('click', async ()=>{
   const longest = document.getElementById('runStartLongest').value;
   const freq = document.getElementById('runStartFrequency').value;
@@ -20399,111 +20007,6 @@ async function renderInjuryRetrospective(){
     }
     el.innerHTML = html;
   } catch(e){ el.innerHTML = '<div class="score-note">Could not build the retrospective.</div>'; }
-}
-
-// ---------- BLOCK TARGET ----------
-// Deliberately NOT a new thing to type. A session target would duplicate the prescription
-// (sets/reps/load are already assigned per exercise), and a hand-entered block target
-// would duplicate the Goals section, which already holds targetExercise/targetWeight/
-// targetDate. What was genuinely missing is the middle horizon: a goal says "140kg by
-// December" and a session says "squat 4x8 at 100kg", with nothing connecting them. The
-// block checkpoint is that link — it converts the long-range goal into what this block
-// has to deliver, and makes the block reviewable afterwards.
-async function getBlockTarget(){
-  const goals = await getCurrentGoals(todayStr);
-  let lift = (goals && goals.list || []).find(g => g.targetExercise && g.targetWeight);
-  let derived = false;
-  // No explicit target set — don't go silent. benchmarkAndSuggestTarget already computes
-  // a defensible one from strength standards and logged history (and correctly refuses
-  // during calibration, when there's no baseline to reason from). Reuse it rather than
-  // inventing a second, inconsistent estimate.
-  if(!lift){
-    const liftGoal = (goals && goals.list || []).find(g => g.type==='strength' || g.type==='hypertrophy');
-    if(!liftGoal) return null;
-    const s = await benchmarkAndSuggestTarget(liftGoal.type);
-    if(!s) return null;
-    if(s.phase === 'calibration' || s.phase === 'benchmarking'){
-      return { pending:true, phase:s.phase, reason:s.reason };
-    }
-    if(!s.exerciseName || !s.targetWeight) return null;
-    lift = { targetExercise: s.exerciseName, targetWeight: s.targetWeight, targetDate: s.targetDate };
-    derived = true;
-  }
-  const pos = await getBlockPosition(todayStr);
-  const history = await getLoggedHistoryForExercise(null, lift.targetExercise, 5);
-  const current = history.length ? Math.max(...history.map(h => h.weight || 0)) : 0;
-  if(!current) return { exercise: lift.targetExercise, goalWeight: lift.targetWeight, current: 0, needData: true, derived };
-
-  const remaining = lift.targetWeight - current;
-  if(remaining <= 0){
-    return { exercise: lift.targetExercise, goalWeight: lift.targetWeight, current, achieved: true, derived };
-  }
-
-  // How many blocks are left before the goal date? Without a date, assume a horizon of
-  // four blocks rather than inventing urgency.
-  let blocksLeft = 4;
-  if(lift.targetDate){
-    const weeksLeft = Math.max(1, weeksBetween(todayStr, lift.targetDate));
-    blocksLeft = Math.max(1, Math.round(weeksLeft / pos.length));
-  }
-  let perBlock = remaining / blocksLeft;
-  // Is that rate sane? ~2-3% per 4-week block is a realistic intermediate rate; much
-  // above that and the goal date is the problem, not the training.
-  let ratePct = (perBlock / current) * 100;
-  // For a derived target, an unrealistic rate means the app's own horizon guess was too
-  // short — so stretch the horizon rather than prescribing a jump that can't be made.
-  // Must run BEFORE blockTarget is computed, or the checkpoint keeps the pre-clamp jump.
-  if(derived && ratePct > 3){
-    blocksLeft = Math.ceil(remaining / (current * 0.03));
-    perBlock = remaining / blocksLeft;
-    ratePct = (perBlock / current) * 100;
-  }
-  // Round to a real plate increment so the number is liftable, not theoretical.
-  const inc = LOWER_BODY_AREAS.includes((guessTagsFromLibrary(lift.targetExercise)||{}).primary) ? 2.5 : 1.25;
-  const blockTarget = Math.round((current + perBlock) / inc) * inc;
-  return {
-    exercise: lift.targetExercise, goalWeight: lift.targetWeight, current, derived,
-    blockTarget, blocksLeft, ratePct: Math.round(ratePct * 10) / 10,
-    aggressive: !derived && ratePct > 8,
-    weekInBlock: pos.weekInBlock, blockLength: pos.length
-  };
-}
-
-async function renderBlockTarget(){
-  const el = document.getElementById('blockTargetBody');
-  if(!el) return;
-  try{
-    const t = await getBlockTarget();
-    if(!t){
-      el.innerHTML = '<div class="score-note">Add a strength or hypertrophy goal above, and this block gets a checkpoint on the way there.</div>';
-      return;
-    }
-    // Calibration/benchmarking: the suggestion engine deliberately refuses to invent a
-    // number before there's a baseline. Say why rather than showing a fabricated target.
-    if(t.pending){
-      el.innerHTML = `<div class="score-note">${t.reason}</div>
-        <div class="score-note" style="margin-top:4px;">A block checkpoint appears once there's enough logged training to base one on.</div>`;
-      return;
-    }
-    if(t.needData){
-      el.innerHTML = `<div class="score-note">No logged sets of ${t.exercise} yet — log one and this block gets a checkpoint toward ${t.goalWeight}kg.</div>`;
-      return;
-    }
-    if(t.achieved){
-      el.innerHTML = `<div class="score-note">${t.exercise} is at ${t.current}kg — past the ${t.goalWeight}kg target. Worth setting a new one.</div>`;
-      return;
-    }
-    const warn = t.aggressive
-      ? `<div class="score-note" style="margin-top:4px;">That's ~${t.ratePct}% per block. Sustained progress past roughly 2-3% per block is unusual once you're past the novice stage, so the date is probably the thing to move rather than the training.</div>`
-      : '';
-    el.innerHTML = `
-      <div class="log-entry"><span>This block</span><span style="font-weight:700;">${t.exercise} → ${t.blockTarget}kg</span></div>
-      <div class="log-entry"><span>Now</span><span>${t.current}kg</span></div>
-      <div class="log-entry"><span>Goal</span><span>${t.goalWeight}kg · ${t.blocksLeft} block${t.blocksLeft===1?'':'s'} left</span></div>
-      <div class="score-note" style="margin-top:4px;">Week ${t.weekInBlock} of ${t.blockLength}. The generator already prescribes the sets and loads — this is the checkpoint they add up to.</div>
-      ${t.derived ? '<div class="score-note" style="margin-top:4px;">You haven\'t set a target, so this one is estimated from strength standards and your logged training. Set your own on the goal above to override it.</div>' : ''}
-      ${warn}`;
-  } catch(e){ el.innerHTML = '<div class="score-note">Could not compute a block target.</div>'; }
 }
 
 // ---------- BLOCK HISTORY ----------
