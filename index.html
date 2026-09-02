@@ -335,7 +335,12 @@
   .toast-icon{ display:inline-block; vertical-align:middle; margin-right:6px; width:14px; height:14px; }
 
   .header-brand{ display:block; position:relative; }
-  .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--bg); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+  /* Orange stopped being a tab when red took Body, and this is where it went. The label
+     names the tab you are on, so it is the one piece of chrome that changes with the tab
+     and has no colour of its own — cream, beside a cream wordmark, saying nothing twice.
+     One colour for it, used nowhere else in this corner, and the corner has two voices
+     instead of one. */
+  .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--block-orange); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   /* Set to match .tab-label, since it is the other thing in this corner of the black. */
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
      to lift them over the mark. At equal specificity that rule wins on order,
@@ -6357,7 +6362,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.166';
+const APP_VERSION = '2026.08.31.167';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
