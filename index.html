@@ -6651,7 +6651,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.185';
+const APP_VERSION = '2026.08.31.186';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18675,14 +18675,30 @@ async function getPrioritizedMobilityDomains(activeGoalSkills){
       if(MOBILITY_DOMAIN_TO_SKILL[domain]===skill) goalDomains.add(domain);
     });
   });
-  // Priority order: goal-related domains first, then by ascending assessment score
-  // (deficit = higher priority, unassessed treated as neutral mid-priority), then
-  // domains already covered by this week's bulletproofing, warm-up, OR a person's own
-  // logged mobility sessions pushed toward the back — deprioritized, not excluded,
-  // since some dedicated coverage is still worthwhile.
+  // Priority order: goal-related domains that are still being BUILT first, then by
+  // ascending assessment score (deficit = higher priority, unassessed treated as neutral
+  // mid-priority), then domains already covered by this week's bulletproofing, warm-up, OR
+  // a person's own logged mobility sessions pushed toward the back — deprioritized, not
+  // excluded, since some dedicated coverage is still worthwhile.
+  //
+  // "Still being built" is the qualifier that used to be missing. Goal domains went first
+  // at any rating, so a Deep Squat goal with ankles and knees both at 5 spent the session
+  // maintaining ranges you already own: at the 30-minute cap that was four of seven items,
+  // and hips, hamstrings and shoulders — every one of them rated 1 — got nothing at all.
+  // Under 20 minutes exactly one domain survived the trim, and it was a 5.
+  //
+  // Past the top of the ladder a goal domain is upkeep, so it now sorts on its score like
+  // everything else, which puts it last. The goal itself is not at risk: the goal's own
+  // drill comes from the separate mobilityGoals pass, not from this list — measured on the
+  // same profile, the Deep Squat integrate movement survives either way and two more
+  // restricted domains fit once the maintained ones stop taking the loaded rungs. Display
+  // order is unaffected too; the block regroups by category, so the session still ramps
+  // into its goal. This list only decides what survives the trim.
+  const ladderTop = Math.max(...Object.keys(MOBILITY_LEVEL_TO_CATEGORY).map(Number));
+  const stillBuilding = d => goalDomains.has(d) && (scores[d] == null || scores[d] <= ladderTop);
   return MOBILITY_DOMAINS.slice().sort((a,b)=>{
-    const aGoal = goalDomains.has(a) ? 0 : 1;
-    const bGoal = goalDomains.has(b) ? 0 : 1;
+    const aGoal = stillBuilding(a) ? 0 : 1;
+    const bGoal = stillBuilding(b) ? 0 : 1;
     if(aGoal !== bGoal) return aGoal - bGoal;
     const aCovered = weekCovered.has(a) ? 1 : 0;
     const bCovered = weekCovered.has(b) ? 1 : 0;
@@ -18923,10 +18939,19 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
   // the productive dose; more is session time another area could use.
   const withinBudget = (neededDomains||[]).filter(n =>
     servesGoal(n.domain) || !areaAtCeiling(MOBILITY_DOMAIN_TO_AREA[n.domain] || n.domain));
+  // The goal tiebreak here is the same policy getPrioritizedMobilityDomains applies, and
+  // the two have to agree or this one silently wins — it runs last. Reordering the caller
+  // alone changed nothing at all: a maintained goal domain was demoted upstream and then
+  // lifted straight back to the front by `servesGoal` on this line. So the ladder test
+  // lives on both, keyed off the level each need already carries. A goal domain still on
+  // the ladder leads; one past it is upkeep and takes its turn on score, which is the
+  // order the caller already sorted into and which a stable sort preserves.
+  const ladderTop = Math.max(...Object.keys(MOBILITY_LEVEL_TO_CATEGORY).map(Number));
+  const buildingGoal = n => servesGoal(n.domain) && (n.level == null || n.level <= ladderTop);
   const orderedNeeds = withinBudget.slice().sort((a,b)=>{
     const ac = covered[a.domain] ? 1 : 0, bc = covered[b.domain] ? 1 : 0;
     if(ac !== bc) return ac - bc;
-    const ag = servesGoal(a.domain) ? 0 : 1, bg = servesGoal(b.domain) ? 0 : 1;
+    const ag = buildingGoal(a) ? 0 : 1, bg = buildingGoal(b) ? 0 : 1;
     return ag - bg;
   });
 
