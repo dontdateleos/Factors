@@ -6627,7 +6627,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.176';
+const APP_VERSION = '2026.08.31.177';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9721,20 +9721,35 @@ function cnsWindowLine(cr){
    store minutes-awake. Their weight is NOT redistributed. A missing component contributes
    zero, which pulls the composite toward a typical day — that is the intended behaviour, and
    the confidence readout is what says so out loud. */
+/* These sum to 1.00 and srRawFrom does not normalise, so a weight cannot be lowered on its
+   own — the composite would simply shrink toward 50 for everybody. The other seven carry the
+   difference, scaled in proportion so their order and their ratios to each other are
+   untouched.
+
+   subjective was 0.28, more than half again the next channel, and it moved the score further
+   than any physiological input by a factor of three: measured, one tap of the morning dial
+   was 21 to 52 points where three hours of lost sleep was 34. Some of that is real — Saw 2016
+   is the reason it leads, and it is still the only channel that sees psychosocial load at all
+   — but a self-report that outweighs HRV, resting heart rate and sleep duration combined is
+   reporting the rating rather than the athlete, and one tap should not be able to say more
+   about your day than the night you actually had.
+
+   It is level with hrvTrend now: joint-first, not dominant. The stable autonomic signal and
+   the one thing that knows about your life, weighted the same. */
 const SR_WEIGHTS = {
-  subjective:  0.28,   // Saw 2016 — highest sensitivity of any category, and the only channel
-                       // that sees psychosocial load at all
-  hrvTrend:    0.18,   // the stable autonomic signal, insensitive to single nights by design
-  rhr:         0.14,   // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  subjective:  0.200,  // Saw 2016 — highest sensitivity of any category, and the only channel
+                       // that sees psychosocial load at all. Level with hrvTrend, not above it.
+  hrvTrend:    0.200,  // the stable autonomic signal, insensitive to single nights by design
+  rhr:         0.156,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
   // Duration and fragmentation together — the brief defines this component as duration
   // against personal need times an efficiency term, and minutes-awake is that term. It was
   // briefly a ninth component of its own, which pushed the weights to 1.05 and quietly
   // diluted every other one.
-  sleep:       0.12,   // acute and largely behavioural, so below the physiology
-  hrvAcute:    0.08,   // damped, so one catastrophic night registers without noise driving it
-  sleepDebt:   0.08,   // Van Dongen — accrues linearly, no adaptation
-  regularity:  0.05,   // Windred 2023 — predicts independently of duration, near-zero cost
-  illnessCh:   0.07    // respiratory rate and skin temperature, negative-only
+  sleep:       0.133,  // acute and largely behavioural, so below the physiology
+  hrvAcute:    0.089,  // damped, so one catastrophic night registers without noise driving it
+  sleepDebt:   0.089,  // Van Dongen — accrues linearly, no adaptation
+  regularity:  0.056,  // Windred 2023 — predicts independently of duration, near-zero cost
+  illnessCh:   0.077   // respiratory rate and skin temperature, negative-only
 };
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
