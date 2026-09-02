@@ -6651,7 +6651,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.184';
+const APP_VERSION = '2026.08.31.185';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18774,6 +18774,30 @@ function doseForLevel(table, level){
   const n = Math.round(Number(level));
   return table[Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : lo];
 }
+// How many neighbouring options a level rotates through before it has to reach further
+// down the list. Two keeps consecutive sessions from repeating a movement without letting
+// a rung wander off the difficulty it was chosen for.
+const MOBILITY_PICK_WINDOW = 2;
+// Options inside a rung are written easiest-first — ankles LOAD runs 'Slow eccentric calf
+// raise' through to 'Weighted ankle rocker'. The pick was a pure day rotation over the whole
+// list, so the assessed level moved the DOSE and never the MOVEMENT: a domain rated 1 was
+// handed the hardest entry in the list every fifth session, and a domain rated 5 the easiest.
+// Anchor the pick at the level's position along the list instead, rotate within a small
+// window around that anchor so sessions still vary, then fall back outward by distance when
+// the window is exhausted — a name already used this session, or a weighted option in a
+// bodyweight-only week. Falling back outward rather than giving up is what keeps a rung
+// filled, and it lands on the nearest difficulty that is actually available.
+function levelPickOrder(options, level, dayIdx){
+  const n = options.length;
+  if(n <= 1) return options.map((_, i)=>i);
+  const lv = Math.min(Math.max(Math.round(Number(level)) || 1, 1), 5);
+  const anchor = Math.round(((lv - 1) / 4) * (n - 1));
+  const byNearest = options.map((_, i)=>i)
+    .sort((a, b)=> Math.abs(a - anchor) - Math.abs(b - anchor) || a - b);
+  const w = Math.min(MOBILITY_PICK_WINDOW, n);
+  const spun = byNearest.slice(0, w).map((_, k, win)=> win[((dayIdx || 0) + k) % w]);
+  return [...spun, ...byNearest.slice(w)];
+}
 async function getMobilityDomainsNeedingWork(activeGoalSkills){
   const assessment = await getMobilityAssessment();
   const scores = (assessment && assessment.scores) || {};
@@ -18914,8 +18938,8 @@ function buildMobilitySession({ neededDomains, mobilityGoals, loadedROMCoverage,
     // and hips), so a single-shot lookup silently dropped a domain's whole rung whenever
     // another domain had already claimed that name this session.
     let name = null;
-    for(let k=0; k<options.length; k++){
-      const candidate = options[(dayIdx + k) % options.length];
+    for(const i of levelPickOrder(options, level, dayIdx)){
+      const candidate = options[i];
       if(usedNames.has(candidate)) continue;
       if(bodyweightOnly && !isBodyweightMobility(candidate)) continue;
       name = candidate; break;
