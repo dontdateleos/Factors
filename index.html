@@ -589,7 +589,12 @@
      written for a dark ground, so on a cream bar the fill and the outline both
      disappeared and the strip read as a blank white slab with a word floating in it. */
   footer{ position:fixed; bottom:0; left:0; right:0; z-index:5; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--ground); border-top:1px solid var(--hair); display:flex; gap:0; }
-  footer button{ border-radius:0; margin:0 -1px; }
+  /* Equal halves: flex-basis auto would size each button to its own label, which split
+     the bar 182/215 in favour of whichever word was longer. The -1px was there to stop
+     two 2px borders doubling where the buttons meet, but applied to both edges it also
+     hung the outer ones a pixel off-screen and clipped them. Collapse the seam only. */
+  footer button{ border-radius:0; flex:1 1 0; margin:0; }
+  footer button + button{ margin-left:-2px; }
   button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--text); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
   .plan-pill:active, .type-btn:active, .tab:active{ transform:scale(0.95); }
@@ -6335,7 +6340,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.149';
+const APP_VERSION = '2026.08.31.150';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
