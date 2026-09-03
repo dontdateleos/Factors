@@ -2669,16 +2669,19 @@
 
     </div><!-- /recoveryMore -->
 
-    </div>
-
-    <div id="trendsDataView" style="display:none;">
     <!-- A readout, so it follows the forms rather than splitting them: it sat between
-         Readiness and Body metrics and put a stripe of tab colour through the black. -->
+         Readiness and Body metrics and put a stripe of tab colour through the black.
+         It lives on Recovery rather than Trends because tapping a row loads that day into
+         the form above it, and on Trends that form was display:none — the tap looked
+         inert and quietly repointed a screen you were not on. -->
     <div class="log">
       <div class="log-title">Recent entries</div>
       <div id="logListRecovery"></div>
     </div>
 
+    </div>
+
+    <div id="trendsDataView" style="display:none;">
     <div class="group">
       <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
       <div class="fields">
@@ -6217,6 +6220,10 @@ function activateDataSubView(view){
   document.getElementById('recoveryDataView').style.display = view==='recovery' ? 'block' : 'none';
   document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
   document.getElementById('historyDataView').style.display = view==='history' ? 'block' : 'none';
+  /* Recent entries repaints on the way in. It used to be written at page load and after a
+     save and nowhere else, so it sat beside a chart that reads the same storage live: log a
+     night, and the chart gained a point the list never showed. */
+  if(view==='recovery'){ refreshRecoveryLog(); }
   if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
   if(view==='history'){
     renderBlockHistory();
@@ -6830,7 +6837,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.221';
+const APP_VERSION = '2026.08.31.222';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
