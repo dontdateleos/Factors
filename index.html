@@ -7188,7 +7188,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.258';
+const APP_VERSION = '2026.08.31.259';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7213,7 +7213,8 @@ const APP_NOTES = {
   '2026.08.31.233': 'Offline now works whichever address you launch from, not just the one you last loaded.',
   '2026.08.31.234': 'Checking for a new version no longer downloads the whole app to read one line.',
   '2026.08.31.235': 'This line, and the ones before it. This section now says what changed in the build you are on.',
-  '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.'
+  '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.',
+  '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -19035,7 +19036,26 @@ const MOBILITY_SESSION_TIME_CAP = 30;
 // Reuses the exact stretchingSuitable flag from F.3 (Nordic curl, ATG split squat, sissy
 // squat, RDL) as the loaded-ROM signal, now applied to DEDICATED mobility sessions across
 // recent training history, not just today's specific session.
-const MOBILITY_SKILL_TARGET_AREAS = { pike: ['hamstrings'], frontsplits: ['hamstrings','hips'], bridge: [], middlesplit: ['hips'], pancake: ['hips'], deepsquat: ['quads_knees','ankles'], overheadsquat: ['shoulders'] };
+/* THE TISSUE A SKILL ACTUALLY TRAINS, NAMED.
+
+   Three of these did not name it. Every read site treats the array as the truth about a
+   skill — it decides whether recent loaded ROM work halves the dose, what the ledger is
+   charged for the time spent, and which areas the generator biases toward while the goal
+   is live. An empty or wrong array is not a missing label; it is the goal failing to
+   steer the sessions built to serve it.
+
+   - bridge was []. Pick it as your mobility goal and nothing followed: no dedup against
+     loaded ROM, nothing charged to the ledger, and the generator kept offering unrelated
+     areas because the goal contributed no areas to bias toward. Its own level details
+     name the limiting factors — "thoracic extension and shoulder flexion" — so that is
+     what it now says.
+   - middlesplit and pancake were both ['hips'], which is the exact error the domain map
+     a few lines up already carries a paragraph about: adductor work charged to the hip
+     budget and crowded out by hip stretches, with an adductors area sitting unused. The
+     middle split's first rung is "Adductor rockbacks / Frog"; the pancake's is "Seated
+     straddle, adductor stretch". Hips stays on both — they are wide-stance hip work too —
+     and pancake gains hamstrings, which is what the forward fold half of it is. */
+const MOBILITY_SKILL_TARGET_AREAS = { pike: ['hamstrings'], frontsplits: ['hamstrings','hips'], bridge: ['thoracic','shoulders'], middlesplit: ['adductors','hips'], pancake: ['adductors','hips','hamstrings'], deepsquat: ['quads_knees','ankles'], overheadsquat: ['shoulders'] };
 async function getRecentLoadedROMCoverage(daysBack){
   daysBack = daysBack || 7;
   const sessions = await getAllTrainingSessions();
