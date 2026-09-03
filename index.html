@@ -7107,7 +7107,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.244';
+const APP_VERSION = '2026.08.31.245';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21549,7 +21549,13 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
 // Training Setup's available days if that's been saved. Falls back to all days if no setup
 // exists yet, so this doesn't break anything for people who haven't filled it in.
 async function getAvailableEmptyDates(weekDatesOverride){
-  const dates = weekDatesOverride || getWeekDates();
+  /* A day that has already gone is not an available day. getWeekDates() runs Monday to
+     Sunday whatever day it is now, and nothing filtered it, so generating mid-week put
+     sessions on days that had already passed. Onboarding on a Thursday, having asked for
+     Mon/Wed/Fri, produced exactly two sessions — Monday and Wednesday, both behind you —
+     nothing on Friday, and a Today tab reading "nothing planned · next session monday". The
+     first thing the app does for a new person, and it was already over. */
+  const dates = (weekDatesOverride || getWeekDates()).filter(d => d >= todayStr);
   const emptyDates = [];
   for(const date of dates){
     let hasBlock = false;
@@ -21563,7 +21569,13 @@ async function getAvailableEmptyDates(weekDatesOverride){
     const setup = JSON.parse(r.value);
     if(setup.availableDays && setup.availableDays.length){
       return emptyDates.filter(date=>{
-        const dow = new Date(date).getDay(); // 0=Sun..6=Sat
+        /* localDateFrom, not new Date. 'YYYY-MM-DD' parses as UTC MIDNIGHT and getDay() then
+           reports the LOCAL day, so anywhere west of Greenwich every date read as the day
+           before. Measured: in America/New_York and America/Los_Angeles, 2026-09-04 came
+           back Thu and 2026-09-07 came back Sun — so a tester who chose Mon/Wed/Fri had
+           sessions placed on Tue/Thu/Sat. Sydney and London were correct, which is exactly
+           why it survived this long. */
+        const dow = localDateFrom(date).getDay(); // 0=Sun..6=Sat
         const label = WEEKDAY_NAMES[(dow+6)%7]; // WEEKDAY_NAMES is Mon-first
         return setup.availableDays.includes(label);
       });
