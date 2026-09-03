@@ -5737,6 +5737,10 @@ function eyeNoteTabForWander(){
    Exposed on window for the same reason. */
 const UI_ANIM = {
   traceDraw:      { on:true, note:'The trend chart draws its line, and the band fills in behind it', ms:1000 },
+  loadTilt:       { on:true, note:'A week that beat its plan pushes past the tick and rocks back', ms:520, over:0.06 },
+  gapDots:        { on:true, note:'The trend line goes dotted across a gap where you logged nothing', gapDays:9 },
+  dayHandoff:     { on:true, note:'Midnight passing with the app open turns the date over', ms:620 },
+  firstLight:     { on:true, note:'Your first generated week arrives a day at a time', ms:300, stagger:70 },
   strikeThrough:  { on:true, note:'A drill you tick is struck through rather than switching to done', ms:300 },
   sessionProgress:{ on:true, note:'The drill count carries a bar that fills as you cross them off' },
   staleBreath:    { on:true, note:'A section that has gone stale exhales once when you land on it' },
@@ -5898,6 +5902,29 @@ let growBarsQueued = false;
 // Every re-render replaces its bars, so a new element has no flag and grows; the same
 // element at the same width does not grow twice. Keying on the width rather than a bare
 // flag means a bar whose value changed under it still reads as a new number.
+/* THE ONE TIME A WEEK IS NEW.
+
+   Pressing "Build my first week" fills the whole grid in a single frame, which is the same
+   nothing-happened as any other render — and it is the moment the app stops being a form
+   and starts being a plan. The days arrive in date order instead, once.
+
+   Strictly once, and stored, because a second showing is a flourish rather than a moment,
+   and because this fires on the first render of a picker that redraws constantly. */
+const FIRST_LIGHT_KEY = 'firstLightSeen';
+function firstLight(picker){
+  if(!picker || !uiAnim('firstLight')) return;
+  try{ if(localStorage.getItem(FIRST_LIGHT_KEY) === '1') return; } catch(e){ return; }
+  const days = [...picker.querySelectorAll('.week-day-item')];
+  // Nothing to announce until there is a week to announce — an empty grid is not a plan.
+  if(!days.some(d => (d.querySelector('.week-day-mark') || {}).textContent)) return;
+  try{ localStorage.setItem(FIRST_LIGHT_KEY, '1'); } catch(e){}
+  days.forEach((d, i)=>{
+    uiPlay(d, [{ opacity:0, transform:'translateY(6px)' },
+               { opacity: d.style.opacity || 1, transform:'translateY(0)' }],
+      { duration: UI_ANIM.firstLight.ms, delay: i * UI_ANIM.firstLight.stagger, fill:'backwards' });
+  });
+}
+
 function growBarsSoon(){
   if(growBarsQueued || !uiAnim('growBars')) return;
   growBarsQueued = true;
@@ -5909,8 +5936,17 @@ function growBars(root){
     .filter(b => b.getBoundingClientRect().width > 0 && b.dataset.grown !== b.style.width);
   bars.forEach((b, i)=>{
     b.dataset.grown = b.style.width || '1';
-    uiPlay(b, [{ transform:'scaleX(0)' }, { transform:'scaleX(1)' }], {
-      duration: UI_ANIM.growBars.ms, delay: i * UI_ANIM.growBars.stagger,
+    /* A week that beat its plan pushes past its own end and settles back onto it. Overshoot
+       and undershoot were the same picture until you read the figure beside them — the bar
+       simply stopped at a different place, and which side of the tick that was took reading.
+       Only bars that carry a plan to be beaten are marked, so this never fires on a
+       confidence or volume bar, which have nothing to overshoot. */
+    const over = uiAnim('loadTilt') && b.dataset.beatPlan === '1';
+    uiPlay(b, over
+      ? [{ transform:'scaleX(0)' }, { transform:`scaleX(${1 + UI_ANIM.loadTilt.over})`, offset:0.72 }, { transform:'scaleX(1)' }]
+      : [{ transform:'scaleX(0)' }, { transform:'scaleX(1)' }], {
+      duration: over ? UI_ANIM.loadTilt.ms : UI_ANIM.growBars.ms,
+      delay: i * UI_ANIM.growBars.stagger,
       easing:'cubic-bezier(0.2,0.8,0.2,1)'
     });
   });
@@ -6939,7 +6975,27 @@ function renderHeaderDate(){
   }
 }
 renderHeaderDate();
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderHeaderDate(); });
+/* MIDNIGHT PASSED WHILE YOU HAD IT OPEN.
+
+   todayStr is frozen at load on purpose, so the app keeps working to the day it started
+   under — there is a "Start today" button for when that stops being what you want. But the
+   date in the header re-reads the real clock on every return to the foreground, so it
+   silently becomes a different date from the one everything below it is about. Turning it
+   over says a day went by; the button beside it is what does something about that. */
+let headerDateShown = new Date().toDateString();
+function noteHeaderDateRolled(){
+  const now = new Date().toDateString();
+  if(now === headerDateShown) return;
+  headerDateShown = now;
+  const el = document.getElementById('headerDate');
+  if(!el || !uiAnim('dayHandoff')) return;
+  uiPlay(el, [
+    { transform:'rotateX(0deg)',   opacity:1 },
+    { transform:'rotateX(-88deg)', opacity:0.15, offset:0.45 },
+    { transform:'rotateX(0deg)',   opacity:1 }
+  ], { duration: UI_ANIM.dayHandoff.ms, easing:'cubic-bezier(0.4,0,0.2,1)' });
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ renderHeaderDate(); noteHeaderDateRolled(); } });
 /* A gap in the trace is the moment you want to fill it in. Tapping it goes to the morning
    form with the date already set to the most recent day that has no entry — which is the
    thing the gap is about — rather than to today, which is the one day that does not need
@@ -7127,7 +7183,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.248';
+const APP_VERSION = '2026.08.31.251';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -12378,6 +12434,7 @@ function renderWeekDayPicker(dayBlocks){
       </div>`);
   }
   picker.innerHTML = rows.join('') + `<div class="week-day-focus-line"></div>`;
+  firstLight(picker);
   const pos = document.getElementById('weekBlockPos');
   // The heading already says "Week", so this is just the position within the block.
   if(pos) pos.textContent = wheelBlockPos ? `${wheelBlockPos.weekInBlock} of ${wheelBlockPos.length}` : '';
@@ -12634,7 +12691,7 @@ async function renderBlockLoadChart(){
       rows.push(`<div class="blc-row" title="${title}">
         <div class="blc-wk" style="font-weight:${isNow ? 700 : 400}; opacity:${isNow ? 1 : 0.55};">${label}</div>
         <div class="blc-track" style="height:${TRACK_H}px;">
-          <div class="blc-bar" style="width:${pct.toFixed(1)}%; background:${ink};"></div>
+          <div class="blc-bar"${(refPct != null && ref > 0 && act > ref) ? ' data-beat-plan="1"' : ''} style="width:${pct.toFixed(1)}%; background:${ink};"></div>
           ${refPct != null ? `<div class="blc-tick${uiAnim('growBars') ? ' arrive' : ''}" style="left:${Math.min(99.2, refPct).toFixed(1)}%; background:${PLAN_INK}; opacity:${ref > 0 ? 1 : 0.45}; --tick-delay:${260 + rows.length * UI_ANIM.growBars.stagger}ms;"></div>` : ''}
         </div>
         <div class="blc-fig" style="opacity:${isNow ? 1 : 0.55};">${figure}</div>
@@ -24263,6 +24320,21 @@ function drawTrendChart(host, points, colours, band, label, emptyNote){
       : TREND_PAD_L + innerW * i / (points.length - 1);
   const Y = v => TREND_PAD_T + innerH * (1 - (v - yMin) / (yMax - yMin));
   const path = points.map((p, i)=> `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
+  /* A GAP IS NOT A READING.
+
+     The x axis gives a three-month gap its true width now, so the one thing still pretending
+     the series is continuous is the line drawn straight across it. Nothing was measured in
+     there; a solid stroke says otherwise. Segments spanning more than a week and a bit are
+     drawn dotted over the top of the solid line, which needs no change to the path itself —
+     the same geometry, dashed, masked to just those stretches. */
+  const gapMs = (UI_ANIM.gapDots.gapDays || 9) * 86400000;
+  let gapPath = '';
+  if(dated && uiAnim('gapDots')){
+    for(let i = 1; i < points.length; i++){
+      if(times[i] - times[i-1] < gapMs) continue;
+      gapPath += `M${X(i-1).toFixed(1)},${Y(points[i-1].y).toFixed(1)}L${X(i).toFixed(1)},${Y(points[i].y).toFixed(1)}`;
+    }
+  }
   const area = `${path}L${X(points.length-1).toFixed(1)},${(TREND_PAD_T+innerH).toFixed(1)}`
              + `L${X(0).toFixed(1)},${(TREND_PAD_T+innerH).toFixed(1)}Z`;
   let bandPath = '';
@@ -24330,6 +24402,9 @@ function drawTrendChart(host, points, colours, band, label, emptyNote){
     + ticks + (bandPath ? bandPath.replace('<path ', `<path class="${bcls.trim()}" `) : '')
     + `<path class="${bcls.trim()}" d="${area}" fill="${band ? 'none' : colours.fill}" stroke="none"/>`
     + `<path${dcls} d="${path}" fill="none" stroke="${colours.line}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+    // Over the solid stroke, in the page's ground, so the gap reads as absent rather than drawn.
+    + (gapPath ? `<path d="${gapPath}" fill="none" stroke="var(--ground)" stroke-width="3"/>`
+               + `<path d="${gapPath}" fill="none" stroke="${colours.line}" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 5" opacity="0.75"/>` : '')
     + dots + xLabels + `</svg>`;
   if(draw){
     const p = host.querySelector('path.tc-draw');
