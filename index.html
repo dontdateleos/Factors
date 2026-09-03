@@ -7188,7 +7188,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.257';
+const APP_VERSION = '2026.08.31.258';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7212,7 +7212,8 @@ const APP_NOTES = {
   '2026.08.31.232': 'Recent entries moved next to the form it fills, and repaints when you open it.',
   '2026.08.31.233': 'Offline now works whichever address you launch from, not just the one you last loaded.',
   '2026.08.31.234': 'Checking for a new version no longer downloads the whole app to read one line.',
-  '2026.08.31.235': 'This line, and the ones before it. This section now says what changed in the build you are on.'
+  '2026.08.31.235': 'This line, and the ones before it. This section now says what changed in the build you are on.',
+  '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22840,10 +22841,27 @@ async function generateRunPlan(tierKey, maxSessions, forcedDates, runSlotByDate,
         if(await isDeloadWeek(item.date)) distanceKm = Math.round(distanceKm * (1 - DELOAD_CUT) * 10) / 10;
       } catch(e){}
     }
+    /* WHAT THE COMBO DAY NEVER SAID: HOW FAR APART.
+
+       The placement already gets the order right — a strength+run pair goes strength AM,
+       run PM, which is the direction the concurrent literature favours for neuromuscular
+       and explosive adaptation. What it never said is the gap. The generate message
+       mentions AM and PM once, at generate time, and then you are looking at a Wednesday
+       three weeks out with a lift and a run on it and nothing about spacing.
+
+       Three hours is the number, and it is worth being precise about where it comes from:
+       the finding is that ENDURANCE FIRST needs three hours before lifting, to clear the
+       acute AMPK signalling that blunts the strength adaptation. This app does not put
+       endurance first — so the rule is stated for the case that actually bites, which is
+       you reordering your own day. Longer is better either way; three is the floor at
+       which the interference stops being the thing you should worry about. */
+    const comboNote = (slot === 'pm')
+      ? ' Second session today — the lift comes first. Leave at least 3 hours between them, and if you end up running first instead, make it 3 hours before you lift rather than after.'
+      : '';
     const runWarmup = RUN_WARMUP_BY_TYPE[item.runType] || RUN_WARMUP_BY_TYPE.easy;
     await window.storage.set(`weekplan:${item.date}:${slot}`, JSON.stringify({
       type: 'run',
-      details: { runType: item.runType, distanceKm, warmup: runWarmup, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note }
+      details: { runType: item.runType, distanceKm, warmup: runWarmup, targetPace: (item.runType!=='long' && item.runType!=='race') ? (personalPace[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm[item.runType] || WORKOUT_TIME_ESTIMATE.running.defaultPaceMinPerKm.easy) : null, notes: note + comboNote }
     }));
 
     await placeRunCompanionMobility(item);
