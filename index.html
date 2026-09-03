@@ -7185,7 +7185,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.255';
+const APP_VERSION = '2026.08.31.256';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -18163,6 +18163,51 @@ const ACCESSORY_EXCLUDED_CATEGORIES = ['main_strength','power','running_drill'];
 
 const HYPERTROPHY_TIER_RANK = { S:4, A:3, B:2, C:1 };
 
+/* ---------- THE ONE THING THAT HAS TO GO FIRST, AND NEVER GOT PROGRAMMED ----------
+
+   Ten power entries and three running drills — pogos, box jumps, depth jumps, hang and
+   power cleans, medicine-ball throws, kettlebell swings, A-skips, bounding — sat in
+   ACCESSORY_EXCLUDED_CATEGORIES, and nothing else selected by category. Thirteen exercises
+   the generator could not reach at all, and powerTier had zero read sites in the file to
+   rank them by even if it could.
+
+   Sequencing puts plyometric and ballistic work first: it is the most fatigue-sensitive and
+   most neuromuscularly demanding thing in a session, and it degrades fastest behind other
+   work. So it goes ahead of the main lift.
+
+   Ahead of the main lift FOR SOMEONE WHO IS TRAINING FOR IT. The same review that gives the
+   ordering rule is equally clear that exercise order does nothing for hypertrophy at all
+   (ES 0.03, p=0.862) — a depth jump ahead of the squat is simply a worse session for
+   somebody chasing size, and "priority quality goes where you are freshest" only means
+   anything once something has been made the priority. */
+const POWER_TIER_RANK = { S:4, A:3, B:2, C:1 };
+/* Running and Hyrox, which are the goal types that actually want explosive quality — sprint,
+   jump, change of direction. Not 'power': there is no such goal type, the picker offers
+   strength, hypertrophy and running, and a constant listing a goal nobody can choose is the
+   kind of dead branch this file has been clearing out all week.
+   Strength is left out deliberately. The ordering evidence says put the priority quality
+   where you are freshest; it does not say add plyometrics to a session that did not ask for
+   them, and Nunes is about which of the exercises you are ALREADY doing goes first. */
+const POWER_GOAL_TYPES = ['running', 'hyrox'];
+const POWER_PICKS_MAX = 1;      // one jump or throw, not a plyometric block before a lift
+function powerLeadForMovement(movement, opts){
+  const o = opts || {};
+  const rank = ex => POWER_TIER_RANK[ex.powerTier] || 0;
+  const cands = Object.entries(EXERCISE_LIBRARY)
+    .filter(([id, ex]) => ex.category === 'power' || ex.category === 'running_drill')
+    .filter(([id, ex]) => !o.bodyweightOnly || isBodyweightExercise(ex))
+    .filter(([id, ex]) => !o.usedNames || !o.usedNames.has(ex.name))
+    // Same pattern as the lift it precedes where one exists, so it primes that movement
+    // rather than being an unrelated jump bolted to the front of the session.
+    .filter(([id, ex]) => !movement || !ex.movement || ex.movement === movement || ex.category === 'running_drill')
+    .sort((a, b) => rank(b[1]) - rank(a[1]));
+  if(!cands.length) return null;
+  const [id, ex] = cands[0];
+  return { name: ex.name, area: ex.area, secondaryArea: ex.secondaryArea || '',
+    movement: ex.movement || movement || '', exerciseId: id, isPowerLead: true,
+    sets: 3, reps: '3-5', effort: 'explosive — full recovery between sets' };
+}
+
 // Which tier field a goal should actually rank by. Accessories were ranked on
 // hypertrophyTier unconditionally — strengthTier and powerTier had zero read sites in
 // the whole file — so a strength block picked its accessory work on hypertrophy merit.
@@ -22005,6 +22050,10 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   const weekSetsByArea = {};
   const weekUsedExerciseNames = new Set();
   const topGoalType = (goals && goals.list && goals.list[0] && goals.list[0].type) || null;
+  // Power leads only for someone who asked for it — and not as a maintenance goal, which is
+  // the app's own word for "keep it ticking over", not "put it first while I am fresh".
+  const wantsPowerLead = !!(goals && goals.list && goals.list.some(g =>
+    POWER_GOAL_TYPES.includes(g.type) && !g.isMaintenance));
   const emphasis = await getBlockEmphasisAreas(topGoalType, todayStr);
   const emphasisAreas = emphasis.areas;
   // getBlockPhase returns null on a deload week rather than a phase name, so resolve it
@@ -22102,6 +22151,14 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         const sub = BODYWEIGHT_MAIN_LIFTS[movement] || BODYWEIGHT_MAIN_LIFTS[TAG_TO_MOVEMENT[tag]];
         if(sub) mainLift = { ...sub };
       }
+    }
+    /* Before the main lift, and only when power is something you asked for. Injury safety
+       runs over it like anything else — a jump is a high-force movement and a flagged joint
+       has no business absorbing one. */
+    if(wantsPowerLead){
+      const lead = powerLeadForMovement(movement, { bodyweightOnly: equipmentPrefs.bodyweightAll });
+      const safeLead = lead ? applyInjurySafety(lead, injuryMovementFlags) : null;
+      if(safeLead){ safeLead.isMainLift = true; exercises.push(safeLead); }
     }
     if(mainLift){
       const safeMainLift = applyInjurySafety({ ...mainLift, movement }, injuryMovementFlags);
