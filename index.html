@@ -6854,7 +6854,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.229';
+const APP_VERSION = '2026.08.31.230';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6880,12 +6880,19 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       });
       reg.update().catch(()=>{});
     }).catch(()=>{});
-    // A worker that has taken over mid-session means the document you are looking at is not
-    // the one it would serve now. Say so rather than waiting for the next foreground.
+    /* A worker that has taken over mid-session means the document you are looking at is not
+       the one it would serve now. Say so rather than waiting for the next foreground.
+       Except on a first install, where there is no previous controller to have swapped away
+       from. The worker activates and claims this page seconds after the same page fetched
+       this document from the network, so it is provably current — and re-checking cost a
+       whole extra copy of the app. Measured on a cold launch with nothing cached: 4,806,765
+       bytes, being the document plus TWO full update checks. This is the second one. */
+    const hadController = !!navigator.serviceWorker.controller;
     let swSwapped = false;
     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
       if(swSwapped) return;
       swSwapped = true;
+      if(!hadController) return;
       lastUpdateCheck = 0;
       passiveUpdateCheck();
     });
