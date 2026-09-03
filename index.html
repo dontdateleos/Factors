@@ -7183,7 +7183,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.251';
+const APP_VERSION = '2026.08.31.252';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -13573,6 +13573,49 @@ async function typicalDurationFor(block){
    would land after the row is on screen and pop the layout under your thumb. */
 let exerciseHistory = {};
 function exHistKey(name){ return String(name || '').trim().toLowerCase(); }
+
+/* ---------- WHAT YOU ALWAYS SWAP OUT ----------
+
+   Editing an exercise's name on a planned block is how you substitute one lift for another,
+   and it worked — for that one day. Generate again and the original came back, so a lift you
+   cannot do, do not like, or have no machine for had to be swapped out every single week
+   and the app never noticed it was being overruled.
+
+   Once is a one-off — a busy gym, a machine taken. Twice is a preference, and after that the
+   generator asks for what you actually do. Kept as a plain map from the old name to the new
+   one, so it survives an export and reads as itself if you ever look. */
+const EX_SWAP_KEY = 'settings:exerciseSwaps';
+const SWAP_LEARN_AT = 2;      // the second time you do it, not the first
+async function loadExerciseSwaps(){
+  try{ return JSON.parse((await window.storage.get(EX_SWAP_KEY)).value) || {}; } catch(e){ return {}; }
+}
+async function noteExerciseSwap(fromName, toName){
+  const from = String(fromName || '').trim(), to = String(toName || '').trim();
+  if(!from || !to || exHistKey(from) === exHistKey(to)) return;
+  const swaps = await loadExerciseSwaps();
+  const key = exHistKey(from);
+  const prior = swaps[key];
+  // Swapping the same lift for something DIFFERENT restarts the count. Two different
+  // answers to the same prescription is not a preference, it is still looking.
+  swaps[key] = (prior && exHistKey(prior.to) === exHistKey(to))
+    ? { from, to, count: prior.count + 1, at: Date.now() }
+    : { from, to, count: 1, at: Date.now() };
+  try{ await window.storage.set(EX_SWAP_KEY, JSON.stringify(swaps)); } catch(e){}
+  if(swaps[key].count === SWAP_LEARN_AT) showToast(`Noted — ${to} instead of ${from} from now on`);
+}
+/* Applied once, where the block is written, rather than at each of the dozen places an
+   exercise can enter the list. A swap keeps the original's area, movement and prescription:
+   you replaced the lift, not what it was there to do. */
+function applyExerciseSwaps(exercises, swaps){
+  if(!swaps) return exercises;
+  return exercises.map(ex=>{
+    const hit = swaps[exHistKey(ex.name)];
+    if(!hit || hit.count < SWAP_LEARN_AT || ex.skippedForInjury) return ex;
+    const guess = (typeof guessTags === 'function') ? guessTags(hit.to) : null;
+    return { ...ex, name: hit.to, swappedFrom: ex.name,
+      exerciseId: (guess && guess.exerciseId) || null };
+  });
+}
 async function loadExerciseHistory(beforeDate){
   exerciseHistory = {};
   let sessions = [];
@@ -14055,6 +14098,7 @@ async function openBlockEditor(date, slot, block, opts){
     let details;
     if(block.type==='strength'){
       const exercises = [];
+      const swapsToNote = [];
       document.querySelectorAll('#weekExerciseRows .edit-row').forEach(row=>{
         const nameEl = row.querySelector('.week-ex-name');
         if(!nameEl){
@@ -14078,9 +14122,13 @@ async function openBlockEditor(date, slot, block, opts){
         // different name over a skill row makes it a different exercise, and it should
         // not inherit that skill's prescription or progression flags.
         const src = (row._srcExercise && row._srcExercise.name === name) ? row._srcExercise : null;
+        // Typing a different name over a planned lift IS the substitute. Remembered here
+        // rather than guessed later, because this is the only moment both names exist.
+        if(name && row._srcExercise && row._srcExercise.name && !src) swapsToNote.push([row._srcExercise.name, name]);
         if(name) exercises.push({ ...(src || {}), name, area, secondaryArea, movement, exerciseId });
       });
       details = { exercises };
+      for(const [from, to] of swapsToNote) await noteExerciseSwap(from, to);
     } else if(block.type==='run'){
       details = {
         runType: document.getElementById('weekRunType').value,
@@ -22222,16 +22270,17 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       (supersetPairs > 0 ? SUPERSET_STRESS_MULTIPLIER : 1) *
       (dropSetCount  > 0 ? DROPSET_STRESS_MULTIPLIER : 1) * 100) / 100;
 
+    const swappedExercises = applyExerciseSwaps(exercises, await loadExerciseSwaps());
     await window.storage.set(`weekplan:${date}:am`, JSON.stringify({
       type:'strength',
-      details: { exercises, workoutTag: tag, plannedFocus, deloadApplied: _deloadApplied,
+      details: { exercises: swappedExercises, workoutTag: tag, plannedFocus, deloadApplied: _deloadApplied,
         supersetPairs, dropSetCount, densityMultiplier: appliedDensity,
         notes: 'Auto-generated — adjust weights/reps freely, this is a starting structure' + (volumeWaveNote ? ' — ' + volumeWaveNote : '') + focusNote + trimNote }
     }));
     // Mirror to planned_session — Daily view reads from here, not from weekplan directly.
     // Without this, generated content only showed up if you manually tapped the Weekly
     // block and re-saved it; Daily itself stayed blank for anything auto-generated.
-    await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises, workoutTag: tag }));
+    await window.storage.set(`planned_session:${date}`, JSON.stringify({ date, exercises: swappedExercises, workoutTag: tag }));
 
     // This used to alternate — a companion block every OTHER training day below a 75 minute
     // session length — on the grounds that Ingram (2024) found weekly session frequency does
