@@ -7,6 +7,13 @@
 <!-- Home screen / "Add to Home Screen" support — makes the app launch fullscreen
      (no Safari address bar) with a proper icon and name, rather than opening as a
      plain bookmarked webpage. -->
+<!-- The Apple meta tags below are what make an iOS home-screen install work, and they were
+     the only install story this app had. On Android they mean nothing: with no manifest,
+     Chrome has no name, no icon and no display mode to install with, so the app opened as a
+     browser tab. start_url is index.html rather than "./" so the launcher and the service
+     worker agree on which spelling of the address they are caching and launching. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0c0d0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dogfood">
@@ -7078,7 +7085,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.241';
+const APP_VERSION = '2026.08.31.242';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
