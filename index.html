@@ -7185,7 +7185,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.254';
+const APP_VERSION = '2026.08.31.255';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -14859,11 +14859,43 @@ async function refreshInjuries(){
           </div>
         </div>
         <div class="injury-actions">
+          ${!inj.resolved ? `<input type="number" min="1" max="10" step="1" inputmode="numeric" class="injury-rerate" data-id="${inj.id}" placeholder="1-10" style="max-width:62px;" aria-label="How is it today, 1 to 10">
+          <button class="small rerate-btn" data-id="${inj.id}">Update</button>` : ''}
           ${!inj.resolved ? `<button class="small resolve-btn" data-id="${inj.id}">Mark resolved</button>` : ''}
           <button class="small outline delete-btn" data-id="${inj.id}">Delete</button>
         </div>`;
       list.appendChild(card);
     }
+    /* AN INJURY WAS MEASURED ONCE AND MODELLED EVER AFTER.
+
+       Severity decays on a half-life the TYPE implies — general 14 days, tendinopathy 25,
+       a sprain 10 — and that is a decent prior for how these things go. It is not your
+       knee. The only things you could say about an injury after logging it were "resolved"
+       and "delete", so a knee that got worse, or one that healed in half the time, drifted
+       further from the model every day with no way to say so.
+
+       Re-rating restarts the decay from what you actually feel today: the reading becomes
+       the new initial severity and today becomes the new onset, which is what a fresh
+       measurement means. confirmedOn is what the check-in card reads to know how long it
+       has been since anybody asked. */
+    list.querySelectorAll('.rerate-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.dataset.id;
+        const field = list.querySelector(`.injury-rerate[data-id="${id}"]`);
+        const n = parseFloat(field && field.value);
+        if(!(n >= 1 && n <= 10)){ showToast('Rate it 1 to 10 first', true); return; }
+        try{
+          const inj = JSON.parse((await window.storage.get(`injury:${id}`)).value);
+          inj.initialSeverity = n;
+          inj.date = todayStr;
+          inj.confirmedOn = todayStr;
+          await window.storage.set(`injury:${id}`, JSON.stringify(inj));
+          showToast(n <= 2 ? 'Noted — nearly gone' : 'Updated from today');
+          refreshInjuries();
+          generateWarmup();
+        } catch(e){ showToast('Save failed — try again', true); console.error(e); }
+      });
+    });
     list.querySelectorAll('.resolve-btn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         try{
@@ -15121,6 +15153,7 @@ const REC_TONE = {
   reduce:'down', prescription_reduce:'down', deload_suggest:'down',
   modify:'side', prescription_modify:'side',
   mobility_retest:'side',
+  injury_check:'side',
   hold:'flat', week_review:'flat', block_review:'flat'
 };
 
@@ -15143,7 +15176,9 @@ const REC_TYPE_SYMBOL = {
   block_review:   { label:'Block',  svg: recBarsSvg([10, 13, 15, 6], { w:4, gap:2 }) },
   // A ruler's ticks, not a trend: this card is not telling you a direction, it is saying
   // today is a day a measurement would mean something.
-  mobility_retest:{ label:'Retest', svg: recBarsSvg([5, 14, 5, 14, 5], { w:2, gap:1.8, rail:true }) }
+  mobility_retest:{ label:'Retest', svg: recBarsSvg([5, 14, 5, 14, 5], { w:2, gap:1.8, rail:true }) },
+  // A reading that has been sliding on its own, and the question of where it really is now.
+  injury_check:   { label:'Check',  svg: recBarsSvg([14, 11, 8, 5, 12], { w:2.4, gap:1.8 }) }
 };
 function recSymbolHtml(type){
   const sym = REC_TYPE_SYMBOL[type];
@@ -15341,6 +15376,9 @@ async function logRecDecision(type, meta, decision, card, title){
     // Accepting a retest prompt should put you IN the test, not on the tab that contains it.
     // The card is the only place the trigger is explained, so it hands straight off rather
     // than leaving you to find a button whose label does not mention any of this.
+    if(type==='injury_check' && decision==='accepted'){
+      activateTab('injuries');
+    }
     if(type==='mobility_retest' && decision==='accepted'){
       mobilityAssessmentAutoOpen = true;
       activateTab('injuries');
@@ -23631,6 +23669,46 @@ async function buildBlockReviewCard(){
 // 4.7 degrees on ankle dorsiflexion and 10.1 on a straight-leg raise, against 2-5 degrees
 // of drift from time of day alone. Testing more often than that measures the morning.
 const MOBILITY_RETEST_FLOOR_DAYS = 28;
+/* ---------- IS IT STILL THAT BAD? ----------
+
+   The severity model is a decay curve fitted to nothing but the type of injury and the day
+   you logged it. It is a reasonable prior and it is not your knee. Left alone it will
+   quietly declare you healed on schedule, or keep flagging an area that stopped hurting a
+   fortnight ago, and either way it never asks.
+
+   So it asks — but only when the answer would change something. Two conditions, both
+   required: a week since anybody last confirmed it, and the model having moved at least two
+   points from the last reading you actually gave. A model still saying what you said is not
+   worth a card, and asking every morning is the nagging the retest card was careful to
+   avoid. */
+const INJURY_CHECK_MIN_DAYS = 7;
+const INJURY_CHECK_MIN_DRIFT = 2;
+async function buildInjuryCheckCard(){
+  let stale = [];
+  try{
+    const res = await window.storage.list('injury:');
+    for(const k of (res && res.keys) || []){
+      let inj; try{ inj = JSON.parse((await window.storage.get(k)).value); } catch(e){ continue; }
+      if(!inj || inj.resolved || !inj.date || inj.initialSeverity == null) continue;
+      const since = inj.confirmedOn || inj.date;
+      const days = Math.floor((localDateFrom(todayStr) - localDateFrom(since)) / 86400000);
+      if(days < INJURY_CHECK_MIN_DAYS) continue;
+      const modelled = severityNow(inj.initialSeverity, inj.date, inj.halfLife);
+      const drift = inj.initialSeverity - modelled;
+      if(drift < INJURY_CHECK_MIN_DRIFT) continue;
+      stale.push({ part: inj.part, days, said: inj.initialSeverity, now: Math.round(modelled * 10) / 10 });
+    }
+  } catch(e){}
+  if(!stale.length) return null;
+  const signals = stale.map(x =>
+    `${x.part}: you said ${x.said} out of 10 ${x.days} days ago, and it is being treated as ${x.now} today.`);
+  signals.push('That number is a decay curve, not a measurement. Re-rate it on Body and the model starts again from what you actually feel — including upwards, if it got worse.');
+  return { type:'injury_check', title: stale.length === 1
+      ? `How is the ${stale[0].part} now?`
+      : `${stale.length} injuries have not been checked in a while`,
+    signals, confidence:null, meta:{ parts: stale.map(x=>x.part) } };
+}
+
 async function buildMobilityRetestCard(){
   const existing = await getMobilityAssessment();
   const age = assessmentAgeDays(existing);
@@ -24103,6 +24181,8 @@ const TENDINOPATHY_PROTOCOL = {
   // Sits with the reviews rather than the prescriptions: it does not change today's
   // session, it asks for a measurement on a day the measurement would mean something.
   const retestCard = await buildMobilityRetestCard();
+  // Same family as the retest: it asks for a reading rather than changing today's session.
+  const injuryCard = await buildInjuryCheckCard();
 
   // "hold" cards are the engine's null result — "nothing corroborated, carry on" — stated
   // as a card you then have to accept or dismiss. Filtered at the render point rather
@@ -24127,6 +24207,7 @@ const TENDINOPATHY_PROTOCOL = {
   try{ restToday = !!(await isRestDayComing(0)).isRest; } catch(e){}
   if(restToday) cardQueue = cardQueue.filter(c => !SESSION_CARD_TYPES.includes(c.type));
 
+  if(injuryCard) cardQueue.unshift(injuryCard);
   if(retestCard) cardQueue.unshift(retestCard);
   if(weekCard) cardQueue.unshift(weekCard);   // first: the week you just finished, before what to do next
   if(blockCard) cardQueue.unshift(blockCard);
