@@ -2921,6 +2921,15 @@
         <div id="scenarioSuiteResults"></div>
       </div>
     </div>
+    <div class="group">
+      <div class="group-head"><div class="group-title">Interface sweep</div><div class="group-sub">what a keyboard and a screen reader can reach</div></div>
+      <div class="fields">
+        <div class="score-note">Walks every tab, opens every section, and reports controls a keyboard cannot reach or a screen reader cannot name. Reads only — it changes nothing and puts you back where you started.</div>
+        <button id="runInterfaceSweepBtn" class="outline">Run interface sweep</button>
+        <div id="interfaceSweepProgress" class="score-note note-live"></div>
+        <div id="interfaceSweepResults"></div>
+      </div>
+    </div>
     </div>
 
     <!-- Readouts, so they sit after the forms rather than between them. Version and Legal
@@ -6554,6 +6563,118 @@ function applyA11yToInteractiveDivs(root){
   });
 }
 applyA11yToInteractiveDivs(document);
+
+/* ---------- THE SWEEP THAT KEEPS THE LIST ABOVE HONEST ----------
+
+   The selector above is the whole mechanism, and it can only cover what someone remembered
+   to add to it. It had gone stale by six kinds of control — thirty-five elements that
+   answered a tap and could not be reached by a keyboard, twelve of them the section heads on
+   this very tab. Nothing failed. Nothing could fail: the engine suite runs on logic and
+   never renders anything, so it passed 22/22 straight through all of it.
+
+   This walks the five tabs, opens every section, and looks at what is actually on screen.
+   Four questions, each of which was a real fault found by hand:
+
+     no keyboard route   — answers a tap, carries no tabindex. The original thirty-five.
+     control with no name — announced as a button with nothing to announce it as.
+     field with no name   — a screen reader can only read its current value.
+     focuses nothing      — a tab stop on something invisible. The trap the opacity:0
+                            placeholder rows nearly became when they were given a role.
+
+   cursor:pointer INHERITS, which is the thing to know before trusting this. A first draft
+   of the same sweep reported 307 findings because every descendant of a clickable element
+   reported its parent's cursor as its own. Only the outermost element of a pointer subtree
+   is a candidate, and with that one line the same sweep reported 35. */
+const SWEEP_TABS = ['insights', 'training', 'injuries', 'data', 'settings'];
+const SWEEP_RENDER_MS = 900;
+const SWEEP_NATIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY', 'DETAILS']);
+function interfaceSweepFindings(){
+  const found = new Map();
+  const sel = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
+    + String(el.className || '').split(' ').filter(Boolean).slice(0, 2).map(c => '.' + c).join('');
+  const nameOf = el => (el.getAttribute('aria-label') || el.getAttribute('title')
+    || (el.textContent || '').replace(/\s+/g, ' ').trim());
+  const add = (kind, el)=>{
+    const key = kind + '|' + sel(el);
+    const hit = found.get(key);
+    if(hit){ hit.count++; return; }
+    found.set(key, { kind, sel: sel(el), text: nameOf(el).slice(0, 40), count: 1 });
+  };
+  document.querySelectorAll('body *').forEach(el=>{
+    /* Only what is on screen right now. A panel that is not the active one is display:none,
+       so every control inside it measures 0x0 and is out of the tab order already — counting
+       those reported the whole app four times over, once per tab it was not on. */
+    if(el.closest('.panel') && !el.closest('.panel.active')) return;
+    const box = el.getBoundingClientRect();
+    const st = getComputedStyle(el);
+    const invisible = st.visibility === 'hidden' || st.display === 'none'
+      || el.getAttribute('aria-hidden') === 'true' || Number(st.opacity) === 0
+      || box.width === 0 || box.height === 0;
+    const ti = el.getAttribute('tabindex');
+    const role = el.getAttribute('role');
+    /* A tab stop is only a phantom if the browser will actually put focus on it. Guessing
+       from styles cannot tell the difference between "hidden and therefore already out of
+       the tab order" and "reachable but invisible", and the guess reported the whole app
+       several times over — every control on an inactive tab, then every control in a
+       sub-view that was not the open one. So ask instead of guessing: try to focus it, see
+       whether focus landed, and put focus back. preventScroll, or the question moves the
+       page while it is being asked. */
+    if(ti !== null && ti !== '-1' && invisible){
+      const was = document.activeElement;
+      let took = false;
+      try{ el.focus({ preventScroll:true }); took = document.activeElement === el; } catch(e){}
+      try{ if(was && was.focus) was.focus({ preventScroll:true }); else el.blur(); } catch(e){}
+      if(took) add('focuses nothing', el);
+      return;
+    }
+    if(invisible) return;
+    const parent = el.parentElement;
+    if(!SWEEP_NATIVE.has(el.tagName) && st.cursor === 'pointer' && ti === null
+       && !(parent && getComputedStyle(parent).cursor === 'pointer')
+       && !el.closest('button, a, label')
+       && !el.querySelector('button, a, input, select, textarea, [tabindex]')){
+      add('no keyboard route', el);
+    }
+    if((el.tagName === 'BUTTON' || role === 'button') && !nameOf(el)) add('control with no name', el);
+    if((el.tagName === 'INPUT' && !['hidden', 'submit', 'button'].includes(el.type))
+       || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'){
+      const named = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')
+        || (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label');
+      if(!named) add('field with no name', el);
+    }
+  });
+  return [...found.values()];
+}
+/* Reads only — nothing here writes a record, unlike the engine suite next to it. Sections
+   are opened through setCollapsed rather than by clicking the head, because the click
+   handler is what persists the open/closed state and a sweep should not rearrange the app
+   it just finished checking. Whatever was closed is closed again, and the tab you were on
+   is the tab you are returned to. */
+async function runInterfaceSweep(onProgress){
+  const startedOn = (document.querySelector('.tab.active') || {}).dataset;
+  const findings = [];
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  for(let i = 0; i < SWEEP_TABS.length; i++){
+    activateTab(SWEEP_TABS[i]);
+    await pause(SWEEP_RENDER_MS);
+    const reclose = [];
+    document.querySelectorAll('.group-head.collapsible').forEach(head=>{
+      const key = head.dataset.collapse;
+      const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
+      if(body && body.style.display === 'none'){ reclose.push(key); setCollapsed(key, false); }
+    });
+    await pause(SWEEP_RENDER_MS);
+    interfaceSweepFindings().forEach(f => findings.push({ ...f, tab: SWEEP_TABS[i] }));
+    reclose.forEach(key => setCollapsed(key, true));
+    // Closing is animated and sets display:none on a timer, so leaving before that lands
+    // means the sections never actually close — measured at 15 closed before a sweep and 0
+    // after, which is the sweep rearranging the app it was supposed to only look at.
+    if(reclose.length) await pause((UI_ANIM.collapseMotion && UI_ANIM.collapseMotion.ms || 0) + 80);
+    if(onProgress) onProgress(i + 1, SWEEP_TABS.length);
+  }
+  if(startedOn && startedOn.tab) activateTab(startedOn.tab);
+  return findings;
+}
 new MutationObserver((mutations)=>{
   for(const m of mutations){
     for(const node of m.addedNodes){
@@ -6957,7 +7078,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.239';
+const APP_VERSION = '2026.08.31.240';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -25718,6 +25839,35 @@ document.getElementById('runScenarioSuiteBtn').addEventListener('click', async (
     console.error(e);
   } finally {
     btn.disabled = false; btn.textContent = 'Run regression suite';
+  }
+});
+
+document.getElementById('runInterfaceSweepBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('runInterfaceSweepBtn');
+  const progress = document.getElementById('interfaceSweepProgress');
+  const resultsEl = document.getElementById('interfaceSweepResults');
+  // No hold-to-confirm: this one reads. The suite above holds because it wipes.
+  btn.disabled = true; btn.textContent = 'Sweeping...';
+  resultsEl.innerHTML = '';
+  try{
+    const found = await runInterfaceSweep((done, total)=>{
+      progress.textContent = `Sweeping tab ${done} of ${total}...`;
+    });
+    progress.textContent = found.length
+      ? `${found.length} kind${found.length === 1 ? '' : 's'} of unreachable control.`
+      : 'Nothing unreachable on any tab.';
+    progress.style.color = found.length ? 'var(--bad)' : 'var(--good)';
+    resultsEl.innerHTML = found.map(f => `
+      <div class="log-entry"><span>${f.kind}${f.count > 1 ? ` ×${f.count}` : ''} · ${f.tab}</span><span style="font-family:var(--mono); font-size:var(--fs-tag);">${f.sel}</span></div>
+      ${f.text ? `<div class="score-note">“${f.text}”</div>` : ''}
+    `).join('');
+    showToast(found.length ? `Interface sweep: ${found.length} to fix` : 'Interface sweep: all clear');
+  } catch(e){
+    progress.textContent = 'Sweep failed to run — see console.';
+    progress.style.color = '';
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Run interface sweep';
   }
 });
 
