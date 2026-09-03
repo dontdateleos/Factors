@@ -2897,7 +2897,10 @@
         <div id="bulkImportResult" class="score-note note-live"></div>
       </div>
     </div>
-    <div style="display:none;">
+    <!-- Not its own hidden div any more: this is dev-only, and the app already has a dev
+         mode — seven taps on the version number, remembered — with a .dev-only class that
+         applyDevMode shows and hides. A second door beside it was a second thing to find. -->
+    <div id="devTools" class="dev-only" style="display:none;">
     <div class="group" style="border-color:var(--warn);">
       <div class="group-head"><div class="group-title">Test Scenarios</div><div class="group-sub" style="color:var(--text);">dev only — clears prior test data first</div></div>
       <div class="fields">
@@ -7085,7 +7088,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.242';
+const APP_VERSION = '2026.08.31.243';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
