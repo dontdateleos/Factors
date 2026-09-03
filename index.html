@@ -6837,7 +6837,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.223';
+const APP_VERSION = '2026.08.31.224';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23806,10 +23806,24 @@ function drawTrendChart(host, points, colours, band, label){
   }
   // Four gridlines and their values, and at most six date labels — the same restraint the
   // rest of the app's marks use.
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(f=>{
-    const v = yMax - (yMax - yMin) * f;
+  /* Decimal places are chosen from the axis, not from how big the numbers are. One place
+     below 100 was fine for HRV and wrong for anything that moves in hundredths: load ratio
+     over seven nights measured as five rules labelled 1.2, 1.2, 1.1, 1, 1 — three distinct
+     numbers on five distinct lines, so a point between them had nothing to be placed
+     against. Widen until every gridline reads differently and then stop, so an axis is
+     never more precise than it needs to be to be read. Capped at three places: past that
+     the range is degenerate and more digits would not help. */
+  const TICK_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
+  const tickValueAt = f => yMax - (yMax - yMin) * f;
+  let tickDp = 0;
+  while(tickDp < 3
+    && new Set(TICK_FRACTIONS.map(f=>tickValueAt(f).toFixed(tickDp))).size < TICK_FRACTIONS.length){
+    tickDp++;   // the fewest places that still tell every gridline apart, and no more
+  }
+  const ticks = TICK_FRACTIONS.map(f=>{
+    const v = tickValueAt(f);
     const y = TREND_PAD_T + innerH * f;
-    const txt = Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
+    const txt = v.toFixed(tickDp);
     return `<line x1="${TREND_PAD_L}" y1="${y.toFixed(1)}" x2="${w - TREND_PAD_R}" y2="${y.toFixed(1)}" stroke="var(--hair)" stroke-width="1"/>`
          + `<text x="${TREND_PAD_L - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="tc-tick">${txt}</text>`;
   }).join('');
