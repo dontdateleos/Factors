@@ -6707,6 +6707,15 @@ if(document.fonts && document.fonts.ready){
 }
 dateInput.value = todayStr;
 document.getElementById('injuryDate').value = todayStr;
+/* Neither picker had a ceiling, so both would take a date you have not lived through yet.
+   A morning entry dated next year saved with a tick and sat at the top of the recovery log
+   reading "03 SEP", indistinguishable from today's; the trend chart, which bounds its dates
+   at neither end, plotted it a year to the right. The rolling baselines were never at risk
+   — they all filter on the date being asked about — but nothing stopped the entry existing.
+   The ceiling is the honest constraint, and the save paths check it again below: `max` on a
+   date input is advisory, and a value set in script ignores it entirely. */
+dateInput.max = todayStr;
+document.getElementById('injuryDate').max = todayStr;
 
 /* ---------- BODY METRICS (carry-forward, not per-day) ---------- */
 async function getLatestBodyMetrics(asOfDate){
@@ -6760,6 +6769,16 @@ document.getElementById('updateBodyMetricsBtn').addEventListener('click', async 
 });
 
 function keyFor(date){ return `entry:${date}`; }
+/* A date a record can be stamped with: a real day, and not one still to come. Clearing the
+   picker used to save under the key `entry:` with `date: ''` — a record for no day at all,
+   which then showed in the log as a row with a blank date and in the trend chart as a point
+   at x = ''. Both save paths ask this before writing. */
+function stampableDate(value){
+  const d = String(value || '');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return { ok:false, why:'Pick a date first' };
+  if(d > todayStr) return { ok:false, why:'That day has not happened yet' };
+  return { ok:true, date:d };
+}
 
 /* One format for every time this app has ever recorded: 28 AUG, and 28 AUG 07:41 where the
    clock time was actually stored. Relative time ("2 hours ago", "12 days ago") is the
@@ -6811,7 +6830,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.216';
+const APP_VERSION = '2026.08.31.217';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10570,6 +10589,13 @@ async function loadRecoveryEntry(date){
 
 async function saveRecoveryEntry(){
   const entry = collectRecoveryEntry();
+  const when = stampableDate(entry.date);
+  if(!when.ok){
+    const el = document.getElementById('loadStatus');
+    if(el){ el.textContent = when.why.toLowerCase(); setTimeout(()=>{ el.textContent=''; }, 2200); }
+    showToast(when.why, true);
+    return;
+  }
   invalidateSignalWindows();
   // Which version of the maths was current when this was written. Vendors silently re-cut
   // their algorithms (Apple re-banded every Sleep Score in watchOS 26.2; WHOOP's 2026 HR
@@ -14120,7 +14146,13 @@ async function renderSystemConfidence(){
 // dropped its most recent bar, which — with three bars needed before it draws at all — kept
 // the trace blank a day longer than it should have been.
 function severityNow(initial, onsetDate, halfLife){
-  const days = (Date.now() - localDateFrom(onsetDate).getTime()) / (1000*60*60*24);
+  /* Days floored at zero, the guard severityAtDaysAgo has always had and this one did not.
+     The decay is 0.5^(days/halfLife), so a negative elapsed time is not decay at all — it
+     is growth without a ceiling. An onset dated a month ahead at severity 5 read about 22
+     and climbed daily, and injurySevereBlock is 5, so it blocked training for good and got
+     further from the threshold the longer it sat there. An injury cannot be worse than it
+     was on the day it happened, and before that day it has no severity to report. */
+  const days = Math.max(0, (Date.now() - localDateFrom(onsetDate).getTime()) / (1000*60*60*24));
   const current = initial * Math.pow(0.5, days/halfLife);
   return Math.max(0, current);
 }
@@ -14144,6 +14176,8 @@ async function addInjury(){
   const notes = '';
   if(!part){ showToast('Enter a body part', true); return; }
   if(isNaN(severity)){ showToast('Enter a severity (1-10)', true); return; }
+  const onset = stampableDate(date);
+  if(!onset.ok){ showToast(onset.why, true); return; }
   const id = Date.now().toString();
   const injury = { id, part, type, date, initialSeverity: severity, movement, irritability, halfLife, notes, resolved: false };
   try{
