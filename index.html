@@ -7196,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.262';
+const APP_VERSION = '2026.08.31.263';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7225,7 +7225,8 @@ const APP_NOTES = {
   '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.',
   '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.',
   '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.',
-  '2026.08.31.262': 'The progress box under a skill now counts the same levels the wheel above it does.'
+  '2026.08.31.262': 'The progress box under a skill now counts the same levels the wheel above it does.',
+  '2026.08.31.263': 'A skill you have not met the prerequisites for now trains the prerequisites, on the right days.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22332,25 +22333,48 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
 
     exerciseGoals.forEach(sg=>{
       const tree = PROGRESSION_TREES.exercise[sg.skill];
-      if(!tree || !movementFitsTag(tree.movement, tag)) return;
+      if(!tree) return;
+      /* WHAT A SKILL AT ITS GATE PUT IN THE SESSION.
+
+         Below the first real rung the ladder has not started, and the row this placed was
+         the entry condition verbatim: "Muscle-up: Strict pull-up ×8-10 + dip ×10-15
+         (prerequisite)" — one row naming two different lifts, filed under the muscle-up's
+         own `pull` movement so the dip half only ever landed on pull days, at a flat 2
+         sets matching neither of the two targets it named. Activating the skill without
+         ticking a level saves index 0, so this was the DEFAULT state, not an edge case.
+
+         What you should be doing at the gate is the prerequisite, so that is what gets
+         placed: one row per prerequisite, each drawn from its OWN tree, so each carries
+         the right label, movement and area and is checked against the day's tag on its
+         own terms. Pull-up lands on the pull day, Dip on the push day. */
+      const gate = skillGateLevels(tree);
+      const picks = (sg.levelIndex == null || sg.levelIndex < gate)
+        ? ((tree.prereq && tree.prereq.needs) || [])
+            .map(n=>({ t: PROGRESSION_TREES.exercise[n.skill], idx: n.minLevel, toward: tree.label }))
+            .filter(x=>x.t)
+        : [{ t: tree, idx: sg.levelIndex, toward: null }];
+      const fitting = picks.filter(x=>movementFitsTag(x.t.movement, tag));
+      if(!fitting.length) return;
       const SKILL_MAX_SESSIONS_PER_WEEK = 3; // per coaching consensus for skills like this (commonly cited as 3-4x/week) — only workable now that concurrent active skills are capped to one at a time
       const placedCount = skillPlacementsThisWeek[sg.skill] || 0;
       if(placedCount >= SKILL_MAX_SESSIONS_PER_WEEK) return;
       skillPlacementsThisWeek[sg.skill] = placedCount + 1;
 
-      const idx = sg.levelIndex;
       // The dose used to be appended to the exercise NAME as a 25-word parenthetical, so
       // a skill entry rendered as a paragraph sitting where every other row shows a short
       // name. It's a prescription, so it belongs in the prescription slot with the rest.
-      const skillArea = tree.area || '', skillSecondary = tree.secondaryArea || '';
-
+      //
       // Every session trains the current level with its real dose target — no
       // primer/next-level-taste structure. That was a design choice of mine, not
       // something the actual research on skill training frequency supports; repeated,
       // focused practice at the current target is what the sources actually describe.
-      exercises.push({ name: `${tree.label}: ${tree.levels[idx]}`, area: skillArea, secondaryArea: skillSecondary,
-        movement: tree.movement, isSkillWork: true, sets: 2, repLow: null, repHigh: null,
-        prescription: SKILL_WORK_PRESCRIPTION });
+      fitting.forEach(x=>{
+        exercises.push({ name: `${x.t.label}: ${x.t.levels[x.idx]}`,
+          area: x.t.area || '', secondaryArea: x.t.secondaryArea || '',
+          movement: x.t.movement, isSkillWork: true, towardSkill: x.toward,
+          sets: 2, repLow: null, repHigh: null,
+          prescription: SKILL_WORK_PRESCRIPTION });
+      });
     });
 
     let compArea = complementaryArea(tag);
@@ -23372,7 +23396,12 @@ async function blockSummaryHtml(block){
         const movementName = m
           ? (m.levelIndex != null ? m.tree.levels[m.levelIndex] : m.level)
           : (cut > 0 ? ex.name.slice(cut + 2) : ex.name);
-        rows.push(planRow(movementName, ex.prescription || 'easy sets', null,
+        // A gate placement is the one case where the row is NOT the skill you picked —
+        // it is the prerequisite standing in for it. With the label cut, "Full strict"
+        // under a Muscle-up goal would read as an unexplained substitution, so the row
+        // says whose entry condition it is.
+        rows.push(planRow(movementName, ex.prescription || 'easy sets',
+          ex.towardSkill ? [{ key:'Toward', text:`${ex.towardSkill} — its entry condition` }] : null,
           { lead: '<span class="plan-key">Skill</span>' }));
         continue;
       }
