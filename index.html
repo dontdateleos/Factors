@@ -7196,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.263';
+const APP_VERSION = '2026.08.31.264';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7226,7 +7226,8 @@ const APP_NOTES = {
   '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.',
   '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.',
   '2026.08.31.262': 'The progress box under a skill now counts the same levels the wheel above it does.',
-  '2026.08.31.263': 'A skill you have not met the prerequisites for now trains the prerequisites, on the right days.'
+  '2026.08.31.263': 'A skill you have not met the prerequisites for now trains the prerequisites, on the right days.',
+  '2026.08.31.264': 'The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -18034,6 +18035,41 @@ function goalTypeToSuitabilityField(goalType){
                 body_composition:'hypertrophy', mobility:'mobility', general_fitness:'strength', hybrid:'strength' };
   return map[goalType] || 'strength';
 }
+/* THE EXERCISE YOU NAMED AS THE GOAL, WHICH THE PLAN NEVER CONTAINED.
+
+   A goal can name a target exercise and a target weight, and the whole app reads it:
+   progress is measured against it, demand pressure is computed from it, the trend chart
+   plots it. The one thing nothing did was PUT IT IN A SESSION. Measured on a four-day
+   upper/lower week, three goals, everything else held equal:
+
+     goal "Lateral Raise"   never appeared, on any of the four days
+     goal "Bicep Curl"      never appeared; a Cable Curl turned up third, by coincidence
+                            of the accessory picker landing on the same area
+     goal "Bench Press"     appeared first — because it is a main_strength candidate and
+                            selectMainLiftByGoal can choose it as the day's main lift
+
+   So it worked for the six exercises that can be main lifts and silently did nothing for
+   the other 131. Naming an isolation exercise as your goal changed the generated plan not
+   at all — the three weeks above were byte-identical in their accessory slots.
+
+   selectMainLiftByGoal cannot fix this: it only ever considers main_strength and
+   secondary_strength, which is correct — a lateral raise is not a main lift. The exercise
+   needs its own slot, chosen by AREA rather than movement, because every isolation entry
+   in the library carries movement:'isolation' and movementFitsTag would reject all of
+   them on every tag. TAG_TO_AREAS is the mapping that already exists for this. */
+const GOAL_LIFT_MAX_DAYS = 2;   // two exposures a week, the same shape as the skill cap
+function goalNamedLift(goalList){
+  const g = (goalList || []).find(x =>
+    (x.type === 'strength' || x.type === 'hypertrophy') && !x.isMaintenance && x.targetExercise);
+  if(!g) return null;
+  const tags = guessTagsFromLibrary(g.targetExercise);
+  const lib = tags && tags.exerciseId ? EXERCISE_LIBRARY[tags.exerciseId] : null;
+  if(!lib) return null;
+  return { name: lib.name, area: lib.area, secondaryArea: lib.secondaryArea || '',
+    movement: lib.movement, exerciseId: tags.exerciseId, category: lib.category,
+    goalNamed: true };
+}
+
 async function selectMainLiftByGoal(tag, goalList){
   const movement = TAG_TO_MOVEMENT[tag];
   if(!goalList || goalList.length===0) return null;
@@ -18537,7 +18573,7 @@ function canSuperset(a, b){
   if(!a || !b || a.skippedForInjury || b.skippedForInjury) return false;
   // The main lift is never paired — a heavy compound on long rest is the one place full
   // recovery genuinely matters, and it's also the exercise most degraded by pre-fatigue.
-  if(a.isMainLift || b.isMainLift || a.isSkillWork || b.isSkillWork) return false;
+  if(a.isMainLift || b.isMainLift || a.isSkillWork || b.isSkillWork || a.goalNamed || b.goalNamed) return false;
   // Injury-flagged work isn't rushed; hurrying remedial work defeats its purpose.
   if(a.injuryFlagged || b.injuryFlagged) return false;
   if(!a.area || !b.area || a.area === b.area) return false;
@@ -22152,6 +22188,8 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
   if(emptyDates.length === 0) return { placed: 0 };
 
   const goals = await getCurrentGoals(todayStr);
+  const goalLift = goalNamedLift((goals && goals.list) || []);
+  let goalLiftDays = 0;
   const skillGoals = (goals && goals.skillGoals) || [];
   const exerciseGoals = skillGoals.filter(sg=>sg.category==='exercise');
   const mobilityGoals = skillGoals.filter(sg=>sg.category==='mobility');
@@ -22278,6 +22316,23 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       const altLift = getAlternateLiftForMovement(movement, mainLift);
       if(altLift) mainLift = altLift;
     }
+    /* A NAMED COMPOUND IS THE MAIN LIFT, NOT A SECOND ONE BESIDE IT.
+
+       Placing it as its own row produced "Dumbbell Bench Press · Bench Press" in one
+       session — the learned-preference picker had chosen a variant of the very lift the
+       goal names, and a name comparison does not see that those are the same movement
+       done two ways. Two heavy horizontal presses back to back is worse than either.
+
+       A goal is a stronger signal than a learned preference: getPreferredLift infers what
+       you have been doing, and this is you saying in words what you are chasing. So it
+       takes the slot. After the rotation check, deliberately — variation rotation exists
+       to vary a joint path you did not choose, and this one you did. */
+    if(goalLift && goalLift.category !== 'isolation' && goalLift.movement === movement
+       && goalLiftDays < GOAL_LIFT_MAX_DAYS){
+      mainLift = { name: goalLift.name, area: goalLift.area, secondaryArea: goalLift.secondaryArea,
+        movement: goalLift.movement, exerciseId: goalLift.exerciseId, goalNamed: true };
+      goalLiftDays++;
+    }
     // Swap the main lift for a bodyweight equivalent of the same movement pattern when
     // equipment isn't available. Checked after the variation swap so it catches whichever
     // lift actually ended up selected.
@@ -22297,6 +22352,40 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       const safeLead = lead ? applyInjurySafety(lead, injuryMovementFlags) : null;
       if(safeLead){ safeLead.isMainLift = true; exercises.push(safeLead); }
     }
+    /* WHERE IT GOES, AND WHY THAT DEPENDS ON WHAT IT IS.
+
+       Nunes et al.: exercises performed FIRST in a session improve more than the same
+       exercise performed late, ES 0.58. For a compound that is already how it works — a
+       named bench press becomes the day's main lift and leads. For an isolation lift the
+       order effect has never once been available: it lands in the accessory pile behind
+       every compound in the session, every session, by construction.
+
+       So an isolation goal lift leads, and a compound one sits behind the main lift. That
+       is a real trade and it is the one you asked for: pressing after lateral raises is
+       slightly worse pressing, in exchange for the thing you named as the goal getting the
+       position that actually moves it. A power lead still comes first where one exists —
+       an explosive movement wants a completely fresh nervous system, and nothing else in
+       the session competes for that. */
+    let dayGoalLift = null;
+    if(goalLift && goalLift.movement !== movement && goalLiftDays < GOAL_LIFT_MAX_DAYS
+       && (TAG_TO_AREAS[tag] || []).includes(goalLift.area)){
+      // Isolation entries carry movement:'isolation', for which movementFlags has no key,
+      // so this gate passes them through unchanged. Area-level injury flagging still
+      // reaches them at render time, same as every other accessory.
+      const safe = applyInjurySafety({ ...goalLift }, injuryMovementFlags);
+      if(safe && !safe.skippedForInjury) dayGoalLift = safe;
+    }
+    const placeGoalLift = ()=>{
+      if(!dayGoalLift) return;
+      // The main-lift picker may already have chosen it — a named compound is exactly the
+      // case selectMainLiftByGoal handles, and two rows of it is not twice the goal.
+      if(!exercises.some(e=>e.name === dayGoalLift.name)){
+        exercises.push(dayGoalLift);
+        goalLiftDays++;
+      }
+      dayGoalLift = null;
+    };
+    if(dayGoalLift && dayGoalLift.category === 'isolation') placeGoalLift();
     if(mainLift){
       const safeMainLift = applyInjurySafety({ ...mainLift, movement }, injuryMovementFlags);
       if(safeMainLift){
@@ -22330,6 +22419,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         if(safeSecondary) exercises.push(safeSecondary);
       });
     }
+    placeGoalLift();   // no-op when it already led; this is the compound case
 
     exerciseGoals.forEach(sg=>{
       const tree = PROGRESSION_TREES.exercise[sg.skill];
@@ -22512,7 +22602,9 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       // Drop sets go on isolation work only. On a compound they add fatigue and technique
       // risk for the same return, and the research base sits on single-joint movements.
       exercises.forEach(ex=>{
-        if(ex.skippedForInjury || ex.isMainLift || ex.isSkillWork || ex.injuryFlagged) return;
+        // Drop sets are a time saver, applied only when the session is over budget. The
+        // lift you named as the goal is not the one to compress to save four minutes.
+        if(ex.skippedForInjury || ex.isMainLift || ex.isSkillWork || ex.injuryFlagged || ex.goalNamed) return;
         const lib = ex.exerciseId ? EXERCISE_LIBRARY[ex.exerciseId] : null;
         if(lib && lib.category === 'isolation'){ ex.dropSet = true; dropSetCount++; }
       });
@@ -22545,8 +22637,9 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       paired.sort((a,b)=> a.supersetGroup === b.supersetGroup
         ? (a.supersetSlot === 'A1' ? -1 : 1)
         : a.supersetGroup.localeCompare(b.supersetGroup));
-      const mainFirst = singles.filter(e=>e.isMainLift);
-      const rest = singles.filter(e=>!e.isMainLift);
+      const leads = e => e.isMainLift || e.goalNamed;
+      const mainFirst = singles.filter(leads);
+      const rest = singles.filter(e=>!leads(e));
       exercises.length = 0;
       exercises.push(...mainFirst, ...paired, ...rest);
     }
