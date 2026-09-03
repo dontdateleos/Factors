@@ -7188,7 +7188,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.259';
+const APP_VERSION = '2026.08.31.260';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7214,7 +7214,8 @@ const APP_NOTES = {
   '2026.08.31.234': 'Checking for a new version no longer downloads the whole app to read one line.',
   '2026.08.31.235': 'This line, and the ones before it. This section now says what changed in the build you are on.',
   '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.',
-  '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.'
+  '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.',
+  '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11763,13 +11764,35 @@ function seedSkillPicker(category, skillGoals){
   st.index = 0;   // the order below puts the actives first, so this opens on one of them
 }
 
-// Active first, in the order they were ticked, then everything else as declared.
+/* WHAT THE WHEEL PUT IN FRONT OF A BEGINNER.
+
+   The rest of the wheel was "everything else as declared", which is the order the trees
+   happen to sit in the source — an ordering with no meaning, presented as if it had one.
+   In mobility that put Deep Squat sixth of seven: the one ladder that suits absolutely
+   everyone, scrolled past to reach the full middle split. In exercise it put Muscle-up
+   above L-sit and left the Nordic curl last of thirteen.
+
+   `tier` is now on every tree and orders the list: 1 foundation, 2 intermediate,
+   3 advanced, 4 elite. It grades the LADDER, not its first rung — nearly every ladder
+   here opens somewhere accessible (Planche starts at a planche lean), so first-rung
+   difficulty would sort almost everything into one bucket and tell a beginner nothing
+   about what they are signing up for. What a tier says is how far the terminal rung is:
+   Push-up ends at one-arm and is still a 1, because the whole ladder is the foundation
+   others are built on; Planche and One-Arm Pull-up are 4s.
+
+   Ties keep declaration order, which is stable and already roughly considered. Active
+   skills still come first in the order you ticked them — that is your own ordering and
+   it outranks any judgement about difficulty. */
 function skillPickerOrder(category){
   const st = skillPickerState[category];
+  const trees = PROGRESSION_TREES[category];
   const keys = skillKeysFor(category).slice();
-  const actives = keys.filter(k=>st.draft[k] && st.draft[k].active)
+  const byTier = keys.slice().sort((a,b)=>
+    ((trees[a] && trees[a].tier) || 9) - ((trees[b] && trees[b].tier) || 9)
+    || keys.indexOf(a) - keys.indexOf(b));
+  const actives = byTier.filter(k=>st.draft[k] && st.draft[k].active)
     .sort((a,b)=>(st.draft[a].seq||0) - (st.draft[b].seq||0));
-  return actives.concat(keys.filter(k=>!(st.draft[k] && st.draft[k].active)));
+  return actives.concat(byTier.filter(k=>!(st.draft[k] && st.draft[k].active)));
 }
 
 function activeSkillCount(category){
@@ -16604,7 +16627,7 @@ const PROGRESSION_TREES = {
   // running, not any particular distance — most people finishing C25K cover 3-4km in that
   // time, and framing it as "5K" makes a normal outcome feel like a failure.
   run: {
-    c25k: { label:'Continuous 30-minute run', researched:true,
+    c25k: { label:'Continuous 30-minute run', tier:1, researched:true,
       levels:[
         'Run 30s / walk 90s x8 (~20 min)',
         'Run 60s / walk 90s x8 (~25 min)',
@@ -16630,7 +16653,7 @@ const PROGRESSION_TREES = {
     }
   },
   exercise: {
-    pullup: { label:'Pull-up', researched:true, movement:'pull', area:'thoracic', secondaryArea:'biceps',
+    pullup: { label:'Pull-up', tier:1, researched:true, movement:'pull', area:'thoracic', secondaryArea:'biceps',
       levels:["Dead hang", "Scapular pulls", "Flexed-arm hang", "Negatives", "Band-assisted / jumping", "Full strict", "Archer", "Weighted", "One-arm"],
       levelDetails:[
         {holdOrRepTarget:"20-30s hold", advancementCriteria:"Hold 20-30s with active shoulders (no passive hanging/shrugging)", evidence:"coaching_consensus"},
@@ -16643,7 +16666,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"work toward ~60-70% bodyweight added", advancementCriteria:"Multiple reps for sets at 60-70% BW added load", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"n/a \u2014 this is the endpoint of the ladder", evidence:"coaching_consensus"}
       ] },
-    pushup: { label:'Push-up', researched:true, movement:'push', area:'chest', secondaryArea:'triceps',
+    pushup: { label:'Push-up', tier:1, researched:true, movement:'push', area:'chest', secondaryArea:'triceps',
       levels:["Wall", "Incline", "Knee", "Full", "Diamond / decline", "Archer", "One-arm"],
       levelDetails:[
         {holdOrRepTarget:"3x15-20 reps", advancementCriteria:"Comfortable at high rep counts with full ROM before progressing to incline", evidence:"coaching_consensus"},
@@ -16654,7 +16677,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"work toward 8/side", advancementCriteria:"8/side with full extension of the working arm", evidence:"coaching_consensus"},
         {holdOrRepTarget:"5/side, build via assisted practice first", advancementCriteria:"Terminal goal \u2014 D.4 recommends an assisted (elevated/band) intermediate step before attempting full", evidence:"coaching_consensus"}
       ] },
-    pistolsquat: { label:'Pistol Squat', researched:true, movement:'squat', area:'quads_knees', secondaryArea:'hips',
+    pistolsquat: { label:'Pistol Squat', tier:2, researched:true, movement:'squat', area:'quads_knees', secondaryArea:'hips',
       levels:["Bodyweight squat mastery", "Box/chair-assisted (decreasing height)", "Assisted", "Negatives", "Full", "Weighted / shrimp"],
       levelDetails:[
         {holdOrRepTarget:"3x15-20 reps", advancementCriteria:"Full-depth bodyweight squats with adequate ankle mobility (heels stay down)", evidence:"coaching_consensus"},
@@ -16664,7 +16687,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"3-5 reps/leg", advancementCriteria:"Unassisted full-depth reps, consistent across both legs", evidence:"coaching_consensus"},
         {holdOrRepTarget:"advanced/terminal variant", advancementCriteria:"n/a \u2014 added load or shrimp-squat variation for continued progress", evidence:"coaching_consensus"}
       ] },
-    dip: { label:'Dip', researched:true, movement:'push', area:'chest', secondaryArea:'triceps',
+    dip: { label:'Dip', tier:1, researched:true, movement:'push', area:'chest', secondaryArea:'triceps',
       levels:["Bench dip", "Straight-bar / reduced ROM", "Full ROM", "Weighted", "Ring / archer", "One-arm-assisted"],
       levelDetails:[
         {holdOrRepTarget:"3x12-15 reps", advancementCriteria:"Full ROM at the bench before moving to bar work", evidence:"coaching_consensus"},
@@ -16674,7 +16697,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"3x5-8 reps", advancementCriteria:"Rings add a stability demand beyond the bar version \u2014 expect a step back in load/reps initially", evidence:"coaching_consensus"},
         {holdOrRepTarget:"advanced/terminal variant", advancementCriteria:"n/a \u2014 band or partner-assisted single-arm work", evidence:"coaching_consensus"}
       ] },
-    handstand: { label:'Handstand', researched:true, movement:'push', area:'shoulders', secondaryArea:'triceps',
+    handstand: { label:'Handstand', tier:2, researched:true, movement:'push', area:'shoulders', secondaryArea:'triceps',
       levels:["Wrist prep", "Wall (chest-to-wall)", "Wall (back-to-wall)", "Tuck/straddle freestanding", "Freestanding", "Handstand push-up progressions"],
       levelDetails:[
         {holdOrRepTarget:"2-3 min/day mobility + loading", advancementCriteria:"Comfortable wrist loading before attempting any holds", evidence:"coaching_consensus"},
@@ -16684,7 +16707,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"30-60s+ hold", advancementCriteria:"Consistent freestanding balance across multiple attempts", evidence:"coaching_consensus"},
         {holdOrRepTarget:"see Handstand Push-up tree", advancementCriteria:"Separate progression \u2014 linked once freestanding handstand is established", evidence:"coaching_consensus"}
       ] },
-    muscleup: { label:'Muscle-up', researched:false, movement:'pull', area:'thoracic', secondaryArea:'biceps',
+    muscleup: { label:'Muscle-up', tier:3, researched:false, movement:'pull', area:'thoracic', secondaryArea:'biceps',
       levels:["Strict pull-up \u00d78-10 + dip \u00d710-15 (prerequisite)", "False grip hang", "Explosive pull-up (chest-to-bar)", "Transition negatives", "Banded muscle-up", "Kipping muscle-up", "Strict muscle-up"],
       levelDetails:[
         {holdOrRepTarget:"8-15 strict pull-ups + 8-10 strict dips", advancementCriteria:"Both prerequisites met before starting muscle-up-specific work", evidence:"coaching_consensus"},
@@ -16695,7 +16718,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"first unassisted reps", advancementCriteria:"Momentum-assisted reps before attempting strict", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"n/a \u2014 strict, no kip", evidence:"coaching_consensus"}
       ] },
-    handstand_pushup: { label:"Handstand Push-up", researched:false, movement:"push", area:'shoulders', secondaryArea:'triceps',
+    handstand_pushup: { label:"Handstand Push-up", tier:3, researched:false, movement:"push", area:'shoulders', secondaryArea:'triceps',
       levels:["Pike push-up", "Elevated pike push-up", "Wall-supported negative HSPU", "Deficit wall HSPU", "Full wall HSPU", "Freestanding HSPU"],
       levelDetails:[
         {holdOrRepTarget:"10-15 reps", advancementCriteria:"Full ROM pike push-ups before elevating feet", evidence:"coaching_consensus"},
@@ -16705,7 +16728,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"work toward multiple reps", advancementCriteria:"Full wall-supported reps, consistent, before removing wall support", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"Requires a freestanding handstand prerequisite \u2014 do not attempt without it", evidence:"coaching_consensus"}
       ] },
-    lsit: { label:"L-sit", researched:false, movement:"core", area:'hips', secondaryArea:'shoulders',
+    lsit: { label:"L-sit", tier:2, researched:false, movement:"core", area:'hips', secondaryArea:'shoulders',
       levels:["Compression hold (feet down)", "Single-foot lift", "Tuck L-sit", "One-leg-extended tuck", "Single-leg-extended L-sit", "Full L-sit"],
       levelDetails:[
         {holdOrRepTarget:"hold, build duration", advancementCriteria:"Comfortable compression hold before lifting either foot", evidence:"coaching_consensus"},
@@ -16715,7 +16738,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"5s/side", advancementCriteria:"Single leg extended, alternating sides, before attempting both", evidence:"coaching_consensus"},
         {holdOrRepTarget:"10-20s", advancementCriteria:"Terminal goal for this branch \u2014 parallel straddle branch exists for flexibility-limited athletes", evidence:"coaching_consensus"}
       ] },
-    frontlever: { label:"Front Lever", researched:false, movement:"pull", area:'thoracic', secondaryArea:'hips',
+    frontlever: { label:"Front Lever", tier:3, researched:false, movement:"pull", area:'thoracic', secondaryArea:'hips',
       levels:["Tuck", "Advanced tuck", "Single-leg", "Half-lay straddle", "Straddle", "Full front lever"],
       levelDetails:[
         {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Meets the hold/eccentric target before progressing to the next stage", evidence:"coaching_consensus"},
@@ -16725,7 +16748,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Full straddle, narrowing the straddle angle over time", evidence:"coaching_consensus"},
         {holdOrRepTarget:"10-15s \u00d73-5 sets, or 5-7s eccentric \u00d73-5", advancementCriteria:"Terminal goal \u2014 legs together, fully horizontal", evidence:"coaching_consensus"}
       ] },
-    backlever: { label:"Back Lever", researched:false, movement:"pull", area:'thoracic', secondaryArea:'hips',
+    backlever: { label:"Back Lever", tier:3, researched:false, movement:"pull", area:'thoracic', secondaryArea:'hips',
       levels:["Hollow body", "Inverted hang", "Skin-the-cat", "Tuck", "Advanced tuck", "Single-leg", "Straddle", "Full back lever"],
       levelDetails:[
         {holdOrRepTarget:"30-60s", advancementCriteria:"Solid hollow-body position and control before inverting", evidence:"coaching_consensus"},
@@ -16737,7 +16760,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"30-60s", advancementCriteria:"Both legs extended in straddle", evidence:"coaching_consensus"},
         {holdOrRepTarget:"30-60s", advancementCriteria:"Terminal goal \u2014 legs together, fully horizontal", evidence:"coaching_consensus"}
       ] },
-    planche: { label:"Planche", researched:false, movement:"push", area:'shoulders', secondaryArea:'chest',
+    planche: { label:"Planche", tier:4, researched:false, movement:"push", area:'shoulders', secondaryArea:'chest',
       levels:["Planche lean", "Tuck planche", "Advanced tuck", "Straddle", "Full planche"],
       levelDetails:[
         {holdOrRepTarget:"10-30s", advancementCriteria:"Progressively increase lean angle while maintaining straight arms", evidence:"coaching_consensus"},
@@ -16746,7 +16769,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"3x10s, narrowing over time", advancementCriteria:"Straddle angle narrows as strength improves \u2014 this is the main volume stage", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"Caution: Rosaci et al. 2025 EMG found common preconditioning drills for this skill family activate muscles differently from the target position \u2014 even well-established progressions may not transfer as assumed", evidence:"coaching_consensus"}
       ] },
-    onearmpullup: { label:"One-Arm Pull-up", researched:false, movement:"pull", area:'thoracic', secondaryArea:'biceps',
+    onearmpullup: { label:"One-Arm Pull-up", tier:4, researched:false, movement:"pull", area:'thoracic', secondaryArea:'biceps',
       levels:["15-20 strict pull-ups", "Weighted pull-up (~1.5\u00d7 bodyweight total)", "One-arm dead hang", "Flex-hang holds + negatives", "Archer pull-up", "Assisted / uneven-grip variants", "Full one-arm pull-up"],
       levelDetails:[
         {holdOrRepTarget:"15-20 reps", advancementCriteria:"Strict, full ROM, before adding load", evidence:"coaching_consensus"},
@@ -16757,7 +16780,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"build reps", advancementCriteria:"Progressively reduce external assistance (towel, band, self-assist)", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"Caution: keep frequency to 2-3x/week \u2014 near-universal coaching recommendation due to elbow-tendon load concerns, itself not clinically validated but worth respecting", evidence:"coaching_consensus"}
       ] },
-    nordiccurl: { label:"Nordic Hamstring Curl", researched:true, movement:"isolation", area:'hamstrings',
+    nordiccurl: { label:"Nordic Hamstring Curl", tier:2, researched:true, movement:"isolation", area:'hamstrings',
       levels:["Isometric / activation holds", "Partial-ROM band/partner-assisted curl", "Full-ROM assisted curl", "Unassisted full Nordic curl", "Added-load / slider variations"],
       levelDetails:[
         {holdOrRepTarget:"per Alt et al. 2023 protocol", advancementCriteria:"The one calisthenics-adjacent progression with real trial backing (n=1 case study, kinematic/EMG-measured across 20 variations, 6 empirically-ordered levels)", evidence:"rct"},
@@ -16768,7 +16791,7 @@ const PROGRESSION_TREES = {
       ] },
   },
   mobility: {
-    pike:        { label:'Pike Fold', researched:true,
+    pike:        { label:'Pike Fold', tier:1, researched:true,
       levels:['Seated hamstring stretch','Standing toe touch (bent knee ok)','Pike fold, flat back, hands to shins','Pike fold, hands to ankles','Full pike, chest to thighs, hands flat past feet'],
       levelDetails:[
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Comfortable seated/supine hamstring stretch before adding active work", evidence:"meta_analysis"},
@@ -16777,7 +16800,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2x30-45s", advancementCriteria:"Deep seated pike toward chest-to-leg — hold quality over depth", evidence:"coaching_consensus"},
         {holdOrRepTarget:"2x30-60s active hold", advancementCriteria:"Terminal goal — strong active pike/compression, held under your own control rather than external assistance", evidence:"coaching_consensus"}
       ] },
-    bridge:      { label:'Bridge', researched:true,
+    bridge:      { label:'Bridge', tier:2, researched:true,
       levels:['Supported bridge (feet elevated)','Wall walk-down/up','Floor bridge, short hold','Floor bridge, full extension','Standing-to-bridge control'],
       levelDetails:[
         {holdOrRepTarget:"2x20-30s", advancementCriteria:"Comfortable supported bridge (feet elevated) — thoracic extension and shoulder flexion are the limiting factors to establish first", evidence:"coaching_consensus"},
@@ -16786,7 +16809,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2x20-30s", advancementCriteria:"Full floor bridge, full extension", evidence:"coaching_consensus"},
         {holdOrRepTarget:"2-3 controlled reps", advancementCriteria:"Terminal goal — standing-to-bridge control, real strength/control through the full range rather than just a held static position", evidence:"coaching_consensus"}
       ] },
-    frontsplits: { label:'Front Splits', researched:true,
+    frontsplits: { label:'Front Splits', tier:3, researched:true,
       levels:['Lunge stretch','Half-split, hands supported','Split with blocks/support','Split, few cm off floor','Full flat split'],
       levelDetails:[
         {holdOrRepTarget:"2x30-60s each side", advancementCriteria:"Half-kneeling hip flexor stretch comfortable on both sides before progressing to half split", evidence:"meta_analysis"},
@@ -16795,7 +16818,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Supported front split progressing to full front split, few cm off floor toward flat", evidence:"coaching_consensus"},
         {holdOrRepTarget:"2x20-30s active hold", advancementCriteria:"Terminal goal — active front split under your own control; controlled oversplit only if genuinely appropriate for your goals, not a default target", evidence:"coaching_consensus"}
       ] },
-    middlesplit:  { label:'Middle Split', researched:true,
+    middlesplit:  { label:'Middle Split', tier:3, researched:true,
       levels:['Adductor rockbacks / Frog','Wide squat / Cossack','Loaded Cossack / wide-stance strength','Supported middle split','Full middle split, active end-range control'],
       levelDetails:[
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Adductor rockbacks and frog stretch comfortable before progressing to wide squat work", evidence:"meta_analysis"},
@@ -16804,7 +16827,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Supported middle split, building toward less support over time", evidence:"coaching_consensus"},
         {holdOrRepTarget:"2x20-30s active hold", advancementCriteria:"Terminal goal — full middle split with active end-range control, not just passive depth", evidence:"coaching_consensus"}
       ] },
-    pancake:  { label:'Pancake', researched:false,
+    pancake:  { label:'Pancake', tier:2, researched:false,
       levels:['Seated straddle, adductor stretch','Wide straddle, active reach','Elevated straddle forward fold','Loaded pancake','Chest-to-floor pancake'],
       levelDetails:[
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Own extension (not a directly sourced 5-level breakdown in the source research — only Level 4 examples were given). Comfortable seated straddle before progressing to active reaching work.", evidence:"coaching_consensus"},
@@ -16813,7 +16836,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2-3x8-10 loaded pancake", advancementCriteria:"Loaded pancake — directly named in the source document. Per Alizadeh et al. 2023, external load through range is the mechanism for this stage, not just deeper bodyweight folds.", evidence:"rct"},
         {holdOrRepTarget:"2x20-30s active hold", advancementCriteria:"Chest-to-floor pancake — the source document's own terminal example. Own extension for placement at level 5 specifically.", evidence:"coaching_consensus"}
       ] },
-    deepsquat: { label:'Deep Squat', researched:false,
+    deepsquat: { label:'Deep Squat', tier:1, researched:false,
       levels:['Ankle mobility + assisted deep squat hold','Unassisted bodyweight deep squat','Loaded/goblet deep squat hold','Deep squat with heels down, no counterbalance','Active deep squat with overhead reach or load'],
       levelDetails:[
         {holdOrRepTarget:"2-3 min ankle mobility work + 2x20-30s assisted hold", advancementCriteria:"Own extension — the source document lists deep squat as a goal (sections 14/25) without a full 5-level breakdown; this follows its general access→control→strength→load→integration philosophy. Ankle dorsiflexion is usually the limiting factor, so it's the explicit starting focus.", evidence:"coaching_consensus"},
@@ -16822,7 +16845,7 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"2x30-45s", advancementCriteria:"Own extension. Full depth, heels down, no hands/counterbalance needed to hold the position.", evidence:"coaching_consensus"},
         {holdOrRepTarget:"2-3x20-30s", advancementCriteria:"Own extension — terminal integration stage: active deep squat with overhead reach or added load, using the ROM in a more complex position rather than just holding it.", evidence:"coaching_consensus"}
       ] },
-    overheadsquat: { label:'Overhead Squat', researched:false,
+    overheadsquat: { label:'Overhead Squat', tier:2, researched:false,
       levels:['Wall shoulder flexion','Active wall lift-off','Loaded shoulder flexion','Overhead squat hold, light load','Advanced overhead ROM under load'],
       levelDetails:[
         {holdOrRepTarget:"2x30-60s", advancementCriteria:"Directly named in the source document's Level-4 overhead examples (wall flexion). Establishing shoulder flexion ROM against the wall before adding active control.", evidence:"coaching_consensus"},
