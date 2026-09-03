@@ -796,10 +796,10 @@
   .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
   .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
   .day-rolled{ display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:12px var(--gutter); background:var(--warn); color:#0c0d0b; font-family:var(--mono);
+    padding:12px var(--gutter); background:var(--warn); color:var(--text); font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui); }
-  .day-rolled button{ height:31px; flex:0 0 auto; background:#0c0d0b; color:var(--bg);
-    border:2px solid #0c0d0b; }
+  .day-rolled button{ height:31px; flex:0 0 auto; background:var(--ground); color:var(--bg);
+    border:2px solid var(--ground); }
   .update-banner-x{ font-size:var(--fs-xl); line-height:1; cursor:pointer; padding:0 6px; opacity:0.7; }
   /* Collapsible Settings sections. Head is a 44px tap target in its own right.
      No justify-content: it used to say space-between, which was right when the head was a
@@ -1199,9 +1199,9 @@
      happened. Same line height so a row with history is the same height as one without,
      apart from the line itself. */
   /* A plate rather than a note: this is a state the app is in, not a remark about it. */
-  .week-ex-fail.on{ background:var(--bad); border-color:var(--bad); color:#0c0d0b; }
+  .week-ex-fail.on{ background:var(--bad); border-color:var(--bad); color:var(--text); }
   .pr-plate{ display:inline-block; font-family:var(--mono); font-size:0.86em; font-weight:var(--fw-bold);
-    letter-spacing:0.1em; background:var(--accent); color:#0c0d0b; padding:0 5px; margin-left:6px; }
+    letter-spacing:0.1em; background:var(--accent); color:var(--text); padding:0 5px; margin-left:6px; }
   .log-bar{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:stretch;
     background:var(--ground); border-top:2px solid var(--bg);
     padding-bottom:env(safe-area-inset-bottom, 0px); }
@@ -1571,7 +1571,7 @@
      tab is cut out, and the fill is then free to be a name rather than a boundary. */
   .logging-flag{ font-family:var(--mono); font-size:var(--fs-tag); height:auto;
     font-weight:var(--fw-bold); letter-spacing:var(--track-ui); text-transform:uppercase;
-    background:var(--block-yellow); color:#0c0d0b; border:2px solid var(--border-bold);
+    background:var(--block-yellow); color:var(--text); border:2px solid var(--border-bold);
     padding:3px 8px; flex:0 1 auto; cursor:pointer; }
   /* The cross throws a draft away, so it stays out of the way: an outline, no fill, and no
      colour of its own. The yellow is the only colour in the row and it points at Resume. */
@@ -1709,7 +1709,9 @@
     margin:22px calc(-1 * var(--gutter)) 14px; padding:0 var(--gutter); overflow:visible;
     --tone:var(--dim); --tone-ink:var(--text); --tone-field:rgba(251,250,246,0.06); }
   .rec-card.tone-up  { --tone:var(--block-lime);   --tone-ink:var(--text); --tone-field:var(--field-lime); }
-  .rec-card.tone-down{ --tone:var(--bad);          --tone-ink:var(--bg);   --tone-field:#241413; }
+  /* The other two tones take a --field-* token; this one carried a hand-mixed #241413,
+     which is the same tint arrived at by hand and then left behind when the red moved. */
+  .rec-card.tone-down{ --tone:var(--bad);          --tone-ink:var(--bg);   --tone-field:var(--field-red); }
   .rec-card.tone-side{ --tone:var(--block-yellow); --tone-ink:var(--text); --tone-field:var(--field-yellow); }
   /* The type used to straddle the card's top edge, so the card had no top padding to give.
      A chip sits inside it and needs the air. */
@@ -1924,7 +1926,7 @@
      orange — so the fault carries its own ground and reads the same on either. Ink on red,
      which is the pairing the app already uses for anything that has gone wrong. */
   .fault-code{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:0.09em; text-transform:uppercase; background:var(--bad); color:#0c0d0b;
+    letter-spacing:0.09em; text-transform:uppercase; background:var(--bad); color:var(--text);
     padding:2px 7px; margin-bottom:6px; }
   .fault-note{ display:block; color:var(--text); }
   /* A readout labels its own quantities. Units are set apart from the figure rather than
@@ -6809,7 +6811,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.213';
+const APP_VERSION = '2026.08.31.214';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23558,7 +23560,10 @@ async function renderTrendChart(){
 
   const METRIC_COLORS = {
     hrv: { line:'#4ec9e8', fill:'rgba(78,201,232,0.15)' },
-    sleepScore: { line:'#c9da4a', fill:'rgba(201,218,74,0.15)' },
+    // Every other series here is its own colour on purpose. This one was an exact copy of
+    // the accent, so it silently kept the old lime when the palette moved — it follows the
+    // token now, which is what it evidently meant to do all along.
+    sleepScore: { line:'var(--block-lime)', fill:'color-mix(in srgb, var(--block-lime) 15%, transparent)' },
     loadRatio: { line:'#ffc23d', fill:'rgba(255,194,61,0.15)' },
     sleepDebt: { line:'#ff5c3d', fill:'rgba(255,92,61,0.15)' },
     weight: { line:'#ff8c4a', fill:'rgba(255,140,74,0.15)' },
