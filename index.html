@@ -1685,6 +1685,14 @@
      holding it on one line pushed the document 140px wider than the screen. */
   #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
     font-family:var(--mono); font-size:var(--fs-tag); opacity:0.7; }
+  /* The gate above a ladder. cursor:default matters as much as the look: .mob-check-row
+     carries cursor:pointer, and a pointer with no keyboard route is exactly what the
+     interface sweep flags — correctly, since this row is not tickable. */
+  .mob-check-row.prereq{ cursor:default; align-items:flex-start; padding-top:var(--sp-2); padding-bottom:var(--sp-2);
+    border-bottom:1px solid rgba(251,250,246,0.18); opacity:0.72; }
+  .mob-check-row.prereq:active{ opacity:0.72; }
+  .skill-prereq-state{ display:block; font-family:var(--mono); font-size:var(--fs-tag);
+    letter-spacing:0.02em; opacity:0.75; margin-top:2px; }
   /* Between the wheel and the ladder: what you tick to put the skill in your sessions. */
   /* Nested in #goalListRows, which now sits at the page's own content edge like every
      other column — so this bleeds by one 14, not two. */
@@ -7188,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.260';
+const APP_VERSION = '2026.08.31.261';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7215,7 +7223,8 @@ const APP_NOTES = {
   '2026.08.31.235': 'This line, and the ones before it. This section now says what changed in the build you are on.',
   '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.',
   '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.',
-  '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.'
+  '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.',
+  '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11829,9 +11838,12 @@ function renderSkillPicker(category){
     // A numbered badge for the two you are training, so which is first and which is second
     // is on the face of the wheel. Anything else shows its level if you have set one, and
     // nothing at all if you have not.
+    // Levels count from the first REAL rung, so a skill whose ladder opens with a gate
+    // does not report you a level into work you have not started.
+    const gate = (PROGRESSION_TREES[category][key].prereq || {}).levels || 0;
     const mark = d.active
       ? `<span class="skill-rank">${order.indexOf(key)+1}</span>`
-      : (d.levelIndex == null ? '' : `L${d.levelIndex+1}`);
+      : ((d.levelIndex == null || d.levelIndex < gate) ? '' : `L${d.levelIndex+1-gate}`);
     rows.push(`
       <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
            style="opacity:${offset===0?1:0.5};">
@@ -11848,13 +11860,45 @@ function renderSkillPicker(category){
   activeBox.checked = d.active;
   activeLabel.textContent = d.active ? `Working on ${tree.label}` : `Work on ${tree.label}`;
 
-  // The ladder, ticked up to where you are — the same staircase the mobility assessment
-  // uses, so how far the fill has climbed is your level without reading the number.
+  /* THE RUNG THAT WAS NOT A RUNG.
+
+     Two ladders opened with an entry condition rather than a step: Muscle-up's first
+     "level" was "Strict pull-up x8-10 + dip x10-15 (prerequisite)", One-Arm Pull-up's was
+     "15-20 strict pull-ups". Neither is a thing you do to get better at the skill it sits
+     under, and ticking one drew the wheel at L1 — one rung into a skill you have not
+     started — and filled the first band of the staircase.
+
+     Those entries now draw as a gate above the ladder: unnumbered, not tickable, and
+     ticked or not from the ladders it actually names rather than from your level on this
+     one. The real rungs number from 1. The stored levelIndex is unchanged. */
+  const gateCount = (tree.prereq && tree.prereq.levels) || 0;
+  const gateMet = () => {
+    const need = (tree.prereq && tree.prereq.needs) || [];
+    if(!need.length) return false;
+    return need.every(n=>{
+      const dn = st.draft[n.skill];
+      return dn && dn.levelIndex != null && dn.levelIndex >= n.minLevel;
+    });
+  };
+  const gateWants = ((tree.prereq && tree.prereq.needs) || []).map(n=>{
+    const t2 = PROGRESSION_TREES[category][n.skill];
+    return t2 ? `${t2.label} \u00b7 ${t2.levels[n.minLevel]}` : n.skill;
+  }).join(', ');
   levels.innerHTML = tree.levels.map((name, i)=>{
     const det = tree.levelDetails && tree.levelDetails[i];
     const target = det && det.holdOrRepTarget ? ` <span class="skill-level-target">${det.holdOrRepTarget}</span>` : '';
+    if(i < gateCount){
+      // No holdOrRepTarget here: on both of these the target restates the rung's own name
+      // ("15-20 strict pull-ups" / "15-20 reps"), and the row already carries a second line.
+      const met = gateMet();
+      return `<div class="mob-check-row prereq${met ? ' done' : ''}">
+        <span class="mob-check-num" aria-hidden="true"></span>
+        <span class="mob-check-text">Before you start: ${name.replace(/\s*\(prerequisite\)$/, '')}
+          <span class="skill-prereq-state">${met ? 'ticked on ' + gateWants : 'tick ' + gateWants + ' to confirm'}</span></span>
+      </div>`;
+    }
     return `<div class="mob-check-row${d.levelIndex != null && i <= d.levelIndex ? ' done' : ''}" data-level="${i}">
-      <span class="mob-check-num">${i+1}</span>
+      <span class="mob-check-num">${i+1-gateCount}</span>
       <span class="mob-check-text">${name}${target}</span>
     </div>`;
   }).join('');
@@ -11868,7 +11912,9 @@ function renderSkillPicker(category){
       const lvl = parseInt(row.dataset.level, 10);
       // Ticking the rung you are already on steps back down — and off the bottom rung
       // clears it, so "I have not assessed this" stays reachable.
-      st.draft[key].levelIndex = (lvl === d.levelIndex) ? (lvl > 0 ? lvl - 1 : null) : lvl;
+      // Stepping down off the first real rung clears the level rather than landing on the
+      // gate index, which the wheel and the staircase both draw as nothing anyway.
+      st.draft[key].levelIndex = (lvl === d.levelIndex) ? (lvl > gateCount ? lvl - 1 : null) : lvl;
       renderSkillPicker(category);
     });
   });
@@ -16707,7 +16753,16 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"30-60s+ hold", advancementCriteria:"Consistent freestanding balance across multiple attempts", evidence:"coaching_consensus"},
         {holdOrRepTarget:"see Handstand Push-up tree", advancementCriteria:"Separate progression \u2014 linked once freestanding handstand is established", evidence:"coaching_consensus"}
       ] },
+    /* `prereq.levels` says how many entries at the START of `levels` are not rungs of this
+       skill at all — they are the entry condition, written into the ladder because there
+       was nowhere else to put them. The picker draws those as a gate above the ladder,
+       unnumbered and not tickable, and numbers the real rungs from 1. `needs` is the same
+       condition expressed against ladders this app already has, so it can be CHECKED
+       against what you have ticked rather than only read.
+       Indices are untouched — nothing stored moves — because the app's convention here is
+       read-time tolerance, not storage migration (see the block prescription fallback). */
     muscleup: { label:'Muscle-up', tier:3, researched:false, movement:'pull', area:'thoracic', secondaryArea:'biceps',
+      prereq:{ levels:1, needs:[{skill:'pullup', minLevel:5}, {skill:'dip', minLevel:2}] },
       levels:["Strict pull-up \u00d78-10 + dip \u00d710-15 (prerequisite)", "False grip hang", "Explosive pull-up (chest-to-bar)", "Transition negatives", "Banded muscle-up", "Kipping muscle-up", "Strict muscle-up"],
       levelDetails:[
         {holdOrRepTarget:"8-15 strict pull-ups + 8-10 strict dips", advancementCriteria:"Both prerequisites met before starting muscle-up-specific work", evidence:"coaching_consensus"},
@@ -16769,7 +16824,12 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"3x10s, narrowing over time", advancementCriteria:"Straddle angle narrows as strength improves \u2014 this is the main volume stage", evidence:"coaching_consensus"},
         {holdOrRepTarget:"terminal goal", advancementCriteria:"Caution: Rosaci et al. 2025 EMG found common preconditioning drills for this skill family activate muscles differently from the target position \u2014 even well-established progressions may not transfer as assumed", evidence:"coaching_consensus"}
       ] },
+    /* The pull-up ladder has no 15-20-rep rung — its "Full strict" asks for 8-10 and the
+       next rung up is weighted. The gate therefore checks the nearest rung BELOW the real
+       bar, and the row's own text keeps the real number, so the check is a floor and the
+       words are the truth rather than the check quietly lowering the bar. */
     onearmpullup: { label:"One-Arm Pull-up", tier:4, researched:false, movement:"pull", area:'thoracic', secondaryArea:'biceps',
+      prereq:{ levels:1, needs:[{skill:'pullup', minLevel:5}] },
       levels:["15-20 strict pull-ups", "Weighted pull-up (~1.5\u00d7 bodyweight total)", "One-arm dead hang", "Flex-hang holds + negatives", "Archer pull-up", "Assisted / uneven-grip variants", "Full one-arm pull-up"],
       levelDetails:[
         {holdOrRepTarget:"15-20 reps", advancementCriteria:"Strict, full ROM, before adding load", evidence:"coaching_consensus"},
