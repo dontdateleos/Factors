@@ -3921,6 +3921,14 @@ function persistScoreLog(){
   try{ window.storage.set(`scoreLog:${todayStr}`, JSON.stringify(SCORE_SAMPLES.slice(-SCORE_LOG_MAX))); } catch(e){}
 }
 function recordScoreSample(s){
+  /* Only today's number. This log is read as "why did the score move", and every row was
+     being taken as a movement of the one on screen — but computeSystemicReadiness is called
+     with a date, and most of its callers pass a past one. Drawing the seven-day swipe alone
+     computes readiness once per day of the week, so a single untouched page load wrote seven
+     rows that looked like today's score walking 50 → 48 → 49 and were seven different days'
+     scores in a row. It nearly sent me chasing a fault in the score that was a fault in the
+     log about the score. */
+  if(s.for && s.for !== todayStr) return;
   hydrateScoreLog();
   const last = SCORE_SAMPLES[SCORE_SAMPLES.length - 1];
   // Identical readings are not worth a row. Only a computation that differs from the one
@@ -6921,7 +6929,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.237';
+const APP_VERSION = '2026.08.31.238';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10373,7 +10381,7 @@ async function computeSystemicReadiness(asOfDate){
      on reload. Recorded here rather than beside the score above, where `enough` and the rest
      are still in their dead zone and reading them threw on every call. */
   recordScoreSample({
-    at: Date.now(), shown: percentile != null ? percentile : score,
+    at: Date.now(), for: asOfDate || todayStr, shown: percentile != null ? percentile : score,
     raw: +today.raw.toFixed(4), pct: percentile, gate: +gate.toFixed(3),
     gated: gateReason || null, held,
     present: +today.weightPresent.toFixed(3), complete: +win.completeness.toFixed(3),
