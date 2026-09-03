@@ -6830,7 +6830,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.219';
+const APP_VERSION = '2026.08.31.220';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -20060,9 +20060,10 @@ function raceIsLong(distanceKm){
   const km = Number(distanceKm);
   return Number.isFinite(km) && km >= RACE_LONG_MIN_KM;
 }
-/* The key the run tables are read with. `race_long` is a fifth run type in everything the
-   warm-up does, so the split is made once, here, rather than at each table. */
-function runWarmupKey(runType, distanceKm){
+/* The key the run tables are read with. `race_long` is a fifth run type to everything that
+   prepares for or recovers from a run, so the split is made once, here, rather than at each
+   table that would otherwise have to test the distance itself. */
+function runProtocolKey(runType, distanceKm){
   return (runType === 'race' && raceIsLong(distanceKm)) ? 'race_long' : runType;
 }
 const RUN_RAISE_BY_TYPE = {
@@ -24232,7 +24233,14 @@ const RUN_DYNAMIC_CAP_S = 220;
    glycogen resynthesis. An easy run has little to work through and gets one area; anything
    harder gets two. */
 const RUN_COOLDOWN_BUDGET = {
-  easy:7, recovery:7, long:14, tempo:14, fartlek:14, interval:14, hills:14, sprint:14, race:14
+  easy:7, recovery:7, long:14, tempo:14, fartlek:14, interval:14, hills:14, sprint:14,
+  /* Same split as the warm-up, for a different reason. The warm-up is trimmed because the
+     opening kilometres do the work; this is trimmed because of what the distance leaves
+     behind. After a half or full the tissue is damaged rather than merely worked, and a
+     fourteen-minute routine of rolling and long static holds on it is not the recovery
+     priority — getting warm, fed and off your feet is. The jog-down line above already says
+     to walk rather than jog after a hard session, so what is left to cut is the drills. */
+  race:14, race_long:7
 };
 /* Which run today actually is. The budgets above are useless without it, and the block has
    carried runType since runs were schedulable. Named plannedRunType, not todayRunType: a
@@ -24361,7 +24369,7 @@ async function generateWarmup(){
   } catch(e){}
   const runType = todaySessionType === 'run' ? await plannedRunType() : null;
   // A half or full marathon reads the tables under its own key — see RACE_LONG_MIN_KM.
-  const runKey = runType ? runWarmupKey(runType, await plannedRunKm()) : null;
+  const runKey = runType ? runProtocolKey(runType, await plannedRunKm()) : null;
   if(runKey) warmupCap = RUN_WARMUP_BUDGET[runKey] != null ? RUN_WARMUP_BUDGET[runKey] : RUN_WARMUP_BUDGET.long;
   // Priority decides the first two slots; the remainder rotates by date so the tail of
   // the list is reachable at all. Deterministic within a day, different across days.
@@ -24786,7 +24794,8 @@ async function generateMobility(){
     mobilityCap = cooldownBudgetMin(setup.sessionLength);
   } catch(e){}
   const coolRunType = todaySessionType === 'run' ? await plannedRunType() : null;
-  if(coolRunType) mobilityCap = RUN_COOLDOWN_BUDGET[coolRunType] != null ? RUN_COOLDOWN_BUDGET[coolRunType] : RUN_COOLDOWN_BUDGET.long;
+  const coolRunKey = coolRunType ? runProtocolKey(coolRunType, await plannedRunKm()) : null;
+  if(coolRunKey) mobilityCap = RUN_COOLDOWN_BUDGET[coolRunKey] != null ? RUN_COOLDOWN_BUDGET[coolRunKey] : RUN_COOLDOWN_BUDGET.long;
   // Same rotation on the post-session side, for the same reason.
   const rotDayM = new Date(todayStr).getDate();
   const remainingBase = remaining.length
