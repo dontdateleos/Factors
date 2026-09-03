@@ -7107,7 +7107,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.245';
+const APP_VERSION = '2026.08.31.246';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21386,6 +21386,22 @@ const GENERATE_FAULTS = {
   'nothing-selected':     'NOTHING SELECTED \u00b7 TURN ONE BACK ON'
 };
 
+/* WHY THERE WAS NOTHING TO FILL.
+
+   "Clear a day" is the right advice when the days are taken and exactly the wrong advice
+   when they have simply gone by. Since dates that have passed stopped being offered, a
+   Mon-to-Wed person pressing Generate on a Thursday gets an empty week — correctly, there
+   is nothing left of it — and was told their days were full and to clear one. They are
+   empty. They are over. Those need different sentences. */
+async function noEmptyDaysReason(weekDatesOverride){
+  let days = [];
+  try{ days = JSON.parse((await window.storage.get('settings:trainingSetup')).value).availableDays || []; } catch(e){}
+  if(!days.length) return 'days-taken';
+  const week = weekDatesOverride || getWeekDates();
+  const mine = week.filter(d => days.includes(WEEKDAY_NAMES[(localDateFrom(d).getDay() + 6) % 7]));
+  return (mine.length && !mine.some(d => d >= todayStr)) ? 'week-gone' : 'days-taken';
+}
+
 function describeWeekResult(r, weekNum, isDeload){
   // Point at the right tab. Both of these said "above", but Training Setup lives on
   // Settings and goals live on Goals — neither is on the Weekly tab where this button is,
@@ -21491,7 +21507,11 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
     const lines = weekResults.map(wr => describeWeekResult(wr.result, wr.weekNum, wr.isDeload));
     const validLines = lines.filter(l => l.text);
     if(validLines.length===0){
-      result.innerHTML = faultLine('NO EMPTY DAYS \u00b7 CLEAR ONE FIRST', 'Generate only fills days that are empty. Clear a day, or clear the week.');
+      result.innerHTML = (await noEmptyDaysReason()) === 'week-gone'
+        ? faultLine('THIS WEEK IS OVER \u00b7 PLAN THE NEXT ONE',
+            'Every training day you chose has already gone this week. Generate 4 or 8 weeks to plan ahead, or add a day you can still train.')
+        : faultLine('NO EMPTY DAYS \u00b7 CLEAR ONE FIRST',
+            'Generate only fills days that are empty. Clear a day, or clear the week.');
       result.style.color = '';
       renderWeekGrid();
       return;
