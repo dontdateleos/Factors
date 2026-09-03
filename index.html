@@ -3867,27 +3867,74 @@ function stopEyeIdle(){ if(eyeIdleAnim){ try{ eyeIdleAnim.cancel(); }catch(e){} 
    A ring of the last twenty computations. It is not a log for its own sake: the panel below
    diffs consecutive samples and names the field that changed, because "my score keeps
    changing" is answerable only if the app remembers what it was made of at the time. */
+/* IT SURVIVES A RELOAD NOW.
+
+   This was a plain array wiped on every page load, and the panel said as much: "every
+   recomputation THIS VISIT". Which meant the one question it exists to answer could not be
+   answered. You watch the score jump, the app reloads or you close it, and the only record
+   of what it was made of is gone — so "my score keeps changing" stayed unfixable for want of
+   the evidence, not for want of looking. Worse for the case it was built for: a home-screen
+   app is resumed rather than restarted, so a jump that only happens ACROSS a load is exactly
+   the one this could never see.
+
+   Per-day and on disk. Which load each sample belongs to rides along with it, because a
+   score that only moves across a restart is a different fault from one that moves while you
+   are watching, and by the time you notice you will not remember which you saw. */
+const SCORE_LOG_MAX = 60;        // a day's computations; each row is a dozen small numbers
+const SCORE_LOG_KEEP_DAYS = 7;
+const SCORE_LOAD_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const SCORE_SAMPLES = [];
+let scoreLogHydrating = null;
+/* Lazy rather than run at parse: todayStr is declared further down the file and this would
+   sit in its temporal dead zone. Idempotent, so every caller can just ask. */
+function hydrateScoreLog(){
+  if(scoreLogHydrating) return scoreLogHydrating;
+  scoreLogHydrating = (async ()=>{
+    try{
+      const prior = JSON.parse((await window.storage.get(`scoreLog:${todayStr}`)).value);
+      // unshift, not assign — a sample recorded while this was in flight belongs after these.
+      if(Array.isArray(prior)) SCORE_SAMPLES.unshift(...prior.slice(-SCORE_LOG_MAX));
+    } catch(e){}
+    try{
+      const cut = new Date(); cut.setDate(cut.getDate() - SCORE_LOG_KEEP_DAYS);
+      const cutoff = localDateStr(cut);
+      const res = await window.storage.list('scoreLog:');
+      for(const k of (res.keys || [])){
+        if(k.slice('scoreLog:'.length) < cutoff) await window.storage.delete(k);
+      }
+    } catch(e){}
+  })();
+  return scoreLogHydrating;
+}
+function persistScoreLog(){
+  try{ window.storage.set(`scoreLog:${todayStr}`, JSON.stringify(SCORE_SAMPLES.slice(-SCORE_LOG_MAX))); } catch(e){}
+}
 function recordScoreSample(s){
+  hydrateScoreLog();
   const last = SCORE_SAMPLES[SCORE_SAMPLES.length - 1];
   // Identical readings are not worth a row. Only a computation that differs from the one
   // before it tells you anything, and a screenful of the same number hides the one that moved.
+  // A reload that changed nothing is not interesting either, so it does not get a row — the
+  // boundary only shows up attached to a movement, which is when it means something.
   if(last && Object.keys(s).every(k => k === 'at' || last[k] === s[k])) return;
-  SCORE_SAMPLES.push(s);
-  if(SCORE_SAMPLES.length > 20) SCORE_SAMPLES.shift();
+  SCORE_SAMPLES.push({ ...s, load: SCORE_LOAD_ID });
+  if(SCORE_SAMPLES.length > SCORE_LOG_MAX) SCORE_SAMPLES.shift();
+  persistScoreLog();
 }
 const SCORE_FIELD_LABEL = {
   raw:'raw score', pct:'percentile', gate:'gate', gated:'gate reason', held:'held',
   present:'inputs present', complete:'window completeness', mature:'baseline maturity',
   avail:'readiness available', learnedN:'sessions learned from', wsum:'sum of weights'
 };
-function renderScoreSamples(){
+async function renderScoreSamples(){
   const el = document.getElementById('scoreSamples');
   if(!el) return;
+  await hydrateScoreLog();
   if(SCORE_SAMPLES.length < 2){
     el.innerHTML = '<div class="score-note">The score has been computed '
       + SCORE_SAMPLES.length + ' time' + (SCORE_SAMPLES.length === 1 ? '' : 's')
-      + ' this visit and has not changed. If it moves, what moved with it appears here.</div>';
+      + ' today and has not changed. If it moves, what moved with it appears here, and stays'
+      + ' here — closing the app no longer takes the evidence with it.</div>';
     return;
   }
   const rows = [];
@@ -3895,14 +3942,17 @@ function renderScoreSamples(){
     const a = SCORE_SAMPLES[i-1], b = SCORE_SAMPLES[i];
     const moved = Object.keys(SCORE_FIELD_LABEL).filter(k => a[k] !== b[k]);
     const t = new Date(b.at).toTimeString().slice(0,8);
-    rows.push(`<div class="log-entry"><span>${t} · ${a.shown} → ${b.shown}</span><span>`
+    // Said on the row rather than left to be remembered: a jump that only ever happens across
+    // a restart is a different fault from one you can sit and watch.
+    const reloaded = a.load && b.load && a.load !== b.load;
+    rows.push(`<div class="log-entry"><span>${t} · ${a.shown} → ${b.shown}${reloaded ? ' · across a reload' : ''}</span><span>`
       + (moved.length
           ? moved.map(k=>`${SCORE_FIELD_LABEL[k]} ${a[k]} → ${b[k]}`).join(' · ')
           : 'nothing measured changed')
       + `</span></div>`);
   }
   el.innerHTML = rows.reverse().join('')
-    + `<div class="score-note" style="margin-top:8px;">Newest first, this visit only. If the score moves and the right-hand column says <b>nothing measured changed</b>, the movement is in the render rather than the reading — which is the half of the problem this cannot see.</div>`;
+    + `<div class="score-note" style="margin-top:8px;">Newest first, today, kept for ${SCORE_LOG_KEEP_DAYS} days and across reloads. If the score moves and the right-hand column says <b>nothing measured changed</b>, the movement is in the render rather than the reading — which is the half of the problem this cannot see.</div>`;
 }
 
 const BLINK_CLOSED = '2px';
@@ -6854,7 +6904,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.235';
+const APP_VERSION = '2026.08.31.236';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11247,6 +11297,7 @@ async function renderSettingsSummaries(){
     put('weightsSummary', L ? `learned from ${L.n} session${L.n===1?'':'s'}` : 'starting weights');
   } catch(e){ put('weightsSummary', 'starting weights'); }
   try{
+    await hydrateScoreLog();   // the head should count today's movements, not this visit's
     const n = SCORE_SAMPLES.length;
     put('scoreSamplesSummary', n < 2 ? 'steady' : (n - 1) + ' change' + (n === 2 ? '' : 's'));
   } catch(e){}
