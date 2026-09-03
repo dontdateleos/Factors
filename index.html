@@ -2650,8 +2650,11 @@
           <div class="disagree-note" id="sleepScoreFlag">⚠ delta exceeds ±10 — logged for review</div>
         </div>
         <div>
-          <div class="field-row" style="display:none;"><span class="field-label">Wake time</span><span class="src-tag oura">OURA</span><input type="number" id="wakeTimeOura" placeholder="minutes"></div>
-          <div class="field-row"><span class="field-label">Wake time</span><span class="src-tag secondary">GARMIN</span><input type="number" id="wakeTimeGarmin" placeholder="minutes"></div>
+          <!-- "Wake time" on a form that already has "Woke at" invited a clock reading into
+               a field that holds minutes spent awake during the night. It takes a number, so
+               7:15 or 715 would both have gone in and been read as a duration. -->
+          <div class="field-row" style="display:none;"><span class="field-label">Time awake</span><span class="src-tag oura">OURA</span><input type="number" id="wakeTimeOura" placeholder="minutes"></div>
+          <div class="field-row"><span class="field-label">Time awake</span><span class="src-tag secondary">GARMIN</span><input type="number" id="wakeTimeGarmin" placeholder="minutes"></div>
           <div class="disagree-note" id="wakeTimeFlag">⚠ delta exceeds ±10min — logged for review</div>
         </div>
         <div class="field-row"><span class="field-label">HRV baseline</span><input type="number" id="hrvBaseline" placeholder="your rolling normal"></div>
@@ -6851,7 +6854,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.226';
+const APP_VERSION = '2026.08.31.227';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10444,7 +10447,9 @@ async function getPairedData(){
 function computeCapacityFromValues(pairs, todayVals){
   if(pairs.length < 7) return { available:false, n: pairs.length };
   const predictorKeys = ['duration','hrvRatio','wakeTime','rhr'];
-  const predictorLabels = { duration:'Sleep duration', hrvRatio:'HRV vs baseline', wakeTime:'Wake time', rhr:'Resting HR' };
+  // Same rename as the form field this reads: the channel is minutes spent awake, not a
+  // clock time, and "Why the score moved" was naming it the other thing.
+  const predictorLabels = { duration:'Sleep duration', hrvRatio:'HRV vs baseline', wakeTime:'Time awake', rhr:'Resting HR' };
   const weights = {};
   predictorKeys.forEach(key=>{
     const valid = pairs.filter(p=>p[key]!=null && !isNaN(p[key]));
