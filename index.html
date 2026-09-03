@@ -6830,7 +6830,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.218';
+const APP_VERSION = '2026.08.31.219';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -20038,6 +20038,33 @@ async function saveStretchLedgerFor(date, secondsByArea){
 /* RAISE, on its own, so the warm-up section can own it as a step you tick rather than the
    run card describing it in prose. The strides that used to be packed into these same
    strings live in the section's PRIME group — stated once, at one pace. */
+/* WHERE A RACE STOPS BEING ONE THING.
+
+   Every race got the same preparation regardless of distance: a 5K and a marathon were
+   handed a byte-identical warm-up of about forty minutes, and the race string carried both
+   answers at once — "10-15 min. At half or full marathon cut it to 5-10 min" — leaving the
+   runner to work out which half applied while standing in a start pen. The app knows the
+   distance. It is on the block.
+
+   The line is intensity at the gun, not distance for its own sake. A 5K or 10K opens at or
+   above threshold, so it creates a large oxygen deficit in the first minute and wants the
+   full protocol: raised VO2 baseline, warm muscle, strides. A half or full opens well below
+   threshold, and the opening kilometres do that work themselves — which is why the budget
+   note below already said that beyond ten minutes you are spending glycogen and adding heat
+   load for a benefit the race was about to give you free.
+
+   Fifteen kilometres is the boundary because nothing standard sits between 10 and 21.1, so
+   the threshold never has to adjudicate a real race. */
+const RACE_LONG_MIN_KM = 15;
+function raceIsLong(distanceKm){
+  const km = Number(distanceKm);
+  return Number.isFinite(km) && km >= RACE_LONG_MIN_KM;
+}
+/* The key the run tables are read with. `race_long` is a fifth run type in everything the
+   warm-up does, so the split is made once, here, rather than at each table. */
+function runWarmupKey(runType, distanceKm){
+  return (runType === 'race' && raceIsLong(distanceKm)) ? 'race_long' : runType;
+}
 const RUN_RAISE_BY_TYPE = {
   easy:      'Walk, then run the first kilometre slower than target pace — that is the warm-up',
   recovery:  'Walk, then run the first kilometre slower than target pace — that is the warm-up',
@@ -20047,7 +20074,8 @@ const RUN_RAISE_BY_TYPE = {
   fartlek:   'Easy jog — 10 min',
   hills:     'Easy jog to the hill, then one relaxed uphill at half effort — 10-15 min',
   sprint:    'Easy jog. Never sprint cold — 15 min',
-  race:      'Easy jog, finishing 25-30 min before the start — 10-15 min. At half or full marathon cut it to 5-10 min and treat the first kilometres as the rest of it'
+  race:      'Easy jog, finishing 25-30 min before the start — 10-15 min',
+  race_long: 'Easy jog to loosen off, finishing 15-20 min before the start — 5-10 min. The opening kilometres are the rest of the warm-up'
 };
 const RUN_WARMUP_BY_TYPE = {
   easy:     'Walk, then ease into the first kilometre slower than target pace. The run is the warm-up.',
@@ -24192,7 +24220,8 @@ const WARMUP_STATIC_SHARE_PER_AREA = 0;
    They REPLACE the session-length scaling rather than compounding with it: sessionLength is
    the strength setting and says nothing about how long a run is. */
 const RUN_WARMUP_BUDGET = {
-  easy:3, recovery:3, long:6, tempo:9, fartlek:9, interval:12, hills:12, sprint:12, race:12
+  easy:3, recovery:3, long:6, tempo:9, fartlek:9, interval:12, hills:12, sprint:12,
+  race:12, race_long:3
 };
 /* And the ceiling that is not a judgement call. Pooled across studies, dynamic stretching
    improved running performance by 9.8% at a total of 217-220 seconds — and a 900-second
@@ -24229,6 +24258,18 @@ async function plannedRunType(){
     } catch(e){}
   }
   return 'easy';
+}
+/* How far today's run is, for the one decision that needs it. Null when the block carries no
+   distance, and a race with no distance set keeps the short-race treatment — the fuller
+   warm-up is the safe side of that guess. */
+async function plannedRunKm(){
+  for(const slot of ['am', 'pm']){
+    try{
+      const bl = JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value);
+      if(bl && bl.type === 'run') return (bl.details && bl.details.distanceKm) || null;
+    } catch(e){}
+  }
+  return null;
 }
 // Always keeps the must-keep areas — injuries, and areas you pinned by accepting a
 // mobility card (non-negotiable); trims everything else to fit
@@ -24319,7 +24360,9 @@ async function generateWarmup(){
     else if(len && len <= 45) warmupCap = Math.round(WARMUP_TIME_CAP * 0.7);
   } catch(e){}
   const runType = todaySessionType === 'run' ? await plannedRunType() : null;
-  if(runType) warmupCap = RUN_WARMUP_BUDGET[runType] != null ? RUN_WARMUP_BUDGET[runType] : RUN_WARMUP_BUDGET.long;
+  // A half or full marathon reads the tables under its own key — see RACE_LONG_MIN_KM.
+  const runKey = runType ? runWarmupKey(runType, await plannedRunKm()) : null;
+  if(runKey) warmupCap = RUN_WARMUP_BUDGET[runKey] != null ? RUN_WARMUP_BUDGET[runKey] : RUN_WARMUP_BUDGET.long;
   // Priority decides the first two slots; the remainder rotates by date so the tail of
   // the list is reachable at all. Deterministic within a day, different across days.
   const rotDay = new Date(todayStr).getDate();
@@ -24494,14 +24537,17 @@ async function generateWarmup(){
      PRIME only where it earns its place. An easy or long run's first kilometre IS the
      priming, and RAISE already says so — a stride before it answers a question nobody
      asked. */
+  /* race_long is deliberately not in here. Strides at 5K-to-mile pace before a marathon
+     prime an intensity the race never reaches — the opening kilometres are the priming, on
+     exactly the reasoning that already excuses an easy or long run from this step. */
   const QUALITY_RUNS = ['tempo', 'interval', 'fartlek', 'hills', 'sprint', 'race'];
   let prime = null;
-  if(runType && QUALITY_RUNS.includes(runType)){
+  if(runKey && QUALITY_RUNS.includes(runKey)){
     prime = 'Strides — 4-6 × 80-100m at roughly 5K to mile pace, walking back between. Start the session within 2 minutes of the last one — 4-5 min';
   } else if(!runType){
     prime = 'Ramp up — sets on the first lift, building toward your working weight — 3 min';
   }
-  const raise = runType ? (RUN_RAISE_BY_TYPE[runType] || RUN_RAISE_BY_TYPE.easy) : null;
+  const raise = runKey ? (RUN_RAISE_BY_TYPE[runKey] || RUN_RAISE_BY_TYPE.easy) : null;
 
   flow.className = 'drill-list';
   const warmItems = [];
