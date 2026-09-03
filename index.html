@@ -6811,7 +6811,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.215';
+const APP_VERSION = '2026.08.31.216';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -21240,11 +21240,11 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
 
   // Companion-mobility inputs, resolved once rather than per day — these are the same
   // need signals the standalone mobility generator uses, so the two paths can't drift.
-  const mobilityGoalsForCompanion = (includeBulletproofing && multiSessionOk) ? await getOrCreateAutoMobilityGoal() : [];
+  const mobilityGoalsForCompanion = includeBulletproofing ? await getOrCreateAutoMobilityGoal() : [];
   for(const sg of mobilityGoalsForCompanion){ sg._testReady = await isTestReady(sg); }
-  const companionNeededDomains = (includeBulletproofing && multiSessionOk)
+  const companionNeededDomains = includeBulletproofing
     ? await getMobilityDomainsNeedingWork(mobilityGoalsForCompanion.map(sg=>sg.skill)) : [];
-  const companionLoadedROM = (includeBulletproofing && multiSessionOk) ? await getRecentLoadedROMCoverage() : {};
+  const companionLoadedROM = includeBulletproofing ? await getRecentLoadedROMCoverage() : {};
   const equipmentPrefs = await getEquipmentPrefs();
   const timeEfficiencyPrefs = await getTimeEfficiencyPrefs();
 
@@ -21643,7 +21643,16 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // — so more frequent blocks at the same dose cost nothing either. The companion only ever
     // lands on training days, so this does not touch a rest day.
     const mobilityDayThisTime = true;
-    if(includeBulletproofing && multiSessionOk && !comboDates.has(date) && mobilityDayThisTime){
+    /* Built on every training day now, whatever the same-day setting says. It used to be
+       gated on multiSessionOk, so switching "I'm okay with multiple sessions on the same
+       day" OFF produced a week with no planned mobility at all — measured at nothing
+       ledgered, on any area, for a hypertrophy week. That setting says no second SESSION.
+       A cool-down on the end of the lift is not a second session, and the app already
+       treats it as part of one: estimateSessionDuration bundles a warm-up and cool-down
+       allowance into the strength block's own time budget.
+       So the work is the same either way and only the placement changes — its own pm block
+       when you allow two a day, attached to the lift when you do not. */
+    if(includeBulletproofing && !comboDates.has(date) && mobilityDayThisTime){
       // Companion mobility now runs the SAME structured builder as a standalone session
       // (Access/Control/Load/Integrate/Goal, level-scaled dosing, need-gated domains),
       // restricted to the complementary body area. It previously hand-rolled a list of
@@ -21665,7 +21674,12 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         loadedROMCoverage: companionLoadedROM,
         sessionType: 'normal',
         dayIdx: i,
-        budget: Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP),
+        /* Two placements, two sizes. Its own pm slot is a session and gets a session's
+           budget. On the end of the lift it is a cool-down, and a cool-down's budget is
+           what the cool-down slot has always been worth — the alternative was bolting
+           thirty minutes onto a sixty-minute day and calling it one session. */
+        budget: multiSessionOk ? Math.min(sessionLength, MOBILITY_SESSION_TIME_CAP)
+                               : cooldownBudgetMin(sessionLength),
         integrateIndex: i,
         domainFilter: compDomains,
         bodyweightOnly: equipmentPrefs.bodyweightMobility,
@@ -21673,13 +21687,34 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         blocksThisWeek: (sessionLength >= 75 ? placedDates.length : Math.ceil(placedDates.length/2))
       });
 
-      if(stretches.length){
+      const companionBase = `Complementary mobility — today's strength focus is ${tag.replace('_',' ')}, so mobility targets ${compArea} body`;
+      if(stretches.length && !multiSessionOk){
+        /* Onto the lift itself. Re-read rather than held from earlier in the loop, because
+           the gap-filler pass below can rewrite this same block.
+           Deliberately NOT ledgered here, unlike the pm block. A planned session is credited
+           when it is planned; a cool-down is credited when you tick it, which is how every
+           other cool-down in the app already works. Crediting both would count this twice,
+           and crediting it at plan time would credit range work nobody had done yet.
+           No trim note either — the pm block's note explains why a session got shortened,
+           and this was never a session, so there is nothing to apologise for. */
+        try{
+          const r = await window.storage.get(`weekplan:${date}:am`);
+          const blk = JSON.parse(r.value);
+          if(blk && blk.type === 'strength'){
+            blk.details = blk.details || {};
+            blk.details.cooldown = stretches;
+            blk.details.cooldownNote = companionBase;
+            await window.storage.set(`weekplan:${date}:am`, JSON.stringify(blk));
+            mobilityCompanionPlaced++;
+          }
+        } catch(e){}
+      } else if(stretches.length){
         try{
           await window.storage.get(`weekplan:${date}:pm`); // already occupied — skip silently
         } catch(e){
           await window.storage.set(`weekplan:${date}:pm`, JSON.stringify({
             type:'mobility',
-            details: { stretches, notes:`Complementary mobility — today's strength focus is ${tag.replace('_',' ')}, so mobility targets ${compArea} body` + trimNote }
+            details: { stretches, notes: companionBase + trimNote }
           }));
           mobilityCompanionPlaced++;
           const spent = {};
@@ -22403,7 +22438,22 @@ async function blockSummaryHtml(block){
         [ progression.note ? { key:'Progression', text: progression.note } : null ],
         { lead: ssTag, trail: dropTag, rowClass: ex.supersetGroup ? 'ss-row' : '', tag }));
     }
-    return `<div class="plan-list">${rows.join('')}</div>`;
+    /* The cool-down that rides on the lift when two sessions a day are off. Same stretches
+       the pm companion block carries, rendered in the same shape, under a rule that says
+       where the session stops being loading and starts being range. */
+    let coolHtml = '';
+    const cool = (block.details.cooldown || []);
+    if(cool.length){
+      const coolRows = cool.map(st=>{
+        const cue = mobilityCue(st.name);
+        const range = st.rangeNote ? ` \u00b7 ${st.rangeNote}` : '';
+        return planRow(st.name, `${mobilityDoseLabel(st)}${range}`, cue ? [{ text: cue }] : []);
+      }).join('');
+      coolHtml = `<div class="log-title gutter-inset" style="margin-top:16px;">Cool-down</div>`
+        + `<div class="plan-list">${coolRows}</div>`
+        + (block.details.cooldownNote ? `<div class="score-note">${block.details.cooldownNote}</div>` : '');
+    }
+    return `<div class="plan-list">${rows.join('')}</div>` + coolHtml;
   }
   if(block.type==='run'){
     const d = block.details||{};
@@ -24060,6 +24110,15 @@ const WARMUP_TIME_CAP = 12;       // target 10-15 min
 const WARMUP_TIME_PER_AREA = 3;   // ~2 curated drills per area
 const MOBILITY_TIME_CAP = 15;     // target 5-15 min — post-exercise, not a dedicated session
 const MOBILITY_TIME_PER_AREA = 7; // foam roll + dynamic + static + PNF per area
+/* What the cool-down slot is worth in minutes, given the session length you set. It was
+   computed inline in one place; it has two callers now, because the planner has to size a
+   cool-down days before the day renders it, and the two sizes had better be the same one. */
+function cooldownBudgetMin(sessionLength){
+  const len = parseInt(sessionLength, 10);
+  if(len && len <= 30) return Math.round(MOBILITY_TIME_CAP * 0.45);
+  if(len && len <= 45) return Math.round(MOBILITY_TIME_CAP * 0.7);
+  return MOBILITY_TIME_CAP;
+}
 // Of those 7 minutes, roughly this much is held-position work — the static stretch plus
 // the PNF contract-relax cycles, which count together. The remainder is foam rolling and
 // dynamic drills, which the Ingram dose-response doesn't cover. Only this portion is
@@ -24104,6 +24163,18 @@ const RUN_COOLDOWN_BUDGET = {
    carried runType since runs were schedulable. Named plannedRunType, not todayRunType: a
    local of that name already lives inside the deload check, and a global function shadowed
    by a let in the one place someone would go looking is a trap. */
+/* The cool-down the planner attached to today's strength block, if it attached one. Only
+   ever written when "more than one session a day" is off — with it on the same work goes
+   into its own pm block instead. */
+async function plannedCooldownStretches(){
+  for(const slot of ['am', 'pm']){
+    try{
+      const bl = JSON.parse((await window.storage.get(`weekplan:${todayStr}:${slot}`)).value);
+      if(bl && bl.type === 'strength' && bl.details && Array.isArray(bl.details.cooldown)) return bl.details.cooldown;
+    } catch(e){}
+  }
+  return [];
+}
 async function plannedRunType(){
   for(const slot of ['am', 'pm']){
     try{
@@ -24583,6 +24654,11 @@ async function generateMobility(){
   mobilityContainer.innerHTML = '<div class="skeleton tall"></div><div class="skeleton"></div>';
   const { ordered, injuryByArea, loadFlagged, runFlagged, ranToday, alreadyStretched, pinnedAreas, mustKeep } = await computePostExerciseAreas();
   let remaining = ordered.filter(a=> !alreadyStretched[a]);   // skip areas already addressed today — don't spend budget on them
+  /* The structured mobility the planner wrote onto today's lift. When two sessions a day
+     are off there is no pm mobility block to put it in, so it rides here — level-dosed,
+     goal-carrying work, in the slot that was already the day's range work. Read before the
+     early return below: a day with nothing sore still has this to show. */
+  const plannedCool = await plannedCooldownStretches();
 
   /* This function's own first line calls what it builds post-exercise stretching, and on a
      rest day there was no exercise. It hides itself when the day IS a mobility session and
@@ -24608,16 +24684,14 @@ async function generateMobility(){
         (weekLedger[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
     }
   }
-  if(remaining.length === 0){
+  if(remaining.length === 0 && !plannedCool.length){
     mobilitySection.style.display = 'none';
     return;
   }
   let mobilityCap = MOBILITY_TIME_CAP;
   try{
     const setup = JSON.parse((await window.storage.get('settings:trainingSetup')).value);
-    const len = parseInt(setup.sessionLength, 10);
-    if(len && len <= 30) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.45);
-    else if(len && len <= 45) mobilityCap = Math.round(MOBILITY_TIME_CAP * 0.7);
+    mobilityCap = cooldownBudgetMin(setup.sessionLength);
   } catch(e){}
   const coolRunType = todaySessionType === 'run' ? await plannedRunType() : null;
   if(coolRunType) mobilityCap = RUN_COOLDOWN_BUDGET[coolRunType] != null ? RUN_COOLDOWN_BUDGET[coolRunType] : RUN_COOLDOWN_BUDGET.long;
@@ -24637,7 +24711,12 @@ async function generateMobility(){
   const _needM = remainingBase.filter(a => mustKeep[a] || _goalAreasM.has(a) || (_ledgerM[a] || 0) < MOBILITY_WEEKLY_TARGET_SECONDS);
   const remainingRot = (_needM.length ? _needM : remainingBase)
     .slice().sort((a, b) => (_ledgerM[a] || 0) - (_ledgerM[b] || 0));
-  const { selected, estMinutes, deferred } = selectWithinBudget(remainingRot, mustKeep, mobilityCap, MOBILITY_TIME_PER_AREA);
+  /* What the planned work already spends comes off the budget the area drills get, so the
+     two halves of one cool-down add up to a cool-down rather than to two of them. */
+  const plannedMin = plannedCool.length
+    ? Math.max(1, Math.round(plannedCool.reduce((t, st)=> t + (romSecondsFor(st) || 0), 0) / 60)) : 0;
+  const { selected, estMinutes, deferred } = selectWithinBudget(remainingRot, mustKeep,
+    Math.max(0, mobilityCap - plannedMin), MOBILITY_TIME_PER_AREA);
   paintReasonChips('cooldownChips', drillReasonChips(selected,
     { injuryByArea, loadFlagged, runFlagged, pinnedAreas }));
 
@@ -24726,6 +24805,20 @@ async function generateMobility(){
     coolItems.unshift({ note:true, html: hard
       ? '<b>Jog down</b> — 5-15 min easing into a walk. After a hard session walk or cycle rather than jog, and keep the whole cool-down under 30 minutes.'
       : '<b>Jog down</b> — let the last 5 minutes decay into a walk. Under 30 minutes all in.' });
+  }
+  /* First, while you are still warm and before the rolling and holding — this is the work
+     with a dose and a level on it, and it is the half of the cool-down that progresses. */
+  if(plannedCool.length){
+    plannedCool.slice().reverse().forEach(st=>{
+      const range = st.rangeNote ? ` \u00b7 ${st.rangeNote}` : '';
+      /* Access and load movements name the area they work. A goal movement does not — it
+         names a skill, and the skill's areas are what it credits. Without the fallback the
+         goal work is the one thing on the list a tick buys nothing for. An integrate
+         movement has neither, and stays uncredited: it is a rep-counted pattern, not time
+         under stretch, which is what this ledger measures. */
+      const area = st.area || (MOBILITY_SKILL_TARGET_AREAS[st.skill] || [])[0] || '';
+      coolItems.unshift({ html: `${st.name} ${mobilityDoseLabel(st)}${range}`, group:'Mobility', area });
+    });
   }
   const coolDeferred = deferredAreasNote(deferred, 'cool-down');
   if(coolDeferred) coolItems.push(coolDeferred);
