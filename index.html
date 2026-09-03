@@ -735,6 +735,17 @@
      bold word there goes the other way. */
   b, strong{ color:var(--bg); font-weight:var(--fw-bold); }
   .group-head b, .group-head strong{ color:var(--text); }
+  /* One computation of the score, and what was different about it. */
+  .score-log-row{ padding:8px 0; border-bottom:1px solid var(--hair); }
+  .score-log-row:last-of-type{ border-bottom:0; }
+  /* --bg is the colour of anything that matters on this ground; --dim explains it. */
+  .score-log-when{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--bg);
+    display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  /* Same treatment as a .group-title box: dark ink on the tab's band, not on the ground. */
+  .score-log-reload{ font-size:var(--fs-tag); letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--text); background:var(--band); border-radius:4px; padding:1px 6px; }
+  .score-log-what{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim);
+    margin-top:3px; overflow-wrap:anywhere; }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
      that separates every other exercise is dropped between them. */
   .plan-item.ss-row{ padding-top:10px; padding-bottom:10px; }
@@ -3945,11 +3956,17 @@ async function renderScoreSamples(){
     // Said on the row rather than left to be remembered: a jump that only ever happens across
     // a restart is a different fault from one you can sit and watch.
     const reloaded = a.load && b.load && a.load !== b.load;
-    rows.push(`<div class="log-entry"><span>${t} · ${a.shown} → ${b.shown}${reloaded ? ' · across a reload' : ''}</span><span>`
+    /* Two lines, not two columns. These rows borrowed .log-entry, which is a flex pair built
+       for a label and a short value — and the field list is neither short nor fixed, so it
+       ran off the right edge with the interesting half of it outside the screen. What moved
+       is the whole point of the row and it gets its own line to wrap on. */
+    rows.push(`<div class="score-log-row"><div class="score-log-when">${t} · ${a.shown} → ${b.shown}`
+      + (reloaded ? '<span class="score-log-reload">across a reload</span>' : '')
+      + `</div><div class="score-log-what">`
       + (moved.length
           ? moved.map(k=>`${SCORE_FIELD_LABEL[k]} ${a[k]} → ${b[k]}`).join(' · ')
           : 'nothing measured changed')
-      + `</span></div>`);
+      + `</div></div>`);
   }
   el.innerHTML = rows.reverse().join('')
     + `<div class="score-note" style="margin-top:8px;">Newest first, today, kept for ${SCORE_LOG_KEEP_DAYS} days and across reloads. If the score moves and the right-hand column says <b>nothing measured changed</b>, the movement is in the render rather than the reading — which is the half of the problem this cannot see.</div>`;
@@ -6904,7 +6921,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.236';
+const APP_VERSION = '2026.08.31.237';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
