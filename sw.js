@@ -18,6 +18,19 @@
    so a bug in here costs the offline fallback rather than the app. */
 
 const CACHE = 'factors-doc-v1';
+/* ONE DOCUMENT, ONE KEY.
+
+   The fallback used to be filed under the request's pathname. Stripping the query was right
+   and still is — ?v= and ?updatecheck= busters share one entry — but the pathname itself was
+   not normalised, and "/" and "/index.html" are two spellings of the same file. Measured by
+   loading /index.html and then killing the server: /index.html, /index.html?v=9 and
+   /index.html?updatecheck=1 all served the app, and "/" got ERR_FAILED and no app at all —
+   a browser error page with the whole thing in cache a few bytes away under another key.
+
+   This worker only ever serves one document, which is what the strategy note above already
+   says, so it only ever needs one key. Built from self.location so it lands inside the
+   worker's own scope and cannot collide with a real path. */
+const DOC_KEY = new Request(new URL('__factors-document', self.location).toString());
 /* The font is the one other thing the page needs, and it came from a third party that an
    offline phone cannot reach — so an offline launch had the document and no typeface. It
    gets its own cache, and the opposite strategy to the document: CACHE-FIRST, because a
@@ -65,14 +78,14 @@ async function networkFirst(request){
     const res = await fetch(request, { cache:'no-store', signal:controller.signal });
     clearTimeout(timer);
     if(res && res.ok){
-      // Keyed on the path without its query, so ?v= and ?updatecheck= busters do not each
-      // write their own entry and the fallback is always the latest good document.
-      cache.put(new Request(new URL(request.url).pathname), res.clone()).catch(()=>{});
+      // One key for the one document, so the fallback is always the latest good copy however
+      // the address that fetched it happened to be spelled.
+      cache.put(DOC_KEY, res.clone()).catch(()=>{});
       return res;
     }
     throw new Error('bad response ' + (res && res.status));
   } catch(e){
-    const hit = await cache.match(new Request(new URL(request.url).pathname));
+    const hit = await cache.match(DOC_KEY);
     if(hit) return hit;
     throw e;
   }
@@ -99,10 +112,14 @@ self.addEventListener('fetch', (e)=>{
   } catch(err){ /* fall through to the network */ }
 });
 
-// The page asks for this after an update check so it can tell you which build it is talking
-// to, and to drop the cached document on demand.
+/* Drop the cached document on demand. applyUpdate sends this before navigating, so the
+   reload cannot be answered from the very copy it is trying to leave.
+   There used to be a skipWaiting message here too, and a comment saying the page asked for
+   this after an update check so it could tell you which build it was talking to. Neither was
+   true: nothing in the page has ever posted skipWaiting — the install handler above already
+   calls it — and nothing asks this worker which build it holds or displays the answer. A
+   comment describing a capability the file does not have is worse than no comment, because
+   it is what you would read before deciding the worker was fine. */
 self.addEventListener('message', (e)=>{
-  if(!e.data) return;
-  if(e.data.type === 'skipWaiting') self.skipWaiting();
-  if(e.data.type === 'dropCache') caches.delete(CACHE).catch(()=>{});
+  if(e.data && e.data.type === 'dropCache') caches.delete(CACHE).catch(()=>{});
 });
