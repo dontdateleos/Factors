@@ -6854,7 +6854,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.228';
+const APP_VERSION = '2026.08.31.229';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23763,8 +23763,17 @@ async function renderTrendChart(){
   }
 
   const band = selectedTrendMetric === 'bodyFat' ? BODY_FAT_BAND : null;
+  /* What an empty chart should say depends on why it is empty. "Not enough points to draw
+     yet" reads as keep logging and it will fill in, which is the wrong instruction when the
+     count is zero and the entry point is on another tab — and the Athlete Level card
+     directly above this one, blocked on exactly the same missing data, was already naming
+     that tab. One reason, two answers, one under the other. */
+  const isBodyMetric = selectedTrendMetric === 'weight' || selectedTrendMetric === 'bodyFat';
+  const emptyNote = (isBodyMetric && aggregated.length === 0)
+    ? `No ${METRIC_LABELS[selectedTrendMetric].toLowerCase()} logged yet — add it in Settings → Body metrics.`
+    : (aggregated.length === 1 ? 'One reading so far. A second gives it a direction.' : null);
   drawTrendChart(document.getElementById('trendChart'), aggregated, mc, band,
-                 METRIC_LABELS[selectedTrendMetric] || selectedTrendMetric);
+                 METRIC_LABELS[selectedTrendMetric] || selectedTrendMetric, emptyNote);
 }
 
 /* ---------- THE TREND CHART, DRAWN HERE ----------
@@ -23786,11 +23795,12 @@ function trendTimeOf(x){
 }
 /* Roughly how much room a date label needs before the next one starts sitting on it. */
 const TREND_LABEL_GAP_PX = 46;
-function drawTrendChart(host, points, colours, band, label){
+function drawTrendChart(host, points, colours, band, label, emptyNote){
   if(!host) return;
   if(!points || points.length < 2){
-    host.innerHTML = '<div class="score-note">Not enough points to draw yet.</div>';
-    host.setAttribute('aria-label', 'No trend data yet');
+    const msg = emptyNote || 'Not enough points to draw yet.';
+    host.innerHTML = `<div class="score-note">${msg}</div>`;
+    host.setAttribute('aria-label', msg);
     return;
   }
   const w = Math.max(220, host.clientWidth || 320);
