@@ -2694,6 +2694,12 @@
         <div id="athleteLevelBody"></div>
       </div>
     </div>
+    <!-- The chart had no head at all: no title, no band, no number, with the metric pills
+         sitting straight on the ground while the two readouts around it were banded
+         sections. It is the thing this sub-view exists for. -->
+    <div class="group">
+      <div class="group-head"><div class="group-title">Over time</div><div class="group-sub">the whole history, not a trailing window</div></div>
+    </div>
     <div class="session-type" id="trendMetricPills">
       <div class="type-btn active" data-metric="hrv">HRV</div>
       <div class="type-btn" data-metric="sleepScore">Sleep</div>
@@ -2723,14 +2729,22 @@
     </div>
 
     <div id="historyDataView" style="display:none;">
-      <div class="group-title" style="margin-bottom:4px;">Block history</div>
-      <div class="group-sub" style="margin-bottom:12px;">whether the blocks are actually adding up</div>
-      <div id="blockHistoryBody"></div>
+      <!-- These two were a bare .group-title with hand-set margins and a loose .group-sub
+           under it — the coloured box, but no band, no top rule and no counter, because the
+           counter increments on .group-head and there was none. Workout History's only
+           number was therefore a lone 01 beside the LAST of its three sections. -->
+      <div class="group">
+        <div class="group-head"><div class="group-title">Block history</div><div class="group-sub">whether the blocks are actually adding up</div></div>
+        <div class="fields" id="blockHistoryBody"></div>
+      </div>
 
-      <div class="group-title" style="margin:20px 0 4px;">Workout History</div>
-      <div class="group-sub" style="margin-bottom:12px;">pick a date to see what was logged</div>
-      <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
-      <div id="prevWorkoutsResults"></div>
+      <div class="group">
+        <div class="group-head"><div class="group-title">Workout History</div><div class="group-sub">pick a date to see what was logged</div></div>
+        <div class="fields">
+          <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
+          <div id="prevWorkoutsResults"></div>
+        </div>
+      </div>
 
       <div class="group">
         <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
@@ -6837,7 +6851,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.224';
+const APP_VERSION = '2026.08.31.225';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
