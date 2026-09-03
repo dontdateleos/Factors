@@ -70,7 +70,7 @@
        override, so this is the colour AND the fix for the rest of them. Anything that
        matters is --bg; this is for the text explaining it. */
     --dim:#c9c7bc;
-    --accent:#c9da4a;
+    --accent:#c3d353;
     --accent-dim:#e8edc4;
     --bad:#e8391a;
     --warn:#d98a00;
@@ -99,21 +99,33 @@
     --wordmark: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --track-ui:0.09em;      /* caps tracking, from the boot line */
     --border-bold:#0c0d0b;
-    --block-lime:#c9da4a;
-    --block-orange:#ff9442;
-    --block-blue:#7dd8ef;
-    --block-yellow:#f0c419;
-    --block-purple:#c2b0f7;
-    --block-red:#ff5a3c;
+    /* Rebalanced. Measured in OKLCH the old set was two families rather than one: lime and
+       yellow sat at L 0.849/0.835 and chroma 0.165/0.167 — near twins at the top — while red
+       was both the darkest and the most saturated thing here (L 0.685, C 0.206) and blue and
+       purple were the flattest (C 0.093, 0.101). Chroma ran across 0.113 and lightness across
+       0.164, which is what made yellow read as harsh: it was the top of a range with nothing
+       at the other end, on the hue the eye is most sensitive to.
+       The outliers are pulled toward the family mean rather than everything forced to one
+       value — a uniform balance clips red to a pink at this lightness, which throws away the
+       one hue that was chosen on purpose. Lightness range now 0.108, chroma 0.063, every hue
+       still itself, and ink on colour stays between 7.1 and 11.8 to 1.
+       The field tints below are the same 11%-over-ground mix recomputed from the new blocks;
+       they are not independent values and drift if only one side is changed. */
+    --block-lime:#c3d353;
+    --block-orange:#ff984a;
+    --block-blue:#52d8f7;
+    --block-yellow:#e4be3a;
+    --block-purple:#c4acff;
+    --block-red:#ff7055;
     /* The same five hues at 8% over the page's black. The tab colour stops being a
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
        surfaces fighting. Derived, not picked: 0.08*block + 0.92*#0c0d0b, rounded. */
-    --field-lime:#212412;
-    --field-purple:#201f25;
-    --field-yellow:#25210d;
-    --field-blue:#182324;
-    --field-red:#271510;
+    --field-lime:#202313;
+    --field-purple:#201e26;
+    --field-yellow:#242010;
+    --field-blue:#142325;
+    --field-red:#271813;
     /* The ground is neutral and the same on every tab. Sampled off the reference: its page
        is #0c0c0b across 48% of its area, with the tint appearing only in the section fields
        (25%) and the blocks lifted off those (14%). Three levels, not one — a tinted ground
@@ -6797,7 +6809,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.212';
+const APP_VERSION = '2026.08.31.213';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
