@@ -6837,7 +6837,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.222';
+const APP_VERSION = '2026.08.31.223';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -20729,6 +20729,14 @@ async function renderBlockHistory(){
     const earliest = Math.min(...sessions.map(s=>new Date(s.date).getTime()));
     // Include blocks before the anchor too — training predates the anchor for anyone who
     // set it up after already logging, and dropping that history would misrepresent it.
+    /* firstIdx is also what the printed numbers count from. The label used to be idx + 1,
+       which reads correctly only while idx is non-negative — and the loop above deliberately
+       reaches back past the anchor. Measured with a session ten weeks before the anchor, the
+       list read "Block -2", "Block 0", "Block 1 (current)": three blocks, no block 2, and a
+       skipped -1 nobody could see. Numbering from the earliest block shown puts the first at
+       1 and keeps the calendar alignment, so consecutive numbers still mean consecutive
+       blocks and a gap in them honestly means a block you did not train in. The date on each
+       row stays the stable identity; the number is an ordinal for reading. */
     const firstIdx = Math.floor((earliest - anchorMs) / blockMs);
     const nowIdx = Math.floor((Date.now() - anchorMs) / blockMs);
     const blocks = [];
@@ -20781,7 +20789,7 @@ async function renderBlockHistory(){
         : 'no loads logged';
       return `<div style="margin-bottom:14px;">
         <div class="log-entry" style="border:none; padding:0 0 4px;">
-          <span style="font-weight:700;">Block ${b.idx + 1}${b.isCurrent ? ' (current)' : ''}</span>
+          <span style="font-weight:700;">Block ${b.idx - firstIdx + 1}${b.isCurrent ? ' (current)' : ''}</span>
           <span>${b.sessions} session${b.sessions===1?'':'s'} · ${b.volume.toLocaleString()}kg</span>
         </div>
         <div style="height:8px; background:var(--border-bold); opacity:0.2;">
