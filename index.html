@@ -843,7 +843,7 @@
      falling off from the centre, and the 1-5 scale horizontal beneath. Replaces a nine-row
      grid that ran 594px with 45 targets at 28px square. */
   /* One row height, and the wheel is three of them. The drag's step distance is the same
-     number — see STEP_PX — so these have to move together. */
+     number — see WHEEL_STEP_PX — so these have to move together. */
   .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .mob-wheel:active{ cursor:grabbing; }
@@ -6811,7 +6811,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.214';
+const APP_VERSION = '2026.08.31.215';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10993,6 +10993,23 @@ document.getElementById('addGoalRow').addEventListener('click', ()=>addGoalRow()
 
 /* ---------- TRAINING SETUP ---------- */
 const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+/* One drag policy, for all three wheels. The skill picker, the mobility domain stepper and
+   the week day wheel each declared their own WHEEL_STEP_PX, WHEEL_FLICK_MIN_PX and WHEEL_FLICK_MIN_VELOCITY,
+   and each re-typed the same step curve — four numbers and a rule, three times over, with a
+   CSS comment nearby saying "the drag's step distance is the same number, so these have to
+   move together" while pointing at a constant that existed in three places. Nothing had
+   diverged yet. Everything about the arrangement was waiting to.
+   The row height is the step distance by design: a wheel row is 38px in CSS (--mob-row,
+   --day-row) and a drag of one row moves one item, so the two are the same measurement seen
+   from either side. */
+const WHEEL_STEP_PX = 38;            // sustained finger travel per item — one row height
+const WHEEL_FLICK_MIN_PX = 8;        // below this it is a tap, not a swipe
+const WHEEL_FLICK_MIN_VELOCITY = 0.25;   // px/ms — separates a flick from a slow short drag
+// How far one flick carries. Faster throws travel further, capped at three so a hard flick
+// still lands somewhere you meant rather than at the end of the list.
+function flickSteps(velocity){
+  return velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+}
 (function initAvailableDaysCheckboxes(){
   const container = document.getElementById('availableDaysCheckboxes');
   WEEKDAY_NAMES.forEach(day=>{
@@ -11336,7 +11353,6 @@ function bindSkillPickerDrag(category){
   const host = document.getElementById(SKILL_PICKERS[category].host);
   if(!host) return;
   let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-  const STEP_PX = 38, FLICK_MIN_PX = 8, FLICK_MIN_VELOCITY = 0.25;
   const clamp = i => Math.max(0, Math.min(skillKeysFor(category).length-1, i));
   host.addEventListener('pointerdown', e=>{
     if(!e.target.closest('#' + SKILL_PICKERS[category].wheel)) return;
@@ -11351,9 +11367,9 @@ function bindSkillPickerDrag(category){
   });
   host.addEventListener('pointermove', e=>{
     if(!dragging) return;
-    const steps = Math.trunc((e.clientY - startY - accumulated) / STEP_PX);
+    const steps = Math.trunc((e.clientY - startY - accumulated) / WHEEL_STEP_PX);
     if(steps === 0) return;
-    accumulated += steps * STEP_PX;
+    accumulated += steps * WHEEL_STEP_PX;
     moved = true;
     eyeDragGaze(steps);
     st.index = clamp(st.index - steps);
@@ -11366,12 +11382,12 @@ function bindSkillPickerDrag(category){
     if(moved) return;
     const dy = e.clientY - startY, dt = Math.max(1, e.timeStamp - startTime);
     const velocity = Math.abs(dy)/dt;
-    if(Math.abs(dy) < FLICK_MIN_PX){
+    if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
       if(downOffset !== 0){ st.index = clamp(st.index + downOffset); renderSkillPicker(category); }
       return;
     }
-    if(velocity < FLICK_MIN_VELOCITY) return;
-    const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+    if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
+    const steps = flickSteps(velocity);
     st.index = clamp(st.index + (dy > 0 ? -steps : steps));
     renderSkillPicker(category);
   };
@@ -11533,9 +11549,6 @@ async function renderMobilityAssessment(skipCollapse){
     mobilityWheelBound = true;
     const host = document.getElementById('mobilityAssessmentRows');
     let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-    const STEP_PX = 38;             // sustained finger travel per domain — one row height (--mob-row)
-    const FLICK_MIN_PX = 8;         // below this it's a tap, not a swipe
-    const FLICK_MIN_VELOCITY = 0.25; // px/ms — separates a flick from a slow short drag
     host.addEventListener('pointerdown', e=>{
       if(!e.target.closest('#mobWheel')) return;
       dragging = true; startY = e.clientY; accumulated = 0;
@@ -11550,9 +11563,9 @@ async function renderMobilityAssessment(skipCollapse){
     host.addEventListener('pointermove', e=>{
       if(!dragging) return;
       const delta = e.clientY - startY;
-      const steps = Math.trunc((delta - accumulated) / STEP_PX);
+      const steps = Math.trunc((delta - accumulated) / WHEEL_STEP_PX);
       if(steps !== 0){
-        accumulated += steps * STEP_PX;
+        accumulated += steps * WHEEL_STEP_PX;
         moved = true;
         eyeDragGaze(steps);
         // Dragging down brings earlier items into view, like a physical wheel.
@@ -11571,15 +11584,15 @@ async function renderMobilityAssessment(skipCollapse){
       const dy = e.clientY - startY;
       const dt = Math.max(1, e.timeStamp - startTime);
       const velocity = Math.abs(dy) / dt;               // px per ms
-      if(Math.abs(dy) < FLICK_MIN_PX){
+      if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
         if(downOffset !== 0){
           mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + downOffset));
           renderMobilityAssessment(true);
         }
         return;
       }
-      if(velocity < FLICK_MIN_VELOCITY) return;
-      const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+      if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
+      const steps = flickSteps(velocity);
       const dir = dy > 0 ? -1 : 1;                       // swipe up = later domains
       mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + dir*steps));
       renderMobilityAssessment(true);
@@ -11914,9 +11927,6 @@ function renderWeekDayPicker(dayBlocks){
   const stage = document.getElementById('weekWheelStage');
   if(!stage) return;
   let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-  const STEP_PX = 38;              // one row height (--day-row)
-  const FLICK_MIN_PX = 8;
-  const FLICK_MIN_VELOCITY = 0.25; // px/ms
   const clamp = i => Math.max(0, Math.min(getWeekDates().length-1, i));
   stage.addEventListener('pointerdown', e=>{
     if(!e.target.closest('#weekDayPicker')) return;
@@ -11931,9 +11941,9 @@ function renderWeekDayPicker(dayBlocks){
   });
   stage.addEventListener('pointermove', e=>{
     if(!dragging) return;
-    const steps = Math.trunc((e.clientY - startY - accumulated) / STEP_PX);
+    const steps = Math.trunc((e.clientY - startY - accumulated) / WHEEL_STEP_PX);
     if(steps === 0) return;
-    accumulated += steps * STEP_PX;
+    accumulated += steps * WHEEL_STEP_PX;
     moved = true;
     eyeDragGaze(steps);
     // Dragging down brings earlier days into view, like a physical wheel.
@@ -11950,7 +11960,7 @@ function renderWeekDayPicker(dayBlocks){
     const dt = Math.max(1, e.timeStamp - startTime);
     const velocity = Math.abs(dy) / dt;
     // Barely moved: it was a tap. Select whichever row it landed on.
-    if(Math.abs(dy) < FLICK_MIN_PX){
+    if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
       if(downOffset !== 0){
         activeWheelDayIndex = clamp(activeWheelDayIndex + downOffset);
         renderWeekGrid();
@@ -11959,8 +11969,8 @@ function renderWeekDayPicker(dayBlocks){
     }
     // A quick flick travels less than a row, so a pure distance threshold ignores it and
     // the picker feels stuck. Short and fast counts as intent to move.
-    if(velocity < FLICK_MIN_VELOCITY) return;
-    const steps = velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
+    if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
+    const steps = flickSteps(velocity);
     activeWheelDayIndex = clamp(activeWheelDayIndex + (dy > 0 ? -steps : steps));
     renderWeekGrid();
   };
