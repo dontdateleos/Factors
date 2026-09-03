@@ -588,6 +588,15 @@
   select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:0 10px; border-radius:0; height:28px; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
+  /* WHERE THE KEYBOARD IS.
+     There was not one :focus-visible rule in the file. Every div-based control relied on
+     whatever outline the browser draws by default, which on this ground is close to nothing,
+     and the form fields above explicitly removed theirs in favour of a border colour — a cue
+     that vanishes on a field already the accent colour. Tabbing through the app was possible
+     and invisible, which is worse than not being possible.
+     :focus-visible rather than :focus, so a tap never draws a ring nobody asked for. */
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .disagree-note{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); margin-top:2px; display:none; }
   .disagree-note.show{ display:block; }
 
@@ -2321,13 +2330,13 @@
                chart, which put the control after its own output — you read the block, then
                scrolled past it to find the thing that makes one. -->
           <div class="week-gen-row">
-            <select id="programSplitOverride">
+            <select id="programSplitOverride" aria-label="Training split">
               <option value="auto">Auto split</option>
               <option value="full_body">Full Body</option>
               <option value="upper_lower">Upper / Lower</option>
               <option value="ppl">Push / Pull / Legs</option>
             </select>
-            <select id="programWeeksSelect">
+            <select id="programWeeksSelect" aria-label="How many weeks to generate">
               <option value="1">1 week</option>
               <option value="4">4 weeks</option>
               <option value="8">8 weeks</option>
@@ -2559,7 +2568,7 @@
     <div id="morningBanner" class="morning-banner" style="display:none;">Morning check-in. Three numbers and today&rsquo;s plan reads them.</div>
 
     <div class="date-row">
-      <input type="date" id="entryDate">
+      <input type="date" id="entryDate" aria-label="Date of this morning's entry">
       <span class="status" id="loadStatus" style="margin:0;"></span>
     </div>
 
@@ -6511,12 +6520,31 @@ applyA11yFieldLabels(document);
 // with one delegated keydown listener so Enter/Space activates them like a real
 // <button>, since a div with only a click handler is otherwise invisible to keyboard
 // and screen-reader users.
-const A11Y_INTERACTIVE_SELECTOR = '.type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, .goal-priority-btn, .flow-header';
+/* THE LIST IS THE WHOLE MECHANISM, SO A CONTROL MISSING FROM IT IS INVISIBLE TO A KEYBOARD.
+
+   Swept every tab for elements that answer a tap but carry no role and no tabindex, and
+   found six kinds the list had never been told about: the mobility assessment rungs, the
+   mobility wheel, the week-day picker, the add-workout card, and every collapsible section
+   head — twelve of those on Settings alone, which meant a keyboard could not open a section
+   at all. This was not a missing convention. The convention below is good; it had simply
+   stopped being updated as controls were added.
+
+   The [data-…] qualifiers matter: these lists render invisible placeholder rows with
+   opacity:0 and no data attribute, and a blanket selector would turn each one into a tab
+   stop that focuses nothing anyone can see. */
+const A11Y_INTERACTIVE_SELECTOR = '.type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, '
+  + '.goal-priority-btn, .flow-header, .group-head.collapsible, .mob-check-row[data-level], '
+  + '.mob-wheel-item[data-offset], .week-day-item[data-offset], .wheel-add-card[data-add-date]';
 function applyA11yToInteractiveDivs(root){
   root.querySelectorAll(A11Y_INTERACTIVE_SELECTOR).forEach(el=>{
-    if(el.tagName==='BUTTON' || el.hasAttribute('role')) return;
+    if(el.tagName==='BUTTON' || el.hasAttribute('role') || el.getAttribute('aria-hidden') === 'true') return;
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
+    // A section head is a disclosure, and the one thing it has to say is whether it is open.
+    if(el.classList.contains('collapsible')){
+      const body = document.querySelector(`.collapsible-body[data-collapse="${el.dataset.collapse}"]`);
+      el.setAttribute('aria-expanded', body && body.style.display !== 'none' ? 'true' : 'false');
+    }
     if(el.classList.contains('rating-btn') && !el.hasAttribute('aria-label')){
       el.setAttribute('aria-label', `Rate ${el.dataset.level} out of 5`);
     }
@@ -6929,7 +6957,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.238';
+const APP_VERSION = '2026.08.31.239';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7146,6 +7174,8 @@ function setCollapsed(key, collapsed){
   if(key === 'weights' && !collapsed) weightsDrift(document.getElementById('learnedWeights'));
   const body = document.querySelector(`.collapsible-body[data-collapse="${key}"]`);
   const chev = document.querySelector(`.collapse-chevron[data-collapse="${key}"]`);
+  const head = document.querySelector(`.group-head.collapsible[data-collapse="${key}"]`);
+  if(head) head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   animateCollapse(body, collapsed);
   if(!collapsed && body) eyeReadAlong(body);
   // The class is what closes the chevron when it is a pair of eyes; the rotation is what
@@ -10816,11 +10846,9 @@ async function refreshRecoveryLog(){
       div.setAttribute('tabindex', '0');
       div.setAttribute('aria-label', `Load ${stamp(d)}`);
       div.innerHTML = `<span>${stamp(d)}</span><span>${e.disagreements&&e.disagreements.length?'<span class="d-badge">'+e.disagreements.length+' flag(s)</span>':'clean'}</span>`;
-      const pick = ()=>{ dateInput.value = d; loadRecoveryEntry(d); };
-      div.addEventListener('click', pick);
-      div.addEventListener('keydown', ev=>{
-        if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); pick(); }
-      });
+      // No keydown of its own: the delegated listener activates anything with role="button",
+      // and a second handler here would fire the row twice on one press.
+      div.addEventListener('click', ()=>{ dateInput.value = d; loadRecoveryEntry(d); });
       list.appendChild(div);
     }
   } catch(e){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; }
@@ -11491,7 +11519,7 @@ function renderSkillPicker(category){
   for(let i = wheelStart; i < wheelStart + WHEEL_ROWS; i++){
     const offset = i - st.index;
     const key = order[i];
-    if(!key){ rows.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
+    if(!key){ rows.push(`<div class="mob-wheel-item" style="opacity:0;" aria-hidden="true"></div>`); continue; }
     const tree = PROGRESSION_TREES[category][key];
     const d = st.draft[key];
     // A numbered badge for the two you are training, so which is first and which is second
@@ -11679,7 +11707,7 @@ async function renderMobilityAssessment(skipCollapse){
     const offset = i - idx;
     const d = MOBILITY_DOMAINS[i];
     const dist = Math.abs(offset);
-    if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;"></div>`); continue; }
+    if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;" aria-hidden="true"></div>`); continue; }
     // The falloff is a little shallower than it was on the light page. Faint light type on
     // black loses more than faint dark type on cream does, and the neighbours are what
     // make this read as a list rather than one isolated name.
@@ -12117,7 +12145,7 @@ function renderWeekDayPicker(dayBlocks){
   for(let offset = -WEEK_PICKER_VISIBLE; offset <= WEEK_PICKER_VISIBLE; offset++){
     const i = activeWheelDayIndex + offset;
     if(i < 0 || i >= dates.length){
-      rows.push(`<div class="week-day-item" style="opacity:0;"></div>`);
+      rows.push(`<div class="week-day-item" style="opacity:0;" aria-hidden="true"></div>`);
       continue;
     }
     // The marker says what is on that day without opening it — the same job the arc's
