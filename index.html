@@ -3024,7 +3024,27 @@
 
     <div class="set-band">The small print</div>
     <div class="group">
-      <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
+    <!-- WHAT ACTUALLY HAPPENS, ABOVE THE DOCUMENT ABOUT IT.
+
+         The terms and privacy policy below are a draft with the company name and
+         jurisdiction still in brackets, and they say so. Handing a tester a document like
+         that is worse than handing them nothing: it reads as unfinished, and it buries the
+         only part they actually want to know under several thousand words they will not
+         read. Everything in this section is a plain statement of fact about this build, is
+         true today, and needed no lawyer to write, because the facts are simple. The draft
+         stays underneath for when this goes further than people you know. -->
+    <div class="group">
+      <div class="group-head"><div class="group-title">Where your data goes</div><div class="group-sub">the short, true version</div></div>
+      <div class="fields">
+        <div class="score-note" style="color:var(--bg);">Everything you log stays in this browser, on this device. There is no account, there is no copy on a server, and nobody else — including whoever gave you this app — can see your entries.</div>
+        <div class="score-note">Two things do leave the device, and only if you set them up:</div>
+        <div class="score-note"><b>Oura.</b> Connecting it sends your Oura login through a small server the app's author runs, to Oura and back, so the app can read your own readings. The readings are stored here, not there.</div>
+        <div class="score-note"><b>Apple Health.</b> If you switch it on, a Shortcut you set up sends the numbers you chose to that same server, and the app collects them from it. It is off until you turn it on.</div>
+        <div class="score-note">Nothing is analytics. Nothing is advertising. Nothing is sold. Clearing this browser's site data deletes the lot with no way back, so export a backup now and again.</div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy — draft</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
         <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
         <details>
           <summary>Terms and Conditions</summary>
@@ -7107,7 +7127,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.246';
+const APP_VERSION = '2026.08.31.248';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7386,12 +7406,44 @@ async function disconnectOura(){
 // Shortcuts' basic dictionary editor — no nested arrays to construct there.
 const APPLE_HEALTH_KNOWN_FIELDS = ['hrvOura', 'restingHR', 'steps', 'activeCalories', 'respiratoryRate', 'sleepScoreOura', 'wakeTimeOura', 'readinessOura'];
 
+/* WHO IS ASKING.
+
+   Every other call to the worker identifies itself, because it carries the token that IS
+   the identity — exchange sends the auth code, refresh and fetch_data send the user's own
+   tokens. pull_apple_health sent { action } and nothing else: no token, no user, no device.
+
+   That is correct for an app one person runs and wrong the moment a second person installs
+   it. The Shortcut pushes HRV, resting heart rate, steps, calories, respiratory rate, sleep
+   score, wake time and readiness up to the worker; the app pulls the queue back down. With
+   nothing to tell installs apart, two people sharing a worker are reading each other's
+   health data.
+
+   This half is the app's: a key made once per install, kept locally, sent with the pull.
+   The other half is the worker's — it has to key the queue on this and hand back only the
+   matching payloads. Until it does, the key changes nothing, which is why the automatic
+   pull below is off until it is turned on. */
+const INSTALL_KEY_STORAGE = 'installKey';
+function installKey(){
+  try{
+    let k = localStorage.getItem(INSTALL_KEY_STORAGE);
+    if(!k){
+      k = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2))
+        .replace(/-/g, '').slice(0, 24);
+      localStorage.setItem(INSTALL_KEY_STORAGE, k);
+    }
+    return k;
+  } catch(e){ return 'unkeyed'; }
+}
+const APPLE_HEALTH_SYNC_KEY = 'settings:appleHealthSync';
+function appleHealthSyncOn(){
+  try{ return localStorage.getItem(APPLE_HEALTH_SYNC_KEY) === 'on'; } catch(e){ return false; }
+}
 async function syncPendingAppleHealthData(){
   try{
     const res = await fetch(OURA_TOKEN_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'pull_apple_health' }),
+      body: JSON.stringify({ action: 'pull_apple_health', install: installKey() }),
     });
     const result = await res.json();
     if(!res.ok) throw new Error(result.error || 'pull failed');
@@ -7861,8 +7913,18 @@ async function renderAppleHealthStatus(message){
   const el = document.getElementById('appleHealthStatus');
   el.innerHTML = `
     <div class="score-note">Apple Health (via Health Auto Export)</div>
+    <label class="field-row" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" id="appleHealthAutoToggle" style="width:auto; flex:none;"${appleHealthSyncOn() ? ' checked' : ''}>
+      <span style="font-size:var(--fs-sm);">Check automatically when the app opens</span>
+    </label>
+    <div class="score-note">This install's key is <b style="font-family:var(--mono);">${installKey()}</b> — the pull sends it so the worker can tell one install's data from another's. Point your Shortcut at the same key.</div>
     ${message ? `<div class="score-note" style="font-family:var(--mono); font-size:var(--fs-tag);">${message}</div>` : ''}
     <button id="appleHealthSyncBtn" class="small"><svg width="12" height="12" viewBox="3.2 2.65 13 16" fill="currentColor" style="margin-right:5px;"><path d="M12.15 7.5c-1.1-.08-2.03.6-2.56.6-.53 0-1.35-.58-2.22-.56-1.14.02-2.2.66-2.78 1.68-1.2 2.08-.31 5.16.86 6.85.57.83 1.25 1.76 2.15 1.72.86-.03 1.19-.55 2.23-.55 1.04 0 1.34.55 2.24.53.93-.02 1.51-.85 2.08-1.68.65-.94.92-1.86.93-1.9-.02-.01-1.79-.69-1.81-2.73-.02-1.7 1.39-2.52 1.45-2.56-.8-1.17-2.03-1.3-2.47-1.33-1.02-.09-1.9.6-2.4.6"/><path d="M14.7 5.6c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.99 1.02-.44.5-.82 1.31-.72 2.08.75.06 1.53-.38 2.01-.95z"/></svg>Check for new data</button>`;
+  const autoToggle = document.getElementById('appleHealthAutoToggle');
+  if(autoToggle) autoToggle.addEventListener('change', ()=>{
+    try{ localStorage.setItem(APPLE_HEALTH_SYNC_KEY, autoToggle.checked ? 'on' : 'off'); } catch(e){}
+    showToast(autoToggle.checked ? 'Apple Health will check on open' : 'Automatic checking off');
+  });
   document.getElementById('appleHealthSyncBtn').addEventListener('click', async ()=>{
     renderAppleHealthStatus('Checking...');
     const result = await syncPendingAppleHealthData();
@@ -7876,9 +7938,15 @@ async function renderAppleHealthStatus(message){
 renderOuraConnectionStatus(); // immediate paint of current state
 handleOuraOAuthCallback(); // if this load is an OAuth redirect-back, re-renders once the exchange finishes
 renderAppleHealthStatus();
-syncPendingAppleHealthData().then(result => {
-  if(result.synced > 0) renderAppleHealthStatus(`Synced ${result.synced} update(s) across ${result.dates.length} date(s): ${result.dates.join(', ')}`);
-}); // check automatically on load, since data accumulates while the app isn't open
+/* Off until asked for. This used to run on every load for every install — which is what
+   made the missing identifier a live problem rather than a latent one. Data accumulates
+   while the app is closed, so an automatic check is still the right behaviour; it just
+   waits for someone to say yes now, and the button beside it pulls on demand meanwhile. */
+if(appleHealthSyncOn()){
+  syncPendingAppleHealthData().then(result => {
+    if(result.synced > 0) renderAppleHealthStatus(`Synced ${result.synced} update(s) across ${result.dates.length} date(s): ${result.dates.join(', ')}`);
+  });
+}
 
 /* ---------- GOAL PROFILE ---------- */
 /* No loadRatioHigh any more. The acute:chronic workload ratio is the strongest consensus
