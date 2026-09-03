@@ -6851,7 +6851,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.225';
+const APP_VERSION = '2026.08.31.226';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23854,7 +23854,13 @@ function drawTrendChart(host, points, colours, band, label){
   const xLabels = points.map((p, i)=>{
     if(!labelled.has(i)) return '';
     const t = String(p.x).slice(5).replace('-', '/');
-    return `<text x="${X(i).toFixed(1)}" y="${TREND_H - 3}" text-anchor="middle" class="tc-tick">${t}</text>`;
+    const x = X(i);
+    /* The outermost labels are anchored to the edge they sit on rather than centred over it.
+       The last point is drawn at w - TREND_PAD_R, so half of a centred "09/03" hung past the
+       viewBox and the label rendered as "09/0" — the one date on the axis you most want to
+       read. Only the ends move; everything between still centres on its point. */
+    const anchor = x <= TREND_PAD_L + 1 ? 'start' : (x >= w - TREND_PAD_R - 1 ? 'end' : 'middle');
+    return `<text x="${x.toFixed(1)}" y="${TREND_H - 3}" text-anchor="${anchor}" class="tc-tick">${t}</text>`;
   }).join('');
   const dots = points.map((p, i)=> `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="2" fill="${colours.line}"/>`).join('');
   /* The one screen in the app that arrived fully formed while everything around it moved.
