@@ -6830,7 +6830,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.217';
+const APP_VERSION = '2026.08.31.218';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10618,9 +10618,21 @@ async function saveRecoveryEntry(){
   setTimeout(()=>{status.textContent='';},1800);
 }
 
+/* The one record the date bug could leave behind. Saving with the picker cleared wrote the
+   key `entry:` — a morning entry belonging to no day, which nothing can read as a date and
+   nothing can be shown against. It is not recoverable data: the day it was for is not
+   written anywhere, so there is nothing to re-file it under. Removed on sight, and only
+   ever this exact key — a real date is never touched. */
+async function dropUndatedEntry(){
+  try{
+    const res = await window.storage.list('entry:');
+    if(res && res.keys && res.keys.includes('entry:')) await window.storage.delete('entry:');
+  } catch(e){}
+}
 async function refreshRecoveryLog(){
   const list = document.getElementById('logListRecovery');
   try{
+    await dropUndatedEntry();
     const res = await window.storage.list('entry:');
     if(!res||!res.keys||res.keys.length===0){ list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Nothing here yet</span></div>'; return; }
     const dates = res.keys.map(k=>k.replace('entry:','')).sort().reverse().slice(0,14);
