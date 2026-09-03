@@ -2880,9 +2880,28 @@
     </div>
 
 
+    <div class="group">
+      <div class="group-head"><div class="group-title">Report a problem</div><div class="group-sub">what to send with it</div></div>
+      <div class="fields">
+        <!-- A tester who hits something has no way to say so from in here, and "it did a
+             weird thing on Tuesday" is not reportable. This copies the few facts that make
+             a report actionable — which build, how much data, what the score did today —
+             and no personal detail: no entries, no sessions, no addresses, and nothing is
+             sent anywhere. It goes on the clipboard and the reporter chooses where. -->
+        <div class="score-note">Copies your build number and a summary of what is stored, so a report can be acted on. Nothing is sent anywhere and none of your entries are included — it goes on the clipboard for you to paste.</div>
+        <button id="copyDiagnosticsBtn" class="outline">Copy diagnostics</button>
+        <div id="diagnosticsResult" class="score-note note-live"></div>
+      </div>
+    </div>
+
     <div class="set-band">Your data</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><span class="head-est" id="backupSummary"></span><div class="group-sub">move data between hosting methods</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
+      <div class="group-head collapsible" data-collapse="backupampr" style="cursor:pointer;"><div class="group-title">Backup &amp; Restore</div><span class="head-est" id="backupSummary"></span><div class="group-sub">this browser is the only copy of your data</div><span class="collapse-chevron" data-collapse="backupampr">▾</span></div><div class="fields collapsible-body" data-collapse="backupampr" style="display:none;">
+        <!-- Said once, plainly, where the export lives. Everything is in this browser's own
+             storage and nowhere else — no account, no server, no copy anywhere. Clearing
+             site data, or the browser deciding to reclaim it, takes the lot, and nothing
+             else in the app ever mentions that. -->
+        <div class="score-note" style="color:var(--bg);">Your data lives in this browser and nowhere else. There is no account and no server copy — if you clear site data, it is gone. Export now and again.</div>
         <div class="score-note">Copies everything out. Paste into Bulk Import on another copy to move your data.</div>
         <div class="log-toggle-row" style="gap:6px;">
           <button id="exportAllBtn">Export all data</button>
@@ -2947,7 +2966,7 @@
          tab colour the way Recent entries did on Data. -->
     <div class="set-band">The engine</div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="scorelog" style="cursor:pointer;"><div class="group-title">Why the score moved</div><span class="head-est" id="scoreSamplesSummary"></span><div class="group-sub">every recomputation this visit, and what changed with it</div><span class="collapse-chevron" data-collapse="scorelog">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="scorelog" style="cursor:pointer;"><div class="group-title">Why the score moved</div><span class="head-est" id="scoreSamplesSummary"></span><div class="group-sub">every recomputation today, kept across reloads</div><span class="collapse-chevron" data-collapse="scorelog">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="scorelog" style="display:none;">
         <div id="scoreSamples"></div>
       </div>
@@ -7088,7 +7107,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.243';
+const APP_VERSION = '2026.08.31.244';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -12567,9 +12586,19 @@ async function renderBlockLoadChart(){
     } else if(weeksLeft > 1){
       nextLine = weeksLeft + ' weeks to deload' + (weeksLeft === 2 ? ', intensification next.' : '.');
     }
-    const headline = reintro
-      ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
-      : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
+    /* Before there is any training, the block is arithmetic rather than a fact. A brand new
+       install read "Block 1 · week 1/4 · accumulation · 3 weeks to deload" — a periodisation
+       block reported as underway to somebody who has logged nothing, which is the app's
+       most confident sentence arriving at its least informed moment. The strip still draws
+       (the weeks ahead have a shape whether or not you have used them); it just stops
+       claiming you are in one. */
+    const anyLogged = sessions.length > 0;
+    const headline = !anyLogged
+      ? `Block ${pos.blocksCompleted+1} starts with your first logged session`
+      : reintro
+        ? `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · first week back`
+        : `Block ${pos.blocksCompleted+1} · week ${pos.weekInBlock}/${pos.length} · ${phaseNow}`;
+    if(!anyLogged) nextLine = '';
 
     // What survives of the old panel's paragraph: the sentence that is actionable, and the
     // two figures the chart cannot draw. Everything else it said is now the picture.
@@ -25849,6 +25878,34 @@ document.getElementById('runScenarioSuiteBtn').addEventListener('click', async (
     console.error(e);
   } finally {
     btn.disabled = false; btn.textContent = 'Run regression suite';
+  }
+});
+
+document.getElementById('copyDiagnosticsBtn').addEventListener('click', async ()=>{
+  const out = document.getElementById('diagnosticsResult');
+  try{
+    const counts = await countStoredRecords();
+    const moves = SCORE_SAMPLES.length > 1
+      ? SCORE_SAMPLES.slice(-4).map(x=>x.shown).join(' \u2192 ')
+      : (SCORE_SAMPLES.length ? String(SCORE_SAMPLES[0].shown) : 'none today');
+    let lastExport = 'never';
+    try{ lastExport = daysAgoWord(JSON.parse((await window.storage.get('settings:lastExport')).value).at); } catch(e){}
+    const lines = [
+      `build      ${APP_VERSION}`,
+      `date       ${todayStr}`,
+      `records    ${counts ? `${counts.entries} mornings, ${counts.sessions} sessions, ${counts.injuries} injuries` : 'unknown'}`,
+      `score      ${moves}`,
+      `exported   ${lastExport}`,
+      `display    ${window.innerWidth}x${window.innerHeight}`,
+      `standalone ${window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true}`,
+      `agent      ${navigator.userAgent}`
+    ].join('\n');
+    let copied = false;
+    try{ await navigator.clipboard.writeText(lines); copied = true; } catch(e){}
+    out.textContent = copied ? 'Copied — paste it with your report.' : lines;
+    showToast(copied ? 'Diagnostics copied' : 'Copy failed — shown below instead');
+  } catch(e){
+    out.textContent = 'Could not gather diagnostics — ' + e.message;
   }
 });
 
