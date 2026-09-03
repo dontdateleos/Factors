@@ -6854,7 +6854,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.233';
+const APP_VERSION = '2026.08.31.234';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -6909,16 +6909,54 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
 // a dismissible banner only when there's genuinely a newer version deployed.
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;   // don't re-check on every glance
 let lastUpdateCheck = 0;
+/* WHAT THE SERVER IS SERVING, WITHOUT DOWNLOADING IT AGAIN.
+
+   Both checks used to fetch the whole document and regex one string out of it. Measured:
+   1,602,255 bytes to read fourteen. It runs 2.5 seconds after every load and on every
+   return to the foreground, so six pickups in a day was about ten megabytes of cellular
+   data spent reading a version number, on a file that only gets bigger.
+
+   So the request carries a validator now — the ETag or Last-Modified of the copy we last
+   read a version out of — and a server that has nothing new answers 304 with no body. The
+   version that goes with that validator is stored beside it, so a 304 is a complete answer.
+
+   It degrades to exactly the old behaviour and needs no promises from the host: with no
+   stored validator, or a server that sends neither header, no conditional headers go out,
+   the answer is a normal 200, and the version comes from the body as before. The first
+   check after any update is a full 200 too — that is the one that learns the new build's
+   validator, and it happens once per update rather than once per foreground. */
+const UPDATE_VALIDATOR_KEY = 'settings:updateValidator';
+async function fetchServedVersion(){
+  let prior = null;
+  try{ prior = JSON.parse((await window.storage.get(UPDATE_VALIDATOR_KEY)).value); } catch(e){}
+  const headers = {};
+  if(prior && prior.version){
+    if(prior.etag) headers['If-None-Match'] = prior.etag;
+    else if(prior.lastModified) headers['If-Modified-Since'] = prior.lastModified;
+  }
+  const res = await fetch(location.pathname + '?updatecheck=' + Date.now(), { cache:'no-store', headers });
+  // Unchanged since the copy that validator came from, so the version stored with it stands.
+  if(res.status === 304 && prior && prior.version) return prior.version;
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const m = (await res.text()).match(/const APP_VERSION = '([^']+)'/);
+  if(!m) throw new Error('no version found in the served copy');
+  try{
+    await window.storage.set(UPDATE_VALIDATOR_KEY, JSON.stringify({
+      etag: res.headers.get('ETag') || null,
+      lastModified: res.headers.get('Last-Modified') || null,
+      version: m[1]
+    }));
+  } catch(e){}
+  return m[1];
+}
 async function passiveUpdateCheck(){
   const now = Date.now();
   if(now - lastUpdateCheck < UPDATE_CHECK_INTERVAL_MS) return;
   lastUpdateCheck = now;
   try{
-    const res = await fetch(location.pathname + '?updatecheck=' + now, { cache:'no-store' });
-    if(!res.ok) return;
-    const m = (await res.text()).match(/const APP_VERSION = '([^']+)'/);
-    if(!m || m[1] === APP_VERSION) return;
-    showUpdateBanner(m[1]);
+    const served = await fetchServedVersion();
+    if(served === APP_VERSION) return;
+    showUpdateBanner(served);
   } catch(e){ /* offline or blocked — silent by design */ }
 }
 
@@ -6967,15 +7005,10 @@ async function checkForUpdate(){
   if(out) out.textContent = 'Checking…';
   if(btn) btn.disabled = true;
   try{
-    // Cache-busting query AND no-store — the query alone defeats the HTTP cache, the
-    // header defeats any in-memory copy. Either on its own has been unreliable on iOS.
-    const url = location.pathname + '?updatecheck=' + Date.now();
-    const res = await fetch(url, { cache: 'no-store' });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    const m = text.match(/const APP_VERSION = '([^']+)'/);
-    if(!m) throw new Error('no version found in the served copy');
-    const latest = m[1];
+    // Same conditional request the passive check uses — cache-busting query AND no-store,
+    // because the query alone defeats the HTTP cache and the header defeats any in-memory
+    // copy, and either on its own has been unreliable on iOS.
+    const latest = await fetchServedVersion();
     if(latest === APP_VERSION){
       if(out) out.textContent = `Up to date (${APP_VERSION}).`;
       return { current: APP_VERSION, latest, updateAvailable: false };

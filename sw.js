@@ -51,8 +51,32 @@ self.addEventListener('activate', (e)=>{
     const names = await caches.keys();
     await Promise.all(names.filter(n=> n !== CACHE && n !== FONT_CACHE).map(n=> caches.delete(n)));
     await self.clients.claim();
+    await warmDocument();
   })());
 });
+
+/* THE OFFLINE COPY IS THIS WORKER'S JOB, NOT A SIDE EFFECT OF SOMETHING THE PAGE DID.
+
+   The document that bootstraps a first load is requested before this worker exists, so it
+   never passes through here. Until now the cache was filled by whichever page request
+   happened to arrive after clients.claim() — in practice the update check, entirely by
+   accident. 2026.08.31.230 removed that check on first install for good reasons and left a
+   fresh install with an empty cache nine seconds in, which is what showed who had really
+   been doing this.
+
+   Runs once per worker version, and only when there is nothing cached: from the second
+   launch onwards the page's own document request fills it, and this should not spend a
+   second copy to do what that already did. index.html by name because this app is one
+   file with that name — the scope root is a directory on some servers and would cache a
+   listing as the offline document. */
+async function warmDocument(){
+  try{
+    const cache = await caches.open(CACHE);
+    if(await cache.match(DOC_KEY)) return;
+    const res = await fetch(new URL('index.html', self.registration.scope).toString(), { cache:'no-store' });
+    if(res && res.ok) await cache.put(DOC_KEY, res);
+  } catch(e){}
+}
 
 async function cacheFirstFont(request){
   const cache = await caches.open(FONT_CACHE);
@@ -101,6 +125,12 @@ self.addEventListener('fetch', (e)=>{
     // worker — is left alone, because caching a data API is how you serve stale readings.
     if(FONT_HOSTS.includes(url.hostname)){ e.respondWith(cacheFirstFont(req)); return; }
     if(url.origin !== self.location.origin) return;   // Oura, anything else: untouched
+    /* The page's version poll is not a page load and must not be answered from here. It asks
+       the server, carrying a validator, precisely to find out whether the served copy has
+       moved — and a 304 is the answer it wants. Passing it through networkFirst turned that
+       304 into "bad response", fell back to the cached document, and handed the page a 200
+       it then had to read a megabyte and a half of to learn nothing. */
+    if(url.searchParams.has('updatecheck')) return;
     // Only the document. There is nothing else to cache — the app is one file — and leaving
     // every other request alone means this worker cannot break anything it does not serve.
     const isDoc = req.mode === 'navigate'
