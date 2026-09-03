@@ -2300,6 +2300,9 @@
             <div class="gloss-item"><span class="gloss-term">ROLL</span>Foam roller or ball on the tissue — slow, pausing where it is sore. Takes the edge off before you move it.</div>
             <div class="gloss-item"><span class="gloss-term">MOVE</span>Through the range under your own control, no holding. Restores the range the session used up. Called dynamic stretching.</div>
             <div class="gloss-item"><span class="gloss-term">HOLD</span>Settle into the stretch and stay there for the time given. This is the one that adds range, and the reason it comes last. Called static stretching.</div>
+            <!-- A stage on screen with no line here is a label you have to guess at, which is
+                 what the glossary exists to stop. -->
+            <div class="gloss-item"><span class="gloss-term">PNF</span>In the stretch already: push against your hand or a band for six seconds, let go, and sink further in. Three or four rounds. The most effective of the passive methods, so it goes on the one area that needs range most rather than all of them.</div>
           </details>
         </div>
       </div>
@@ -7185,7 +7188,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.256';
+const APP_VERSION = '2026.08.31.257';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -25732,8 +25735,27 @@ async function generateMobility(){
   // Move, not Dyn. The glossary below explains the three stages, but it sits under the thing
   // it decodes, so until you find it the instruction is unreadable. A label that needs no
   // glossary is better than a glossary.
-  const buckets = { Roll:[], Move:[], Hold:[] };
-  const coolSeen = { Roll:new Set(), Move:new Set(), Hold:new Set() };
+  /* PNF IS THE ONE THAT WAS NEVER DRAWN.
+
+     MOBILITY_LIBRARY carries five modalities per area and the cool-down rendered three.
+     foamRoll, dynamic and static went to Roll, Move and Hold; pnf and eccentric were
+     authored for all fourteen areas and never reached a screen.
+
+     PNF comes back, because contract-relax has the strongest range evidence of the passive
+     methods and every entry here is self-administered — press against your own hands, or a
+     band — so nothing needs a partner. It goes after the holds: you take the position, then
+     contract and relax to go further into it.
+
+     ECCENTRIC DELIBERATELY DOES NOT. Read what those entries actually say — "3 sets x 6-8",
+     "Nordic hamstring curl eccentric — 3 sets x 5-6" — and they are training sets, not
+     stretches, filed in a stretching library. Most already exist as real exercises the
+     generator can prescribe: Nordic Hamstring Curl, Copenhagen Plank, the split squats, the
+     calf raises. Rendering them here would bolt three sets of Nordics onto the end of a leg
+     session, outside volume accounting, outside injury safety, and call it a cool-down. If
+     you want that stimulus the session is where it belongs — and loaded long-length work
+     already credits the mobility ledger from there. */
+  const buckets = { Roll:[], Move:[], Hold:[], PNF:[] };
+  const coolSeen = { Roll:new Set(), Move:new Set(), Hold:new Set(), PNF:new Set() };
   const push = (bucket, text, cls, area)=>{
     const k = text.toLowerCase();
     if(!text || coolSeen[bucket].has(k)) return;
@@ -25751,6 +25773,16 @@ async function generateMobility(){
     // the hold list rather than adding an "optional" entry to it.
     if(!skipNote) push('Hold', tighten(trim('static', proto.static)), r.cls, area);
   });
+  /* One area, not all of them. A PNF cycle is four rounds of contract-and-relax and costs
+     the better part of a minute; doing it everywhere would double a cool-down that is
+     already budgeted per area. So it goes where range is actually the point — an area your
+     mobility goal depends on, otherwise the one furthest behind on the week's ledger. */
+  const pnfArea = selected.find(a => _goalAreasM.has(a))
+    || selected.slice().sort((a, b) => (_ledgerM[a] || 0) - (_ledgerM[b] || 0))[0];
+  if(pnfArea && MOBILITY_LIBRARY[pnfArea] && MOBILITY_LIBRARY[pnfArea].pnf){
+    push('PNF', tighten(trim('pnf', MOBILITY_LIBRARY[pnfArea].pnf)),
+      areaReason(pnfArea, injuryByArea, loadFlagged, runFlagged, null, pinnedAreas).cls, pnfArea);
+  }
   coolFlow.className = 'drill-list';
   const coolItems = [];
   Object.keys(buckets).filter(b=>buckets[b].length).forEach(b=>{
