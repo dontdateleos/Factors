@@ -6830,7 +6830,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.220';
+const APP_VERSION = '2026.08.31.221';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -23729,6 +23729,15 @@ async function renderTrendChart(){
    arrives, `Chart` is undefined, and the Trends view throws and renders nothing, silently. A
    gym basement is the normal case. Inline SVG has none of that failure mode. */
 const TREND_H = 200, TREND_PAD_L = 34, TREND_PAD_R = 8, TREND_PAD_T = 10, TREND_PAD_B = 10 + 14;
+/* A point's place on the time axis. Daily and weekly keys are 'YYYY-MM-DD', monthly keys are
+   'YYYY-MM' and stand for the first of that month. Anything else returns null, which puts the
+   chart back on index spacing rather than guessing. */
+function trendTimeOf(x){
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(String(x));
+  return m ? new Date(+m[1], +m[2] - 1, m[3] ? +m[3] : 1).getTime() : null;
+}
+/* Roughly how much room a date label needs before the next one starts sitting on it. */
+const TREND_LABEL_GAP_PX = 46;
 function drawTrendChart(host, points, colours, band, label){
   if(!host) return;
   if(!points || points.length < 2){
@@ -23747,7 +23756,26 @@ function drawTrendChart(host, points, colours, band, label){
   const span = (hi - lo) || Math.max(1, Math.abs(hi) * 0.1);
   const pad = span * 0.12;
   const yMin = lo - pad, yMax = hi + pad;
-  const X = i => TREND_PAD_L + (points.length === 1 ? innerW / 2 : innerW * i / (points.length - 1));
+  /* THE X AXIS WAS AN INDEX, NOT A DATE.
+
+     Points were placed at i/(n-1), so the distance between two readings said nothing about
+     how far apart they happened. Measured with five entries in June and five in September
+     and nothing between: every gap was drawn at 37.1px, the three-month one included. The
+     note under this chart says it exists for spotting slow multi-month drift, and drift over
+     time is exactly what an index cannot show — a layoff, a holiday, a month you stopped
+     logging, all of it collapsed into one step the same width as a single night.
+
+     Index spacing is still the fallback, for a series whose keys do not parse as dates and
+     for one that spans no time at all (every reading on the same day, or a single point),
+     where dividing by the span would be dividing by zero. */
+  const times = points.map(p=>trendTimeOf(p.x));
+  const dated = times.every(t=>t != null);
+  const tMin = dated ? Math.min(...times) : 0;
+  const tSpan = dated ? Math.max(...times) - tMin : 0;
+  const X = i => points.length === 1 ? TREND_PAD_L + innerW / 2
+    : (dated && tSpan > 0)
+      ? TREND_PAD_L + innerW * (times[i] - tMin) / tSpan
+      : TREND_PAD_L + innerW * i / (points.length - 1);
   const Y = v => TREND_PAD_T + innerH * (1 - (v - yMin) / (yMax - yMin));
   const path = points.map((p, i)=> `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
   const area = `${path}L${X(points.length-1).toFixed(1)},${(TREND_PAD_T+innerH).toFixed(1)}`
@@ -23770,9 +23798,18 @@ function drawTrendChart(host, points, colours, band, label){
     return `<line x1="${TREND_PAD_L}" y1="${y.toFixed(1)}" x2="${w - TREND_PAD_R}" y2="${y.toFixed(1)}" stroke="var(--hair)" stroke-width="1"/>`
          + `<text x="${TREND_PAD_L - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="tc-tick">${txt}</text>`;
   }).join('');
-  const step = Math.max(1, Math.ceil(points.length / 6));
+  /* Labels were every Nth point, which was safe only while points were evenly spaced. On a
+     date axis a cluster of readings sits inside a few pixels, so the rule is distance rather
+     than count: walk from the most recent backwards and keep a label whenever it clears the
+     last one kept. That way the latest reading is always named, and none of them collide. */
+  const labelled = new Set();
+  let lastLabelX = Infinity;
+  for(let i = points.length - 1; i >= 0; i--){
+    const x = X(i);
+    if(i === points.length - 1 || lastLabelX - x >= TREND_LABEL_GAP_PX){ labelled.add(i); lastLabelX = x; }
+  }
   const xLabels = points.map((p, i)=>{
-    if(i % step && i !== points.length - 1) return '';
+    if(!labelled.has(i)) return '';
     const t = String(p.x).slice(5).replace('-', '/');
     return `<text x="${X(i).toFixed(1)}" y="${TREND_H - 3}" text-anchor="middle" class="tc-tick">${t}</text>`;
   }).join('');
