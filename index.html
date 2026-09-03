@@ -7196,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.261';
+const APP_VERSION = '2026.08.31.262';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7224,7 +7224,8 @@ const APP_NOTES = {
   '2026.08.31.258': 'A day with both a lift and a run now says how long to leave between them.',
   '2026.08.31.259': 'Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.',
   '2026.08.31.260': 'The skill list now opens on the ladders you can start today, not the order they were written in.',
-  '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.'
+  '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.',
+  '2026.08.31.262': 'The progress box under a skill now counts the same levels the wheel above it does.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11773,6 +11774,15 @@ function seedSkillPicker(category, skillGoals){
   st.index = 0;   // the order below puts the actives first, so this opens on one of them
 }
 
+/* A GATE IS NOT A LEVEL, EVERYWHERE THE NUMBER IS PRINTED.
+
+   The picker stopped counting the gate as level 1; the progression panel underneath it did
+   not, so the same skill read "L1/7" in one box and nothing on the wheel two inches above.
+   These two are the whole conversion, and every display site now goes through them rather
+   than doing its own `levelIndex+1`. Trees without a `prereq` return 0 and are unchanged. */
+function skillGateLevels(tree){ return (tree && tree.prereq && tree.prereq.levels) || 0; }
+function skillLadderTotal(tree){ return (tree ? tree.levels.length : 0) - skillGateLevels(tree); }
+
 /* WHAT THE WHEEL PUT IN FRONT OF A BEGINNER.
 
    The rest of the wheel was "everything else as declared", which is the order the trees
@@ -11840,7 +11850,7 @@ function renderSkillPicker(category){
     // nothing at all if you have not.
     // Levels count from the first REAL rung, so a skill whose ladder opens with a gate
     // does not report you a level into work you have not started.
-    const gate = (PROGRESSION_TREES[category][key].prereq || {}).levels || 0;
+    const gate = skillGateLevels(PROGRESSION_TREES[category][key]);
     const mark = d.active
       ? `<span class="skill-rank">${order.indexOf(key)+1}</span>`
       : ((d.levelIndex == null || d.levelIndex < gate) ? '' : `L${d.levelIndex+1-gate}`);
@@ -11871,7 +11881,7 @@ function renderSkillPicker(category){
      Those entries now draw as a gate above the ladder: unnumbered, not tickable, and
      ticked or not from the ladders it actually names rather than from your level on this
      one. The real rungs number from 1. The stored levelIndex is unchanged. */
-  const gateCount = (tree.prereq && tree.prereq.levels) || 0;
+  const gateCount = skillGateLevels(tree);
   const gateMet = () => {
     const need = (tree.prereq && tree.prereq.needs) || [];
     if(!need.length) return false;
@@ -21118,9 +21128,13 @@ async function suggestMobilityAdvance(sg){
 // One shape for both kinds of skill: where the level sits in its ladder, what the level
 // actually is, what the app makes of it, and — when there is one — the button that moves
 // it. Drawn light-on-dark, since it renders inside the skill's own black box.
+// `levelIndex` and `levelCount` arrive LADDER-RELATIVE: a skill whose ladder opens with a
+// gate hands this the number counted from its first real rung, and a negative index means
+// you are still at the gate, which is a state rather than a level.
 function skillProgressHtml(o){
-  const pct = Math.round(((o.levelIndex+1) / o.levelCount) * 100);
-  let html = `<div class="skg-prog-head"><span>Progress</span><span>L${o.levelIndex+1}/${o.levelCount}</span></div>`
+  const shown = o.levelIndex + 1;
+  const pct = Math.max(0, Math.round((shown / o.levelCount) * 100));
+  let html = `<div class="skg-prog-head"><span>Progress</span><span>${shown < 1 ? 'not started' : 'L'+shown+'/'+o.levelCount}</span></div>`
     + `<div class="skg-bar"><div class="skg-bar-fill" style="width:${pct}%;"></div></div>`
     + `<div class="score-note" style="margin-top:4px;">${o.levelText}</div>`
     + `<div class="score-note" style="margin-top:3px;">${o.note}</div>`;
@@ -21289,13 +21303,27 @@ async function suggestExerciseAdvance(sg){
   if(!tree) return null;
   const label = tree.label;
   const p = await getExerciseSkillProgress(sg.skill, sg.levelIndex);
+  // Levels are counted from the first real rung, so a gated ladder does not report the
+  // entry condition as level 1 here while the wheel above it reports nothing.
+  const gate = skillGateLevels(tree);
+  const lvl = sg.levelIndex + 1 - gate, total = skillLadderTotal(tree);
+  if(lvl < 1){
+    // Still at the gate. Naming the prerequisite is the only useful thing to say — the
+    // ladder has not started, so there is no level to hold, advance or count sessions at.
+    const wants = ((tree.prereq && tree.prereq.needs) || []).map(n=>{
+      const t2 = PROGRESSION_TREES.exercise[n.skill];
+      return t2 ? `${t2.label} to ${t2.levels[n.minLevel]}` : n.skill;
+    }).join(' and ');
+    return { skill: sg.skill, label, action:'hold', progress: p,
+      note: `Not started. The entry condition is ${tree.levels[0].replace(/\s*\(prerequisite\)$/, '')}${wants ? ` — that is ${wants}` : ''}.` };
+  }
   if(sg.levelIndex >= tree.levels.length - 1){
     return { skill: sg.skill, label, action:'top', progress: p,
-      note: `Level ${sg.levelIndex+1} of ${tree.levels.length} — top of this progression. Keep it in rotation rather than chasing further.` };
+      note: `Level ${lvl} of ${total} — top of this progression. Keep it in rotation rather than chasing further.` };
   }
   if(sg.isMaintenance){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `On maintenance — held at level ${sg.levelIndex+1} while you focus elsewhere.` };
+      note: `On maintenance — held at level ${lvl} while you focus elsewhere.` };
   }
   if(p.atLevel === 0){
     return { skill: sg.skill, label, action:'hold', progress: p,
@@ -21303,10 +21331,10 @@ async function suggestExerciseAdvance(sg){
   }
   if(p.atLevel < EXERCISE_SKILL_SESSIONS_TO_ADVANCE){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `${p.atLevel} of ${EXERCISE_SKILL_SESSIONS_TO_ADVANCE} sessions logged at level ${sg.levelIndex+1}. Skill work is frequency-driven, so repeated easy practice is what moves it, not one hard session.` };
+      note: `${p.atLevel} of ${EXERCISE_SKILL_SESSIONS_TO_ADVANCE} sessions logged at level ${lvl}. Skill work is frequency-driven, so repeated easy practice is what moves it, not one hard session.` };
   }
   return { skill: sg.skill, label, action:'advance', progress: p, nextLevel: tree.levels[sg.levelIndex+1],
-    note: `${p.atLevel} sessions logged at level ${sg.levelIndex+1}. Ready for ${tree.levels[sg.levelIndex+1]}.` };
+    note: `${p.atLevel} sessions logged at level ${lvl}. Ready for ${tree.levels[sg.levelIndex+1]}.` };
 }
 
 // The advance signal for whichever skill the picker is showing: how many days at this
@@ -21329,8 +21357,9 @@ async function renderExerciseProgression(){
     const subBar = (s.action !== 'top' && s.progress && s.progress.atLevel)
       ? (s.progress.atLevel / EXERCISE_SKILL_SESSIONS_TO_ADVANCE) * 100
       : null;
+    const gate = skillGateLevels(tree);
     target.innerHTML = skillProgressHtml({ skill: sg.skill, category:'exercise',
-      levelIndex: sg.levelIndex, levelCount: tree.levels.length, levelText: tree.levels[sg.levelIndex],
+      levelIndex: sg.levelIndex - gate, levelCount: skillLadderTotal(tree), levelText: tree.levels[sg.levelIndex],
       note: s.note, subBar, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
     bindSkillAdvanceButtons(target, renderExerciseProgression);
   } catch(e){}
