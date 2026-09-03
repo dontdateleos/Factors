@@ -6623,12 +6623,14 @@ applyA11yFieldLabels(document);
    at all. This was not a missing convention. The convention below is good; it had simply
    stopped being updated as controls were added.
 
-   The [data-…] qualifiers matter: these lists render invisible placeholder rows with
-   opacity:0 and no data attribute, and a blanket selector would turn each one into a tab
-   stop that focuses nothing anyone can see. */
+   The [data-…] qualifiers matter on the two wheels: those lists render invisible placeholder
+   rows at opacity:0 with no data attribute, and a blanket selector would turn each into a
+   tab stop that focuses nothing anyone can see. .wheel-add-card has no such placeholder and
+   was over-qualified on [data-add-date] — which the sweep caught the moment two more kinds
+   of card appeared on it, carrying data-set-off and data-clear-off instead. */
 const A11Y_INTERACTIVE_SELECTOR = '.type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, '
   + '.goal-priority-btn, .flow-header, .group-head.collapsible, .mob-check-row[data-level], '
-  + '.mob-wheel-item[data-offset], .week-day-item[data-offset], .wheel-add-card[data-add-date]';
+  + '.mob-wheel-item[data-offset], .week-day-item[data-offset], .wheel-add-card';
 function applyA11yToInteractiveDivs(root){
   root.querySelectorAll(A11Y_INTERACTIVE_SELECTOR).forEach(el=>{
     if(el.tagName==='BUTTON' || el.hasAttribute('role') || el.getAttribute('aria-hidden') === 'true') return;
@@ -7183,7 +7185,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.252';
+const APP_VERSION = '2026.08.31.253';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -12378,9 +12380,15 @@ let wheelBlockPos = null;
 // this tab had to be re-solved against that boundary. This is a list.
 // One day's two cards. Shared, because the pane's height is set from the tallest day in
 // the week and that means building all seven, not just the one on screen.
-function weekDayDetailHtml(date, realBlocks){
+function weekDayDetailHtml(date, realBlocks, isOff){
+  if(isOff){
+    // A day you have marked off says so and offers the way back, rather than looking like
+    // any other empty day the generator simply has not reached yet.
+    return `<div class="wheel-add-card" data-clear-off="${date}" style="opacity:0.65;">Not training this day &middot; tap to undo</div>`;
+  }
   if(!realBlocks.length){
-    return `<div class="wheel-add-card" data-add-date="${date}">+ Add workout</div>`;
+    return `<div class="wheel-add-card" data-add-date="${date}">+ Add workout</div>`
+      + `<div class="wheel-add-card" data-set-off="${date}" style="opacity:0.55; border-style:dashed;">Not this day</div>`;
   }
   return realBlocks.map(({slot, block}) => {
     const names = extractBlockNames(block);
@@ -12835,7 +12843,7 @@ async function renderWeekGrid(){
   const activeDate = dates[activeWheelDayIndex];
   const activeDayData = dayBlocks[activeWheelDayIndex];
   const realBlocks = activeDayData.blocks.filter(b => b.block);
-  const detailHtml = weekDayDetailHtml(activeDate, realBlocks);
+  const detailHtml = weekDayDetailHtml(activeDate, realBlocks, await isDayOff(activeDate));
   // Every day is measured, not just this one, and the pane holds the tallest. Otherwise
   // scrolling from a two-lift day to an eight-lift one moved everything below the panel
   // down the page under your thumb, which made the load bars and the buttons a moving
@@ -12856,6 +12864,27 @@ async function renderWeekGrid(){
   });
   detailCol.querySelectorAll('[data-add-date]').forEach(card=>{
     card.addEventListener('click', ()=> openBlockEditor(card.dataset.addDate, 'am', null));
+  });
+  // Marking a day off clears anything already sitting on it — the point is that nothing is
+  // happening, and leaving a block behind would say otherwise.
+  detailCol.querySelectorAll('[data-set-off]').forEach(card=>{
+    card.addEventListener('click', async ()=>{
+      const d = card.dataset.setOff;
+      for(const slot of ['am','pm']){ try{ await window.storage.delete(`weekplan:${d}:${slot}`); } catch(e){} }
+      try{ await window.storage.delete(`planned_session:${d}`); } catch(e){}
+      await setDayOff(d, true);
+      showToast('Nothing will be planned for that day');
+      weekDetailLastHtml = '';
+      renderWeekGrid();
+    });
+  });
+  detailCol.querySelectorAll('[data-clear-off]').forEach(card=>{
+    card.addEventListener('click', async ()=>{
+      await setDayOff(card.dataset.clearOff, false);
+      showToast('That day is available again');
+      weekDetailLastHtml = '';
+      renderWeekGrid();
+    });
   });
 }
 
@@ -21741,6 +21770,29 @@ document.getElementById('generateProgramFromGoalsBtn').addEventListener('click',
 // Shared across all generators — finds this week's fully-empty weekplan slots, filtered to
 // Training Setup's available days if that's been saved. Falls back to all days if no setup
 // exists yet, so this doesn't break anything for people who haven't filled it in.
+/* ---------- A DAY YOU HAVE TOLD IT ABOUT ----------
+
+   Available days are a weekly shape — Mon, Wed, Fri, every week — and life is not. You
+   could clear a day after the generator had already put something on it, but there was no
+   way to say "not that one" in advance, so every trip, late meeting or day out was a
+   correction after the fact rather than something the plan knew.
+
+   One date, one key, and a third clause in the filter that already asks "is this one of
+   your days" and "has it been and gone". Nothing else needs to know: the generator simply
+   sees fewer days that week, which is what is true. */
+const DAY_OFF_PREFIX = 'dayoff:';
+async function isDayOff(date){
+  try{ await window.storage.get(DAY_OFF_PREFIX + date); return true; } catch(e){ return false; }
+}
+async function daysOffInWeek(dates){
+  const off = new Set();
+  for(const d of dates){ if(await isDayOff(d)) off.add(d); }
+  return off;
+}
+async function setDayOff(date, on){
+  if(on) await window.storage.set(DAY_OFF_PREFIX + date, JSON.stringify({ date, at: Date.now() }));
+  else await window.storage.delete(DAY_OFF_PREFIX + date);
+}
 async function getAvailableEmptyDates(weekDatesOverride){
   /* A day that has already gone is not an available day. getWeekDates() runs Monday to
      Sunday whatever day it is now, and nothing filtered it, so generating mid-week put
@@ -21748,7 +21800,9 @@ async function getAvailableEmptyDates(weekDatesOverride){
      Mon/Wed/Fri, produced exactly two sessions — Monday and Wednesday, both behind you —
      nothing on Friday, and a Today tab reading "nothing planned · next session monday". The
      first thing the app does for a new person, and it was already over. */
-  const dates = (weekDatesOverride || getWeekDates()).filter(d => d >= todayStr);
+  const all = (weekDatesOverride || getWeekDates()).filter(d => d >= todayStr);
+  const off = await daysOffInWeek(all);
+  const dates = all.filter(d => !off.has(d));
   const emptyDates = [];
   for(const date of dates){
     let hasBlock = false;
