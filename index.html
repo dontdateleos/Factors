@@ -2812,7 +2812,7 @@
     <div class="group form-panel">
       <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">Goal Profile</div><span class="head-est" id="goalProfileSummary"></span><div class="group-sub">shapes every recovery threshold in here</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="goalprofile" style="display:none;">
-        <select id="goalProfile">
+        <select id="goalProfile" aria-label="Goal profile">
           <option value="perform">Perform</option>
           <option value="balanced">Balanced</option>
           <option value="longevity">Longevity</option>
@@ -2881,11 +2881,11 @@
           <button id="exportAllBtn">Export all data</button>
           <button id="copyExportBtn" class="outline">Copy</button>
         </div>
-        <textarea id="exportOutput" readonly placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
+        <textarea id="exportOutput" readonly aria-label="Exported data" placeholder="Exported data will appear here — tap to select all, then copy" style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <div id="exportResult" class="score-note note-live"></div>
 
         <div class="score-note" style="margin-top:16px;">Writes exported data back in. For migrations and recovery, not daily use.</div>
-        <textarea id="bulkImportInput" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
+        <textarea id="bulkImportInput" aria-label="Paste data to import" placeholder='{"entry:2026-08-14": {...}, "training:2026-08-14:1234567890": {...}}' style="min-height:100px; font-family:var(--mono); font-size:var(--fs-tag);"></textarea>
         <button id="bulkImportBtn">Import</button>
         <div id="bulkImportResult" class="score-note note-live"></div>
       </div>
@@ -7078,7 +7078,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.240';
+const APP_VERSION = '2026.08.31.241';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11315,7 +11315,7 @@ function addGoalRow(goal){
     <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance" placeholder="or leave blank"></div>
     <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time" placeholder="or leave blank"></div>
     <div class="field-row" data-goal-field="date"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
-    <div class="field-row"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;"><label style="font-size:var(--fs-sm);">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
+    <div class="field-row"><label style="font-size:var(--fs-sm); display:flex; align-items:center; gap:8px;"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
 
   row.querySelector('.goal-type').value = goal.type || 'strength';
   row.querySelector('.goal-target-exercise').value = goal.targetExercise || '';
