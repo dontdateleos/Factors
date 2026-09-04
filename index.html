@@ -138,6 +138,9 @@
        (25%) and the blocks lifted off those (14%). Three levels, not one — a tinted ground
        reads as warm because there is nothing neutral left to read it against. */
     --ground:#0c0d0b;
+    /* A neutral default for the faded hue, so a wheel painted before body carries its tab
+       class — first paint, or any state that clears it — is cream rather than unstyled. */
+    --hue-faded:#fbfaf6;
     /* The current tab's field, one step up from the ground. Set per tab beside --band. */
     --field:var(--field-lime);
     /* Vertical rhythm. Nineteen distinct spacing values were in use across the six tabs —
@@ -284,11 +287,18 @@
   body.tab-settings main{ background:transparent; } body.tab-settings{ background:var(--ground); }
   /* The one place each tab's hue is still saturated. The ground is a tint of it, so the
      band reads as the same colour turned all the way up rather than as a second colour. */
-  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); }
-  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); }
-  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); }
-  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); }
-  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); }
+  /* A third step off each hue, for text on the ground. The band is the hue at full
+     strength on a chip; the field is it at 8% under the content; this is it at reading
+     weight — enough to say which tab you are on, not enough to compete with the chip a few
+     pixels above. Derived like the fields and not picked: 0.55*block + 0.45*#fbfaf6,
+     rounded. Change a block and all three have to be recomputed together.
+     Literal hex rather than color-mix(): this ships to an iOS home screen, and a wheel that
+     silently loses its colour on an older WebKit is not worth the tidier stylesheet. */
+  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); --hue-faded:#dce59c; }
+  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); --hue-faded:#eed98f; }
+  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); --hue-faded:#fdae9d; }
+  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); --hue-faded:#ddcffb; }
+  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); --hue-faded:#9ee7f7; }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -297,13 +307,11 @@
      colour. They take the same three-step scale .form-panel already uses: full cream for
      content, 0.65 for labels, 0.42 for notation. Nothing here changes what any of them
      do — only which side of the contrast they are on. */
-  .drill-text, .gloss-term, .mob-wheel-name, .skill-active-row span{ color:var(--bg); }
+  .drill-text, .gloss-term, .skill-active-row span{ color:var(--bg); }
 
   /* The two skill pickers were drawn for a light ground and say so in their own values —
      rgba(12,13,11,...) throughout. Same rows, same states, other side. The done row keeps
      meaning "filled in": it was black-on-colour, so on a dark ground it becomes cream. */
-  #strengthSkillPicker .mob-wheel-focus-line, #mobilitySkillPicker .mob-wheel-focus-line{
-    border-top-color:rgba(251,250,246,0.45); border-bottom-color:rgba(251,250,246,0.45); }
   #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--bg); }
   #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:var(--bg); }
   #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--bg); }
@@ -874,20 +882,28 @@
   .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .mob-wheel:active{ cursor:grabbing; }
+  /* The hue lives here, on the base rules, and every wheel in the app inherits it —
+     the two skill pickers, the assessment, and the week picker through its own copy of
+     these. It was briefly set in the on-the-ground correction block near the top of the
+     sheet instead, which does not work: these rules come later at equal specificity and
+     won on order, so the assessment wheel kept its cream while the pickers changed. */
   .mob-wheel-item{ height:var(--mob-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--bg); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
+    font-family:var(--sans); color:var(--hue-faded); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
     font-size:var(--fs-lg); padding:0 2px; }
   .mob-wheel-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .mob-wheel-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .mob-wheel-score{ font-family:var(--mono); color:rgba(251,250,246,0.55); flex:none; margin-left:10px; }
-  .mob-wheel-item.focused .mob-wheel-score{ color:var(--bg); }
+  .mob-wheel-score{ font-family:var(--mono); color:var(--hue-faded); opacity:0.55; flex:none; margin-left:10px; }
+  .mob-wheel-item.focused .mob-wheel-score{ opacity:1; }
+  /* The rank disc paints its own orange ground and sets ink on it, so it opts out of the
+     alpha the rest of the column carries. */
+  .mob-wheel-score:has(.skill-rank){ opacity:1; }
   /* Marks the selection row so it's clear which name the numbers below apply to. */
   /* --mob-focus-row is which of the three rows currently holds the focused name. It is the
      middle one in the body of the list, but at either end the window clamps rather than
      reserving a blank row, so the line follows it. */
   .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:calc(var(--mob-row) * var(--mob-focus-row, 1));
-    height:var(--mob-row); border-top:1px solid rgba(251,250,246,0.5); border-bottom:1px solid rgba(251,250,246,0.5);
-    pointer-events:none; }
+    height:var(--mob-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
+    opacity:0.45; pointer-events:none; }
   /* The assessment is a form you fill in, so it takes the same black band every other form
      takes. The black IS the section now, which is why the rail that used to run down the
      left of the numerals is gone: it was a partial version of this, and the only piece of
@@ -1096,6 +1112,12 @@
      The chart bleeds to the panel's edges and pulls down over the field's bottom padding,
      so the colour runs to the end of the panel rather than stopping short of it. */
   .week-panel > .fields{ background:var(--ground); }
+  /* The same rule, applied where it was not. Both skill pickers and the mobility
+     assessment are entirely things you OPERATE — a wheel you spin, a box you tick, a
+     ladder you tap — and they were sitting in the tab's field, which made the whole
+     section read as one large tinted block with the controls inside it. On the ground,
+     with the wheel carrying the hue instead, they match the week picker. */
+  .spin-panel > .fields, #mobilityAssessmentBody{ background:var(--ground); }
   /* Seven cells, one per day, in the order the week ran. State is carried by fill rather
      than colour: done is a solid band, missed is an outline, a rest day is neither. That
      keeps it legible without inventing a red/green vocabulary the rest of the app does not
@@ -1159,27 +1181,24 @@
   /* Same shape as the mobility assessment it borrows the picker from: the picker runs the
      full width at the top of the black, and what you picked sits underneath it. */
   .week-wheel-stage{ display:block; }
-  /* The wheel takes the tab's own hue, faded. --block-yellow at full strength is the band
-     colour — a 26px word in it would compete with the section chip directly above. Mixed
-     about half way to the cream ground it reads as this tab's yellow without shouting, and
-     the unfocused rows keep their inline opacity, so the hierarchy is unchanged. A literal
-     hex rather than color-mix(): this ships to an iOS home screen and the mix is not worth
-     a silently unstyled wheel on an older WebKit. */
-  .week-day-picker{ --day-row:38px; --week-spin:#eed98f; position:relative;
+  /* The wheel takes the tab's own hue, faded — see --hue-faded, which every wheel in the
+     app now reads. The unfocused rows keep their inline opacity, so the hierarchy is
+     unchanged. */
+  .week-day-picker{ --day-row:38px; position:relative;
     height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .week-day-picker:active{ cursor:grabbing; }
   .week-day-item{ height:var(--day-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--week-spin); transition:opacity 0.18s, font-size 0.18s;
+    font-family:var(--sans); color:var(--hue-faded); transition:opacity 0.18s, font-size 0.18s;
     cursor:pointer; font-size:var(--fs-lg); padding:0 2px; -webkit-tap-highlight-color:transparent; }
   .week-day-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .week-day-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
-  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(238,217,143,0.55);
+  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--hue-faded); opacity:0.55;
     flex:none; margin-left:8px; }
-  .week-day-item.focused .week-day-mark{ color:var(--week-spin); }
+  .week-day-item.focused .week-day-mark{ opacity:1; }
   .week-day-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:var(--day-row); border-top:1px solid rgba(238,217,143,0.45); border-bottom:1px solid rgba(238,217,143,0.45);
-    pointer-events:none; }
+    height:var(--day-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
+    opacity:0.45; pointer-events:none; }
   /* The day's workouts, one either side of the page. Two is the most a day can hold — the
      plan has an am slot and a pm slot — so they sit as a pair rather than a stack, and a
      day with one leaves the other half empty rather than stretching to fill it. */
@@ -1698,10 +1717,13 @@
     width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
     font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
     background:var(--block-orange); color:var(--text); }
-  #strengthSkillPicker .mob-wheel-item, #mobilitySkillPicker .mob-wheel-item{ color:var(--text); }
-  #strengthSkillPicker .mob-wheel-score, #mobilitySkillPicker .mob-wheel-score{ color:rgba(12,13,11,0.5); }
-  #strengthSkillPicker .mob-wheel-item.focused .mob-wheel-score,
-  #mobilitySkillPicker .mob-wheel-item.focused .mob-wheel-score{ color:var(--text); }
+  /* The three light-ground wheel rules that used to sit here are gone, not overridden. They
+     dated from when these pickers were drawn on a light surface and they set dark ink —
+     rgba(12,13,11,0.5) for the score. They sit later in the sheet than the dark-ground
+     correction block near the top, at equal specificity, so they won on order: a level mark
+     like "L3" was in the DOM at half-strength black on a near-black field, and only the
+     rank disc showed, because it paints its own orange behind itself. The correction block
+     owns these now. */
   /* No nowrap: "10-15s x3-5 sets, or 5-7s eccentric x3-5" is a real target string, and
      holding it on one line pushed the document 140px wider than the screen. */
   #strengthSkillPicker .skill-level-target, #mobilitySkillPicker .skill-level-target{
@@ -2490,7 +2512,7 @@
       <!-- The two skill ladders are one system and always were: same skillGoals array, same
            picker, same levels. loadCurrentGoals already seeded both from whichever tab you
            were on — only the markup had them on separate tabs. -->
-      <div class="group">
+      <div class="group spin-panel">
         <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
         <div class="fields">
           <details class="mobility-legend">
@@ -2510,7 +2532,7 @@
         </div>
       </div>
 
-      <div class="group">
+      <div class="group spin-panel">
         <div class="group-head"><div class="group-title">Mobility Skills</div><div class="group-sub">what you're chasing, and where each one sits</div></div>
         <div class="fields">
           <details class="mobility-legend">
@@ -7245,7 +7267,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.272';
+const APP_VERSION = '2026.08.31.273';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7284,7 +7306,8 @@ const APP_NOTES = {
   '2026.08.31.269': 'Share the shape of your week — seven marks and the dates, no numbers to be ranked by.',
   '2026.08.31.270': 'A short static hold opens the warm-up when a tested-tight area is what is limiting the session.',
   '2026.08.31.271': 'The week picker takes the Weekly tab\u2019s own yellow, faded.',
-  '2026.08.31.272': 'The block chart is its own section now, titled Training load.'
+  '2026.08.31.272': 'The block chart is its own section now, titled Training load.',
+  '2026.08.31.273': 'Every wheel wears its tab\u2019s colour, and the sections around them sit on the plain ground.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
