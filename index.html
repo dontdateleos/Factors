@@ -7228,7 +7228,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.269';
+const APP_VERSION = '2026.08.31.270';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7264,7 +7264,8 @@ const APP_NOTES = {
   '2026.08.31.266': 'Picking two skills that train the same movement now says so.',
   '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.',
   '2026.08.31.268': 'A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.',
-  '2026.08.31.269': 'Share the shape of your week — seven marks and the dates, no numbers to be ranked by.'
+  '2026.08.31.269': 'Share the shape of your week — seven marks and the dates, no numbers to be ranked by.',
+  '2026.08.31.270': 'A short static hold opens the warm-up when a tested-tight area is what is limiting the session.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -25964,12 +25965,71 @@ async function generateWarmup(){
   // drills that name it themselves. What is left is the drills, in order, as one run \u2014
   // which is what you actually do. An injured area still colours its own drills, so the
   // flag survives the label it used to hang on.
+  /* ONE STATIC HOLD, WHERE RANGE IS THE THING IN THE WAY.
+
+     The proposal was a static stretch capped at 60s in every warm-up, on the finding that
+     under about a minute it does not impair what follows. That finding is a NULL RESULT —
+     a licence, not a reason — and the warm-up budget is not free: it already scales down
+     to 45% on a 30-minute session, and on a run it is trimmed to 220 seconds by a
+     POSITIVE finding (dynamic stretching improved running 9.8% at 217-220s and impaired
+     it at 900). Spending that budget on a null result would displace drills with a
+     measured benefit, so a universal static stretch is not what this does.
+
+     What it does is the case where static stretching is positively indicated: the tissue
+     is short enough to be the constraint on the movement you are about to do, and you
+     accept a small acute cost to get into position at all. Both halves have to be true and
+     the app can check both — the area is one it has ALREADY decided is limiting today
+     (injury, a load spike, or ankles under a planned squat), and the eleven-domain
+     assessment scores it a real deficit rather than merely untested.
+
+     One area, first in the list so the dynamic work follows and re-primes, and never on a
+     run or a shortened session, where the budget is already the binding constraint. Every
+     `static` entry in MOBILITY_LIBRARY is dosed 45-60s, which is the cap; the assert below
+     keeps that true if one is ever edited. */
+  const STATIC_PREP_MAX_SCORE = 2;      // 0-5 assessment scale — a deficit, not just untested
+  const STATIC_PREP_CAP_SECONDS = 60;
+  let staticPrep = null;
+  if(!runType && warmupCap >= WARMUP_TIME_CAP){
+    let scores = {};
+    try{
+      const a = await getMobilityAssessment();
+      scores = (a && a.scaleVersion === MOBILITY_SCALE_VERSION && a.scores) || {};
+    } catch(e){}
+    const areaScore = area => {
+      const ds = MOBILITY_DOMAINS.filter(d => MOBILITY_DOMAIN_TO_AREA[d] === area && scores[d] != null);
+      return ds.length ? Math.min(...ds.map(d=>scores[d])) : null;
+    };
+    for(const area of selected){
+      const lib = MOBILITY_LIBRARY[area];
+      if(!lib || !lib.static) continue;
+      const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas);
+      const limiting = r.cls !== 'planned' || (area === 'ankles' && squatAnkleFlag);
+      const sc = areaScore(area);
+      if(!limiting || sc == null || sc > STATIC_PREP_MAX_SCORE) continue;
+      // A dose that reads over the cap is not shortened silently — it is skipped, and the
+      // library is what gets fixed.
+      const secs = Math.max(...(String(lib.static).match(/(\d+)\s*s/g) || ['0s']).map(x=>parseInt(x, 10)));
+      if(secs > STATIC_PREP_CAP_SECONDS) continue;
+      staticPrep = { area, text: lib.static, score: sc, cls: r.cls };
+      break;
+    }
+  }
+
   const drillParts = [];
   // Which area each drill came from, in step with drillParts. The 220-second trim below can
   // drop the tail of the list, and an area whose drills all went is not an area that was
   // warmed up — logging it as one would have the cool-down skip tissue nothing touched.
   const drillAreas = [];
   const seen = new Set();
+  if(staticPrep){
+    // Coloured by the area's own reason, not a fixed one — an ankle hold under a planned
+    // squat is not a load flag, and the drills for that same area a line below would have
+    // disagreed with it.
+    const t = shortDose(staticPrep.text);
+    drillParts.push(staticPrep.cls === 'planned' ? t : `<span class="flow-flag ${staticPrep.cls}">${t}</span>`);
+    drillAreas.push(staticPrep.area);
+    seen.add(t.toLowerCase());
+  }
   selected.forEach(area=>{
     const r = areaReason(area, injuryByArea, loadFlagged, runFlagged, squatAnkleFlag, pinnedAreas);
     getWarmupDrills(area).map(shortDose).forEach(d=>{
