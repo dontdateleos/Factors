@@ -2011,7 +2011,11 @@
      either side of it reads as a level of hierarchy where there is only one: these are
      peers. Applied to Today first, and it stayed there — five tabs kept the old size, so
      "consistent" meant one tab agreeing with itself. */
-  .group-head{ padding-top:var(--sp-3); padding-bottom:var(--sp-1);
+  /* 16 above the title against 4 below it, which read as a decision and was not one: the
+     head measured 60px to carry 21px of title, and a fifth of the whole page on Settings
+     was section padding. Even at --sp-2, which is what the base rule a thousand lines up
+     already asks for — this override only ever meant to change the border. */
+  .group-head{ padding-top:var(--sp-2); padding-bottom:var(--sp-1);
     border-bottom-width:1px; border-bottom-color:var(--line); }
   /* .form-panel paints its chevrons and summaries cream, which was right when the head was
      a black slab and is wrong now the band is the tab's colour. */
@@ -2439,7 +2443,7 @@
              present the button was pushed onto its own line under the range and the sub-line
              ended up beneath it. The range reads fine in the sub-line, which was otherwise
              carrying only a description. -->
-        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><div class="group-sub" id="weekReviewRange">what the week actually was</div>
+        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><div class="group-sub" id="weekReviewRange"></div>
           <button type="button" class="head-action" id="shareWeekBtn">Share the shape</button></div>
         <div class="fields" id="weekReviewBody"></div>
       </div>
@@ -2489,7 +2493,7 @@
            else on the screen is a numbered section; the counter is per-panel and automatic,
            so the sections below simply renumber. -->
       <div class="group form-panel">
-        <div class="group-head"><div class="group-title">Training load</div><div class="group-sub">what you actually did, against what the block planned</div></div>
+        <div class="group-head"><div class="group-title">Training load</div></div>
         <div class="fields">
           <div id="weekBlockStrip"></div>
         </div>
@@ -2549,7 +2553,7 @@
            worth reading every time you open the tab. It opens on a tap and stays a heading
            the rest of the time. -->
       <div class="group form-panel" id="whyWeekGroup">
-        <div class="group-head collapsible" data-collapse="whyweek" style="cursor:pointer;"><div class="group-title">Why this week</div><div class="group-sub">why these sessions and not others</div><span class="collapse-chevron collapsed" data-collapse="whyweek">&#9662;</span></div>
+        <div class="group-head collapsible" data-collapse="whyweek" style="cursor:pointer;"><div class="group-title">Why this week</div><span class="collapse-chevron collapsed" data-collapse="whyweek">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="whyweek" style="display:none;">
           <div id="generateProgramResult" class="score-note note-live"></div>
           <div id="weekSessionList"></div>
@@ -2565,7 +2569,7 @@
            picker, same levels. loadCurrentGoals already seeded both from whichever tab you
            were on — only the markup had them on separate tabs. -->
       <div class="group spin-panel">
-        <div class="group-head"><div class="group-title">Strength Skills</div><div class="group-sub">bodyweight progressions, and where each one sits</div></div>
+        <div class="group-head"><div class="group-title">Strength Skills</div></div>
         <div class="fields">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
@@ -2585,7 +2589,7 @@
       </div>
 
       <div class="group spin-panel">
-        <div class="group-head"><div class="group-title">Mobility Skills</div><div class="group-sub">what you're chasing, and where each one sits</div></div>
+        <div class="group-head"><div class="group-title">Mobility Skills</div></div>
         <div class="fields">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
@@ -2613,7 +2617,7 @@
          numbered bands for one idea, and put a submit button between what is sore and the
          means of saying so. -->
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Injuries</div><div class="group-sub">what's sore, how long it lasts, and what it changes</div></div>
+      <div class="group-head"><div class="group-title">Injuries</div></div>
       <div class="fields">
         <!-- Says what the two fields actually do, which the previous wording did not. It read
              "log what hurts, 1-10 ... while it's active the generator eases the sessions that
@@ -2893,12 +2897,12 @@
            counter increments on .group-head and there was none. Workout History's only
            number was therefore a lone 01 beside the LAST of its three sections. -->
       <div class="group">
-        <div class="group-head"><div class="group-title">Block history</div><div class="group-sub">whether the blocks are actually adding up</div></div>
+        <div class="group-head"><div class="group-title">Block history</div></div>
         <div class="fields" id="blockHistoryBody"></div>
       </div>
 
       <div class="group">
-        <div class="group-head"><div class="group-title">Workout History</div><div class="group-sub">pick a date to see what was logged</div></div>
+        <div class="group-head"><div class="group-title">Workout History</div></div>
         <div class="fields">
           <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
           <div id="prevWorkoutsResults"></div>
@@ -2917,7 +2921,7 @@
          this page anyone does more than once — four taps deep for a control that mostly
          answers "yes, you're current". -->
     <div class="group">
-      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version</div><span class="head-est" id="versionSummary"></span><div class="group-sub">what this copy is running</div><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="version" style="cursor:pointer;"><div class="group-title">Version</div><span class="head-est" id="versionSummary"></span><span class="collapse-chevron" data-collapse="version">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="version" style="display:none;">
         <div class="field-row"><span class="field-label">Installed</span><span id="appVersionOut" class="log-entry" style="cursor:default; padding:0;">—</span></div>
         <!-- The version has changed fifty times today and never once said what moved. -->
@@ -2956,7 +2960,7 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="bodymetrics" style="cursor:pointer;"><div class="group-title">Body metrics</div><div class="group-sub">fixed until updated</div><span class="collapse-chevron" data-collapse="bodymetrics">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="bodymetrics" style="cursor:pointer;"><div class="group-title">Body metrics</div><span class="collapse-chevron" data-collapse="bodymetrics">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="bodymetrics" style="display:none;">
         <div class="field-row"><span class="field-label">Height (cm)</span><input type="number" step="0.1" id="bodyHeight"></div>
         <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
@@ -3133,7 +3137,7 @@
          the toggle existed and sat inside a section with display:none. It comes out; the
          per-animation list it used to sit above stays behind the dev flag. -->
     <div class="group form-panel" id="calmGroup">
-      <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion</div><span class="head-est" id="calmSummary"></span><div class="group-sub">how much the mark does</div><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
+      <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion</div><span class="head-est" id="calmSummary"></span><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="calm" style="display:none;">
         <label class="week-deload" for="eyeCalmToggle">
           <input type="checkbox" id="eyeCalmToggle">
@@ -7328,7 +7332,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.280';
+const APP_VERSION = '2026.08.31.281';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7375,7 +7379,8 @@ const APP_NOTES = {
   '2026.08.31.277': 'The five faces have their colour back \u2014 the middle of the scale is no longer grey.',
   '2026.08.31.278': 'The five faces take the brighter scale, sand through the middle.',
   '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.',
-  '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.'
+  '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.',
+  '2026.08.31.281': 'Tighter section headings, and the ones that only repeated their own title are gone.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17520,7 +17525,7 @@ async function renderWeekReview(){
   document.getElementById('weekReviewTitle').textContent =
     when.label === 'this week' ? 'Sunday review' : 'Last week';
   document.getElementById('weekReviewRange').textContent =
-    `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')} \u00b7 what the week actually was`;
+    `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')}`;
 
   const strip = `<div class="wr-strip">` + r.days.map(d=>
     `<div class="wr-day"><span class="wr-dow">${d.dow[0]}</span><span class="wr-mark ${d.state}"></span></div>`
