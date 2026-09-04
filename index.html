@@ -7196,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.264';
+const APP_VERSION = '2026.08.31.265';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7227,7 +7227,8 @@ const APP_NOTES = {
   '2026.08.31.261': 'Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.',
   '2026.08.31.262': 'The progress box under a skill now counts the same levels the wheel above it does.',
   '2026.08.31.263': 'A skill you have not met the prerequisites for now trains the prerequisites, on the right days.',
-  '2026.08.31.264': 'The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.'
+  '2026.08.31.264': 'The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.',
+  '2026.08.31.265': 'The pistol squat stopped counting "be good at bodyweight squats" as its level one.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11902,11 +11903,17 @@ function renderSkillPicker(category){
     if(i < gateCount){
       // No holdOrRepTarget here: on both of these the target restates the rung's own name
       // ("15-20 strict pull-ups" / "15-20 reps"), and the row already carries a second line.
-      const met = gateMet();
+      // A gate whose condition names no ladder this app has cannot be checked, so it
+      // states the condition and stops — better than a confident "tick  to confirm" with
+      // nothing where the skill name should be.
+      const met = gateWants ? gateMet() : false;
+      const state = gateWants
+        ? `<span class="skill-prereq-state">${met ? 'ticked on ' + gateWants : 'tick ' + gateWants + ' to confirm'}</span>`
+        : (target ? `<span class="skill-prereq-state">${det.holdOrRepTarget}</span>` : '');
       return `<div class="mob-check-row prereq${met ? ' done' : ''}">
         <span class="mob-check-num" aria-hidden="true"></span>
         <span class="mob-check-text">Before you start: ${name.replace(/\s*\(prerequisite\)$/, '')}
-          <span class="skill-prereq-state">${met ? 'ticked on ' + gateWants : 'tick ' + gateWants + ' to confirm'}</span></span>
+          ${state}</span>
       </div>`;
     }
     return `<div class="mob-check-row${d.levelIndex != null && i <= d.levelIndex ? ' done' : ''}" data-level="${i}">
@@ -16735,7 +16742,13 @@ const PROGRESSION_TREES = {
         {holdOrRepTarget:"work toward 8/side", advancementCriteria:"8/side with full extension of the working arm", evidence:"coaching_consensus"},
         {holdOrRepTarget:"5/side, build via assisted practice first", advancementCriteria:"Terminal goal \u2014 D.4 recommends an assisted (elevated/band) intermediate step before attempting full", evidence:"coaching_consensus"}
       ] },
+    /* The third ladder opening on an entry condition. "Bodyweight squat mastery" at
+       3x15-20 full-depth reps is not a pistol squat, and ticking it said you were a sixth
+       of the way to one. Unlike the other two it names no ladder this app has — there is
+       no bodyweight-squat tree to point `needs` at — so the gate carries no check and the
+       session places the condition itself, which is what it already did and is right. */
     pistolsquat: { label:'Pistol Squat', tier:2, researched:true, movement:'squat', area:'quads_knees', secondaryArea:'hips',
+      prereq:{ levels:1 },
       levels:["Bodyweight squat mastery", "Box/chair-assisted (decreasing height)", "Assisted", "Negatives", "Full", "Weighted / shrimp"],
       levelDetails:[
         {holdOrRepTarget:"3x15-20 reps", advancementCriteria:"Full-depth bodyweight squats with adequate ankle mobility (heels stay down)", evidence:"coaching_consensus"},
@@ -22438,11 +22451,16 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
          the right label, movement and area and is checked against the day's tag on its
          own terms. Pull-up lands on the pull day, Dip on the push day. */
       const gate = skillGateLevels(tree);
-      const picks = (sg.levelIndex == null || sg.levelIndex < gate)
-        ? ((tree.prereq && tree.prereq.needs) || [])
-            .map(n=>({ t: PROGRESSION_TREES.exercise[n.skill], idx: n.minLevel, toward: tree.label }))
-            .filter(x=>x.t)
-        : [{ t: tree, idx: sg.levelIndex, toward: null }];
+      const atGate = sg.levelIndex == null || sg.levelIndex < gate;
+      const needs = ((tree.prereq && tree.prereq.needs) || [])
+        .map(n=>({ t: PROGRESSION_TREES.exercise[n.skill], idx: n.minLevel, toward: tree.label }))
+        .filter(x=>x.t);
+      // A gate with nothing to point at still has to prescribe something, and the thing it
+      // prescribes is its own condition — one exercise, correctly tagged, which is exactly
+      // what this placed before the gate existed. Only the two-lifts-in-one-row case moves.
+      const picks = !atGate ? [{ t: tree, idx: sg.levelIndex, toward: null }]
+        : needs.length ? needs
+        : [{ t: tree, idx: Math.max(0, gate - 1), toward: null }];
       const fitting = picks.filter(x=>movementFitsTag(x.t.movement, tag));
       if(!fitting.length) return;
       const SKILL_MAX_SESSIONS_PER_WEEK = 3; // per coaching consensus for skills like this (commonly cited as 3-4x/week) — only workable now that concurrent active skills are capped to one at a time
