@@ -2400,12 +2400,12 @@
           <div id="mobilityCards"></div>
           <details class="glossary">
             <summary>what the stages mean</summary>
-            <div class="gloss-item"><span class="gloss-term">ROLL</span>Foam roller or ball on the tissue — slow, pausing where it is sore. Takes the edge off before you move it.</div>
+            <div class="gloss-item"><span class="gloss-term">ROLL</span>Foam roller or ball, slow, pausing where it is sore. Takes the edge off before you move.</div>
             <div class="gloss-item"><span class="gloss-term">MOVE</span>Through the range under your own control, no holding. Restores the range the session used up. Called dynamic stretching.</div>
-            <div class="gloss-item"><span class="gloss-term">HOLD</span>Settle into the stretch and stay there for the time given. This is the one that adds range, and the reason it comes last. Called static stretching.</div>
+            <div class="gloss-item"><span class="gloss-term">HOLD</span>Hold the stretch for the time given &mdash; the one that adds range, which is why it comes last. Static stretching.</div>
             <!-- A stage on screen with no line here is a label you have to guess at, which is
                  what the glossary exists to stop. -->
-            <div class="gloss-item"><span class="gloss-term">PNF</span>In the stretch already: push against your hand or a band for six seconds, let go, and sink further in. Three or four rounds. The most effective of the passive methods, so it goes on the one area that needs range most rather than all of them.</div>
+            <div class="gloss-item"><span class="gloss-term">PNF</span>In the stretch: push against your hand or a band for six seconds, let go, sink deeper. Three or four rounds, on one area only.</div>
           </details>
         </div>
       </div>
@@ -2569,7 +2569,7 @@
         <div class="fields">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
-            <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand progressions come from coaching consensus. Muscle-up is a reasonable extension, not directly sourced &mdash; marked with an asterisk.</div>
+            <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand come from coaching consensus. Muscle-up is our own extension, marked with an asterisk.</div>
           </details>
           <div id="strengthSkillPicker">
             <div class="mob-wheel" id="strengthSkillWheel"></div>
@@ -2589,7 +2589,7 @@
         <div class="fields">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
-            <div class="mobility-legend-body">Pike, bridge, front-split and middle-split are independently verified against real studies. Pancake, deep squat and overhead squat are reasonable extensions, not directly sourced &mdash; those are marked with an asterisk.</div>
+            <div class="mobility-legend-body">Pike, bridge and the splits are verified against real studies. Pancake, deep squat and overhead squat are our own extensions, marked with an asterisk.</div>
           </details>
           <div id="mobilitySkillPicker">
             <div class="mob-wheel" id="mobilitySkillWheel"></div>
@@ -2622,7 +2622,7 @@
              irritability, and a 9 you called low-irritability produced a week identical to no
              injury at all. Severity's real job is duration — measured on the model itself, a
              general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity is how long it lasts, not how much it changes your training: it decays at a rate the type sets and stops counting at 3, so a general 7 runs about two and a half weeks and a 4 about six days &mdash; tendinopathy longer, a sprain or strain shorter. How much it flares under load is what changes the session. High swaps the movement out, moderate takes a set off it, low leaves the plan alone. The warm-up targets the area either way, and running scales back on severity.</div>
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity sets how long it lasts &mdash; higher runs longer, tendinopathy longer than a strain. Irritability changes the session: high swaps the movement out, moderate drops a set, low leaves it alone. Either way the warm-up targets the area.</div>
       </div>
       <!-- The list belongs to the section that promises it. It used to render at the bottom
            of "Log new injury", below the submit button and outside any numbered band, so the
@@ -7328,7 +7328,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.279';
+const APP_VERSION = '2026.08.31.280';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7374,7 +7374,8 @@ const APP_NOTES = {
   '2026.08.31.276': 'The face you picked sits beside the score at the size you picked it.',
   '2026.08.31.277': 'The five faces have their colour back \u2014 the middle of the scale is no longer grey.',
   '2026.08.31.278': 'The five faces take the brighter scale, sand through the middle.',
-  '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.'
+  '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.',
+  '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -12009,7 +12010,7 @@ function assessmentNote(category, skill){
   const domains = domainsForMobilitySkill(skill);
   if(!domains.length) return '';
   const rated = domains.filter(d => mobilityScoresForPicker[d] != null);
-  if(!rated.length) return ' \u00b7 not assessed \u2014 take the test and your weakest area picks a skill for you';
+  if(!rated.length) return ' \u00b7 not assessed yet';
   const parts = rated.map(d => `${d} ${mobilityScoresForPicker[d]}/${MOBILITY_DOMAIN_MAX}`).join(', ');
   const topped = rated.every(d => mobilityScoresForPicker[d] >= MOBILITY_DOMAIN_MAX);
   return ` \u00b7 your assessment: ${parts}${topped ? ' \u2014 already at the top of what the test measures' : ''}`;
@@ -12039,7 +12040,7 @@ function sameMovementNote(category){
   if(actives.length < 2) return '';
   const moves = actives.map(k=>(PROGRESSION_TREES[category][k] || {}).movement).filter(Boolean);
   if(moves.length < 2 || new Set(moves).size > 1) return '';
-  return ` \u00b7 both skills are ${moves[0]} work \u2014 they land on the same days, so the second trains on tissue the first has already tired. A push and a pull would buy you two patterns.`;
+  return ` \u00b7 both are ${moves[0]} work, so they land on the same days \u2014 the second trains tired tissue`;
 }
 
 function activeSkillCount(category){
