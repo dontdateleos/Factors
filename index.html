@@ -7328,7 +7328,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.278';
+const APP_VERSION = '2026.08.31.279';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7373,7 +7373,8 @@ const APP_NOTES = {
   '2026.08.31.275': 'Once you answer, the day\u2019s rating is just the word \u2014 no second face beside the score.',
   '2026.08.31.276': 'The face you picked sits beside the score at the size you picked it.',
   '2026.08.31.277': 'The five faces have their colour back \u2014 the middle of the scale is no longer grey.',
-  '2026.08.31.278': 'The five faces take the brighter scale, sand through the middle.'
+  '2026.08.31.278': 'The five faces take the brighter scale, sand through the middle.',
+  '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -20953,7 +20954,30 @@ async function applyTypePillVisibility(){
       if(bl && bl.type && !scheduled.includes(bl.type)) scheduled.push(bl.type);
     } catch(e){}
   }
-  pills.style.display = scheduled.length === 1 ? 'none' : '';
+  /* PER BUTTON, NOT PER ROW.
+
+     Hiding the whole row when exactly one thing is planned was half the idea. On a day with
+     a lift and a cool-down the row came back with all THREE buttons, so "Run" was still
+     there on a day with no run — the same dead end, just outnumbered. A button for a
+     session that does not exist is a question with no answer behind it.
+
+     So each button now answers for itself, and the row's own rule follows from that: it
+     appears when there is a real choice to make, meaning more than one of the three is
+     actually planned.
+
+     The one case where a button survives with nothing behind it is a day with NOTHING
+     planned — not a rest day, which has its own plate and hides this row entirely, but an
+     empty day you are deciding what to do with. There all three stay, because there the row
+     is not reporting the plan, it is how you pick. */
+  const OFFERED = ['strength', 'run', 'mobility'];
+  const offered = scheduled.filter(t=> OFFERED.includes(t));
+  const nothingPlanned = scheduled.length === 0;
+  pills.style.display = (nothingPlanned || offered.length > 1) ? '' : 'none';
+  // display:none takes them out of the tab order too, so a hidden button cannot be reached
+  // by keyboard either — which is the point, and what the interface sweep checks for.
+  pills.querySelectorAll('.type-btn').forEach(b=>{
+    b.style.display = (nothingPlanned || offered.includes(b.dataset.type)) ? '' : 'none';
+  });
   // And nothing was reading the plan's answer. todaySessionType sat on its declared default
   // of 'strength' unless a pill was tapped — and on a run-only day the pills are hidden, so
   // there was no pill to tap. Every run-aware branch downstream (the run warm-up areas, the
@@ -20963,8 +20987,6 @@ async function applyTypePillVisibility(){
   // row has no button for, and adopting one unguarded would leave todaySessionType on a
   // value with no pill to show it and no branch to handle it — the workout summary would
   // report "No <that> today" about a day that has exactly that.
-  const OFFERED = ['strength', 'run', 'mobility'];
-  const offered = scheduled.filter(t=> OFFERED.includes(t));
   if(offered.length && !offered.includes(todaySessionType)){
     todaySessionType = offered[0];
     pills.querySelectorAll('.type-btn').forEach(b=>
