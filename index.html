@@ -2569,8 +2569,8 @@
            picker, same levels. loadCurrentGoals already seeded both from whichever tab you
            were on — only the markup had them on separate tabs. -->
       <div class="group spin-panel">
-        <div class="group-head"><div class="group-title">Strength Skills</div></div>
-        <div class="fields">
+        <div class="group-head collapsible" data-collapse="strengthskills" style="cursor:pointer;"><div class="group-title">Strength Skills</div><span class="head-est" id="strengthSkillsSummary"></span><span class="collapse-chevron collapsed" data-collapse="strengthskills">&#9662;</span></div>
+        <div class="fields collapsible-body" data-collapse="strengthskills" style="display:none;">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
             <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand come from coaching consensus. Muscle-up is our own extension, marked with an asterisk.</div>
@@ -2589,8 +2589,8 @@
       </div>
 
       <div class="group spin-panel">
-        <div class="group-head"><div class="group-title">Mobility Skills</div></div>
-        <div class="fields">
+        <div class="group-head collapsible" data-collapse="mobilityskills" style="cursor:pointer;"><div class="group-title">Mobility Skills</div><span class="head-est" id="mobilitySkillsSummary"></span><span class="collapse-chevron collapsed" data-collapse="mobilityskills">&#9662;</span></div>
+        <div class="fields collapsible-body" data-collapse="mobilityskills" style="display:none;">
           <details class="mobility-legend">
             <summary>Where do these progressions come from?</summary>
             <div class="mobility-legend-body">Pike, bridge and the splits are verified against real studies. Pancake, deep squat and overhead squat are our own extensions, marked with an asterisk.</div>
@@ -6498,6 +6498,11 @@ function activateTab(name, opts){
   if(name==='injuries'){
     loadCurrentGoals(); renderMobilityAssessment(); renderMobilityProgression();
     refreshInjuries();
+    // COLLAPSE_REMEMBERED used to be entirely Settings keys, so the one call site was
+    // Settings' own branch. The two skill pickers put remembered keys on this tab, and
+    // without this a section you deliberately opened came back shut on the next visit.
+    // Re-opening only keys saved as open, so calling it from two places is safe.
+    restoreRememberedCollapse();
   }
   if(name==='data'){
     const activeView = document.querySelector('#dataViewPills .type-btn.active')?.dataset.view || 'recovery';
@@ -7332,7 +7337,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.281';
+const APP_VERSION = '2026.08.31.282';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7380,7 +7385,8 @@ const APP_NOTES = {
   '2026.08.31.278': 'The five faces take the brighter scale, sand through the middle.',
   '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.',
   '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.',
-  '2026.08.31.281': 'Tighter section headings, and the ones that only repeated their own title are gone.'
+  '2026.08.31.281': 'Tighter section headings, and the ones that only repeated their own title are gone.',
+  '2026.08.31.282': 'The two skill pickers fold away, with what you are working on in the heading.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -7561,7 +7567,8 @@ async function checkForUpdate(){
 // re-renders like that, and re-opening the same section on every visit is a tap you already
 // paid for.
 const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
-                             'bodymetrics', 'scorelog', 'blinding', 'weights', 'version', 'legal', 'calm'];
+                             'bodymetrics', 'scorelog', 'blinding', 'weights', 'version', 'legal', 'calm',
+                             'strengthskills', 'mobilityskills'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
@@ -12048,6 +12055,33 @@ function sameMovementNote(category){
   return ` \u00b7 both are ${moves[0]} work, so they land on the same days \u2014 the second trains tired tissue`;
 }
 
+/* WHAT THE HEAD SAYS WHEN THE SECTION IS SHUT.
+
+   Both pickers are folded by default now — they are the two tallest things in the app and
+   you set a skill about once a month while reading it every day. A section you cannot see
+   into is only an improvement if its heading still answers the question you opened the tab
+   for, so the head carries what you are working on and how far along it is: "Pull-up L6/9",
+   or both when both slots are filled, or "none set".
+
+   Ladder-relative, through the same helpers the wheel and the progress box use, so a gated
+   skill cannot report a different level here than it does two lines further in. */
+const SKILL_SUMMARY_IDS = { exercise:'strengthSkillsSummary', mobility:'mobilitySkillsSummary' };
+function paintSkillSummary(category){
+  const el = document.getElementById(SKILL_SUMMARY_IDS[category]);
+  if(!el) return;
+  const st = skillPickerState[category];
+  const trees = PROGRESSION_TREES[category];
+  const parts = skillPickerOrder(category)
+    .filter(k=> st.draft[k] && st.draft[k].active)
+    .map(k=>{
+      const t = trees[k], d = st.draft[k];
+      const gate = skillGateLevels(t);
+      const lvl = d.levelIndex == null ? null : d.levelIndex + 1 - gate;
+      return t.label + (lvl && lvl >= 1 ? ` L${lvl}/${skillLadderTotal(t)}` : '');
+    });
+  el.textContent = parts.length ? parts.join(' \u00b7 ') : 'none set';
+}
+
 function activeSkillCount(category){
   const st = skillPickerState[category];
   return skillKeysFor(category).filter(k=>st.draft[k] && st.draft[k].active).length;
@@ -12158,6 +12192,7 @@ function renderSkillPicker(category){
     + (tree.researched === false ? ' \u00b7 this progression is a reasonable extension, not directly sourced' : '')
     + sameMovementNote(category)
     + assessmentNote(category, key);
+  paintSkillSummary(category);
 
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
     row.addEventListener('click', ()=>{
