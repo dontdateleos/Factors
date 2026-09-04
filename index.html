@@ -7196,7 +7196,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.266';
+const APP_VERSION = '2026.08.31.267';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7229,7 +7229,8 @@ const APP_NOTES = {
   '2026.08.31.263': 'A skill you have not met the prerequisites for now trains the prerequisites, on the right days.',
   '2026.08.31.264': 'The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.',
   '2026.08.31.265': 'The pistol squat stopped counting "be good at bodyweight squats" as its level one.',
-  '2026.08.31.266': 'Picking two skills that train the same movement now says so.'
+  '2026.08.31.266': 'Picking two skills that train the same movement now says so.',
+  '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11818,6 +11819,54 @@ function skillPickerOrder(category){
   return actives.concat(byTier.filter(k=>!(st.draft[k] && st.draft[k].active)));
 }
 
+/* THE ASSESSMENT THE MOBILITY PICKER NEVER MENTIONED.
+
+   The eleven-domain test already drives a great deal: it picks a skill goal for you when
+   you have not set one (chooseMobilitySkillGoal takes your lowest scoring domain), and it
+   orders which areas a session spends its time on. What it never did was show up at the
+   moment you are choosing a skill by hand — so you could pick Front Splits with hips and
+   hamstrings both at 5/5, or Middle Split with adductors at 1, and the app knew and said
+   nothing.
+
+   The skill-to-domain mapping is DERIVED rather than hand-authored: MOBILITY_SKILL_TARGET_
+   AREAS says which areas a skill trains, MOBILITY_DOMAIN_TO_AREA says which area each
+   domain tests, so inverting the second against the first gives the domains that measure
+   the skill. That is one table to keep true instead of two, and it is why fixing bridge,
+   middlesplit and pancake's target areas mattered beyond the ledger — a skill that named
+   the wrong tissue would now also report the wrong scores. MOBILITY_DOMAIN_TO_SKILL is
+   the wrong source here: it is one-skill-per-domain by design, so it would report Front
+   Splits as a hips skill and lose the hamstrings half. */
+let _skillDomainCache = null;
+function domainsForMobilitySkill(skill){
+  if(!_skillDomainCache){
+    _skillDomainCache = {};
+    for(const [sk, areas] of Object.entries(MOBILITY_SKILL_TARGET_AREAS)){
+      _skillDomainCache[sk] = MOBILITY_DOMAINS.filter(d => areas.includes(MOBILITY_DOMAIN_TO_AREA[d]));
+    }
+  }
+  return _skillDomainCache[skill] || [];
+}
+// Filled on load and after a save, so the picker can read it without going async on every
+// render — this runs on every wheel tick and drag frame.
+let mobilityScoresForPicker = {};
+async function refreshMobilityScoresForPicker(){
+  try{
+    const a = await getMobilityAssessment();
+    mobilityScoresForPicker = (a && a.scaleVersion === MOBILITY_SCALE_VERSION && a.scores) || {};
+  } catch(e){ mobilityScoresForPicker = {}; }
+}
+const MOBILITY_DOMAIN_MAX = 5;
+function assessmentNote(category, skill){
+  if(category !== 'mobility') return '';
+  const domains = domainsForMobilitySkill(skill);
+  if(!domains.length) return '';
+  const rated = domains.filter(d => mobilityScoresForPicker[d] != null);
+  if(!rated.length) return ' \u00b7 not assessed \u2014 take the test and your weakest area picks a skill for you';
+  const parts = rated.map(d => `${d} ${mobilityScoresForPicker[d]}/${MOBILITY_DOMAIN_MAX}`).join(', ');
+  const topped = rated.every(d => mobilityScoresForPicker[d] >= MOBILITY_DOMAIN_MAX);
+  return ` \u00b7 your assessment: ${parts}${topped ? ' \u2014 already at the top of what the test measures' : ''}`;
+}
+
 /* BOTH SLOTS SPENT ON ONE MOVEMENT PATTERN.
 
    Two active skills always land on the same days — measured on a four-day upper/lower
@@ -11953,7 +12002,8 @@ function renderSkillPicker(category){
   if(category === 'exercise') renderExerciseProgression(); else renderMobilityProgression();
   note.textContent = `Tick the hardest level you can do \u00b7 ${activeSkillCount(category)} of ${SKILL_ACTIVE_CAP} skills active`
     + (tree.researched === false ? ' \u00b7 this progression is a reasonable extension, not directly sourced' : '')
-    + sameMovementNote(category);
+    + sameMovementNote(category)
+    + assessmentNote(category, key);
 
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
     row.addEventListener('click', ()=>{
@@ -17381,6 +17431,10 @@ async function loadCurrentGoals(){
     goalSummary.textContent = named.length ? named.join(' · ') : 'none set';
   }
   // Both skill categories are pickers now — nothing is rendered as an editable row.
+  // Scores are pulled once here rather than inside the render: renderSkillPicker runs on
+  // every wheel tick and every drag frame, and reading storage there would make the note
+  // async on a path that has to stay synchronous.
+  await refreshMobilityScoresForPicker();
   seedSkillPicker('exercise', goals && goals.skillGoals);
   seedSkillPicker('mobility', goals && goals.skillGoals);
   renderSkillPicker('exercise');
@@ -19773,7 +19827,12 @@ function assessmentAgeDays(assessment){
 }
 
 async function saveMobilityAssessment(scores){
-  return await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr, scaleVersion: MOBILITY_SCALE_VERSION }));
+  const r = await window.storage.set('settings:mobilityAssessment', JSON.stringify({ scores, lastUpdated: todayStr, scaleVersion: MOBILITY_SCALE_VERSION }));
+  // The picker reads a cached copy; without this the note would still say "not assessed"
+  // on the screen you just came from.
+  await refreshMobilityScoresForPicker();
+  try{ if(document.getElementById(SKILL_PICKERS.mobility.wheel)) renderSkillPicker('mobility'); } catch(e){}
+  return r;
 }
 
 // Checks this week's actual planned strength sessions for bulletproofing/accessory
