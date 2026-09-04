@@ -1096,6 +1096,20 @@
      The chart bleeds to the panel's edges and pulls down over the field's bottom padding,
      so the colour runs to the end of the panel rather than stopping short of it. */
   .week-panel > .fields{ background:var(--ground); }
+  /* Seven cells, one per day, in the order the week ran. State is carried by fill rather
+     than colour: done is a solid band, missed is an outline, a rest day is neither. That
+     keeps it legible without inventing a red/green vocabulary the rest of the app does not
+     use — and this review is not in the business of marking work. */
+  .wr-strip{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:var(--sp-3); }
+  .wr-day{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .wr-dow{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
+  .wr-mark{ width:100%; height:26px; border-radius:2px; border:1px solid rgba(251,250,246,0.28); }
+  .wr-mark.done{ background:var(--bg); border-color:var(--bg); }
+  .wr-mark.part{ background:linear-gradient(to top, var(--bg) 50%, transparent 50%); }
+  .wr-mark.extra{ background:repeating-linear-gradient(45deg, var(--bg) 0 2px, transparent 2px 5px); }
+  .wr-mark.rest, .wr-mark.ahead{ border-style:dashed; border-color:rgba(251,250,246,0.18); }
+  .wr-legend{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim);
+    letter-spacing:0.02em; margin-bottom:var(--sp-3); line-height:1.6; }
   #weekBlockStrip{ background:var(--field);
     margin:0 calc(-1 * var(--gutter)) calc(-1 * var(--sp-3)); padding:var(--sp-3) var(--gutter); }
 
@@ -2335,6 +2349,14 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
+      <!-- Above the week you are about to build, because it is about the one you just
+           finished, and on Sunday and Monday only. Hidden the rest of the time rather
+           than rendered empty: a panel that says "nothing to review yet" for five days
+           out of seven is five days of noise. -->
+      <div class="group form-panel" id="weekReviewPanel" style="display:none;">
+        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><span class="head-est" id="weekReviewRange"></span><div class="group-sub">what the week actually was</div></div>
+        <div class="fields" id="weekReviewBody"></div>
+      </div>
       <!-- The week leads, in the same black band the mobility assessment takes on the
            Body tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
@@ -6414,7 +6436,12 @@ function activateTab(name, opts){
 function activateTrainingSubView(view){
   document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
-  if(view==='weekly'){ withEyesBusy(Promise.resolve(renderWeekGrid()), document.getElementById('weekDayPicker')); }
+  if(view==='weekly'){
+    withEyesBusy(Promise.resolve(renderWeekGrid()), document.getElementById('weekDayPicker'));
+    // On the way in, like the recovery log — it reads planned blocks and logged sessions
+    // live, and both change while the tab is open.
+    renderWeekReview().catch(()=>{});
+  }
   updateFooterVisibility();
 }
 document.querySelectorAll('#trainingViewPills .type-btn').forEach(btn=>{
@@ -7196,7 +7223,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.267';
+const APP_VERSION = '2026.08.31.268';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7230,7 +7257,8 @@ const APP_NOTES = {
   '2026.08.31.264': 'The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.',
   '2026.08.31.265': 'The pistol squat stopped counting "be good at bodyweight squats" as its level one.',
   '2026.08.31.266': 'Picking two skills that train the same movement now says so.',
-  '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.'
+  '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.',
+  '2026.08.31.268': 'A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17259,6 +17287,161 @@ async function getRemainingWeekDemand(){
     reason: `${describe(missedByType)} missed earlier this week. Rather than trying to fit those in on top of what's already planned, ${priorityNote}` };
 }
 
+/* ---------- SUNDAY REVIEW ----------
+   A week has never been closed off. The app is entirely forward-facing — today's session,
+   this week's plan, the next level — and the one moment where looking backwards is worth
+   anything, the end of the week, had no surface at all.
+
+   Built as its own panel rather than a recommendation card, which is what was originally
+   proposed and is the wrong shape: the cards are one-line nudges about today, read in
+   three seconds and dismissed. A review is read once and read properly.
+
+   Everything here is measured, nothing is congratulatory. The rule the whole app follows —
+   you against yourself — means the review's job is to say what happened, not to grade it.
+   No streaks, no scores, no "great week". Planned against done, time under stretch against
+   the target, and where each skill actually stands.
+
+   WHICH WEEK. getWeekDates() runs Monday to Sunday, so on Sunday it is the week now
+   ending. Monday is included and looks BACK a week: a review only reachable on the one day
+   you might not open the app is a review nobody reads. */
+function weekReviewDates(){
+  const dow = localDateFrom(todayStr).getDay();
+  if(dow === 0) return { dates: getWeekDates(), label: 'this week' };            // Sunday
+  if(dow === 1) return { dates: getWeekDatesForOffset(-1), label: 'last week' }; // Monday
+  return null;
+}
+
+const WEEK_REVIEW_TYPES = ['strength', 'run', 'mobility'];
+async function buildWeekReview(dates){
+  const sessions = await getAllTrainingSessions();
+  const days = [];
+  let planned = 0, logged = 0;
+  for(const date of dates){
+    const plannedTypes = [], loggedTypes = [];
+    for(const slot of ['am', 'pm']){
+      try{
+        const b = JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value);
+        if(b && WEEK_REVIEW_TYPES.includes(b.type)) plannedTypes.push(b.type);
+      } catch(e){}
+    }
+    sessions.forEach(sn=>{ if(sn && sn.date === date && WEEK_REVIEW_TYPES.includes(sn.type)) loggedTypes.push(sn.type); });
+    planned += plannedTypes.length;
+    logged += loggedTypes.length;
+    // Matched by TYPE, not one-to-one: logging a run on a day that planned a run is that
+    // day done, and a session you added yourself counts as much as one the app planned.
+    const covered = plannedTypes.filter(t => loggedTypes.includes(t)).length;
+    const future = date > todayStr;
+    days.push({ date, dow: WEEKDAY_NAMES[(localDateFrom(date).getDay() + 6) % 7],
+      planned: plannedTypes, logged: loggedTypes, future,
+      // A day that has not happened is never missed. On Sunday and Monday, the two days
+      // this review runs, there are none — but the state is computed here and read
+      // elsewhere, so it should not depend on the caller having picked the right week.
+      state: future ? (plannedTypes.length ? 'ahead' : 'rest')
+        : !plannedTypes.length ? (loggedTypes.length ? 'extra' : 'rest')
+        : covered >= plannedTypes.length ? 'done' : covered ? 'part' : 'missed' });
+  }
+
+  /* MOBILITY, COUNTED THE WAY THE TARGET IS ACTUALLY DEFINED.
+
+     MOBILITY_WEEKLY_TARGET_SECONDS is 600s PER AREA — every read site compares it against
+     one area's total. The obvious summary, total seconds under stretch against 600, would
+     have been a whole-body number held up against a per-area bar, and it double counts
+     besides: a stretch charged to two areas appears in both. So the review reports how
+     many areas actually reached the target, and the total separately, as a total. */
+  let stretchTotal = 0, areasAtTarget = 0, areasTouched = 0;
+  try{
+    const led = await loadWeekStretchLedger(dates);
+    for(const secs of Object.values(led)){
+      if(!secs) continue;
+      areasTouched++;
+      stretchTotal += secs;
+      if(secs >= MOBILITY_WEEKLY_TARGET_SECONDS) areasAtTarget++;
+    }
+  } catch(e){}
+
+  const goals = await getCurrentGoals(todayStr);
+  const skillGoals = ((goals && goals.skillGoals) || []).filter(sg=>!sg.isMaintenance);
+  const skills = [];
+  for(const sg of skillGoals){
+    try{
+      const adv = sg.category === 'exercise' ? await suggestExerciseAdvance(sg) : await suggestMobilityAdvance(sg);
+      if(adv) skills.push({ label: adv.label, action: adv.action, note: adv.note });
+    } catch(e){}
+  }
+
+  let entries = 0;
+  for(const date of dates){
+    try{ await window.storage.get(`entry:${date}`); entries++; } catch(e){}
+  }
+
+  let deload = null;
+  try{ deload = await checkDeloadSignal(); } catch(e){}
+
+  return { dates, days, planned, logged, stretchTotal, areasAtTarget, areasTouched,
+    stretchTarget: MOBILITY_WEEKLY_TARGET_SECONDS, skills,
+    entries, entryDays: dates.filter(d=>d <= todayStr).length, deload };
+}
+
+function weekReviewRow(label, text, lines){
+  return `<div class="plan-item"><span class="plan-key">${label}</span><strong>${text}</strong>`
+    + (lines || []).filter(Boolean).map(l=>`<div class="plan-line">${l}</div>`).join('')
+    + `</div>`;
+}
+
+const MIN = 60;
+async function renderWeekReview(){
+  const panel = document.getElementById('weekReviewPanel');
+  if(!panel) return;
+  const when = weekReviewDates();
+  if(!when){ panel.style.display = 'none'; return; }
+  const r = await buildWeekReview(when.dates);
+  panel.style.display = '';
+  document.getElementById('weekReviewTitle').textContent =
+    when.label === 'this week' ? 'Sunday review' : 'Last week';
+  document.getElementById('weekReviewRange').textContent =
+    `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')}`;
+
+  const strip = `<div class="wr-strip">` + r.days.map(d=>
+    `<div class="wr-day"><span class="wr-dow">${d.dow[0]}</span><span class="wr-mark ${d.state}"></span></div>`
+  ).join('') + `</div>`;
+
+  const done = r.days.filter(d=>d.state === 'done').length;
+  const part = r.days.filter(d=>d.state === 'part').length;
+  const missed = r.days.filter(d=>d.state === 'missed').length;
+  const extra = r.days.filter(d=>d.state === 'extra').length;
+  // Only the marks actually on screen get a legend line. Naming all five every week put
+  // two wrapped lines of key above three lines of content.
+  const key = [ done ? 'solid \u00b7 done' : null, part ? 'half \u00b7 part done' : null,
+    extra ? 'hatched \u00b7 unplanned' : null, missed ? 'outline \u00b7 not logged' : null,
+    r.days.some(d=>d.state === 'rest') ? 'dashed \u00b7 rest' : null ].filter(Boolean);
+  const legend = `<div class="wr-legend">${key.join(' &nbsp; ')}</div>`;
+
+  const rows = [];
+  // Sessions. The count is the sentence — no adjective on it either way.
+  rows.push(weekReviewRow('Sessions',
+    r.planned ? `${done + part} of ${r.days.filter(d=>d.planned.length).length} planned days logged`
+              : 'nothing was planned this week',
+    [ missed ? `${missed} planned day${missed === 1 ? '' : 's'} went unlogged` : null,
+      extra ? `${extra} session${extra === 1 ? '' : 's'} you added yourself` : null ]));
+
+  // Mobility, against the target as it is actually defined — per area, not per week.
+  rows.push(weekReviewRow('Mobility',
+    r.areasTouched
+      ? `${r.areasAtTarget} of ${r.areasTouched} area${r.areasTouched === 1 ? '' : 's'} reached ${Math.round(r.stretchTarget / MIN)} min`
+      : 'no stretching logged',
+    [ r.stretchTotal ? `${Math.round(r.stretchTotal / MIN)} min under stretch in total, across all areas` : null ]));
+
+  r.skills.forEach(sk=> rows.push(weekReviewRow(sk.action === 'advance' ? 'Ready' : 'Skill', sk.label, [sk.note])));
+
+  rows.push(weekReviewRow('How you felt',
+    `logged on ${r.entries} of ${r.entryDays} day${r.entryDays === 1 ? '' : 's'}`,
+    [ r.entries < r.entryDays ? 'the score is built from these, so the gaps are gaps in it too' : null ]));
+
+  if(r.deload) rows.push(weekReviewRow('Next week', 'a deload is suggested', [r.deload.reason]));
+
+  document.getElementById('weekReviewBody').innerHTML = strip + legend + rows.join('');
+}
+
 async function checkDeloadSignal(){
   const goals = await getCurrentGoals(todayStr);
   if(!goals || !goals.list) return null;
@@ -20891,9 +21074,12 @@ async function renderTodayBlockContext(forDate){
 // sessions, strength-day companions, run-day companions, warm-ups and post-session work.
 // Enforcing a per-muscle-group ceiling from three separate in-memory counters meant each
 // generator only saw its own contribution, so the real total always exceeded the target.
-async function loadWeekStretchLedger(){
+// `dates` is optional and defaults to the current week, which is every existing caller.
+// The Sunday review needs it: on Monday it reports on the week just gone, and without this
+// it read the current week's ledger — two hours of stretching last week showing as none.
+async function loadWeekStretchLedger(dates){
   const ledger = {};
-  const weekDates = getWeekDates();
+  const weekDates = dates || getWeekDates();
   // Loaded full-ROM work counts toward the same target — see LOADED_ROM_CREDIT_SECONDS.
   // Read off logged sessions rather than planned ones, so it is credit for work done.
   try{
