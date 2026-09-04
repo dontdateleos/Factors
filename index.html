@@ -3014,8 +3014,8 @@
 
 
     <div class="group">
-      <div class="group-head"><div class="group-title">Report a problem</div><div class="group-sub">what to send with it</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="reportproblem" style="cursor:pointer;"><div class="group-title">Report a problem</div><div class="group-sub">what to send with it</div><span class="collapse-chevron collapsed" data-collapse="reportproblem">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="reportproblem" style="display:none;">
         <!-- A tester who hits something has no way to say so from in here, and "it did a
              weird thing on Tuesday" is not reportable. This copies the few facts that make
              a report actionable — which build, how much data, what the score did today —
@@ -3167,8 +3167,8 @@
          true today, and needed no lawyer to write, because the facts are simple. The draft
          stays underneath for when this goes further than people you know. -->
     <div class="group">
-      <div class="group-head"><div class="group-title">Where your data goes</div><div class="group-sub">the short, true version</div></div>
-      <div class="fields">
+      <div class="group-head collapsible" data-collapse="datagoes" style="cursor:pointer;"><div class="group-title">Where your data goes</div><div class="group-sub">the short, true version</div><span class="collapse-chevron collapsed" data-collapse="datagoes">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="datagoes" style="display:none;">
         <div class="score-note" style="color:var(--bg);">Everything you log stays in this browser, on this device. There is no account, there is no copy on a server, and nobody else — including whoever gave you this app — can see your entries.</div>
         <div class="score-note">Two things do leave the device, and only if you set them up:</div>
         <div class="score-note"><b>Oura.</b> Connecting it sends your Oura login through a small server the app's author runs, to Oura and back, so the app can read your own readings. The readings are stored here, not there.</div>
@@ -7337,7 +7337,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.282';
+const APP_VERSION = '2026.08.31.283';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7386,7 +7386,8 @@ const APP_NOTES = {
   '2026.08.31.279': 'Today only offers the sessions you actually have \u2014 no Run button on a day with no run.',
   '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.',
   '2026.08.31.281': 'Tighter section headings, and the ones that only repeated their own title are gone.',
-  '2026.08.31.282': 'The two skill pickers fold away, with what you are working on in the heading.'
+  '2026.08.31.282': 'The two skill pickers fold away, with what you are working on in the heading.',
+  '2026.08.31.283': 'Settings is half the height \u2014 the two sections that never folded now do.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -7568,7 +7569,7 @@ async function checkForUpdate(){
 // paid for.
 const COLLAPSE_REMEMBERED = ['devices', 'goalprofile', 'trainingsetup', 'backupampr',
                              'bodymetrics', 'scorelog', 'blinding', 'weights', 'version', 'legal', 'calm',
-                             'strengthskills', 'mobilityskills'];
+                             'strengthskills', 'mobilityskills', 'reportproblem', 'datagoes'];
 // One-time cleanup of the keys the Today sections used to write.
 try{
   ['collapsed:warmup', 'collapsed:cooldown', 'collapsed:epoch'].forEach(k=>localStorage.removeItem(k));
