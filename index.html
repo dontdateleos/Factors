@@ -2354,7 +2354,12 @@
            than rendered empty: a panel that says "nothing to review yet" for five days
            out of seven is five days of noise. -->
       <div class="group form-panel" id="weekReviewPanel" style="display:none;">
-        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><span class="head-est" id="weekReviewRange"></span><div class="group-sub">what the week actually was</div></div>
+        <!-- No head-est here. It and .head-action both take margin-left:auto, so with both
+             present the button was pushed onto its own line under the range and the sub-line
+             ended up beneath it. The range reads fine in the sub-line, which was otherwise
+             carrying only a description. -->
+        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><div class="group-sub" id="weekReviewRange">what the week actually was</div>
+          <button type="button" class="head-action" id="shareWeekBtn">Share the shape</button></div>
         <div class="fields" id="weekReviewBody"></div>
       </div>
       <!-- The week leads, in the same black band the mobility assessment takes on the
@@ -7223,7 +7228,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.268';
+const APP_VERSION = '2026.08.31.269';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7258,7 +7263,8 @@ const APP_NOTES = {
   '2026.08.31.265': 'The pistol squat stopped counting "be good at bodyweight squats" as its level one.',
   '2026.08.31.266': 'Picking two skills that train the same movement now says so.',
   '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.',
-  '2026.08.31.268': 'A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.'
+  '2026.08.31.268': 'A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.',
+  '2026.08.31.269': 'Share the shape of your week — seven marks and the dates, no numbers to be ranked by.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17399,7 +17405,7 @@ async function renderWeekReview(){
   document.getElementById('weekReviewTitle').textContent =
     when.label === 'this week' ? 'Sunday review' : 'Last week';
   document.getElementById('weekReviewRange').textContent =
-    `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')}`;
+    `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')} \u00b7 what the week actually was`;
 
   const strip = `<div class="wr-strip">` + r.days.map(d=>
     `<div class="wr-day"><span class="wr-dow">${d.dow[0]}</span><span class="wr-mark ${d.state}"></span></div>`
@@ -17440,6 +17446,52 @@ async function renderWeekReview(){
   if(r.deload) rows.push(weekReviewRow('Next week', 'a deload is suggested', [r.deload.reason]));
 
   document.getElementById('weekReviewBody').innerHTML = strip + legend + rows.join('');
+  _lastWeekReview = { review: r, dates: when.dates };
+}
+let _lastWeekReview = null;
+document.getElementById('shareWeekBtn').addEventListener('click', async ()=>{
+  if(!_lastWeekReview) return;
+  const text = weekShareText(_lastWeekReview.review, _lastWeekReview.dates);
+  // navigator.share is the right thing on a phone and is what this will hit on the home
+  // screen; the clipboard is the fallback everywhere else. A share the user cancels
+  // throws AbortError, which is not a failure and gets no toast.
+  if(navigator.share){
+    try{ await navigator.share({ text }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; }
+  }
+  try{ await navigator.clipboard.writeText(text); showToast('Week copied'); }
+  catch(e){ showToast('Could not copy \u2014 ' + text.split('\n')[1], true, 6000); }
+});
+
+/* SHARING A WEEK WITHOUT MAKING IT A SCORE.
+
+   The brief was that this app is you against yourself, so anything shareable has to be
+   tasteful — which rules out most of what a fitness app would normally put in a share
+   card. No score, no volume, no streak, no personal best, and deliberately NO TOTALS: the
+   moment it says "5 of 5" it is a number someone can hold their own week against, and the
+   Wordle-shaped block grid this borrows its form from is a comparison device by design.
+
+   So what goes out is the SHAPE and nothing else. Seven marks, three states, the dates.
+   A filled block is a day you trained, an empty one a day you planned to and did not, a
+   dot a rest day. Someone reading it learns what your week looked like and has nothing to
+   rank you by — not even against themselves.
+
+   Three states rather than the review's five: part-done and unplanned-extra are both
+   just "you trained" to anyone who was not there, and ◧ and ▨ are the two characters in
+   that set least likely to survive the trip to someone else's phone. */
+const WEEK_SHARE_MARKS = { done:'\u25a0', part:'\u25a0', extra:'\u25a0', missed:'\u25a1', rest:'\u00b7', ahead:'\u00b7' };
+function weekShareText(review, dates){
+  const fmt = d => {
+    const dt = localDateFrom(d);
+    return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]}`;
+  };
+  return [
+    `${fmt(dates[0])} \u2013 ${fmt(dates[6])}`,
+    review.days.map(d=>WEEK_SHARE_MARKS[d.state] || '\u00b7').join(' '),
+    // Spaces separate the key, not a middot: the middot IS one of the marks, so using it
+    // as a separator too made the last clause read "missed · rest" instead of "· = rest".
+    '\u25a0 trained\u2003\u25a1 missed\u2003\u00b7 rest'
+  ].join('\n');
 }
 
 async function checkDeloadSignal(){
