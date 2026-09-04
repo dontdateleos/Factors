@@ -1159,20 +1159,26 @@
   /* Same shape as the mobility assessment it borrows the picker from: the picker runs the
      full width at the top of the black, and what you picked sits underneath it. */
   .week-wheel-stage{ display:block; }
-  .week-day-picker{ --day-row:38px; position:relative;
+  /* The wheel takes the tab's own hue, faded. --block-yellow at full strength is the band
+     colour — a 26px word in it would compete with the section chip directly above. Mixed
+     about half way to the cream ground it reads as this tab's yellow without shouting, and
+     the unfocused rows keep their inline opacity, so the hierarchy is unchanged. A literal
+     hex rather than color-mix(): this ships to an iOS home screen and the mix is not worth
+     a silently unstyled wheel on an older WebKit. */
+  .week-day-picker{ --day-row:38px; --week-spin:#eed98f; position:relative;
     height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
     justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
   .week-day-picker:active{ cursor:grabbing; }
   .week-day-item{ height:var(--day-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--bg); transition:opacity 0.18s, font-size 0.18s;
+    font-family:var(--sans); color:var(--week-spin); transition:opacity 0.18s, font-size 0.18s;
     cursor:pointer; font-size:var(--fs-lg); padding:0 2px; -webkit-tap-highlight-color:transparent; }
   .week-day-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
   .week-day-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
-  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(251,250,246,0.55);
+  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(238,217,143,0.55);
     flex:none; margin-left:8px; }
-  .week-day-item.focused .week-day-mark{ color:var(--bg); }
+  .week-day-item.focused .week-day-mark{ color:var(--week-spin); }
   .week-day-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:var(--day-row); border-top:1px solid rgba(251,250,246,0.5); border-bottom:1px solid rgba(251,250,246,0.5);
+    height:var(--day-row); border-top:1px solid rgba(238,217,143,0.45); border-bottom:1px solid rgba(238,217,143,0.45);
     pointer-events:none; }
   /* The day's workouts, one either side of the page. Two is the most a day can hold — the
      plan has an am slot and a pm slot — so they sit as a pair rather than a stack, and a
@@ -7228,7 +7234,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.270';
+const APP_VERSION = '2026.08.31.271';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7265,7 +7271,8 @@ const APP_NOTES = {
   '2026.08.31.267': 'The mobility picker now shows your assessment score for whatever skill you are looking at.',
   '2026.08.31.268': 'A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.',
   '2026.08.31.269': 'Share the shape of your week — seven marks and the dates, no numbers to be ranked by.',
-  '2026.08.31.270': 'A short static hold opens the warm-up when a tested-tight area is what is limiting the session.'
+  '2026.08.31.270': 'A short static hold opens the warm-up when a tested-tight area is what is limiting the session.',
+  '2026.08.31.271': 'The week picker takes the Weekly tab\u2019s own yellow, faded.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
