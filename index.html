@@ -2583,6 +2583,7 @@
             </label>
             <div class="mob-check" id="strengthSkillLevels"></div>
             <div class="score-note" id="strengthSkillNote"></div>
+            <div class="score-note" id="strengthSkillNoteAside" style="display:none;"></div>
             <div class="skg-progress" id="exerciseProgressBody"></div>
           </div>
         </div>
@@ -2603,6 +2604,7 @@
             </label>
             <div class="mob-check" id="mobilitySkillLevels"></div>
             <div class="score-note" id="mobilitySkillNote"></div>
+            <div class="score-note" id="mobilitySkillNoteAside" style="display:none;"></div>
             <div class="skg-progress" id="mobilityProgressBody"></div>
           </div>
         </div>
@@ -2626,7 +2628,11 @@
              irritability, and a 9 you called low-irritability produced a week identical to no
              injury at all. Severity's real job is duration — measured on the model itself, a
              general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity sets how long it lasts &mdash; higher runs longer, tendinopathy longer than a strain. Irritability changes the session: high swaps the movement out, moderate drops a set, low leaves it alone. Either way the warm-up targets the area.</div>
+        <div class="score-note">Log what hurts, 1&ndash;10. Severity sets how long it lasts; irritability sets what changes today.</div>
+        <div class="plan-item"><span class="plan-key">High</span><strong>swaps the movement out</strong></div>
+        <div class="plan-item"><span class="plan-key">Moderate</span><strong>drops a set</strong></div>
+        <div class="plan-item"><span class="plan-key">Low</span><strong>leaves the plan alone</strong></div>
+        <div class="score-note">The warm-up targets the area either way.</div>
       </div>
       <!-- The list belongs to the section that promises it. It used to render at the bottom
            of "Log new injury", below the submit button and outside any numbered band, so the
@@ -3117,7 +3123,15 @@
                the control they are deciding about. -->
           <span>Hide the score on one training day a week, until I&rsquo;ve logged that day&rsquo;s session</span>
         </label>
-        <div class="score-note">Every readiness score ever shipped is unvalidated, and part of the reason is that seeing one changes what you do — a deflated number measurably worsens mood and performance. One training day a week, picked at random and locked in before it arrives, the number is held back until the session is logged — which makes that day&rsquo;s result an honest label rather than a self-fulfilling one. The difference between your blinded and unblinded days is your own placebo effect, and no wearable company has ever published theirs.</div>
+        <!-- The claim stays on the page; the argument for it moves behind a summary. The
+             control above is the thing you are deciding about and it now has one line under
+             it rather than five, with the reasoning one tap away for whoever wants it. Same
+             pattern the glossary and the progression sources already use. -->
+        <div class="score-note">The gap between your blinded and unblinded days is your own placebo effect.</div>
+        <details class="mobility-legend">
+          <summary>Why hide it at all?</summary>
+          <div class="mobility-legend-body">Every readiness score ever shipped is unvalidated, partly because seeing one changes what you do — a deflated number measurably worsens mood and performance. Holding the number back until the session is logged makes that day&rsquo;s result an honest label rather than a self-fulfilling one. No wearable company has ever published their own placebo effect.</div>
+        </details>
         <div class="score-note note-live" id="blindingStats" style="margin-top:8px;"></div>
         <div id="placeboEffect" style="margin-top:12px;"></div>
         <div id="scoreValidity" style="margin-top:12px;"></div>
@@ -7337,7 +7351,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.283';
+const APP_VERSION = '2026.08.31.284';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7387,7 +7401,8 @@ const APP_NOTES = {
   '2026.08.31.280': 'Less to read \u2014 the longest explanations are about half the length.',
   '2026.08.31.281': 'Tighter section headings, and the ones that only repeated their own title are gone.',
   '2026.08.31.282': 'The two skill pickers fold away, with what you are working on in the heading.',
-  '2026.08.31.283': 'Settings is half the height \u2014 the two sections that never folded now do.'
+  '2026.08.31.283': 'Settings is half the height \u2014 the two sections that never folded now do.',
+  '2026.08.31.284': 'Fewer paragraphs \u2014 rules read as rules, and the reasoning sits one tap away.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -12189,10 +12204,20 @@ function renderSkillPicker(category){
   }).join('');
 
   if(category === 'exercise') renderExerciseProgression(); else renderMobilityProgression();
-  note.textContent = `Tick the hardest level you can do \u00b7 ${activeSkillCount(category)} of ${SKILL_ACTIVE_CAP} skills active`
-    + (tree.researched === false ? ' \u00b7 this progression is a reasonable extension, not directly sourced' : '')
-    + sameMovementNote(category)
-    + assessmentNote(category, key);
+  /* One line grew four middot-joined clauses by accretion — instruction, count, sourcing,
+     assessment — and two of them were mine. The instruction and the count are what the
+     control needs and they stay on the line. Everything conditional moves to a second line
+     under it, which is empty on the ordinary day and reads as a sentence when it is not.
+     The asterisk beside an unsourced skill's name already says "extension"; the legend at
+     the top of the section says what the asterisk means, so the clause repeating it goes. */
+  note.textContent = `Tick the hardest level you can do \u00b7 ${activeSkillCount(category)} of ${SKILL_ACTIVE_CAP} skills active`;
+  const aside = document.getElementById(SKILL_PICKERS[category].note + 'Aside');
+  if(aside){
+    const extra = [sameMovementNote(category), assessmentNote(category, key)]
+      .map(t=>t.replace(/^ \u00b7 /, '')).filter(Boolean);
+    aside.textContent = extra.join(' \u00b7 ');
+    aside.style.display = extra.length ? '' : 'none';
+  }
   paintSkillSummary(category);
 
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
@@ -21659,11 +21684,14 @@ async function suggestMobilityAdvance(sg){
   const weeklyMin = Math.round((p.weeklySeconds||0)/60);
   if((p.weeklySeconds||0) < MOBILITY_WEEKLY_PRODUCTIVE_SECONDS){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `${weeklyMin} min/week at level ${sg.levelIndex+1} — under the ~${Math.round(MOBILITY_WEEKLY_PRODUCTIVE_SECONDS/60)} min needed for reliable gains. Total weekly time under stretch is what drives ROM; intensity and how many sessions you split it across barely move the outcome, so the gap is time, not effort.` };
+      // Two numbers and a verdict, not a paragraph explaining the number. What went was a
+      // sentence about total time driving ROM — true, and the bar right above this already
+      // draws it, with a tick at the floor.
+      note: `${weeklyMin} min/week of ~${Math.round(MOBILITY_WEEKLY_PRODUCTIVE_SECONDS/60)} — under the dose that moves range.` };
   }
   if(p.weeksAtDose < MOBILITY_MIN_WEEKS_AT_DOSE){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `Hitting ~${targetMin} min/week, but only across ${p.weeksAtDose} week${p.weeksAtDose===1?'':'s'}. Give it ${MOBILITY_MIN_WEEKS_AT_DOSE} before moving up.` };
+      note: `~${targetMin} min/week across ${p.weeksAtDose} week${p.weeksAtDose===1?'':'s'} — ${MOBILITY_MIN_WEEKS_AT_DOSE} before moving up.` };
   }
   if(p.testsPassed >= 2){
     return { skill: sg.skill, label, action:'advance', progress: p,
