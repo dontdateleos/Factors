@@ -1112,6 +1112,21 @@
      The chart bleeds to the panel's edges and pulls down over the field's bottom padding,
      so the colour runs to the end of the panel rather than stopping short of it. */
   .week-panel > .fields{ background:var(--ground); }
+  /* TODAY: TWO KINDS OF BLOCK, TOLD APART.
+
+     The warm-up, the session and the cool-down all sat in the same lime field, so the page
+     read as one tinted column with three titles in it. They are not the same kind of thing:
+     the warm-up and the cool-down BRACKET the session — they are what you do either side of
+     the thing you came for. Giving those two the field and a rule down their left, and
+     leaving the session itself on the plain ground, says that in the layout rather than
+     asking the titles to carry it alone.
+
+     The rule is --band, the tab's hue at full strength — the same value .score-note uses
+     for the rule down its own side, so the vocabulary is already established. It runs
+     beside the content and not the head: the head already carries the colour, in the chip. */
+  #warmupSection > .group > .fields, #mobilitySection > .group > .fields{
+    border-left:2px solid var(--band); }
+  #todayWorkoutSummary > .group > .fields{ background:var(--ground); }
   /* The same rule, applied where it was not. Both skill pickers and the mobility
      assessment are entirely things you OPERATE — a wheel you spin, a box you tick, a
      ladder you tap — and they were sitting in the tab's field, which made the whole
@@ -7267,7 +7282,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.273';
+const APP_VERSION = '2026.08.31.274';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7307,7 +7322,8 @@ const APP_NOTES = {
   '2026.08.31.270': 'A short static hold opens the warm-up when a tested-tight area is what is limiting the session.',
   '2026.08.31.271': 'The week picker takes the Weekly tab\u2019s own yellow, faded.',
   '2026.08.31.272': 'The block chart is its own section now, titled Training load.',
-  '2026.08.31.273': 'Every wheel wears its tab\u2019s colour, and the sections around them sit on the plain ground.'
+  '2026.08.31.273': 'Every wheel wears its tab\u2019s colour, and the sections around them sit on the plain ground.',
+  '2026.08.31.274': 'Today separates the session from the warm-up and cool-down that bracket it.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
