@@ -1369,12 +1369,41 @@
      this scale cannot be broken by a future tab. And it says something true: "ok" is
      literally neutral, and colour only arrives as you move away from the middle, in whichever
      direction you are moving. */
+  /* THE SAME SCALE, WITH THE COLOUR PUT BACK IN.
+
+     The diverging structure above is unchanged and still right. What was wrong was how far
+     it fled: chroma ran 81 · 47 · 10 · 25 · 67, so the three middle steps were washed out
+     and "good" — the step picked most often — was the second flattest of the five. Bleak,
+     and measurably so.
+
+     It fled that far because the app owns lime, orange, blue, yellow, purple and red as
+     block colours, and a saturated diverging scale keeps landing on one. But the note above
+     was written after the old scale reused those TOKENS: "rough" was --block-orange and
+     "good" was --accent. A step fifty rgb-units from --block-red is not that, and the two
+     never appear side by side. Nearest block is 50 away at the closest, against 72 before.
+
+     Two properties are held, and they are why these are not just prettier values:
+
+     LUMINANCE STILL RAMPS. 0.238 · 0.314 · 0.398 · 0.475 · 0.562, monotonic bad-to-good.
+     The old scale had this and it is the thing that makes the row survive greyscale, a
+     red-green colour deficit, and a phone in sunlight — direction is carried twice, by hue
+     AND by lightness. The palette this was chosen from broke it: its "ok" was the brightest
+     chip of the five and "raring" was darker than "good", so the ramp inverted at the top.
+     Same hues, lightness solved to restore the ramp.
+
+     COLOUR STILL ARRIVES AS YOU LEAVE THE MIDDLE. Chroma is 79 · 53 · 23 · 45 · 78. "ok" is
+     a warm stone rather than a dead grey — that is the bleakness fix — but it stays the
+     least coloured step, because a saturated middle reads as a warning rather than a
+     shrug. Solving for luminance alone made it a 57% gold, which is exactly that mistake.
+
+     Mean chroma 56%, against 46% before. Black-ink contrast comes up with it: 5.8:1 at the
+     worst step, against 4.9:1. */
   :root{
-    --face-1:#e0402a;   /* wrecked  — red, but not --bad: this is a rating, not an alarm */
-    --face-2:#b0705e;   /* rough    — the red draining out toward neutral */
-    --face-3:#8e8b80;   /* ok       — neutral, and meant as neutral */
-    --face-4:#79a281;   /* good     — green coming up out of neutral */
-    --face-5:#3fc07e;   /* raring   — the all-clear */
+    --face-1:#f24833;   /* wrecked  — red, but not --bad: this is a rating, not an alarm */
+    --face-2:#d48464;   /* rough    — the red draining out toward neutral */
+    --face-3:#b3a989;   /* ok       — near-neutral, and meant as neutral */
+    --face-4:#6fca8b;   /* good     — green coming up out of neutral */
+    --face-5:#32e097;   /* raring   — the all-clear */
   }
   /* Sized and placed to match the trace exactly, directly above it: same right edge, same
      measured width, same 9px caption over a short band. The two of them are one column — what
@@ -7296,7 +7325,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.276';
+const APP_VERSION = '2026.08.31.277';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7339,7 +7368,8 @@ const APP_NOTES = {
   '2026.08.31.273': 'Every wheel wears its tab\u2019s colour, and the sections around them sit on the plain ground.',
   '2026.08.31.274': 'Today separates the session from the warm-up and cool-down that bracket it.',
   '2026.08.31.275': 'Once you answer, the day\u2019s rating is just the word \u2014 no second face beside the score.',
-  '2026.08.31.276': 'The face you picked sits beside the score at the size you picked it.'
+  '2026.08.31.276': 'The face you picked sits beside the score at the size you picked it.',
+  '2026.08.31.277': 'The five faces have their colour back \u2014 the middle of the scale is no longer grey.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
