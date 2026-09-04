@@ -1423,7 +1423,7 @@
      gesture the score itself makes when you swipe to another day.
 
      Tap it and the five come back, so an answer is never a door that shuts. */
-  #todayFaceDock{ position:absolute; display:none; width:30px; height:36px; padding:0;
+  #todayFaceDock{ position:absolute; display:none; width:26px; height:26px; padding:0;
     border:0; border-radius:0; background:var(--face-c); color:#000000; cursor:pointer;
     align-items:center; justify-content:center; z-index:1; flex:none;
     transition:left 0.2s cubic-bezier(.2,.7,.2,1); }
@@ -1435,14 +1435,11 @@
      rather than as filled with a neutral rating. */
   #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(251,250,246,0.32); }
   #todayFaceDock.asking .dock-word{ color:rgba(251,250,246,0.45); }
-  /* Answered: no plate and no mark, so the word moves off the underside of a box that is no
-     longer there and sits where the box was. The box itself stays exactly 30x36 and merely
-     goes transparent — every measurement around it (DOCK_W, dockPlan's reserve, the centring
-     against the numeral, the 44px tap target) is written against that size, and a word is
-     harder to hit than a plate, so the target had better not shrink with the paint. */
-  #todayFaceDock.worded{ background:transparent; }
-  #todayFaceDock.worded .dock-word{ top:50%; margin-top:0; transform:translate(-50%, -50%);
-    color:var(--face-c); font-weight:var(--fw-bold); }
+  /* 26 square is the drawing's size, not the target's. Same trick .subj-face uses a few
+     hundred lines down: the hit area is pushed back out past the plate on every side, so a
+     chip small enough to sit quietly beside the number is still 46px to a thumb. */
+  #todayFaceDock::after{ content:''; position:absolute; left:-10px; right:-10px; top:-10px; bottom:-10px; }
+  #todayFaceDock.locked::after{ content:none; }
   /* Reads out from under the chip, in the chip's own colour, so the word and the mark are
      obviously one statement. Positioned off the chip rather than the band, so it rides with
      it when a three-digit score pushes the number's edge right.
@@ -6962,7 +6959,16 @@ const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
 const FACE_SCALE = 0.38;
 // The docked chip is the same drawing, larger: it is one thing now rather than one of five,
 // and it has to hold its own beside a 58px number.
-const DOCK_W = 30, DOCK_H = 36, DOCK_SCALE = 0.55;
+/* The docked answer is the SAME drawing at the SAME size as the one you tapped — 0.38,
+   which is FACE_SCALE — rather than an enlargement of it. It was 0.55 on the reasoning that
+   one mark alone has to hold its own beside a 58px number; in practice that made the thing
+   you picked louder than the app's own mark two inches above it. Small, it reads as a note
+   in the margin of the score, which is what it is.
+   The box comes down with the drawing (26 square against the picker's 26px row) and the
+   layout follows, because DOCK_W and DOCK_H are what dockPlan reserves and what the
+   centring against the numeral measures. The tap target does NOT come down with it: the
+   same ::after expansion .subj-face uses puts it back to 46x46. */
+const DOCK_W = 26, DOCK_H = 26, DOCK_SCALE = FACE_SCALE;
 let dockWordW = 0;   // the width of the word under the chip; see measureDockWord
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
 function faceEyesHtml(st, k, ink, alive){
@@ -7290,7 +7296,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.275';
+const APP_VERSION = '2026.08.31.276';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7332,7 +7338,8 @@ const APP_NOTES = {
   '2026.08.31.272': 'The block chart is its own section now, titled Training load.',
   '2026.08.31.273': 'Every wheel wears its tab\u2019s colour, and the sections around them sit on the plain ground.',
   '2026.08.31.274': 'Today separates the session from the warm-up and cool-down that bracket it.',
-  '2026.08.31.275': 'Once you answer, the day\u2019s rating is just the word \u2014 no second face beside the score.'
+  '2026.08.31.275': 'Once you answer, the day\u2019s rating is just the word \u2014 no second face beside the score.',
+  '2026.08.31.276': 'The face you picked sits beside the score at the size you picked it.'
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9236,16 +9243,12 @@ function paintTodayFaces(){
       dock.setAttribute('aria-label', editable
         ? `${SUBJECTIVE_WORDS[v-1]} — tap to change`
         : `${SUBJECTIVE_WORDS[v-1]}, recorded on ${stamp(date)}`);
-      /* THE ANSWER STOPPED BEING A SECOND FACE.
-         It used to be a filled square in the rating's colour with the mark drawn inside it
-         in black, blinking, sat against the number — so the row carried two faces, and the
-         louder of them was the one you had picked rather than the app's own. What the chip
-         was actually FOR is the word; the mark was the picker's language leaking into the
-         readout. So the fill and the mark go and the word stays, in the rating's colour, in
-         the same slot. The invitation keeps its face: that one is a button, and a bare word
-         is a weaker thing to aim at than a bordered plate. */
-      dock.classList.add('worded');
-      dock.innerHTML = `<span class="dock-word">${SUBJECTIVE_WORDS[v-1]}</span>`;
+      /* The mark you chose, at the size you chose it. Drawn at FACE_SCALE and filled in its
+         own colour, so the docked answer and the button in the row are the same object seen
+         twice rather than two sizes of the same idea. */
+      dock.classList.remove('worded');
+      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000', true)
+        + `<span class="dock-word">${SUBJECTIVE_WORDS[v-1]}</span>`;
     }
     measureDockWord();
   }
