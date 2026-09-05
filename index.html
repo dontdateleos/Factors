@@ -1082,6 +1082,17 @@
      pointer-events:none — a picture of a gap with nothing to do about it, while the only
      way to backfill was the date browser on Data, which nothing on this page mentions. */
   #scoreTrace{ position:absolute; right:var(--gutter); display:none; pointer-events:auto; cursor:pointer; }
+  /* THE SUGGESTION, BESIDE THE NUMBER IT IS REASONING ABOUT.
+     Mirrors the trace: absolutely placed against the band's other edge, measured off the
+     score's digits rather than given a fixed width, because "77" and "100" do not start in
+     the same place. The lime rule is the Today tab's own colour — it marks the block as
+     belonging to this page rather than as a control, which is what a border would have said. */
+  #recLeft{ position:absolute; left:var(--gutter); display:none; z-index:3; cursor:pointer;
+    text-align:left; border-left:2px solid var(--block-lime); padding-left:8px; }
+  #recLeft .rl-cap{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
+  #recLeft .rl-title{ font-family:var(--mono); font-size:11px; line-height:1.32; color:var(--bg); }
+  #recLeft:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
   /* The same strip on Data, where it is an ordinary block in a column rather than whatever
      the score's digits left over. Cursor and focus ring because it is still the way into a
      day you never filled in. */
@@ -2366,6 +2377,8 @@
       <div class="subj-faces" id="todayFaces"></div>
     </div>
     <div id="scoreTrace" role="img" aria-label=""></div>
+    <!-- The suggestion, small, in the column the trace used to face across. -->
+    <div id="recLeft" role="button" tabindex="0" style="display:none;"></div>
     <!-- Where the answer comes to rest: at the number's right edge, tucked behind it. -->
     <button type="button" id="todayFaceDock"></button>
     <div id="baselineStatus" class="score-note note-live" style="text-align:left; margin-bottom:4px; font-size:var(--fs-tag);"></div>
@@ -7419,7 +7432,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.289';
+const APP_VERSION = '2026.08.31.290';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7476,6 +7489,7 @@ const APP_NOTES = {
   '2026.08.31.287': 'The tab plates are thinner, and each tab now carries its number beside them.',
   '2026.08.31.288': 'The seven-day strip moved to Data, under Trends. Today keeps the swipe back through the week.',
   '2026.08.31.289': 'Seven small ticks beside the date show the day you are on, and that Today swipes back through the week.',
+  '2026.08.31.290': 'The suggestion sits beside the score now, not in a row beneath it. Tap it for the reasoning.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15697,21 +15711,23 @@ function buildRecCard(type, title, signals, confidence, meta){
   return card;
 }
 
-// Open when the day starts. A suggestion you have to go looking for is one you will not
-// read, and the sentence inside the card is the whole point of the engine — the closed row
-// was only ever a handle. Shutting it is remembered for the rest of the day, so closing it
-// once does not mean closing it after every render.
-// The key changed with the default: a stale cardStack:open from earlier today would have
-// been read as "they chose to open it", which is now not a choice anyone makes.
-let cardStackOpen = true;
-try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:closed') || 'null')?.date !== todayStr; } catch(e){}
+// Shut when the day starts — which reverses a decision, so here is why. It was opened by
+// default because "a suggestion you have to go looking for is one you will not read", and
+// the closed row was only ever a handle in the app's smallest type, below the score.
+// That reasoning is answered rather than abandoned: the suggestion is not hidden now, it is
+// in the band beside the number, level with the digits, in a column of its own. You read the
+// sentence without opening anything. What opening buys you is the reasoning and the two
+// buttons, and that is worth a tap.
+// Opening is remembered for the rest of the day, so it does not shut again on every render.
+let cardStackOpen = false;
+try{ cardStackOpen = JSON.parse(localStorage.getItem('cardStack:open') || 'null')?.date === todayStr; } catch(e){}
 (function wireCardStackHead(){
   const head = document.getElementById('cardStackHead');
   if(!head) return;
   const toggle = e=>{
     if(e.target.closest('#undoDecisionBtn')) return;   // Undo is its own button, not the handle
     cardStackOpen = !cardStackOpen;
-    try{ localStorage.setItem('cardStack:closed', JSON.stringify(cardStackOpen ? null : { date: todayStr })); } catch(e2){}
+    try{ localStorage.setItem('cardStack:open', JSON.stringify(cardStackOpen ? { date: todayStr } : null)); } catch(e2){}
     showNextCard();
   };
   head.addEventListener('click', toggle);
@@ -15739,9 +15755,10 @@ function showNextCard(){
     // no reason.
     counter.textContent = '';
     if(stack) stack.style.display = 'none';
+    paintRecLeft();
     return;
   }
-  if(stack) stack.style.display = '';
+  if(stack) stack.style.display = cardStackOpen ? '' : 'none';
   /* CLOSED, IT SAYS WHAT THE SUGGESTION IS.
 
      It used to say "1 suggestion" — a count, on the one row standing between the score and
@@ -15764,13 +15781,17 @@ function showNextCard(){
     : (head ? head + (left > 1 ? ` \u00b7 +${left - 1} more` : '')
             : `${left} suggestion${left === 1 ? '' : 's'}`);
   container.style.display = cardStackOpen ? '' : 'none';
+  /* Shut, this row would say exactly what the block in the band says, one screen lower and
+     in smaller type. It is the open state's chrome — the count, Undo, and the way back
+     shut — so it comes with the cards rather than standing in for them. */
   const headRow = document.getElementById('cardStackHead');
-  if(headRow) headRow.style.display = '';
+  if(headRow) headRow.style.display = cardStackOpen ? '' : 'none';
   const chev = document.getElementById('cardStackChev');
   if(chev){
     chev.style.display = '';
     chev.style.transform = cardStackOpen ? 'rotate(180deg)' : 'rotate(0deg)';
   }
+  paintRecLeft();
   if(!cardStackOpen) return;
   const item = cardQueue[cardQueueIndex];
   eyeThinkBeforeCard(()=>{
@@ -16461,6 +16482,54 @@ function traceMarkup(W){
   return { html, label };
 }
 
+/* THE CLOSED HANDLE, MOVED OUT OF THE PAGE AND INTO THE BAND.
+
+   Closed, the stack was a full-width sticky row between the score and the session. It is now
+   a block in the band's left column, level with the digits, facing the space the seven-day
+   strip used to occupy — so the score sits between the thing that reasons about it and the
+   question that feeds it, rather than centred with a hole on one side.
+
+   Width is measured, not set: it runs from the gutter to the score's own left edge less a
+   gap, the mirror of what bandColumnWidth does on the right, because "77" and "100" do not
+   start in the same place. Below RECLEFT_MIN_W there is no room for a sentence and it stays
+   away rather than wrapping a headline into four lines beside a number. */
+const RECLEFT_MIN_W = 84;
+function paintRecLeft(){
+  const host = document.getElementById('recLeft');
+  if(!host) return;
+  const hide = ()=>{ host.style.display = 'none'; };
+  const band = document.querySelector('.today-open');
+  const num = document.getElementById('overallScoreOut');
+  const gauge = band ? band.querySelector('.gauge-wrap') : null;
+  // Nothing to say, or nothing to say it beside: before the first morning the band is
+  // collapsed and the number is not on screen to measure against.
+  if(!band || !num || !gauge || gauge.style.display === 'none') return hide();
+  if(cardStackOpen || cardQueueIndex >= cardQueue.length) return hide();
+  const head = cardStackHeadline(cardQueue[cardQueueIndex]);
+  if(!head) return hide();
+  const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
+  const W = Math.round((numRect.left - TRACE_GAP) - (bandRect.left + 14));
+  if(W < RECLEFT_MIN_W) return hide();
+  const waiting = cardQueue.length - cardQueueIndex;
+  host.style.width = W + 'px';
+  host.style.top = Math.round(numRect.top - bandRect.top) + 'px';
+  host.innerHTML = `<div class="rl-cap">${waiting > 1 ? waiting + ' suggestions' : 'suggestion'}</div>`
+    + `<div class="rl-title">${head}</div>`;
+  host.setAttribute('aria-label', `${waiting} suggestion${waiting === 1 ? '' : 's'}. ${head}. Open`);
+  host.style.display = 'block';
+}
+(function wireRecLeft(){
+  const host = document.getElementById('recLeft');
+  if(!host) return;
+  const open = ()=>{
+    cardStackOpen = true;
+    try{ localStorage.setItem('cardStack:open', JSON.stringify({ date: todayStr })); } catch(e){}
+    showNextCard();
+  };
+  host.addEventListener('click', open);
+  host.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+})();
+
 /* Drawn from the same seven days the strip is, so it cannot disagree with it. Hidden unless
    there is somewhere to swipe TO: one scored day is not a week, and a row of ticks with
    nothing behind it would advertise a gesture that does nothing. Today only — the header is
@@ -16495,6 +16564,7 @@ function paintScoreTrace(){
   layoutBandColumn(false);
   paintDataTrace();
   paintSwipeHint();
+  paintRecLeft();
 }
 
 /* Data's copy. It takes the full column it is given rather than whatever the score's digits
