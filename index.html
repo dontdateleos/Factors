@@ -1093,6 +1093,15 @@
     text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
   #recLeft .rl-title{ font-family:var(--mono); font-size:11px; line-height:1.32; color:var(--bg); }
   #recLeft:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
+  /* Both verdicts, in a column 100px wide at 320. They split it evenly rather than sizing to
+     their words, so the pair is symmetrical whatever it says and neither is the default by
+     being fatter. Same treatment as the card's own pair: accept is the solid one. */
+  #recLeft .rl-actions{ display:flex; gap:5px; margin-top:8px; }
+  #recLeft .rl-actions button{ flex:1 1 0; min-width:0; font-family:var(--mono); font-size:9px;
+    letter-spacing:0.04em; text-transform:uppercase; padding:5px 2px; cursor:pointer;
+    border:1px solid rgba(251,250,246,0.45); background:transparent; color:var(--bg); }
+  #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  #recLeft .rl-actions button:focus-visible{ outline:2px solid var(--block-lime); outline-offset:2px; }
   /* The same strip on Data, where it is an ordinary block in a column rather than whatever
      the score's digits left over. Cursor and focus ring because it is still the way into a
      day you never filled in. */
@@ -7432,7 +7441,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.290';
+const APP_VERSION = '2026.08.31.291';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7490,6 +7499,7 @@ const APP_NOTES = {
   '2026.08.31.288': 'The seven-day strip moved to Data, under Trends. Today keeps the swipe back through the week.',
   '2026.08.31.289': 'Seven small ticks beside the date show the day you are on, and that Today swipes back through the week.',
   '2026.08.31.290': 'The suggestion sits beside the score now, not in a row beneath it. Tap it for the reasoning.',
+  '2026.08.31.291': 'Accept or dismiss a suggestion from beside the score, without opening it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15747,18 +15757,26 @@ function showNextCard(){
   const container = document.getElementById('recommendationCards');
   const counter = document.getElementById('cardStackCounter');
   const stack = document.getElementById('todayCardStack');
+  const head2 = document.getElementById('cardStackHead');
+  const chev2 = document.getElementById('cardStackChev');
   container.innerHTML = '';
   if(cardQueueIndex >= cardQueue.length){
     // Nothing left to decide, so the section says nothing rather than spending an
     // empty-state block on it. The whole stack goes, not just its contents: sitting
     // directly under the score, an empty one would push the session down the page for
     // no reason.
+    /* Except when the last thing you did is still undoable. Deciding from the band empties
+       the queue and would have taken Undo away with it in the same frame — the one moment
+       you are most likely to want it. */
     counter.textContent = '';
-    if(stack) stack.style.display = 'none';
+    if(stack) stack.style.display = lastDecisionKey != null ? '' : 'none';
+    if(head2) head2.style.display = lastDecisionKey != null ? '' : 'none';
+    if(chev2) chev2.style.display = 'none';
     paintRecLeft();
     return;
   }
-  if(stack) stack.style.display = cardStackOpen ? '' : 'none';
+  const undoPending = lastDecisionKey != null;
+  if(stack) stack.style.display = (cardStackOpen || undoPending) ? '' : 'none';
   /* CLOSED, IT SAYS WHAT THE SUGGESTION IS.
 
      It used to say "1 suggestion" — a count, on the one row standing between the score and
@@ -15785,12 +15803,15 @@ function showNextCard(){
      in smaller type. It is the open state's chrome — the count, Undo, and the way back
      shut — so it comes with the cards rather than standing in for them. */
   const headRow = document.getElementById('cardStackHead');
-  if(headRow) headRow.style.display = cardStackOpen ? '' : 'none';
+  if(headRow) headRow.style.display = (cardStackOpen || undoPending) ? '' : 'none';
   const chev = document.getElementById('cardStackChev');
   if(chev){
-    chev.style.display = '';
+    chev.style.display = cardStackOpen ? '' : 'none';
     chev.style.transform = cardStackOpen ? 'rotate(180deg)' : 'rotate(0deg)';
   }
+  // Shut, the row is carrying Undo and nothing else — the headline is already in the band,
+  // and repeating it here in smaller type is what moving the block up was meant to stop.
+  if(!cardStackOpen) counter.textContent = '';
   paintRecLeft();
   if(!cardStackOpen) return;
   const item = cardQueue[cardQueueIndex];
@@ -16511,12 +16532,59 @@ function paintRecLeft(){
   const W = Math.round((numRect.left - TRACE_GAP) - (bandRect.left + 14));
   if(W < RECLEFT_MIN_W) return hide();
   const waiting = cardQueue.length - cardQueueIndex;
+  const item = cardQueue[cardQueueIndex];
+  const isReview = item.type === 'week_review' || item.type === 'block_review';
   host.style.width = W + 'px';
-  host.style.top = Math.round(numRect.top - bandRect.top) + 'px';
+  /* playCardExit animates with fill:forwards, so a block that has just been decided on is
+     left at opacity 0 with a transform on it. It is reused rather than rebuilt, so the
+     animation has to be taken off before it is filled in again. */
+  if(host.getAnimations) host.getAnimations().forEach(an=> an.cancel());
+  host.style.opacity = '';
+  host.style.transform = '';
   host.innerHTML = `<div class="rl-cap">${waiting > 1 ? waiting + ' suggestions' : 'suggestion'}</div>`
-    + `<div class="rl-title">${head}</div>`;
-  host.setAttribute('aria-label', `${waiting} suggestion${waiting === 1 ? '' : 's'}. ${head}. Open`);
+    + `<div class="rl-title">${head}</div>`
+    + `<div class="rl-actions">` + (isReview
+        ? `<button type="button" class="rl-accept rl-done">Done</button>`
+        : `<button type="button" class="rl-accept">Accept</button>`
+        + `<button type="button" class="rl-dismiss">Dismiss</button>`) + `</div>`;
+  host.setAttribute('aria-label', `${waiting} suggestion${waiting === 1 ? '' : 's'}. ${head}.`);
+  /* The verdicts run the same logRecDecision the card's own buttons do — same storage write,
+     same plan adjustment, same undo, same stats. A second path to the same decision that did
+     not go through it would be a second set of bugs. The block is handed in as the card, so
+     the exit animation and the eyes' glance both land on the thing that was actually tapped.
+     stopPropagation because the block itself opens the stack, and a button inside it must
+     not do both. */
+  const decide = (decision)=> (e)=>{
+    e.stopPropagation();
+    logRecDecision(item.type, item.meta, decision, host, item.title);
+  };
+  const done = host.querySelector('.rl-done');
+  if(done){
+    done.addEventListener('click', e=>{
+      e.stopPropagation();
+      cardQueueIndex++;
+      playCardExit(host, 'accepted', ()=>showNextCard());
+    });
+  } else {
+    host.querySelector('.rl-accept').addEventListener('click', decide('accepted'));
+    host.querySelector('.rl-dismiss').addEventListener('click', decide('dismissed'));
+  }
+  /* SET AFTER THE CONTENT, AND FROM THE BOTTOM UP.
+     Top-aligned to the digits, the block used to be two or three lines; with both verdicts
+     under it, it is 83px at 390 and 98px at 320 and ran straight into the score's own label,
+     which is centred and starts at x=142 and x=107. Narrowing the column to clear it would
+     have taken it under the 84px floor at 320 and removed the feature from small phones
+     entirely.
+     So it hangs from the number's baseline instead: the buttons finish level with the bottom
+     of the digits and a longer headline grows upward, into the empty part of the band above
+     the score, where nothing else is. Clamped to the band's own top so a four-line headline
+     cannot climb out of it. Measured after the content is in, because the height is the
+     thing being solved for. */
   host.style.display = 'block';
+  host.style.top = '0px';
+  const h = host.offsetHeight;
+  const top = Math.max(8, Math.round(numRect.bottom - bandRect.top - h));
+  host.style.top = top + 'px';
 }
 (function wireRecLeft(){
   const host = document.getElementById('recLeft');
