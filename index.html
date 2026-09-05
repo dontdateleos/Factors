@@ -1090,13 +1090,18 @@
     text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
   #recLeft .rl-title{ font-family:var(--mono); font-size:11px; line-height:1.32; color:var(--bg); }
   #recLeft:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
-  /* Both verdicts, in a column 100px wide at 320. They split it evenly rather than sizing to
-     their words, so the pair is symmetrical whatever it says and neither is the default by
-     being fatter. Same treatment as the card's own pair: accept is the solid one. */
-  #recLeft .rl-actions{ display:flex; gap:5px; margin-top:8px; }
-  #recLeft .rl-actions button{ flex:1 1 0; min-width:0; font-family:var(--mono); font-size:9px;
-    letter-spacing:0.04em; text-transform:uppercase; padding:5px 2px; cursor:pointer;
+  /* Both verdicts, as marks rather than words. Two 28px squares left-aligned under the
+     headline instead of a pair of labelled buttons stretched across the column: the words
+     were the widest thing in a block that exists to be small, and a tick and a cross are
+     the two things nobody needs told. 28px clears the 24 this app holds itself to.
+     Drawn, not typed — a check glyph is not in every font and a missing one is a box.
+     The name survives in aria-label, which is what a screen reader reads either way.
+     Accept is the solid one, the same way it is on the card. */
+  #recLeft .rl-actions{ display:flex; gap:6px; margin-top:9px; }
+  #recLeft .rl-actions button{ width:28px; height:28px; flex:none; padding:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
     border:1px solid rgba(251,250,246,0.45); background:transparent; color:var(--bg); }
+  #recLeft .rl-actions button svg{ width:13px; height:13px; display:block; }
   #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   #recLeft .rl-actions button:focus-visible{ outline:2px solid var(--block-lime); outline-offset:2px; }
   /* The same strip on Data, where it is an ordinary block in a column rather than whatever
@@ -7438,7 +7443,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.292';
+const APP_VERSION = '2026.08.31.293';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7498,6 +7503,7 @@ const APP_NOTES = {
   '2026.08.31.290': 'The suggestion sits beside the score now, not in a row beneath it. Tap it for the reasoning.',
   '2026.08.31.291': 'Accept or dismiss a suggestion from beside the score, without opening it.',
   '2026.08.31.292': 'The tab numbers are gone — the pile and the word were already saying it.',
+  '2026.08.31.293': 'Accept and dismiss are a tick and a cross now, not two words.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16513,6 +16519,10 @@ function traceMarkup(W){
    start in the same place. Below RECLEFT_MIN_W there is no room for a sentence and it stays
    away rather than wrapping a headline into four lines beside a number. */
 const RECLEFT_MIN_W = 84;
+const TICK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"'
+  + ' stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5L9.5 17.5L19.5 6.5"/></svg>';
+const CROSS_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"'
+  + ' stroke-width="3" stroke-linecap="round"><path d="M6 6L18 18M18 6L6 18"/></svg>';
 function paintRecLeft(){
   const host = document.getElementById('recLeft');
   if(!host) return;
@@ -16542,9 +16552,9 @@ function paintRecLeft(){
   host.innerHTML = `<div class="rl-cap">${waiting > 1 ? waiting + ' suggestions' : 'suggestion'}</div>`
     + `<div class="rl-title">${head}</div>`
     + `<div class="rl-actions">` + (isReview
-        ? `<button type="button" class="rl-accept rl-done">Done</button>`
-        : `<button type="button" class="rl-accept">Accept</button>`
-        + `<button type="button" class="rl-dismiss">Dismiss</button>`) + `</div>`;
+        ? `<button type="button" class="rl-accept rl-done" aria-label="Done">${TICK_SVG}</button>`
+        : `<button type="button" class="rl-accept" aria-label="Accept">${TICK_SVG}</button>`
+        + `<button type="button" class="rl-dismiss" aria-label="Dismiss">${CROSS_SVG}</button>`) + `</div>`;
   host.setAttribute('aria-label', `${waiting} suggestion${waiting === 1 ? '' : 's'}. ${head}.`);
   /* The verdicts run the same logRecDecision the card's own buttons do — same storage write,
      same plan adjustment, same undo, same stats. A second path to the same decision that did
