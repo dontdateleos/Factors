@@ -1580,8 +1580,7 @@
   /* 22, matching DOCK_W/DOCK_H. The constants are what the layout maths reserves and
      positions by; this is what actually gets drawn, and the two have to agree. */
   #todayFaceDock{ position:absolute; display:none; width:22px; height:22px; padding:0;
-    border:0; border-radius:0; background:transparent; color:var(--face-c); cursor:pointer;
-    box-shadow:inset 0 0 0 1.5px var(--face-c);
+    border:0; border-radius:0; background:var(--face-c); color:#000000; cursor:pointer;
     align-items:center; justify-content:center; z-index:1; flex:none;
     transition:left 0.2s cubic-bezier(.2,.7,.2,1); }
   #todayFaceDock .eyes{ pointer-events:none; }
@@ -7494,7 +7493,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.298';
+const APP_VERSION = '2026.08.31.299';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7559,6 +7558,7 @@ const APP_NOTES = {
   '2026.08.31.296': 'The five faces stand in a column on the right, each with its word beside it.',
   '2026.08.31.297': 'The score holds still again, and the face column is smaller.',
   '2026.08.31.298': 'The marks are smaller again, and your answer tucks into the corner of the score.',
+  '2026.08.31.299': 'Your answer is a filled chip again, sitting a little further off the digits.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9476,9 +9476,10 @@ function paintTodayFaces(){
          smallest type, two pixels under the mark that already says it — and the band was
          carrying it beside a score whose own label is the reading that matters. The name is
          still on the chip for a screen reader, and still on every button in the row you
-         change it from. Drawn in the face's colour rather than black, because the chip is an
-         outline now and black eyes on the ground would be no eyes at all. */
-      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, `var(--face-${v})`, true);
+         change it from. Filled again, so the eyes are knocked out of it in black — the five
+         in the picker stay outlines, because there the fill was five loud blocks and here it
+         is one small one, tucked under a numeral. */
+      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000', true);
     }
     measureDockWord();
   }
@@ -16340,7 +16341,9 @@ const TRACE_GAP = 16;           // clear space between the score's digits and th
    is still not enough band for both, and the trace hides itself under the rule it already
    had: below TRACE_MIN_W it is a squiggle, not a reading. */
 const DOCK_GAP = 9;             // daylight between the last numeral and the chip
-const DOCK_OVERLAP = 6;         // ...and how far it now tucks back UNDER them instead
+const DOCK_OVERLAP = 3;         // ...and how far it now tucks back UNDER them instead.
+                                // 3 rather than 6: filled, the chip needs more of the digit
+                                // visible beside it than an outline did.
 const DOCK_TRACE_GAP = 9;       // and between the chip's word and the week's first tick
 const DOCK_RESERVE_MAX = 61;    // the widest answer, for before there is one to measure
 /* Taken when the word is written rather than when the column is laid out. The column asks
