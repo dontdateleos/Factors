@@ -430,6 +430,21 @@
      follow. The day number is a reading off a calendar, not a word. */
   .header-date .hd-day{ font-family:var(--mono); -webkit-text-stroke:0.3px var(--bg); }
   .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
+  /* THAT THE BAND SWIPES, SAID AS QUIETLY AS POSSIBLE.
+     Seven ticks for seven days, the one you are on brighter than the rest. It is the strip's
+     own vocabulary at a whisper, which is the point: the seven marks left Today for Data, and
+     with them went the only thing on the page that showed which day the number belonged to.
+     This is not a second trace — there is no score in it, no scale and no reading. It says
+     there are seven days here and you are on this one, and it moves when you swipe, which is
+     how anyone finds out the gesture exists.
+     Absolutely placed off the date's left edge rather than in its flow: the date is three
+     right-aligned lines and anything added inside them becomes a fourth. */
+  .header-date .hd-swipe{ position:absolute; right:100%; top:50%; transform:translateY(-50%);
+    margin-right:10px; display:none; gap:3px; align-items:center; pointer-events:none; }
+  .header-date .hd-swipe.on{ display:flex; }
+  .header-date .hd-swipe i{ width:3px; height:3px; background:var(--bg); opacity:0.22;
+    border-radius:0.5px; flex:none; transition:opacity 0.18s linear; }
+  .header-date .hd-swipe i.here{ opacity:0.8; }
   h1 .logo-line{ display:block; }
   /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
      same rule serves the logo, the score card and the element that flies between them.
@@ -2258,6 +2273,7 @@
          of the width of the whole date. -->
     <div class="header-date" id="headerDate" aria-label="Today's date">
       <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
+      <span class="hd-swipe" id="headerSwipeHint" aria-hidden="true"></span>
     </div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
@@ -6494,6 +6510,8 @@ function activateTab(name, opts){
   // Freshness belongs to Today. Applied after the body class settles below, and cleared on
   // the way out so the pair does not carry last night's sleep onto a tab about something else.
   setTimeout(applyEyeFreshness, 0);
+  // Same reason: the header is shared by every tab and the swipe is Today's alone.
+  setTimeout(paintSwipeHint, 0);
   let eyesFrom = null;
   if(eyesLeaving){
     const r = document.getElementById('scoreEyes').getBoundingClientRect();
@@ -7401,7 +7419,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.288';
+const APP_VERSION = '2026.08.31.289';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7457,6 +7475,7 @@ const APP_NOTES = {
   '2026.08.31.286': 'The lit plate climbs the pile when you switch tabs, instead of jumping there.',
   '2026.08.31.287': 'The tab plates are thinner, and each tab now carries its number beside them.',
   '2026.08.31.288': 'The seven-day strip moved to Data, under Trends. Today keeps the swipe back through the week.',
+  '2026.08.31.289': 'Seven small ticks beside the date show the day you are on, and that Today swipes back through the week.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16442,6 +16461,21 @@ function traceMarkup(W){
   return { html, label };
 }
 
+/* Drawn from the same seven days the strip is, so it cannot disagree with it. Hidden unless
+   there is somewhere to swipe TO: one scored day is not a week, and a row of ticks with
+   nothing behind it would advertise a gesture that does nothing. Today only — the header is
+   shared by every tab and the band is not. */
+function paintSwipeHint(){
+  const el = document.getElementById('headerSwipeHint');
+  if(!el) return;
+  const onToday = !!document.querySelector('.tab.active[data-tab="insights"]');
+  const scored = scoreDays.filter(d=> d.score != null).length;
+  if(!onToday || scored < 2){ el.classList.remove('on'); el.innerHTML = ''; return; }
+  el.innerHTML = scoreDays.map((d,i)=>
+    `<i class="${i === scoreDayIndex ? 'here' : ''}"></i>`).join('');
+  el.classList.add('on');
+}
+
 /* TODAY NO LONGER DRAWS IT.
 
    Seven days of history is a thing you go and look at, not a thing you need beside this
@@ -16460,6 +16494,7 @@ function paintScoreTrace(){
   if(host) host.style.display = 'none';
   layoutBandColumn(false);
   paintDataTrace();
+  paintSwipeHint();
 }
 
 /* Data's copy. It takes the full column it is given rather than whatever the score's digits
@@ -16566,6 +16601,7 @@ function showScoreDay(idx){
   if(label) label.textContent = idx === scoreDays.length - 1 ? scoreTodayLabel : stamp(scoreDays[idx].date);
   // Days back, and how faint that makes it. Floored well above the point where cream on black
   // stops being comfortably readable — this is depth, not disappearance.
+  paintSwipeHint();
   const back = (scoreDays.length - 1) - idx;
   const dim = back ? String(Math.max(0.6, 1 - back * SCORE_FADE_STEP)) : '';
   // The context line goes with it: it is about the browsed day now, so it belongs to the same
