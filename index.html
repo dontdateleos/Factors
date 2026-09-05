@@ -1527,8 +1527,12 @@
      needs, because every row under it now says a word. */
   #todayFaceRow .subj-faces{ flex-direction:column; gap:3px; }
   #todayFaceRow[data-asking="1"] .trace-cap{ font-size:8.5px; letter-spacing:0.02em; }
-  #todayFaceRow .subj-face{ height:17px; flex:none; justify-content:flex-start;
+  #todayFaceRow .subj-face{ height:15px; flex:none; justify-content:flex-start;
     padding-left:4px; gap:5px; border-width:1px; }
+  /* Scaled on the drawing rather than by changing FACE_SCALE, which the morning sheet and the
+     Data row are drawn at too. A transform on .eyes leaves every --eye-* value alone, so the
+     mark stays the same mark, just smaller in this one column. */
+  #todayFaceRow .subj-face .eyes{ transform:scale(0.85); }
   #todayFaceRow .face-word{ display:block; font-family:var(--mono); font-size:8.5px;
     letter-spacing:0.04em; text-transform:uppercase; color:var(--dim);
     white-space:nowrap; pointer-events:none; }
@@ -1573,7 +1577,9 @@
      gesture the score itself makes when you swipe to another day.
 
      Tap it and the five come back, so an answer is never a door that shuts. */
-  #todayFaceDock{ position:absolute; display:none; width:26px; height:26px; padding:0;
+  /* 22, matching DOCK_W/DOCK_H. The constants are what the layout maths reserves and
+     positions by; this is what actually gets drawn, and the two have to agree. */
+  #todayFaceDock{ position:absolute; display:none; width:22px; height:22px; padding:0;
     border:0; border-radius:0; background:transparent; color:var(--face-c); cursor:pointer;
     box-shadow:inset 0 0 0 1.5px var(--face-c);
     align-items:center; justify-content:center; z-index:1; flex:none;
@@ -7158,7 +7164,7 @@ const FACE_SCALE = 0.38;
    layout follows, because DOCK_W and DOCK_H are what dockPlan reserves and what the
    centring against the numeral measures. The tap target does NOT come down with it: the
    same ::after expansion .subj-face uses puts it back to 46x46. */
-const DOCK_W = 26, DOCK_H = 26, DOCK_SCALE = FACE_SCALE;
+const DOCK_W = 22, DOCK_H = 22, DOCK_SCALE = FACE_SCALE * 0.85;
 let dockWordW = 0;   // the width of the word under the chip; see measureDockWord
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
 function faceEyesHtml(st, k, ink, alive){
@@ -7488,7 +7494,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.297';
+const APP_VERSION = '2026.08.31.298';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7552,6 +7558,7 @@ const APP_NOTES = {
   '2026.08.31.295': 'The face you pick is an outline now, and it no longer carries its own word.',
   '2026.08.31.296': 'The five faces stand in a column on the right, each with its word beside it.',
   '2026.08.31.297': 'The score holds still again, and the face column is smaller.',
+  '2026.08.31.298': 'The marks are smaller again, and your answer tucks into the corner of the score.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9539,9 +9546,18 @@ function layoutBandColumn(traceShown){
       const plan = dockPlan(bandRect, numRect);
       const word = dock.querySelector('.dock-word');
       if(word) word.style.display = plan.showWord ? '' : 'none';
-      dock.style.left = Math.round(numRect.right - bandRect.left + DOCK_GAP
+      /* Into the number's bottom-right corner, six pixels back under the last digit rather
+         than nine clear of it. The digits already own a higher stacking context than the
+         chip, so the overlap reads as the answer tucked behind the score rather than laid
+         over it — which is only available now the chip is an outline. Filled, this same
+         overlap put a saturated square hard against the "9" with no daylight at all, which
+         is why it used to sit clear.
+         dockPlan still reserves the old gap for the column to its right. Nothing occupies
+         that column on an answered day any more, so the reserve is harmless — but it is
+         now wider than the chip actually needs. */
+      dock.style.left = Math.round(numRect.right - bandRect.left - DOCK_OVERLAP
         + (plan.blockW - DOCK_W) / 2) + 'px';
-      dock.style.top = Math.round(numRect.top - bandRect.top + (numRect.height - DOCK_H) / 2) + 'px';
+      dock.style.top = Math.round(numRect.top - bandRect.top + numRect.height - DOCK_H - 2) + 'px';
     }
   }
 
@@ -16324,6 +16340,7 @@ const TRACE_GAP = 16;           // clear space between the score's digits and th
    is still not enough band for both, and the trace hides itself under the rule it already
    had: below TRACE_MIN_W it is a squiggle, not a reading. */
 const DOCK_GAP = 9;             // daylight between the last numeral and the chip
+const DOCK_OVERLAP = 6;         // ...and how far it now tucks back UNDER them instead
 const DOCK_TRACE_GAP = 9;       // and between the chip's word and the week's first tick
 const DOCK_RESERVE_MAX = 61;    // the widest answer, for before there is one to measure
 /* Taken when the word is written rather than when the column is laid out. The column asks
