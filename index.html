@@ -241,6 +241,27 @@
   /* Dimmer than the word until the tab is yours: the label carries the name, the symbol is
      there to be found by shape, and two things at full strength read as two things. */
   .tab.active svg{ opacity:1; }
+  /* THE CLIMB. Switching tabs moves the lit plate to a new slot, and jumping it there
+     asks you to notice a change that has already happened. So the light walks: on the tab
+     becoming active, each plate at or below the marker brightens in turn from the bottom of
+     the pile up, and the marker's own plate lands last. The marker visibly travels the
+     distance rather than teleporting, which is the whole idea of the symbol played out
+     rather than decorated.
+
+     It also encodes something true. The delay is one step per slot, so Settings takes four
+     steps to arrive and Weekly takes one — how far the light has to go is how far up the
+     bar you tapped.
+
+     No JavaScript. .tab.active is a class the tab switcher already sets, so adding the class
+     starts the animation; the plates above the marker carry .above and never animate.
+     animation-fill-mode:both is what makes the delay work — during it the 0% frame holds,
+     so the marker sits dim until the light reaches it. */
+  @media (prefers-reduced-motion: no-preference){
+    @keyframes tabPlatePass{ 0%,100%{ opacity:0.26; } 45%{ opacity:0.9; } }
+    @keyframes tabPlateLand{ 0%{ opacity:0.26; } 55%{ opacity:1; } 70%{ opacity:0.72; } 100%{ opacity:1; } }
+    .tab.active .pl.lead:not(.on){ animation:tabPlatePass 250ms ease-out both; animation-delay:calc(var(--plate) * 62ms); }
+    .tab.active .pl.on{ animation:tabPlateLand 360ms ease-out both; animation-delay:calc(var(--lit) * 62ms); }
+  }
   .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
   /* The bar reads left to right as one walk down the wheel: 67deg, 48deg, 9deg, then round
      past zero to 255deg and 192deg. It used to jump 67, 26, 255, 48, 192 — forward, back,
@@ -2232,11 +2253,11 @@
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack"><path class="pl on" d="M4 19.4L12 15.1L20 19.4L12 23.7Z"/><path class="pl" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Today</span></div>
-    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack"><path class="pl" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl on" d="M4 16.1L12 11.8L20 16.1L12 20.4Z"/><path class="pl" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Weekly</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack"><path class="pl" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl on" d="M4 12.8L12 8.5L20 12.8L12 17.1Z"/><path class="pl" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Body</span></div>
-    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack"><path class="pl" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl on" d="M4 9.5L12 5.2L20 9.5L12 13.8Z"/><path class="pl" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Data</span></div>
-    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack"><path class="pl" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl on" d="M4 6.2L12 1.9L20 6.2L12 10.5Z"/></svg><span>Settings</span></div>
+    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:0"><path class="pl lead on" style="--plate:0" d="M4 19.4L12 15.1L20 19.4L12 23.7Z"/><path class="pl above" style="--plate:1" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl above" style="--plate:2" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Today</span></div>
+    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:1"><path class="pl lead" style="--plate:0" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl lead on" style="--plate:1" d="M4 16.1L12 11.8L20 16.1L12 20.4Z"/><path class="pl above" style="--plate:2" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Weekly</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:2"><path class="pl lead" style="--plate:0" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl lead on" style="--plate:2" d="M4 12.8L12 8.5L20 12.8L12 17.1Z"/><path class="pl above" style="--plate:3" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Body</span></div>
+    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:3"><path class="pl lead" style="--plate:0" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl lead on" style="--plate:3" d="M4 9.5L12 5.2L20 9.5L12 13.8Z"/><path class="pl above" style="--plate:4" d="M4 6.2L12 1.9L20 6.2L12 10.5Z" opacity=".26"/></svg><span>Data</span></div>
+    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:4"><path class="pl lead" style="--plate:0" d="M4 19.4L12 15.1L20 19.4L12 23.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 16.1L12 11.8L20 16.1L12 20.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12.8L12 8.5L20 12.8L12 17.1Z" opacity=".26"/><path class="pl lead" style="--plate:3" d="M4 9.5L12 5.2L20 9.5L12 13.8Z" opacity=".26"/><path class="pl lead on" style="--plate:4" d="M4 6.2L12 1.9L20 6.2L12 10.5Z"/></svg><span>Settings</span></div>
   </div>
 </header>
 
@@ -7356,7 +7377,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.285';
+const APP_VERSION = '2026.08.31.286';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7409,6 +7430,7 @@ const APP_NOTES = {
   '2026.08.31.283': 'Settings is half the height \u2014 the two sections that never folded now do.',
   '2026.08.31.284': 'Fewer paragraphs \u2014 rules read as rules, and the reasoning sits one tap away.',
   '2026.08.31.285': 'The tab bar is one stack of plates now, with the lit one climbing a slot per tab.',
+  '2026.08.31.286': 'The lit plate climbs the pile when you switch tabs, instead of jumping there.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
