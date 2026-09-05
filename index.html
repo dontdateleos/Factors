@@ -1520,19 +1520,27 @@
      this group on the number, and at 20px a mark the column is 136px inside a 163px band —
      it fits with the marks smaller than they were, because vertically they no longer have to
      share their line with four others. */
-  #todayFaceRow .subj-faces{ flex-direction:column; gap:4px; }
-  #todayFaceRow .subj-face{ height:20px; flex:none; justify-content:flex-start;
-    padding-left:5px; gap:7px; border-width:1px; }
-  #todayFaceRow .face-word{ display:block; font-family:var(--mono); font-size:9px;
-    letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);
+  /* The question has to fit the narrower column. At 10px "How are you?" is 89px against 74,
+     so it truncated to "HOW ARE Y..." — the app's own note about this caption says the same
+     measurement is why it is not "How are you feeling?". Down to 8.5px with the tracking
+     eased, which is the smallest caption on the page and still the only heading the column
+     needs, because every row under it now says a word. */
+  #todayFaceRow .subj-faces{ flex-direction:column; gap:3px; }
+  #todayFaceRow[data-asking="1"] .trace-cap{ font-size:8.5px; letter-spacing:0.02em; }
+  #todayFaceRow .subj-face{ height:17px; flex:none; justify-content:flex-start;
+    padding-left:4px; gap:5px; border-width:1px; }
+  #todayFaceRow .face-word{ display:block; font-family:var(--mono); font-size:8.5px;
+    letter-spacing:0.04em; text-transform:uppercase; color:var(--dim);
     white-space:nowrap; pointer-events:none; }
   /* The chosen one takes its own colour; the four you did not pick keep the ink every other
      caption uses, so the column reads as one label per line rather than five coloured words. */
   #todayFaceRow .subj-face.on .face-word{ color:var(--face-c); }
   /* Stacked, the targets are their own neighbours: the ::after that pushed a 26px button out
      to 46 for a thumb would have each face taking taps from the one above it. The rows are
-     4px apart, so the padding goes to half the gap and no further. */
-  #todayFaceRow .subj-face::after{ top:-2px; bottom:-2px; }
+     3px apart, so the padding goes to half the gap and no further — 20px of target on a 17px
+     drawing, which is under the 24 this app usually holds and is the price of the smaller
+     column. Sideways it is free, so the target keeps the full width of the row. */
+  #todayFaceRow .subj-face::after{ top:-1.5px; bottom:-1.5px; }
   /* Outlined in its own colour, filled in it when chosen: colour is always on the page so the
      scale reads at a glance, but only one of them is ever loud. */
   .subj-face{ flex:1; min-width:0; height:26px; background:transparent; color:var(--face-c);
@@ -7480,7 +7488,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.296';
+const APP_VERSION = '2026.08.31.297';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7543,6 +7551,7 @@ const APP_NOTES = {
   '2026.08.31.293': 'Accept and dismiss are a tick and a cross now, not two words.',
   '2026.08.31.295': 'The face you pick is an outline now, and it no longer carries its own word.',
   '2026.08.31.296': 'The five faces stand in a column on the right, each with its word beside it.',
+  '2026.08.31.297': 'The score holds still again, and the face column is smaller.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9419,7 +9428,12 @@ function paintTodayFaces(){
   // either way, which is all the column has room for. In the chosen face's own colour, so
   // the word and the mark are obviously the same statement.
   if(cap){
-    cap.textContent = v == null ? 'How are you?' : SUBJECTIVE_WORDS[v - 1];
+    /* The heading stays the question. It used to become the word you picked, which made
+       sense when the five marks were a nameless row: something had to say what you had
+       chosen. Stacked, every mark carries its own word and the chosen one is the only
+       undimmed line in the column — so a heading repeating it is the third place the same
+       word appears in a hundred pixels. */
+    cap.textContent = 'How are you?';
     cap.style.setProperty('--face-said', v == null ? '' : `var(--face-${v})`);
   }
   if(dock){
@@ -9532,19 +9546,16 @@ function layoutBandColumn(traceShown){
   }
 
   row.style.display = asking ? 'block' : 'none';
-  row.style.width = Math.max(W, TRACE_MIN_W) + 'px';
-  /* THE NUMBER MOVES OVER FOR THE QUESTION.
-
-     Standing the five faces up takes the whole right column, and the score's own label is
-     wider than the digits it sits under: at 320 the band is centred so "Above typical" runs
-     from 107 to 213 and the column starts at 198. Measured, not guessed — it overlapped by
-     fifteen pixels.
-
-     So while the row is asking, the gauge centres in the band MINUS the column rather than in
-     the band, which moves the digits and the label left by half the column's width and clears
-     it. It does not feed back: the column is capped at 100 either way, so shifting the number
-     left cannot widen it and re-shift the number. Cleared the moment the answer lands. */
-  if(gauge) gauge.style.marginRight = asking ? Math.max(W, TRACE_MIN_W) + 'px' : '';
+  /* Stacked, the column is as wide as one mark and the longest word, not as wide as five
+     marks side by side. 74px against the 100 the row took, which is what puts its left edge
+     clear of the score's own label at 320: the label ends at 213, the column starts at 224. */
+  row.style.width = (asking ? Math.min(FACE_COL_W, Math.max(W, TRACE_MIN_W)) : Math.max(W, TRACE_MIN_W)) + 'px';
+  /* The gauge does NOT move for the question. It was moved here for one build, to clear a
+     label that ran under the column at 320, and the cost was that the score jumped half a
+     column sideways every time the row opened or closed - which is most of what you do on
+     this screen. The column got narrower instead, which clears the same label without
+     touching the one thing on this page that should hold still.
+     A number that moves when you answer a question about yourself is the app flinching. */
   row.style.top = '0px';
   // Measured, not computed: the caption's line box depends on a font that may not have
   // loaded yet, which is the same reason the trace measures itself rather than adding up.
@@ -16295,6 +16306,7 @@ const TRACE_BAND = 44;          // the trace's own height, above its rail
 const TICK_H = 4;               // today's mark; the other six are 3px
 const WEIGHT_BAND = 9;          // the bodyweight row under it, when there is one
 const TRACE_MIN_W = 56;         // below this it is a squiggle, not a reading — hide it
+const FACE_COL_W = 74;          // the stacked scale: one mark plus the longest word
 const TRACE_GAP = 16;           // clear space between the score's digits and the trace
 /* Docked, the chip and its word stand in that gap and need it back. This used to be one
    number, 50, sized for the worst case and then charged to every case — so a day answered
@@ -16591,14 +16603,6 @@ function paintRecLeft(){
   // Nothing to say, or nothing to say it beside: before the first morning the band is
   // collapsed and the number is not on screen to measure against.
   if(!band || !num || !gauge || gauge.style.display === 'none') return hide();
-  /* Not while the morning is still being asked. Standing the five faces up as a column takes
-     the whole right side, and at 320 that leaves 120px between it and this block for a number
-     and a label that need more — measured, the label ran under the column by fifteen pixels.
-     One of the three has to stand down, and it is this one: the question is the thing the app
-     is asking you for, the suggestion is the thing it is offering, and the offer can wait
-     until the answer is in. Nothing is lost — the card is still in the stack below. */
-  const askRow = document.getElementById('todayFaceRow');
-  if(askRow && askRow.dataset.asking === '1' && getComputedStyle(askRow).display !== 'none') return hide();
   if(cardStackOpen || cardQueueIndex >= cardQueue.length) return hide();
   const head = cardStackHeadline(cardQueue[cardQueueIndex]);
   if(!head) return hide();
