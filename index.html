@@ -1505,6 +1505,34 @@
      hue and the words take the ink every other caption on the page uses. */
   #todayFaceRow .trace-cap{ color:rgba(251,250,246,0.55); }
   .subj-faces{ display:flex; gap:3px; }
+  /* Every face carries its word; only the column on the band shows it. The horizontal rows
+     — the morning sheet, the Data form — are five marks on one line with no room for five
+     words, and they already sit under a heading that says what the scale is. */
+  .face-word{ display:none; }
+  /* THE SCALE, STOOD UP.
+
+     Five marks across a hundred pixels put the words nowhere: a word under each is 20px of
+     column apiece and they collide, and a word beside a row of five has nothing to attach to.
+     Stood on end, each mark has a whole line to itself and the word simply sits next to it,
+     which is where a label for a single thing belongs.
+
+     It costs nothing in height that the band did not already have. layoutBandColumn centres
+     this group on the number, and at 20px a mark the column is 136px inside a 163px band —
+     it fits with the marks smaller than they were, because vertically they no longer have to
+     share their line with four others. */
+  #todayFaceRow .subj-faces{ flex-direction:column; gap:4px; }
+  #todayFaceRow .subj-face{ height:20px; flex:none; justify-content:flex-start;
+    padding-left:5px; gap:7px; border-width:1px; }
+  #todayFaceRow .face-word{ display:block; font-family:var(--mono); font-size:9px;
+    letter-spacing:0.06em; text-transform:uppercase; color:var(--dim);
+    white-space:nowrap; pointer-events:none; }
+  /* The chosen one takes its own colour; the four you did not pick keep the ink every other
+     caption uses, so the column reads as one label per line rather than five coloured words. */
+  #todayFaceRow .subj-face.on .face-word{ color:var(--face-c); }
+  /* Stacked, the targets are their own neighbours: the ::after that pushed a 26px button out
+     to 46 for a thumb would have each face taking taps from the one above it. The rows are
+     4px apart, so the padding goes to half the gap and no further. */
+  #todayFaceRow .subj-face::after{ top:-2px; bottom:-2px; }
   /* Outlined in its own colour, filled in it when chosen: colour is always on the page so the
      scale reads at a glance, but only one of them is ever loud. */
   .subj-face{ flex:1; min-width:0; height:26px; background:transparent; color:var(--face-c);
@@ -7148,7 +7176,8 @@ function faceButtonHtml(n){
   // an inherited value from the button would lose to the class's own declaration.
   return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n});"`
     + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
-    + faceEyesHtml(n, FACE_SCALE, 'currentColor') + `</button>`;
+    + faceEyesHtml(n, FACE_SCALE, 'currentColor')
+    + `<span class="face-word">${SUBJECTIVE_WORDS[n-1]}</span></button>`;
 }
 /* Both context rows behave identically — tap to set, tap again to clear — so they run
    through one pair of functions rather than two copies that could drift apart. */
@@ -7451,7 +7480,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.295';
+const APP_VERSION = '2026.08.31.296';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7513,6 +7542,7 @@ const APP_NOTES = {
   '2026.08.31.292': 'The tab numbers are gone — the pile and the word were already saying it.',
   '2026.08.31.293': 'Accept and dismiss are a tick and a cross now, not two words.',
   '2026.08.31.295': 'The face you pick is an outline now, and it no longer carries its own word.',
+  '2026.08.31.296': 'The five faces stand in a column on the right, each with its word beside it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9432,6 +9462,8 @@ function paintTodayFaces(){
     measureDockWord();
   }
   row.dataset.asking = asking ? '1' : '0';
+  // The suggestion stands down while this is asking, so it has to be told when that ends.
+  if(typeof paintRecLeft === 'function') setTimeout(paintRecLeft, 0);
   // Whether there is a face to dock at all, which is not the same question as whether the row
   // is asking. It used to be: a day was either asking or answered. A CLOSED day is neither —
   // it does not ask, and it may have nothing recorded — and the layout, reading only "not
@@ -9501,6 +9533,18 @@ function layoutBandColumn(traceShown){
 
   row.style.display = asking ? 'block' : 'none';
   row.style.width = Math.max(W, TRACE_MIN_W) + 'px';
+  /* THE NUMBER MOVES OVER FOR THE QUESTION.
+
+     Standing the five faces up takes the whole right column, and the score's own label is
+     wider than the digits it sits under: at 320 the band is centred so "Above typical" runs
+     from 107 to 213 and the column starts at 198. Measured, not guessed — it overlapped by
+     fifteen pixels.
+
+     So while the row is asking, the gauge centres in the band MINUS the column rather than in
+     the band, which moves the digits and the label left by half the column's width and clears
+     it. It does not feed back: the column is capped at 100 either way, so shifting the number
+     left cannot widen it and re-shift the number. Cleared the moment the answer lands. */
+  if(gauge) gauge.style.marginRight = asking ? Math.max(W, TRACE_MIN_W) + 'px' : '';
   row.style.top = '0px';
   // Measured, not computed: the caption's line box depends on a font that may not have
   // loaded yet, which is the same reason the trace measures itself rather than adding up.
@@ -16547,6 +16591,14 @@ function paintRecLeft(){
   // Nothing to say, or nothing to say it beside: before the first morning the band is
   // collapsed and the number is not on screen to measure against.
   if(!band || !num || !gauge || gauge.style.display === 'none') return hide();
+  /* Not while the morning is still being asked. Standing the five faces up as a column takes
+     the whole right side, and at 320 that leaves 120px between it and this block for a number
+     and a label that need more — measured, the label ran under the column by fifteen pixels.
+     One of the three has to stand down, and it is this one: the question is the thing the app
+     is asking you for, the suggestion is the thing it is offering, and the offer can wait
+     until the answer is in. Nothing is lost — the card is still in the stack below. */
+  const askRow = document.getElementById('todayFaceRow');
+  if(askRow && askRow.dataset.asking === '1' && getComputedStyle(askRow).display !== 'none') return hide();
   if(cardStackOpen || cardQueueIndex >= cardQueue.length) return hide();
   const head = cardStackHeadline(cardQueue[cardQueueIndex]);
   if(!head) return hide();
