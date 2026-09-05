@@ -1067,6 +1067,11 @@
      pointer-events:none — a picture of a gap with nothing to do about it, while the only
      way to backfill was the date browser on Data, which nothing on this page mentions. */
   #scoreTrace{ position:absolute; right:var(--gutter); display:none; pointer-events:auto; cursor:pointer; }
+  /* The same strip on Data, where it is an ordinary block in a column rather than whatever
+     the score's digits left over. Cursor and focus ring because it is still the way into a
+     day you never filled in. */
+  .data-trace{ display:none; cursor:pointer; }
+  .data-trace:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
   /* Says what the marks are without saying it twice — the number beside them is the score, so
      the only thing left to state is how far back they go. */
   /* 10px rather than 9. The column cannot get any WIDER — it is bounded by the score's own
@@ -2900,6 +2905,10 @@
          sitting straight on the ground while the two readouts around it were banded
          sections. It is the thing this sub-view exists for. -->
     <div class="group">
+      <div class="group">
+        <div class="group-head"><div class="group-title">Last 7 days</div><div class="group-sub">the trailing week &mdash; readiness, bodyweight and what each session cost</div></div>
+        <div class="fields"><div id="dataScoreTrace" class="data-trace" role="button" tabindex="0"></div></div>
+      </div>
       <div class="group-head"><div class="group-title">Over time</div><div class="group-sub">the whole history, not a trailing window</div></div>
     </div>
     <div class="session-type" id="trendMetricPills">
@@ -6609,7 +6618,10 @@ function activateDataSubView(view){
      save and nowhere else, so it sat beside a chart that reads the same storage live: log a
      night, and the chart gained a point the list never showed. */
   if(view==='recovery'){ refreshRecoveryLog(); }
-  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
+  /* paintDataTrace measures the column it is standing in, so it cannot be drawn while this
+     view is display:none — the width comes back 0 and the strip hides itself. It is painted
+     on the way in, and again on resize, rather than wherever the seven days were loaded. */
+  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); paintDataTrace(); }
   if(view==='history'){
     renderBlockHistory();
     renderInjuryRetrospective();
@@ -6619,6 +6631,10 @@ function activateDataSubView(view){
 }
 document.querySelectorAll('#dataViewPills .type-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateDataSubView(btn.dataset.view));
+});
+window.addEventListener('resize', ()=>{
+  const v = document.getElementById('trendsDataView');
+  if(v && v.style.display !== 'none') paintDataTrace();
 });
 
 /* The tab transition. The new page is dealt up over the old one from the bottom edge, and
@@ -7209,11 +7225,12 @@ async function firstMissingRecentDate(){
   }
   return null;
 }
+/* Tapping the strip still opens the first morning you never filled in. It used to be wired
+   to Today's copy; the strip is on Data now, so the tap went with it. Without this the only
+   route to a missing day is knowing the date input exists. */
 (function wireTraceBackfill(){
-  const host = document.getElementById('scoreTrace');
+  const host = document.getElementById('dataScoreTrace');
   if(!host) return;
-  host.setAttribute('role', 'button');
-  host.setAttribute('tabindex', '0');
   const go = async ()=>{
     const missing = await firstMissingRecentDate();
     activateTab('data');
@@ -7384,7 +7401,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.287';
+const APP_VERSION = '2026.08.31.288';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7439,6 +7456,7 @@ const APP_NOTES = {
   '2026.08.31.285': 'The tab bar is one stack of plates now, with the lit one climbing a slot per tab.',
   '2026.08.31.286': 'The lit plate climbs the pile when you switch tabs, instead of jumping there.',
   '2026.08.31.287': 'The tab plates are thinner, and each tab now carries its number beside them.',
+  '2026.08.31.288': 'The seven-day strip moved to Data, under Trends. Today keeps the swipe back through the week.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16340,20 +16358,16 @@ async function renderScoreTrace(todayScore){
   }
 }
 
-function paintScoreTrace(){
-  const host = document.getElementById('scoreTrace');
-  if(!host || !scoreDays.length) return;
-  // Width is whatever the band has left once the score's own digits are clear of it —
-  // measured, because "84" and "100" are not the same width and 320px is not 430px.
-  const band = document.querySelector('.today-open');
-  const num = document.getElementById('overallScoreOut');
-  if(!band || !num) return;
-  const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
-  const W = bandColumnWidth(bandRect, numRect, faceIsDocked());
-  if(W < TRACE_MIN_W){ host.style.display = 'none'; layoutBandColumn(false); return; }
+/* THE SEVEN MARKS, DRAWN TO A WIDTH RATHER THAN TO A PLACE.
 
+   This used to be one function that measured Today's band, drew into Today's band and then
+   re-laid Today's band out. The strip lives on Data now, so the drawing had to stop knowing
+   where it was going: hand it a width, get back the markup and the sentence a screen reader
+   reads. Returns null when there is not enough history to be a reading rather than a
+   squiggle — three days, the same floor it always had. */
+function traceMarkup(W){
   const vals = scoreDays.filter(x=>x.score != null).map(x=>x.score);
-  if(vals.length < 3){ host.style.display = 'none'; layoutBandColumn(false); return; }
+  if(vals.length < 3) return null;
   const mid = (Math.min(...vals) + Math.max(...vals)) / 2;
   const span = Math.max(TRACE_MIN_SPAN, (Math.max(...vals) - Math.min(...vals)) + TRACE_PAD * 2);
   let lo = mid - span / 2, hi = mid + span / 2;
@@ -16400,7 +16414,6 @@ function paintScoreTrace(){
   // is not — on a 320px screen with the chip docked the column is 60px, and "LAST 7 D…" is
   // worse than the label this has always had.
   const cap = W >= 86 ? 'Last 7 days' : '7 days';
-  host.style.width = W + 'px';
   // Drawn from the same states as everything else, inverted the way the rating row is: a hard
   // session shuts the eyes. A day with nothing logged gets a dash rather than a blank, so the
   // row reads as seven days either way.
@@ -16415,21 +16428,56 @@ function paintScoreTrace(){
     return `<span class="ts-cell${here}">`
       + faceEyesHtml(st, SESSION_FACE_SCALE, 'currentColor') + `</span>`;
   }).join('') + `</div>`;
-  host.innerHTML = `<div class="trace-cap">${cap}</div>
+  const html = `<div class="trace-cap">${cap}</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
       <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
       ${marks}
     </svg>${wRow}${sRow}`;
-  host.style.display = 'block';
-  host.style.top = '0px';
-  layoutBandColumn(true);
   const showing = scoreDays[scoreDayIndex];
-  host.setAttribute('aria-label',
-    (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
+  const label = (showing && scoreDayIndex !== scoreDays.length - 1 ? `Showing ${stamp(showing.date)}. ` : '') +
     'Score over the last 7 days: ' + scoreDays.map(x=> x.score == null ? 'no reading'
       : (x.depth != null && x.depth < READING_FULL ? x.score + ' partial' : x.score)).join(', ') +
     (wVals.length >= 3 ? '. Bodyweight: ' + scoreWeights.map(v=> v == null ? 'not weighed' : v + 'kg').join(', ') : '') +
-    (anySession ? '. Session effort: ' + scoreDays.map(d=> scoreSessions[d.date] ? scoreSessions[d.date] + ' of 10' : 'nothing logged').join(', ') : ''));
+    (anySession ? '. Session effort: ' + scoreDays.map(d=> scoreSessions[d.date] ? scoreSessions[d.date] + ' of 10' : 'nothing logged').join(', ') : '');
+  return { html, label };
+}
+
+/* TODAY NO LONGER DRAWS IT.
+
+   Seven days of history is a thing you go and look at, not a thing you need beside this
+   morning's number — and it was taking the widest column in the band to say it. It is on
+   Data, under Trends, where the trailing week sits next to the whole history.
+
+   #scoreTrace stays in the band, hidden. It is not dead markup: renderScoreTrace anchors
+   its whole seven-day load to finding it, and that load is what the swipe back through the
+   week reads from. Take the element away and the swipe goes with it.
+
+   layoutBandColumn(false) is not a new state either — it is the path the band already took
+   whenever the column was too narrow or there were fewer than three days to draw. The face
+   row and the docked chip lay themselves out against the number, not against the strip. */
+function paintScoreTrace(){
+  const host = document.getElementById('scoreTrace');
+  if(host) host.style.display = 'none';
+  layoutBandColumn(false);
+  paintDataTrace();
+}
+
+/* Data's copy. It takes the full column it is given rather than whatever the score's digits
+   have left over, so it gets the room the band could never spare it. */
+function paintDataTrace(){
+  const host = document.getElementById('dataScoreTrace');
+  if(!host) return;
+  /* Measure the box being drawn into, not its parent. .fields carries 22px of side padding,
+     so the parent's clientWidth is the full 390 while the strip only has 346 to live in —
+     drawing to the parent put the last mark 22px off the right edge and gave the whole
+     document a horizontal scroll. Shown first, because a display:none box measures zero. */
+  host.style.display = 'block';
+  const W = Math.round(host.clientWidth || 0);
+  if(!scoreDays.length || W < TRACE_MIN_W){ host.style.display = 'none'; return; }
+  const t = traceMarkup(W);
+  if(!t){ host.style.display = 'none'; return; }
+  host.innerHTML = t.html;
+  host.setAttribute('aria-label', t.label);
 }
 
 /* Swipe the block back through the week. The number, the mark and the highlighted tick all
