@@ -1095,14 +1095,15 @@
      were the widest thing in a block that exists to be small, and a tick and a cross are
      the two things nobody needs told. 28px clears the 24 this app holds itself to.
      Drawn, not typed — a check glyph is not in every font and a missing one is a box.
-     The name survives in aria-label, which is what a screen reader reads either way.
-     Accept is the solid one, the same way it is on the card. */
+     The name survives in aria-label, which is what a screen reader reads either way. */
   #recLeft .rl-actions{ display:flex; gap:6px; margin-top:9px; }
   #recLeft .rl-actions button{ width:28px; height:28px; flex:none; padding:0; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     border:1px solid rgba(251,250,246,0.45); background:transparent; color:var(--bg); }
   #recLeft .rl-actions button svg{ width:13px; height:13px; display:block; }
-  #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  /* Both outlined. Accept used to be a solid cream tile with the tick knocked out of it,
+     which said which of the two was the answer. Trying it without: the pair is now one
+     weight, and the only thing telling them apart is the mark inside. */
   #recLeft .rl-actions button:focus-visible{ outline:2px solid var(--block-lime); outline-offset:2px; }
   /* The same strip on Data, where it is an ordinary block in a column rather than whatever
      the score's digits left over. Cursor and focus ring because it is still the way into a
@@ -7443,7 +7444,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.293';
+const APP_VERSION = '2026.08.31.294';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7504,6 +7505,7 @@ const APP_NOTES = {
   '2026.08.31.291': 'Accept or dismiss a suggestion from beside the score, without opening it.',
   '2026.08.31.292': 'The tab numbers are gone — the pile and the word were already saying it.',
   '2026.08.31.293': 'Accept and dismiss are a tick and a cross now, not two words.',
+  '2026.08.31.294': 'The accept mark is an outline now, the same weight as the cross beside it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
