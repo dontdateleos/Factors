@@ -223,28 +223,25 @@
      "Settings" clips at every width up to 393 even with the icon down at 14px, and buying
      the room by shrinking the type is the opposite of the last three days' work. */
   .tab{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 2px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
-  /* THE TAB SYMBOLS. One stack of five plates seen corner-on, with the tab's number set
-     beside it. Every tab wears the identical pile; the only thing that changes is which
-     plate is lit, and it climbs one slot per tab, so the bar reads as a single object with
-     a marker travelling through it rather than as five unrelated pictures.
+  /* THE TAB SYMBOLS. One stack of five plates seen corner-on. Every tab wears the identical
+     pile; the only thing that changes is which plate is lit, and it climbs one slot per tab,
+     so the bar reads as a single object with a marker travelling through it rather than as
+     five unrelated pictures.
 
-     The number is not decoration and it is not new. This app already counts its sections
-     01, 02, 03 in this exact face — the tabs now join a system that was already running,
-     and the numeral says the same thing the marker's height says, twice, which is what
-     makes the pile legible at 18px where four faint plates alone are not.
+     The pile carried its tab's number beside it for four builds. The number was legible and
+     it was redundant: the marker's height already says which of five you are on, the coloured
+     backdrop says it again, and the word underneath says it in full. Three of those are the
+     bar doing its job and the fourth was a caption on it. The box went back to square with
+     it — it was only ever 36 units wide to make room for the digits.
 
      Plates are thin: 2.1 units of half-height against 8 of half-width. Thick plates filled
      the box and the pile read as one mass; thin ones let the gaps do the separating that
-     opacity was doing on its own. The slots are re-centred for it — a short pile on the old
-     slots sat low in the box.
+     opacity was doing on its own. The slots are centred for that height rather than the old
+     one, because a short pile on the fat pile's slots sat low in the box.
 
      Unlit plates sit at 26%, which an inactive tab's own 55% takes to about 14%: the pile is
-     a ghost until you look for it, and the number and the lit plate carry the tab. */
-  /* 27x18, not 18x18. The box widened from 24 to 36 units while its height stayed at 18px,
-     so the scale factor is unchanged and the pile draws at exactly the size it always did —
-     the number is set beside it rather than squeezed into the space it had. */
-  .tab svg{ width:27px; height:18px; flex:none; opacity:0.55; }
-  .tab-stack .pn{ font-family:var(--mono); font-weight:600; font-size:10px; fill:currentColor; }
+     a ghost until you look for it, and the lit plate carries the tab. */
+  .tab svg{ width:18px; height:18px; flex:none; opacity:0.55; }
   /* Dimmer than the word until the tab is yours: the label carries the name, the symbol is
      there to be found by shape, and two things at full strength read as two things. */
   .tab.active svg{ opacity:1; }
@@ -2301,11 +2298,11 @@
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 36 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:0"><path class="pl lead on" style="--plate:0" d="M2 18.6L10 16.5L18 18.6L10 20.7Z"/><path class="pl above" style="--plate:1" d="M2 15.3L10 13.2L18 15.3L10 17.4Z" opacity=".26"/><path class="pl above" style="--plate:2" d="M2 12L10 9.9L18 12L10 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M2 8.7L10 6.6L18 8.7L10 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M2 5.4L10 3.3L18 5.4L10 7.5Z" opacity=".26"/><text class="pn" x="27" y="12" text-anchor="middle" dominant-baseline="central">01</text></svg><span>Today</span></div>
-    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 36 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:1"><path class="pl lead" style="--plate:0" d="M2 18.6L10 16.5L18 18.6L10 20.7Z" opacity=".26"/><path class="pl lead on" style="--plate:1" d="M2 15.3L10 13.2L18 15.3L10 17.4Z"/><path class="pl above" style="--plate:2" d="M2 12L10 9.9L18 12L10 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M2 8.7L10 6.6L18 8.7L10 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M2 5.4L10 3.3L18 5.4L10 7.5Z" opacity=".26"/><text class="pn" x="27" y="12" text-anchor="middle" dominant-baseline="central">02</text></svg><span>Weekly</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 36 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:2"><path class="pl lead" style="--plate:0" d="M2 18.6L10 16.5L18 18.6L10 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M2 15.3L10 13.2L18 15.3L10 17.4Z" opacity=".26"/><path class="pl lead on" style="--plate:2" d="M2 12L10 9.9L18 12L10 14.1Z"/><path class="pl above" style="--plate:3" d="M2 8.7L10 6.6L18 8.7L10 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M2 5.4L10 3.3L18 5.4L10 7.5Z" opacity=".26"/><text class="pn" x="27" y="12" text-anchor="middle" dominant-baseline="central">03</text></svg><span>Body</span></div>
-    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 36 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:3"><path class="pl lead" style="--plate:0" d="M2 18.6L10 16.5L18 18.6L10 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M2 15.3L10 13.2L18 15.3L10 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M2 12L10 9.9L18 12L10 14.1Z" opacity=".26"/><path class="pl lead on" style="--plate:3" d="M2 8.7L10 6.6L18 8.7L10 10.8Z"/><path class="pl above" style="--plate:4" d="M2 5.4L10 3.3L18 5.4L10 7.5Z" opacity=".26"/><text class="pn" x="27" y="12" text-anchor="middle" dominant-baseline="central">04</text></svg><span>Data</span></div>
-    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 36 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:4"><path class="pl lead" style="--plate:0" d="M2 18.6L10 16.5L18 18.6L10 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M2 15.3L10 13.2L18 15.3L10 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M2 12L10 9.9L18 12L10 14.1Z" opacity=".26"/><path class="pl lead" style="--plate:3" d="M2 8.7L10 6.6L18 8.7L10 10.8Z" opacity=".26"/><path class="pl lead on" style="--plate:4" d="M2 5.4L10 3.3L18 5.4L10 7.5Z"/><text class="pn" x="27" y="12" text-anchor="middle" dominant-baseline="central">05</text></svg><span>Settings</span></div>
+    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:0"><path class="pl lead on" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z"/><path class="pl above" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl above" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Today</span></div>
+    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:1"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead on" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z"/><path class="pl above" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Weekly</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:2"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead on" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Body</span></div>
+    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:3"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl lead on" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Data</span></div>
+    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:4"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl lead" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl lead on" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z"/></svg><span>Settings</span></div>
   </div>
 </header>
 
@@ -7441,7 +7438,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.291';
+const APP_VERSION = '2026.08.31.292';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7500,6 +7497,7 @@ const APP_NOTES = {
   '2026.08.31.289': 'Seven small ticks beside the date show the day you are on, and that Today swipes back through the week.',
   '2026.08.31.290': 'The suggestion sits beside the score now, not in a row beneath it. Tap it for the reasoning.',
   '2026.08.31.291': 'Accept or dismiss a suggestion from beside the score, without opening it.',
+  '2026.08.31.292': 'The tab numbers are gone — the pile and the word were already saying it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
