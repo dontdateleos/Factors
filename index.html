@@ -70,10 +70,10 @@
        the skeleton's shimmer, a rule under a coloured band. It is invisible on the tab
        grounds now that those are dark, so separators that sit on them take this instead. */
     /* The ink as bare channels, so every faded ink in the app is one value away from
-     flipping. Anything that means "the text colour, but quieter" must use this and
-     never a literal, or it will not follow the ground. */
-  --ink-rgb:251,250,246; --ground-rgb:12,13,11;
-  --hair:rgba(var(--ink-rgb),0.16);
+       flipping. Anything that means "the text colour, but quieter" must use this and
+       never a literal, or it will not follow the ground. */
+    --ink-rgb:251,250,246; --ground-rgb:12,13,11;
+    --hair:rgba(var(--ink-rgb),0.16);
     --text:#0c0d0b;
     /* The grey explanatory text is set in, sampled off the reference (#c8c7bc there). It
        was #191a0e — a near-black, correct when it sat on a saturated ground and invisible
@@ -85,6 +85,18 @@
     --accent-dim:#e8edc4;
     --bad:#e8391a;
     --warn:#d98a00;
+    /* The same four hues at text weight. They were chosen to sit ON black or to be a fill
+       with dark ink on them, which is why they are this bright; as text on a light ground
+       they land between 1.6 and 4.0 to 1. These are the fill hue mixed toward the ink until
+       they clear 4.6 on every field tint, so the hue survives and the reading works. On the
+       dark ground they ARE the fill hue, so every use below is inert until the ground moves.
+       Split rather than darkened in place because --bad and --warn are also fills, and a
+       darker fill drops ink-on-colour from 4.7 to 3.7. */
+    --ink-bad:var(--bad);
+    --ink-warn:var(--warn);
+    --ink-yellow:var(--block-yellow);
+    --ink-orange:var(--block-orange);
+    --wr-on:var(--bg);
     --good:#5c6b0f;
     --reverse-bg:#0c0d0b;   /* dark fill for buttons/badges — independent of --text */
     --on-light:#0c0d0b;     /* text on any light fill (inputs, tags, outline buttons) */
@@ -175,7 +187,7 @@
      a light fill and pins its own colour, so flipping the default fixes what was invisible
      and changes nothing that was not: measured across all six tabs and all three Data
      views, 1 element fixed, 0 broken. The default should be the ink the page mostly is. */
-  body{ margin:0; background:var(--bg); color:var(--bg); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
+  body{ margin:0; background:var(--ground); color:var(--bg); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
   /* The 90px the body used to carry lives here now: it is the last element on every tab,
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
@@ -306,6 +318,82 @@
   body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); --hue-faded:#fdae9d; }
   body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); --hue-faded:#ddcffb; }
   body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); --hue-faded:#9ee7f7; }
+
+  /* THE GROUND, and the only place it is decided.
+     Everything below is derived, not picked. --ground and --bg swap; --ink-rgb and
+     --ground-rgb swap with them so all seventy-odd faded inks follow; --dim keeps the
+     18 L* it sits from the primary ink, measured rather than eyeballed, which puts it at
+     L* 21.7 instead of 80.1; the field tints are the same 8%-of-block mix recomputed over
+     bone; --hue-faded and --accent-dim are the same tint ratios (0.45, 0.67) run toward
+     ink instead of away from it.
+
+     What does NOT move is as much of the point as what does. --text, --on-light,
+     --on-light-dim, --reverse-bg, --border-bold, --line and --panel all mean "on a light
+     or coloured fill" — the lime chips, the white inputs, the dark-filled buttons. Those
+     fills are unchanged, so those colours are still right, and the app already had this
+     whole vocabulary from when the page was cream. The blocks and the faces do not move
+     either: they are the thing the ground exists to carry. */
+  html[data-ground="bone"]{
+    --ground:#fbfaf6;
+    --bg:#0c0d0b;
+    --ink-rgb:12,13,11; --ground-rgb:251,250,246;
+    --dim:#38332f;
+    --hue-faded:#0c0d0b;
+    --accent-dim:#484e23;
+    /* The dark set is 8% of the block over black, which steps 8.4 L* off the ground. Run
+       the same 8% over bone and it steps 1.4-3.0 — red reads, the other four vanish. The
+       recipe does not carry across; the SIZE of the step is what the three levels are for.
+       Matching the dark step exactly needs 22-48% of the block, which turns a neutral page
+       into a coloured one. These are 3.0 L* off bone, which is where --field-red already
+       landed by accident and is the one that reads: the other four brought up to it. */
+    --field-lime:#f1f3da;
+    --field-yellow:#f8f1db;
+    --field-red:#fbefe9;
+    --field-purple:#f4f0f7;
+    --field-blue:#e2f5f6;
+    --ink-bad:#cb3318;
+    --ink-warn:#956104;
+    --ink-yellow:#7e6b24;
+    --ink-orange:#995e30;
+    --wr-on:#4c4c44;
+  }
+  /* Faded ink is not symmetric: the same alpha composited toward bone lands weaker than
+     toward black, because luminance is not linear in the middle. Most of the twenty-three
+     alphas in the app have enough headroom to absorb that; these two did not. */
+  html[data-ground="bone"] .app-colophon i{ color:rgba(var(--ink-rgb),0.58); }
+  html[data-ground="bone"] .subj-dot{ color:rgba(var(--ink-rgb),0.66); }
+  html[data-ground="bone"] body.tab-insights{ --hue-faded:#707a32; }
+  html[data-ground="bone"] body.tab-training{ --hue-faded:#846f25; }
+  html[data-ground="bone"] body.tab-injuries{ --hue-faded:#8e4233; }
+  html[data-ground="bone"] body.tab-data{ --hue-faded:#716591; }
+  html[data-ground="bone"] body.tab-settings{ --hue-faded:#3d9cb1; }
+  /* The masthead does not follow the ground. It is the one part of the app that is the
+     same on every tab, and on bone it reads as a printed page's header block rather than
+     as the top of the screen. It takes the dark tokens back so the date, the tab label,
+     the unlit part of the scale and the mark all still read against it. */
+  html[data-ground="bone"] header{
+    background:var(--reverse-bg);
+    --ground:#0c0d0b; --bg:#fbfaf6;
+    --ink-rgb:251,250,246; --ground-rgb:12,13,11;
+    --dim:#c9c7bc;
+  }
+  /* --reverse-bg is a fixed near-black fill for badges, sheets and panels — it does not
+     follow the ground, by design, because it is how those things read as lifted OFF the
+     ground rather than cut into it. Which means that on bone each one is a pocket of the
+     dark ground, and everything inside it has to read the dark set: --bg is their ink,
+     --dim their quiet ink, --ink-rgb their hairlines. Without this the panel flips its
+     fill's partner and paints ink on ink.
+     This list is the one thing here that has to be kept by hand. groundcheck.mjs is the
+     guard: a new --reverse-bg fill that is not listed shows up as a 1:1 failure. */
+  html[data-ground="bone"] :is(
+    .rating-btn.active, .evidence-badge.strong, .plan-key, .ss-tag, .drill-stage,
+    .update-banner, .lift-sheet-panel, .morning-panel, .goal-row-panel,
+    .rpe-scale .subj-dot.on, .rest-preset.on
+  ){
+    --ground:#0c0d0b; --bg:#fbfaf6;
+    --ink-rgb:251,250,246; --ground-rgb:12,13,11;
+    --dim:#c9c7bc; --text:#0c0d0b;
+  }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -589,7 +677,7 @@
     padding-left:var(--gutter); padding-right:var(--gutter); }
   .field-row{ display:flex; gap:10px; align-items:center; }
   .mobility-domain-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--hair); }
-  .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--text); }
+  .rating-btn{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-bold); font-family:var(--mono); font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; background:var(--bg); color:var(--ground); }
   .rating-btn.active{ background:var(--reverse-bg); color:var(--bg); }
   .mobility-legend{ margin-bottom:var(--sp-2); }
   .mobility-legend summary{ font-family:var(--sans); font-size:var(--fs-sm); color:var(--dim); cursor:pointer; }
@@ -693,7 +781,7 @@
      hung the outer ones a pixel off-screen and clipped them. Collapse the seam only. */
   footer button{ border-radius:0; flex:1 1 0; margin:0; }
   footer button + button{ margin-left:-2px; }
-  button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--text); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
+  button{ font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.015em; text-transform:uppercase; font-weight:var(--fw-bold); height:31px; padding:0 16px; border-radius:0; border:2px solid var(--bg); background:var(--bg); color:var(--ground); flex:1 0 auto; cursor:pointer; transition:opacity 0.08s ease; display:flex; align-items:center; justify-content:center; }
   button:active{ opacity:0.6; }
   .type-btn:active, .tab:active { transform:scale(0.95); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; color:var(--dim); text-align:center; }
@@ -708,7 +796,7 @@
   .eye-anim-row input{ width:auto; flex:none; margin:0; }
   .eye-anim-text{ flex:1; min-width:0; }
   .eye-anim-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.04em; color:var(--bg); }
-  .eye-anim-muted{ font-family:var(--sans); text-transform:uppercase; letter-spacing:0.08em; color:var(--warn); margin-left:6px; }
+  .eye-anim-muted{ font-family:var(--sans); text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-warn); margin-left:6px; }
   .eye-anim-note{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); line-height:1.35; }
   .eye-anim-play{ flex:none; cursor:pointer; padding:4px 2px; }
   .eye-anim-play .empty-eyes{ --eye-ink:var(--bg); opacity:1; }
@@ -736,10 +824,10 @@
   .trend-arrow{ font-size:var(--fs-tag); margin-left:4px; }
   .trend-arrow.down{ color:var(--text); }
   .trend-arrow.up{ color:var(--text); }
-  button.primary{ background:var(--bg); color:var(--text); border-color:var(--bg); font-weight:var(--fw-bold); }
+  button.primary{ background:var(--bg); color:var(--ground); border-color:var(--bg); font-weight:var(--fw-bold); }
   button.small{ flex:none; height:31px; padding:0 12px; font-size:var(--fs-tag); }
   button.outline{ background:transparent; color:var(--bg); border-color:rgba(var(--ink-rgb),0.45); }
-  button.outline:active{ background:var(--bg); color:var(--text); opacity:1; }
+  button.outline:active{ background:var(--bg); color:var(--ground); opacity:1; }
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   .log{ margin-top:var(--sp-4); }
@@ -849,7 +937,7 @@
     justify-content:space-between; gap:10px; padding:10px var(--gutter); background:var(--reverse-bg); color:var(--bg);
     font-family:var(--sans); font-size:var(--fs-sm); letter-spacing:0.015em; }
   .update-banner-actions{ display:flex; align-items:center; gap:8px; flex:none; }
-  .update-banner button{ height:31px; background:var(--bg); color:var(--text); border:2px solid var(--bg); }
+  .update-banner button{ height:31px; background:var(--bg); color:var(--ground); border:2px solid var(--bg); }
   .day-rolled{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:12px var(--gutter); background:var(--warn); color:var(--text); font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui); }
@@ -997,7 +1085,7 @@
      rows the override never reached (Today's session type, the trends metric and period
      rows) get it too. */
   .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid rgba(var(--ink-rgb),0.4); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:rgba(var(--ink-rgb),0.65); cursor:pointer; background:transparent; }
-  .type-btn.active{ color:var(--text); background:var(--bg); border-color:var(--bg); }
+  .type-btn.active{ color:var(--ground); background:var(--bg); border-color:var(--bg); }
 
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
   /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
@@ -1077,7 +1165,7 @@
     display:flex; align-items:center; justify-content:center;
     border:1px solid rgba(var(--ink-rgb),0.45); background:transparent; color:var(--bg); }
   #recLeft .rl-actions button svg{ width:13px; height:13px; display:block; }
-  #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   #recLeft .rl-actions button:focus-visible{ outline:2px solid var(--block-lime); outline-offset:2px; }
   /* The same strip on Data, where it is an ordinary block in a column rather than whatever
      the score's digits left over. Cursor and focus ring because it is still the way into a
@@ -1217,7 +1305,10 @@
   /* Hollow is the resting state: a day nothing was asked of, and nothing to say about it. */
   .wr-mark{ width:100%; height:14px; border-radius:2px; background:transparent;
     box-shadow:inset 0 0 0 1px rgba(var(--ink-rgb),0.18); }
-  .wr-mark.on, .wr-flag.on{ background:var(--bg); box-shadow:none; }
+  /* On black this fill is bone, which reads as the quiet one of the three. Inverted it is
+     pure ink, and dark-on-light carries more weight than light-on-dark — the neutral would
+     out-shout the lime and the red it is meant to sit between. Graphite instead. */
+  .wr-mark.on, .wr-flag.on{ background:var(--wr-on); box-shadow:none; }
   .wr-mark.ahead, .wr-flag.ahead{ background:var(--block-lime); box-shadow:none; }
   .wr-mark.below, .wr-flag.below{ background:var(--block-red); box-shadow:none; }
   /* The row's verdict, right-aligned so the flags stack into a column you can read down
@@ -1339,7 +1430,7 @@
   /* The badge was black on black once this moved into the panel. */
   #deloadSuggestedBadge{ display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
-    background:var(--bg); color:var(--text); padding:3px 6px; }
+    background:var(--bg); color:var(--ground); padding:3px 6px; }
   .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
   .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
     border-color:rgba(var(--ink-rgb),0.5); }
@@ -1385,7 +1476,7 @@
   .log-bar-clock{ align-self:center; font-family:var(--mono); font-size:var(--fs-md);
     font-weight:var(--fw-bold); color:var(--bg); font-variant-numeric:tabular-nums;
     padding:0 12px; flex:0 0 auto; }
-  .log-bar-clock.running{ color:var(--bad); }
+  .log-bar-clock.running{ color:var(--ink-bad); }
   .log-bar-drop{ height:auto; padding:0 16px; background:transparent; color:rgba(var(--ink-rgb),0.55);
     border:none; border-left:2px solid rgba(var(--ink-rgb),0.25); font-size:var(--fs-md);
     flex:0 0 auto; cursor:pointer; }
@@ -1665,7 +1756,7 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Black-on-light by default, which is invisible on the plate — same inversion the form
      panels do to their own buttons. */
-  .card-stack-head #undoDecisionBtn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .card-stack-head #undoDecisionBtn{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   .card-stack-chev{ font-size:var(--fs-md); color:var(--dim); flex:none;
     transition:transform 0.15s; }
   /* A plate that butts against the band above it and the section below. The stack's own
@@ -1714,7 +1805,7 @@
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.04em; background:transparent; color:var(--bg); opacity:0.5;
     border:1px solid rgba(var(--ink-rgb),0.35); cursor:pointer; }
-  .form-panel .blc-unit.on{ opacity:1; background:var(--bg); color:var(--text);
+  .form-panel .blc-unit.on{ opacity:1; background:var(--bg); color:var(--ground);
     border-color:var(--bg); }
   .blc-note{ margin-top:8px; line-height:1.45; }
   /* One row per week. The track is the block's biggest week, so the bars are comparable
@@ -1740,8 +1831,8 @@
   /* The caption doubles as the chart's key, so each half is painted in the mark it names. */
   .blc-cap{ margin:0; opacity:1; }
   .blc-key{ font-weight:var(--fw-bold); }
-  .blc-key-done{ color:var(--block-orange); }
-  .blc-key-plan{ color:var(--block-yellow); }
+  .blc-key-done{ color:var(--ink-orange); }
+  .blc-key-plan{ color:var(--ink-yellow); }
   /* Dark ink: this chart sits on the Data tab's own yellow, not on the black band the score
      trace lives in, and cream ticks were all but invisible on it. */
   /* SVG text paints with fill, so this never picked up the ink flip the rest of the app
@@ -1816,7 +1907,7 @@
     color:var(--dim); flex:1; text-align:center; }  .rest-timer{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .rest-clock{ font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     letter-spacing:0.02em; font-variant-numeric:tabular-nums; min-width:64px; }
-  .rest-clock.running{ color:var(--bad); }
+  .rest-clock.running{ color:var(--ink-bad); }
   .rest-steps{ display:flex; gap:4px; margin-left:auto; }
   .rest-preset{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.06em;
     text-transform:uppercase; padding:3px 7px; border:2px solid var(--border-bold);
@@ -2048,7 +2139,7 @@
   .goal-row-panel .field-label{ color:var(--dim); }
   .goal-row-panel label{ color:rgba(var(--ink-rgb),0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
-  .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   /* Target exercise, weight and date come off the box: saved without one, a strength goal
      is benchmarked from what you have actually been lifting. The inputs stay in the DOM,
      hidden, so a target already set is carried rather than blanked on the next save, and
@@ -2071,7 +2162,7 @@
      used to lose its own left edge. */
   .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(var(--ink-rgb),0.22); }
   .rec-actions{ display:flex; gap:8px; margin-top:16px; }
-  .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
+  .rec-actions .accept-btn{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(var(--ink-rgb),0.45); }  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
   /* The warm-up and the post-session stretching are preparation, not the session. Stacked
@@ -3338,7 +3429,7 @@
     </div>
     <div class="group">
       <div class="group-head collapsible" data-collapse="legal" style="cursor:pointer;"><div class="group-title">Legal</div><div class="group-sub">terms &amp; privacy policy — draft</div><span class="collapse-chevron" data-collapse="legal">▾</span></div><div class="fields collapsible-body" data-collapse="legal" style="display:none;">
-        <div class="score-note" style="color:var(--warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
+        <div class="score-note" style="color:var(--ink-warn); font-weight:700;">⚠️ Draft — pending legal review. Not yet finalized for real users.</div>
         <details>
           <summary>Terms and Conditions</summary>
           <div style="font-size:var(--fs-sm); line-height:1.5; margin-top:8px; max-height:400px; overflow-y:auto; padding:10px; border:1px solid var(--dim); border-radius:2px;">
@@ -3513,9 +3604,9 @@
     </div>
 
     <div class="group form-panel" style="border-color:var(--bad);">
-      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><span class="head-est" id="startFreshSummary"></span><div class="group-sub" style="color:var(--bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
+      <div class="group-head collapsible" data-collapse="startfresh" style="cursor:pointer;"><div class="group-title">Start Fresh</div><span class="head-est" id="startFreshSummary"></span><div class="group-sub" style="color:var(--ink-bad);">permanently deletes everything</div><span class="collapse-chevron" data-collapse="startfresh">▾</span></div><div class="fields collapsible-body" data-collapse="startfresh" style="display:none;">
         <div class="score-note">Erases everything permanently. Export a backup first.</div>
-        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--bad);">Clear all data</button>
+        <button id="clearAllDataBtn" class="outline" style="border-color:var(--bad); color:var(--ink-bad);">Clear all data</button>
         <div id="clearAllDataResult" class="score-note note-live"></div>
       </div>
     </div>
@@ -7629,7 +7720,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.312';
+const APP_VERSION = '2026.08.31.313';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7707,6 +7798,7 @@ const APP_NOTES = {
   '2026.08.31.310': 'The tab bar is a scale now: five lines, lit up to the one you are on.',
   '2026.08.31.311': 'Swipe left and right to change tab. The scale moved up beside the wordmark.',
   '2026.08.31.312': 'Every faded ink in the app now comes from one value instead of seventy.',
+  '2026.08.31.313': 'The app can now be put on a bone ground, header and colours unchanged.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15380,9 +15472,9 @@ function paintReadinessConfidence(){
     bits.push(`baseline ${Math.round(sr.maturity * 100)}% mature`);
   } else return false;
   let html = `<div>${bits.join(' · ')}</div>`;
-  if(sr.gateReason) html += `<div style="color:var(--warn); margin-top:2px;">${sr.gateReason}</div>`;
+  if(sr.gateReason) html += `<div style="color:var(--ink-warn); margin-top:2px;">${sr.gateReason}</div>`;
   if(sr.drinkNote) html += `<div style="margin-top:2px; opacity:0.75;">${sr.drinkNote}</div>`;
-  if(sr.saturated) html += `<div style="color:var(--warn); margin-top:2px;">High HRV with a heart rate that does not agree — read as unclear, not fresh.</div>`;
+  if(sr.saturated) html += `<div style="color:var(--ink-warn); margin-top:2px;">High HRV with a heart rate that does not agree — read as unclear, not fresh.</div>`;
   // Reported next to the score rather than inside it. A shifted baseline and a bad night are
   // different events and the number cannot say which it is looking at.
   if(sr.shift && sr.shift.moved){
