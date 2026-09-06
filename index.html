@@ -7736,7 +7736,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.316';
+const APP_VERSION = '2026.08.31.317';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7818,6 +7818,7 @@ const APP_NOTES = {
   '2026.08.31.314': 'Settings > Ground switches the pages between black and bone.',
   '2026.08.31.315': 'Accessory work goes to the biggest gap again, so the back stops being skipped.',
   '2026.08.31.316': 'Side and rear delts are their own areas, so a press can no longer stand in for a lateral raise.',
+  '2026.08.31.317': 'Past a skill\'s entry condition, the prerequisites stay in the plan at a keeping dose.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22485,6 +22486,9 @@ async function renderMobilityProgression(){
 // into history — and it carries the level, which is exactly what has to be counted.
 const EXERCISE_SKILL_SESSIONS_TO_ADVANCE = 6;
 const SKILL_WORK_PRESCRIPTION = '1-2 easy sets, well short of failure';
+// What a prerequisite drops to once you are past the gate and working the rung above it.
+// Enough to hold the ability, not enough to compete with the thing you are training for.
+const SKILL_MAINTENANCE_PRESCRIPTION = '1 set, keeping it — well short of failure';
 // The inverse of the naming rule above: given "Muscle-up: Transition negatives", say which
 // skill and which level it is. getExerciseSkillProgress already trusts that name to carry
 // the level, so the same string can be trusted to carry the fact that it is skill work.
@@ -23363,6 +23367,13 @@ function applyInjurySafety(exercise, movementFlags){
 const ISOLATION_REP_RANGE = { repLow: 8, repHigh: 12 };
 function assignPrescription(ex, plannedFocus, personalSets){
   if(ex.skippedForInjury) return ex;
+  // Skill work arrives with its own dose and its own words for it, and this was
+  // overwriting both: every rung was prescribed the library default of 3 sets and an
+  // 8-12 rep range while still displaying "1-2 easy sets, well short of failure"
+  // underneath it. A false-grip hang has no reps, a handstand has no reps, and the
+  // whole point of the skill prescription is that it is deliberately submaximal — which
+  // is exactly what a set count picked off the exercise's category is not.
+  if(ex.isSkillWork) return ex;
   // Main lifts come from MAIN_LIFT_DEFAULTS/SECONDARY_MAIN_LIFT without an exerciseId,
   // so resolve by name too — otherwise a Back Squat falls through to the 'default'
   // 3-set count instead of main_strength's 4, and the volume tally undercounts the
@@ -23653,7 +23664,23 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       // A gate with nothing to point at still has to prescribe something, and the thing it
       // prescribes is its own condition — one exercise, correctly tagged, which is exactly
       // what this placed before the gate existed. Only the two-lifts-in-one-row case moves.
-      const picks = !atGate ? [{ t: tree, idx: sg.levelIndex, toward: null }]
+      /* AND WHAT HAPPENS THE DAY YOU LEAVE THE GATE.
+
+         Past the gate this placed the current rung and nothing else, so the prerequisites
+         it had been programming the day before simply stopped. For the muscle-up that is
+         the whole of the problem: ticking "False grip hang" replaced pull-ups and dips
+         with a twenty-second isometric. Measured over three generated weeks at four days
+         — "Muscle-up: False grip hang" twice a week, and not one pull-up or dip in twelve
+         sessions. The rung you are on is a drill; the prerequisites are the ability the
+         drill is built on, and they were being traded for it rather than added to.
+
+         They stay, at a maintenance dose. Not the full gate dose: the point past the gate
+         is the new rung, and pull-ups plus dips plus the rung at full volume is most of a
+         session. `maintain` marks them so they carry the smaller prescription and read as
+         what they are — the thing you are keeping, not the thing you are chasing. */
+      const picks = !atGate
+        ? [{ t: tree, idx: sg.levelIndex, toward: null }]
+            .concat(needs.map(n=>({ ...n, maintain: true })))
         : needs.length ? needs
         : [{ t: tree, idx: Math.max(0, gate - 1), toward: null }];
       const fitting = picks.filter(x=>movementFitsTag(x.t.movement, tag));
@@ -23674,9 +23701,11 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
       fitting.forEach(x=>{
         exercises.push({ name: `${x.t.label}: ${x.t.levels[x.idx]}`,
           area: x.t.area || '', secondaryArea: x.t.secondaryArea || '',
-          movement: x.t.movement, isSkillWork: true, towardSkill: x.toward,
-          sets: 2, repLow: null, repHigh: null,
-          prescription: SKILL_WORK_PRESCRIPTION });
+          movement: x.t.movement, isSkillWork: true,
+          towardSkill: x.maintain ? null : x.toward,
+          maintainingFor: x.maintain ? tree.label : null,
+          sets: x.maintain ? 1 : 2, repLow: null, repHigh: null,
+          prescription: x.maintain ? SKILL_MAINTENANCE_PRESCRIPTION : SKILL_WORK_PRESCRIPTION });
       });
     });
 
@@ -24706,8 +24735,16 @@ async function blockSummaryHtml(block){
         // it is the prerequisite standing in for it. With the label cut, "Full strict"
         // under a Muscle-up goal would read as an unexplained substitution, so the row
         // says whose entry condition it is.
-        rows.push(planRow(movementName, ex.prescription || 'easy sets',
-          ex.towardSkill ? [{ key:'Toward', text:`${ex.towardSkill} — its entry condition` }] : null,
+        // Past the gate the same thing happens for the opposite reason: the prerequisite
+        // is still there, but now it is the ability being held rather than the one being
+        // built toward, and "Full strict" under a Muscle-up goal reads as an unexplained
+        // substitution either way unless the row says which.
+        const skillNote = ex.towardSkill
+          ? [{ key:'Toward', text:`${ex.towardSkill} — its entry condition` }]
+          : ex.maintainingFor
+          ? [{ key:'Keeping', text:`what ${ex.maintainingFor} is built on` }]
+          : null;
+        rows.push(planRow(movementName, ex.prescription || 'easy sets', skillNote,
           { lead: '<span class="plan-key">Skill</span>' }));
         continue;
       }
