@@ -1653,10 +1653,10 @@
      The ground under them is not decoration — the five face colours were chosen against the
      black the score sits on, and two of them are Today's own lime and a yellow a shade off
      it. Dropped straight onto a tab-coloured surface, "good" is lime on lime and invisible.
-     They still get it, one face at a time: the row has given up the full-bleed plate it used
-     to paint, because on the one morning it is on screen that plate is 296px tall and it was
-     covering the whole of the field. Each face paints the same colour under itself instead,
-     and the field runs between them. See THE FIELD at the end of this sheet. */
+     They still get it: the row has given up the full-bleed plate it used to paint, because on
+     the one morning it is on screen that plate is 296px tall and it was covering the whole of
+     the field — but what is under it is the page's own ground either way, with the field's
+     dots on top. Nothing here is a tab colour. See THE FIELD at the end of this sheet. */
   #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
     margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:var(--sp-3) var(--gutter); }
   #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
@@ -2602,27 +2602,21 @@
      plain ground: .331 dotted the whole of it and there was no display left on the page,
      only a texture.
 
-     WHERE IT BREAKS. Every gap used to come for free — anything with a background of its own
-     paints over the image — which broke the field around the chips and the buttons and around
-     nothing else, because text has no background. So the two things this page exists to print,
-     the score and the recommendation, were the two sitting straight on the dots. The gaps are
-     written now. Each reading knocks a hole in the field and keeps daylight around itself.
+     WHAT SITS ON IT. Everything, and nothing is cut out for it. For one build the field was
+     knocked through behind each reading, six pixels of daylight around every one, on the
+     reasoning that a gap is what a display leaves around a printed value. It is not what
+     this one wanted: six plates of bare ground floating on a texture read as boxes ruled
+     round the words, and the score stopped being a number on a field and became a number in
+     a box. Gone. The digits, the label, the suggestion, the trace, the question and the note
+     all sit in front of an unbroken field.
 
-     The hole is a spread-only box-shadow, which paints outside the border box and changes no
-     geometry at all — the trace and the question are absolutely placed and sized in script,
-     and a block that measured wider than it draws would take them with it.
+     That is free rather than arranged, and it is the whole reason the field is a layer of
+     its own rather than the wrapper's background: everything inside .today-field is content,
+     and content paints over a pseudo-element pinned at z-index -1.
 
-     The score is the one exception, and sideways it is padding instead. The chip and the
-     column beside it are both anchored off the digits' getBoundingClientRect: with a shadow
-     the digits would measure the same, and the chip would have docked three pixels under the
-     glyphs and nine under the knockout, which is a third of the chip gone. Padded, the box the
-     digits report IS the plate, so the arrangement follows the plate on its own; the equal
-     negative margin hands the width back, so nothing moves.
-
-     Sideways ONLY. The suggestion hangs from the number's bottom edge and clears the label
-     beneath it by four pixels, so a plate that measured taller as well would have spent those
-     four and sat on the label. Above and below, the daylight is two offset shadows: painted,
-     not measured.
+     One thing the knockouts leave behind. .today-open and the standing question row gave up
+     the opaque plates they used to paint so the field could run behind them, and they stay
+     given up — that is what makes this one field rather than three bands with two seams.
 
      WHAT IT LOOKS LIKE. A 4px cell — fine enough to read as a texture, open enough that the
      ground still reads as the ground — with two things done to it that a flat screen does not
@@ -2654,9 +2648,6 @@
      pseudo-element and takes the mask with it; z-index:-1 puts it under the readings, and the
      z-index:0 on the parent is what stops -1 from dropping it behind the page itself. */
   .today-field{
-    /* One number for every knockout on the page, so no reading sits closer to the dots than
-       another. Bigger than the 4px grid, or the gap reads as a dropped row rather than a gap. */
-    --field-gap:6px;
     position:relative;
     z-index:0;
     margin:0 calc(-1 * var(--gutter));
@@ -2702,31 +2693,6 @@
     padding-top:calc(var(--sp-3) + 4px);
   }
 
-  /* THE READINGS, AND THE HOLES THEY KNOCK.
-     The score and its label; the recommendation; the seven-day trace; the question, as one
-     block while it is a column inside the band; and the confidence note under all of it. */
-  .today-field .score-label-row,
-  .today-field #recLeft,
-  .today-field #scoreTrace,
-  .today-field #todayFaceRow:not(.face-row-flow),
-  .today-field #baselineStatus:not(:empty){
-    background:var(--ground);
-    box-shadow:0 0 0 var(--field-gap) var(--ground);
-  }
-  .today-field .score-num{
-    background:var(--ground);
-    padding:0 var(--field-gap);
-    margin:0 calc(-1 * var(--field-gap));
-    box-shadow:0 var(--field-gap) 0 var(--ground), 0 calc(-1 * var(--field-gap)) 0 var(--ground);
-  }
-  /* Standing on its own the question is not a block on a field, it IS the page — a 296px
-     knockout would take the field with it. So the pieces print instead: the caption keeps
-     its daylight, and the five faces are already 6px apart, which is the gap. */
-  .today-field #todayFaceRow.face-row-flow .trace-cap{
-    background:var(--ground);
-    box-shadow:0 0 0 var(--field-gap) var(--ground);
-  }
-  .today-field #todayFaceRow.face-row-flow .subj-face{ background:var(--ground); }
 
 </style>
 </head>
@@ -8038,7 +8004,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.334';
+const APP_VERSION = '2026.08.31.335';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8138,6 +8104,7 @@ const APP_NOTES = {
   '2026.08.31.332': 'The dotted field is back to the score alone, edge to edge, and off the rest of the page.',
   '2026.08.31.333': 'The field runs down to the suggestions head now, and every reading on it knocks its own gap.',
   '2026.08.31.334': 'The field is a rippled sheet now, and it is cut on that wave at both ends rather than on a line.',
+  '2026.08.31.335': 'The readings sit straight on the field again — no boxes cut out behind the words and the number.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
