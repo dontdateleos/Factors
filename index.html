@@ -4058,15 +4058,15 @@ let eyeScore = null;       // the score the expression is drawn from
 let eyeFlyer = null;
 let eyeFlightTimer = null;
 let eyeFlight = null;      // the WAAPI animation carrying the flyer
-/* THE MARK IS THE ANSWER.
+/* IS THE MARK DOWN ON THE BAND, OR UP IN THE WORDMARK.
+
    The band used to draw two pairs of eyes: the app's mark above the number, and the face you
-   picked beside it. Same drawing, sixty pixels apart, two different readings — and no amount
-   of restyling the second one fixed that there were two.
-   There is one now. On answering, the mark comes down off its perch above the score, shrinks
-   into the chip's slot and arrives wearing your face. #scoreEyes stays hidden for as long as
-   the answer stands; re-opening the picker sends it back up. So the pair above the number and
-   the pair beside it were never two marks — they are one mark in two places, and the flight
-   between them is the app saying so. */
+   picked beside it. Same drawing, sixty pixels apart, two different readings. Merging them
+   left one mark with two slots on Today and a flight between them, which was still one slot
+   too many — the perch was somewhere the mark only ever landed in order to leave.
+
+   Now there is one place for it down here, the chip beside the number, and this says whether
+   the mark is in it. eyeSiteEl reads it to find whatever copy is actually on screen. */
 let eyeAnswerDocked = false;
 
 function eyePagePos(el){
@@ -4080,11 +4080,14 @@ function eyeSiteEl(){
   if(eyeFlightTimer && eyeFlyer) return eyeFlyer;
   // Docked, the mark IS the chip — so the glance, the wince and the idle all have to land
   // there rather than on the hidden slot above the number they used to live in.
-  if(eyesHome === 'score' && eyeAnswerDocked){
+  if(eyesHome === 'score'){
     const c = chipEyes();
     if(c) return c;
   }
-  return eyesHome === 'score' ? document.getElementById('scoreEyes') : document.querySelector('.header-mark');
+  /* The header, not the perch, when there is no chip to be found. The perch is never shown
+     now, so pointing an expression at it writes to something nobody can see — and the mark
+     that IS on screen in that case is the one in the wordmark. */
+  return document.querySelector('.header-mark');
 }
 function eyeMotionEl(){ const e = eyeSiteEl(); return e && e.querySelector('.eye-motion'); }
 function eyeGazeEl(){ const e = eyeSiteEl(); return e && e.querySelector('.eye-gaze'); }
@@ -4788,6 +4791,12 @@ function moveEyes(dest, from, snap){
   const header = document.querySelector('.header-mark');
   const score = document.getElementById('scoreEyes');
   if(!header || !score) return;
+  // Where the mark actually goes on Today. Without a chip on screen there is nowhere to land
+  // — a closed day, a band that has not been built — so the mark stays where it is.
+  const chip = todayChipEl();
+  // No chip and not picking means there is nowhere down here for the mark to be, so it stays
+  // where it is. Picking, there is nowhere to fly TO but the mark still belongs to the band.
+  if(dest === 'score' && !chip && !facePickerOpen()) return;
 
   clearTimeout(eyeFlightTimer);
   stopIdle();
@@ -4801,15 +4810,31 @@ function moveEyes(dest, from, snap){
   const land = ()=>{
     clearTimeout(eyeFlightTimer);
     eyeFlightTimer = null;
-    applyEyeForm(score, 'score');
     applyEyeForm(header, 'header');
-    /* ...unless the mark is currently being the answer. Coming back to Today, this landing
-       put a second pair back on the perch while the first was still sitting in the chip. */
-    score.style.visibility = (dest === 'score' && !eyeAnswerDocked) ? 'visible' : 'hidden';
+    // The perch is never shown again. It is measured against and it anchors the trace load,
+    // and that is all it does now.
+    score.style.visibility = 'hidden';
     header.style.visibility = dest === 'header' ? 'visible' : 'hidden';
+    eyeAnswerDocked = dest === 'score';
+    if(chip){
+      /* One mark, and the chip is where it lives on the band — so when it has gone up to the
+         wordmark the chip goes empty with it. This matters on exactly one screen: the scroll
+         perch, where Today is still showing while the band has slid behind the sticky header.
+         Left visible, the mark was in two places at once there. */
+      chip.style.visibility = dest === 'score' ? '' : 'hidden';
+      if(dest === 'score'){
+        /* Landed colourless and coloured on the NEXT frame, so the browser has a painted
+           state to interpolate from. Set in the same frame the chip appears in, the colour
+           would simply be there. */
+        requestAnimationFrame(()=> chip.classList.remove('landing'));
+      } else {
+        chip.classList.remove('landing');
+      }
+    }
     if(eyeFlyer){
       if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
       eyeFlyer.style.display = 'none';
+      eyeFlyer.style.transform = 'none';
       eyeFlyer.style.removeProperty('--eye-morph');
       eyeFlyer.style.removeProperty('--eye-plate-delay');
       eyeFlyer.style.transition = '';
@@ -4818,207 +4843,98 @@ function moveEyes(dest, from, snap){
     eyeNoteActivity();
     // It arrives torn. The flight is the one moment the mark is somewhere it was not a beat
     // ago, which is exactly what the tear says everywhere else in this app — a reading that
-    // has jumped rather than moved. The glance down at the number still runs; the tear goes
-    // over the top of it.
-    if(anim('tearOnFlight')) playGlitch(dest === 'header' ? header : score, 'markGlitch', EYE_ANIM.tearOnFlight.px);
+    // has jumped rather than moved.
+    if(anim('tearOnFlight')){
+      const at = dest === 'header' ? header : chip;
+      if(at) playGlitch(at, 'markGlitch', EYE_ANIM.tearOnFlight.px);
+    }
     if(dest === 'header' && anim('popOnArrival')) eyePop();
-    // A look down at the number it just landed above, so the arrival has a point.
-    if(dest === 'score' && anim('glanceAtNumber')) setTimeout(eyeGlanceOrRefuse, 160);
     firstOpenOfDay();
     eyeRareBeat();
-    scheduleIdle(dest === 'score' ? 1100 : 2600);
+    if(dest === 'score'){ requestAnimationFrame(()=>{ if(chipEyes()) scheduleChipIdle(900 + DOCK_COLOUR_MS); }); }
+    else scheduleIdle(2600);
   };
-  if(snap){ land(); return; }
+  if(snap){ if(chip && dest === 'score') chip.classList.add('landing'); land(); return; }
 
   // Nothing to fly if the eyes were behind the header or below the fold when we left —
   // they were not on screen, so a flight in from off-screen reads as a glitch.
-  if(eyeMotionOff() || (from && from.offscreen)){ land(); return; }
+  if(eyeMotionOff() || (from && from.offscreen)){
+    if(chip && dest === 'score') chip.classList.add('landing');
+    land();
+    return;
+  }
 
   whenHeaderSettled(()=>{
     // Bail if another tab switch overtook this one while we were waiting.
     if(eyesHome !== dest) return;
-    // A tab switch during a flight hands off from wherever the eyes actually are, rather
-    // than snapping back to the slot they left. Read the rect BEFORE cancelling — the
-    // animation holds the current transform, and cancelling drops it.
-    const inFlight = eyeFlyer && eyeFlyer.style.display === 'flex';
-    const handoff = inFlight ? eyePagePos(eyeFlyer) : null;
     if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
-    // By now activateTab has scrolled to the top, so a captured viewport position converts
-    // to a page position with the scroll offset as it stands right here.
-    const fromPage = from ? { x: from.x + window.scrollX, y: from.y + window.scrollY } : null;
-    const start = handoff || fromPage || eyePagePos(dest === 'score' ? header : score);
-    const end = eyePagePos(dest === 'score' ? score : header);
-    const flyer = getEyeFlyer();
 
+    /* ONE LEG, AND THE MARK KEEPS ITS SHAPE ALONG IT.
+
+       This used to morph across the flight — the site's form written on departure and the
+       destination's laid over it, so the mark spent the fall being neither. That was the
+       complaint about the trip into the chip and it is the same complaint here, because
+       this IS that trip now: the wordmark to the chip, one move, no stop above the number.
+
+       So the flyer wears the plain mark the whole way and turns over once. Both ends resolve
+       at the landing: the plate closes around it up top, or the chip colours in beside the
+       number. Positions are read live, and by CENTRES rather than corners, because the flyer
+       is scaled and a transform scales about its middle. */
+    const home = dest === 'score' ? header : chip;
+    const away = dest === 'score' ? chip : header;
+    // Nothing to fly between — arriving on Today with the five already up, or leaving from a
+    // band that has no chip. The handover still has to happen or the mark is nowhere.
+    if(!home || !away){ land(); return; }
+    const at = eyePagePos(score);          // the flyer is dressed at score size, so it is
+    const hr = home.getBoundingClientRect(); // positioned on the box that size belongs to
+    const ar = away.getBoundingClientRect();
+    const sr = score.getBoundingClientRect();
+    const poseFor = (r, k, deg)=>{
+      const dx = (r.left + r.width / 2) - (sr.left + sr.width / 2);
+      const dy = (r.top + r.height / 2) - (sr.top + sr.height / 2);
+      return `translate(${dx}px, ${dy}px) rotate(${deg}deg) scale(${k})`;
+    };
+    // Down is clockwise and up unwinds it, so the two legs read as one move in two
+    // directions rather than as two moves.
+    const START = poseFor(hr, dest === 'score' ? 1 : DOCK_SCALE, dest === 'score' ? 0 : 360);
+    const END   = poseFor(ar, dest === 'score' ? DOCK_SCALE : 1, dest === 'score' ? 360 : 0);
+
+    const flyer = getEyeFlyer();
     flyer.style.display = 'flex';   // .eyes is a flex row — 'block' stacks the two eyes
-    flyer.style.left = start.x + 'px';
-    flyer.style.top = start.y + 'px';
-    flyer.style.transform = 'none';
-    // Dress it in the form it is leaving with transitions off, and make the browser take
-    // that as current, or the morph to the destination form has nothing to start from.
-    flyer.classList.add('no-morph');
-    applyEyeForm(flyer, dest === 'score' ? 'header' : 'score');
-    void flyer.offsetWidth;
-    flyer.classList.remove('no-morph');
-    // The change of form should read through most of the fall, not be over before it lands.
-    flyer.style.setProperty('--eye-morph', Math.round(EYE_FLIGHT_MS * 0.78) + 'ms');
-    flyer.style.setProperty('--eye-plate-delay', dest === 'score' ? '0ms' : 'calc(var(--eye-morph) * 0.5)');
-    header.style.visibility = 'hidden';
-    score.style.visibility = 'hidden';
-
-    const dx = end.x - start.x, dy = end.y - start.y;
-    // Gather, fall, land. A straight tween between two points is the one thing that reads
-    // as a sprite being moved rather than as eyes deciding to go and look at something, so
-    // the pair dips against the direction of travel first, stretches along it on the way,
-    // squashes on arrival and settles. `over` carries them a little past the slot; `dip` is
-    // the wind-up, both signed against the direction they are heading.
-    const dir = dy >= 0 ? 1 : -1;
-    const dip = -7 * dir, over = 8 * dir;
-
-    // The landing is booked BEFORE anything below runs. Both slots are hidden by now, and
-    // the flyer is the only copy on screen — so anything that throws in here (an engine
-    // without Element.animate, a keyframe it will not take) would leave the mark invisible
-    // on every tab with nothing left to bring it back.
-    eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
-    try{
-      eyeFlight = flyer.animate([
-        { transform:'translate(0px, 0px) scale(1, 1)', offset:0, easing:'cubic-bezier(0.3,0,0.5,1)' },
-        { transform:`translate(${dx*0.08}px, ${dip}px) scale(0.93, 1.09)`, offset:0.18, easing:'cubic-bezier(0.55,0,0.35,1)' },
-        { transform:`translate(${dx*0.72}px, ${dy*0.72}px) scale(0.96, 1.06)`, offset:0.55, easing:'cubic-bezier(0.4,0,0.3,1)' },
-        { transform:`translate(${dx}px, ${dy + over}px) scale(1.07, 0.9)`, offset:0.78, easing:'cubic-bezier(0.3,0,0.2,1)' },
-        { transform:`translate(${dx}px, ${dy - over*0.3}px) scale(0.98, 1.03)`, offset:0.9, easing:'ease-out' },
-        { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
-      ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
-    }catch(e){
-      // No arc, but the eyes still get where they are going.
-      eyeFlight = null;
-      flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
-      flyer.style.transform = `translate(${dx}px, ${dy}px)`;
-    }
-    // The pair lags the plate slightly and catches up as it lands, so the mark reads as
-    // something carrying its eyes rather than one rigid object being slid across the page.
-    if(anim('flightTrail')){
-      const inner = flyer.querySelector('.eye-motion');
-      const t = EYE_ANIM.flightTrail.px * (dy >= 0 ? 1 : -1);
-      if(inner){
-        try{ inner.animate([
-          { transform:`translateY(${-t}px)` },
-          { transform:`translateY(${-t * 0.8}px)`, offset:0.45 },
-          { transform:`translateY(${t * 0.5}px)`, offset:0.82 },
-          { transform:'translateY(0px)' }
-        ], { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.3,0,0.3,1)' }); }catch(e){}
-      }
-    }
-    applyEyeForm(flyer, dest);   // the form and expression arrive with the eyes, not after
-  });
-}
-
-/* THE MARK COMES DOWN.
-
-   Not a morph. The mark keeps the shape it has on the perch for the whole trip: it travels,
-   it turns over once, and only when it is down does the colour arrive. The version this
-   replaces reused the header-to-score flight, which was built to change form on the way — so
-   the mark was most of the way to being something else before it had finished falling, and
-   what you watched was a transition rather than a mark going somewhere. Measured on the old
-   one: the eye was 8px wide of its final 5 at 200ms, a third of the way into a 640ms fall.
-
-   Three things move and they do not overlap:
-     0-640ms   travel and spin, as itself, white, no plate
-     640ms     the flyer is swapped for the real chip, drained of colour, same size
-     640-840ms the chip colours in
-
-   The colour is done on the chip and not on the flyer on purpose. The flyer is the mark's own
-   42x32 box scaled down by a transform; a plate painted on it would be a 14x10 rectangle
-   where the chip is a 22px square, and the handover would pop. Nothing about the mark's own
-   size changes at the swap, so there is nothing to see.
-
-   Positions are read live rather than stored: the chip hangs off the number's right edge, and
-   that edge moves with how many digits the score has. Centres rather than corners, because
-   the flyer is scaled and a transform scales about its middle.
-
-   Booked to land BEFORE the animation starts, the way moveEyes does, because both slots are
-   hidden while it is airborne. Anything that throws in between would otherwise leave the band
-   with no mark at all and nothing scheduled to bring one back. */
-function flyMarkToDock(v, back){
-  const score = document.getElementById('scoreEyes');
-  const dock = document.getElementById('todayFaceDock');
-  if(!score || !dock) return false;
-  const land = ()=>{
-    clearTimeout(eyeFlightTimer);
-    eyeFlightTimer = null;
-    if(eyeFlyer){
-      if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
-      eyeFlyer.style.display = 'none';
-      eyeFlyer.style.transform = 'none';
-      eyeFlyer.style.removeProperty('--eye-morph');
-      eyeFlyer.style.transition = '';
-    }
-    eyeAnswerDocked = !back;
-    dock.style.visibility = '';
-    score.style.visibility = back ? 'visible' : 'hidden';
-    if(back){ dock.classList.remove('landing'); applyEyeForm(score, 'score'); }
-    else {
-      /* The chip goes up colourless and is told to colour on the NEXT frame, so the browser
-         has a painted state to transition from. Set in the same frame it appears in, the
-         change would have nothing to interpolate and the colour would simply be there. */
-      requestAnimationFrame(()=>dock.classList.remove('landing'));
-    }
-    startEyeIdle();
-    requestAnimationFrame(()=>{ if(!back && chipEyes()) scheduleChipIdle(900 + DOCK_COLOUR_MS); });
-  };
-  // No motion, no flight — but the handover still has to happen, or the mark is in neither
-  // place. Same reason moveEyes lands immediately rather than returning.
-  if(eyeMotionOff() || !dock.offsetParent){ dock.classList.remove('landing'); land(); return true; }
-
-  const fly = ()=>{
-    const sr = score.getBoundingClientRect(), dr = dock.getBoundingClientRect();
-    const at = eyePagePos(score);
-    const dx = (dr.left + dr.width / 2) - (sr.left + sr.width / 2);
-    const dy = (dr.top + dr.height / 2) - (sr.top + sr.height / 2);
-    // One turn, clockwise on the way down and unwound on the way back, so the two legs read
-    // as the same move in two directions rather than as two moves.
-    const UP = 'translate(0px, 0px) rotate(0deg) scale(1)';
-    const DOWN = `translate(${dx}px, ${dy}px) rotate(360deg) scale(${DOCK_SCALE})`;
-
-    const flyer = getEyeFlyer();
-    flyer.style.display = 'flex';
     flyer.style.left = at.x + 'px';
     flyer.style.top = at.y + 'px';
-    // Dressed as the mark and left that way. No --eye-morph is set at all: the geometry is
-    // identical at both ends, so there is nothing for a morph to do even if one were on.
-    flyer.classList.add('no-morph');
     // The idle loop aims at eyeSiteEl(), which is the flyer while one is in the air. Stopped
     // for the trip and restarted by land(), so nothing writes a lid height onto a mark that
     // is meant to hold one shape.
+    flyer.classList.add('no-morph');
     stopIdle();
     dressAsMark(flyer);
-    flyer.style.transform = back ? DOWN : UP;
+    flyer.style.transform = START;
     void flyer.offsetWidth;
     flyer.classList.remove('no-morph');
+    header.style.visibility = 'hidden';
     score.style.visibility = 'hidden';
-    dock.style.visibility = 'hidden';
+    if(chip){
+      // Drained before it is hidden, so whichever way this goes the chip is never seen
+      // wearing a colour the mark has not arrived at or has already left.
+      chip.classList.add('landing');
+      chip.style.visibility = 'hidden';
+    }
 
+    // The landing is booked BEFORE anything below runs. Every slot is hidden by now and the
+    // flyer is the only copy on screen — so anything that throws in here (an engine without
+    // Element.animate, a keyframe it will not take) would leave the mark invisible on every
+    // tab with nothing left to bring it back.
     eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
     try{
-      eyeFlight = flyer.animate(
-        back ? [{ transform: DOWN }, { transform: UP }]
-             : [{ transform: UP }, { transform: DOWN }],
+      eyeFlight = flyer.animate([{ transform: START }, { transform: END }],
         { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.45,0,0.2,1)', fill:'forwards' });
     }catch(e){
       eyeFlight = null;
       flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.45,0,0.2,1)`;
-      flyer.style.transform = back ? UP : DOWN;
+      flyer.style.transform = END;
     }
-  };
-
-  /* Only the way DOWN waits. Going back up there is nothing to drain: the tap that sends the
-     mark home is the tap that opens the picker, and the layout takes the chip's slot away in
-     the same frame to make room for the five. A 200ms colour fade there was measured leaving
-     230ms with the mark on neither perch nor chip — the exact hole .300 was written to close.
-     So the mark leaves the instant it is asked to, and the colour goes with the chip. */
-  dock.classList.add('landing');
-  fly();
-  return true;
+  });
 }
 
 // Belt and braces. Both slots are hidden while the mark is in the air, so any path that
@@ -5032,20 +4948,23 @@ function settleEyes(){
   const score = document.getElementById('scoreEyes');
   const today = document.getElementById('panel-insights');
   if(!header || !score || !today) return;
-  // The perch means the eyes are legitimately in the header while Today is showing.
+  // The chip is where the mark lives on Today, so no chip means no home down here and the
+  // mark stays in the wordmark. Scrolled up behind the header is the same answer.
+  const chip = todayChipEl();
   const onToday = today.classList.contains('active') && !eyeCtx.perched
-                  && todayIsSetUp && todayScoreShown;
+                  && todayIsSetUp && todayScoreShown && (!!chip || facePickerOpen());
   eyesHome = onToday ? 'score' : 'header';
-  applyEyeForm(score, 'score');
   applyEyeForm(header, 'header');
-  /* The perch above the number stays empty while the mark is being the answer. Without this
-     the reset that exists to guarantee the mark is never lost would put a second one back
-     above the score every time you changed tab. */
-  score.style.visibility = (onToday && !eyeAnswerDocked) ? 'visible' : 'hidden';
+  // Never again. The perch is measured against and it anchors the trace load; it is not a
+  // place the mark sits.
+  score.style.visibility = 'hidden';
   header.style.visibility = onToday ? 'hidden' : 'visible';
+  eyeAnswerDocked = onToday;
+  if(chip){ chip.style.visibility = ''; chip.classList.remove('landing'); }
   if(eyeFlyer) eyeFlyer.style.display = 'none';
   startEyeIdle();
-  scheduleIdle();
+  if(onToday){ if(chipEyes()) scheduleChipIdle(); }
+  else scheduleIdle();
 }
 
 // Called whenever the score is recomputed. If the eyes are already sitting on the score
@@ -5221,8 +5140,11 @@ function withEyesBusy(promise, host){
 
 // A tap on the mark itself. The plate sits over the wordmark, which does nothing else when
 // tapped, so claiming the pointer here costs nothing.
+/* The header mark only. The perch used to take a tap too, and it is never shown now — a
+   visibility:hidden element takes no pointer events, so that binding could not fire. On the
+   band the mark is the chip, and the chip's own tap opens the five faces. */
 function bindEyeTap(){
-  ['scoreEyes', null].forEach(id=>{
+  [null].forEach(id=>{
     const el = id ? document.getElementById(id) : document.querySelector('.header-mark');
     if(!el || el.dataset.tapBound) return;
     el.dataset.tapBound = '1';
@@ -7341,6 +7263,28 @@ const DOCK_W = 22, DOCK_H = 22, DOCK_SCALE = FACE_SCALE * 0.85;
    beside the number is the same mark that was above it, not a different drawing that
    replaced it. */
 const MARK_FORM = { g:'12px', w:'15px', r:'7.5px', h:'32px', rb:'7.5px', bl:'0%', rot:'0deg' };
+/* THE MARK'S HOME ON TODAY IS THE CHIP.
+
+   There used to be a perch: the mark flew down from the wordmark, sat above the number, and
+   then made a SECOND trip into the chip once you answered. Two marks in one column, two
+   flights to watch, and the first of them landed somewhere it was only ever going to leave.
+
+   The perch is gone. #scoreEyes stays in the DOM because the band's layout measures against
+   it and renderScoreTrace anchors the whole seven-day load to finding it, but it is never
+   shown again. Where the mark lives on Today is here, beside the number, answered or not —
+   outlined while it is asking, filled in your colour once you have said. */
+function todayChipEl(){
+  const d = document.getElementById('todayFaceDock');
+  return (d && d.offsetParent && getComputedStyle(d).display !== 'none') ? d : null;
+}
+/* While the five are up the chip is hidden — the layout gives its column to them — and that
+   is not the mark going missing: the five ARE the mark, five times, and you are picking one
+   of them. So the mark still counts as being down on the band, and nothing puts a copy back
+   in the wordmark underneath. */
+function facePickerOpen(){
+  const row = document.getElementById('todayFaceRow');
+  return !!(row && row.dataset.asking === '1' && getComputedStyle(row).display !== 'none');
+}
 const DOCK_COLOUR_MS = 200;
 /* THE MARK, PLAINLY.
 
@@ -7696,7 +7640,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.303';
+const APP_VERSION = '2026.08.31.304';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7766,6 +7710,7 @@ const APP_NOTES = {
   '2026.08.31.301': 'The mark falls as itself now, turns over once, and only colours in when it lands.',
   '2026.08.31.302': 'Nothing happens above the number any more. Tap a face and the mark just goes.',
   '2026.08.31.303': 'The Sunday review says where each thing stands: lime ahead, cream on target, red short.',
+  '2026.08.31.304': 'No mark above the number any more. It comes down from the wordmark straight into the chip.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9609,7 +9554,6 @@ function faceDate(){
    sync writes historical entries — so nothing here touches those. */
 function faceEditable(date){ return (date || faceDate()) === todayStr; }
 let faceValues = {};      // date -> 1..5, what the row is currently showing
-let faceRowPainted = false;   // the first paint arrives at a state; later ones travel to it
 /* Answered days show the chip and no row; unanswered days show the row and no chip. Tapping
    the chip sets faceRowOpen, which forces the row back for that one day so an answer can be
    changed — it is cleared by answering again, or by moving to another day. */
@@ -9623,6 +9567,10 @@ function paintTodayFaces(){
   const date = faceDate();
   const v = faceValues[date];
   const editable = faceEditable(date);
+  // What the LAST paint left, read before this one overwrites it at the bottom. The chip is
+  // hidden while the five are up, so coming out of that it appears rather than changes — and
+  // a transition does not run on an element that was not there a frame ago.
+  const wasPicking = row.dataset.asking === '1';
   /* THE PICKER IS NO LONGER THE RESTING STATE.
 
      Unanswered used to mean "show five faces", which put seven eye pairs on the first screen
@@ -9694,64 +9642,39 @@ function paintTodayFaces(){
          into the markup could not follow it. */
       dock.innerHTML = faceEyesHtml(MARK_FORM, DOCK_SCALE, 'currentColor', true);
     }
-    /* WHERE THE ONE MARK BELONGS, DECIDED IN ONE PLACE.
+    /* NOTHING FLIES WHEN YOU ANSWER.
 
-       This was three separate calls scattered through the branches above, and they fought:
-       re-opening the picker flew the mark home, and then the answered branch — still holding
-       a value, because the answer is not cleared just because you are changing it — booked it
-       straight back down. With the chip hidden at that moment, both ends of the flight were
-       invisible and the band had no mark on it for the better part of a second. Measured: 54
-       frames of nothing.
+       This was a whole booking system: the mark sat on a perch above the number, and picking
+       a face sent it on a second trip down into the chip while re-opening the picker sent it
+       back up. Two slots to keep exactly one mark between, three scattered calls that fought
+       each other over which one had it, and a measured 54-frame hole where the band carried
+       no mark at all.
 
-       So the question is asked once, and it is about the ROW's state rather than the value's.
-       Asking, the mark is on the perch. Answered and at rest, the mark is the chip. */
-    if(asking || v == null){
-      if(eyeAnswerDocked && !eyeFlightTimer) flyMarkToDock(null, true);
-    } else if(!eyeAnswerDocked && !eyeFlightTimer && faceRowPainted){
-      /* Deferred two frames. layoutBandColumn is what shows the chip and puts it beside the
-         digits, and it runs AFTER this paint — so right now the slot the mark is flying to is
-         still display:none, has no offsetParent and no position to read. Called inline, the
-         flight measured nothing and landed instantly, which looked exactly like the hard cut
-         it replaced. */
-      const fv = v;
-      /* Drained and hidden HERE rather than when the flight starts, two frames later. The
-         chip is painted in its colour and the layout shows it in between, so leaving it
-         until then put a fully green chip beside the number for 32ms before the mark had
-         even left the perch — the answer arriving twice, the second time by falling.
-         Measured on the first cut of this: one frame of chip at +250ms, flight at +282ms. */
-      dock.classList.add('landing');
-      dock.style.visibility = 'hidden';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        /* A leg is already in the air and it owns the chip until it lands. This paint runs
-           twice on one tap — once on the frame you press, once when the recompute comes back
-           — and both bookings queue a pair of frames. Without this guard the second one
-           arrived mid-flight, found the mark already booked, took the restore path below and
-           handed the chip back: measured colouring in from +117ms to +317ms while the mark
-           was still 400ms from landing. */
-        if(eyeFlightTimer) return;
-        if(!eyeAnswerDocked){ flyMarkToDock(fv, false); return; }
-        // Nothing in the air and the mark is already docked: give the chip back rather than
-        // leaving it invisible and colourless with nothing scheduled to restore it.
-        dock.style.visibility = '';
-        dock.classList.remove('landing');
-      }));
-    } else if(v != null){
-      /* First paint of the session, or already docked: the answer is a fact you are arriving
-         at rather than one that just happened, so it is simply there.
+       There is one slot now. The chip IS the mark on Today, asking or answered, and answering
+       changes its colour where it stands — 200ms, on the chip's own transition, no flight and
+       nothing to hand over. The only trip the mark makes is the one between the wordmark and
+       here, and moveEyes owns that end to end.
 
-         NOT gated on a flight being in progress, which is what it used to be. Opening the app
-         cold on an answered day starts the header-to-score flight and paints this row while
-         it is still in the air — so the guard skipped this branch, nothing claimed the docked
-         state, and the flight landed a second mark on the perch beside the one in the chip.
-         Setting the flag instead lets that landing hide the perch for itself; the chip is
-         already on screen, so the mark is never missing in between. */
+       The flag still says the mark is down on the band rather than up in the header, which is
+       what eyeSiteEl reads to find it; it is just no longer a question with two answers. */
+    if(!eyeFlightTimer && eyesHome === 'score'){
       eyeAnswerDocked = true;
+      dock.style.visibility = '';
       const sc = document.getElementById('scoreEyes');
       if(sc) sc.style.visibility = 'hidden';
+      if(wasPicking && !asking && v != null){
+        /* Coming straight out of the picker: the chip is about to be shown by the layout, so
+           it is painted drained and told to colour on the NEXT frame. Without this it went
+           from five faces to a fully filled chip in one frame, which is the answer being
+           swapped in rather than settling. */
+        dock.classList.add('landing');
+        requestAnimationFrame(()=>requestAnimationFrame(()=> dock.classList.remove('landing')));
+      } else {
+        dock.classList.remove('landing');
+      }
     }
     measureDockWord();
   }
-  faceRowPainted = true;
   row.dataset.asking = asking ? '1' : '0';
   // The suggestion stands down while this is asking, so it has to be told when that ends.
   if(typeof paintRecLeft === 'function') setTimeout(paintRecLeft, 0);
