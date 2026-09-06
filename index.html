@@ -1208,20 +1208,54 @@
      section read as one large tinted block with the controls inside it. On the ground,
      with the wheel carrying the hue instead, they match the week picker. */
   .spin-panel > .fields, #mobilityAssessmentBody{ background:var(--ground); }
-  /* Seven cells, one per day, in the order the week ran. State is carried by fill rather
-     than colour: done is a solid band, missed is an outline, a rest day is neither. That
-     keeps it legible without inventing a red/green vocabulary the rest of the app does not
-     use — and this review is not in the business of marking work. */
-  .wr-strip{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:var(--sp-3); }
-  .wr-day{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  /* Seven cells, one per day, in the order the week ran.
+
+     This used to carry state by FILL rather than colour, on the reasoning that a review is
+     not in the business of marking work and that a red/green vocabulary would be one the
+     rest of the app does not use. Both halves of that have turned out to be wrong. The app
+     does have this vocabulary — the blocks are lime, yellow, red, purple and blue, and the
+     five faces run from red to green — so a coloured mark here is speaking the same language
+     as everything around it, not inventing one. And saying where you stand against a target
+     you set is not marking work; it is the reading the review exists to give, and it was
+     being left to the reader to do arithmetic for. */
+  /* ONE LANGUAGE FOR THE WHOLE REVIEW.
+
+     There were five marks and they were five FILLS — solid, half, hatched, outline, dashed —
+     which needed a legend, and the legend was two wrapped lines of key above three lines of
+     content. Worse, the fills only ever described days; the rows underneath, which are the
+     part that says where you actually stand, had no mark at all.
+
+     Now there are three, they are colours, and they mean the same thing wherever they appear:
+     lime is past what was asked, cream is exactly it, red is short of it. A day mark and a
+     row flag are the same statement about different spans of time, so one key at the top
+     teaches both and there is nothing else to learn.
+
+     What this costs: a day where you did some of what was planned used to have its own half
+     mark, and now reads red with the rest. Short is short; the sessions row says how many of
+     the planned days were logged, which is where the nuance belongs. */
+  .wr-strip{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:var(--sp-2); }
+  .wr-day{ display:flex; flex-direction:column; align-items:center; gap:5px; }
   .wr-dow{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
-  .wr-mark{ width:100%; height:26px; border-radius:2px; border:1px solid rgba(251,250,246,0.28); }
-  .wr-mark.done{ background:var(--bg); border-color:var(--bg); }
-  .wr-mark.part{ background:linear-gradient(to top, var(--bg) 50%, transparent 50%); }
-  .wr-mark.extra{ background:repeating-linear-gradient(45deg, var(--bg) 0 2px, transparent 2px 5px); }
-  .wr-mark.rest, .wr-mark.ahead{ border-style:dashed; border-color:rgba(251,250,246,0.18); }
-  .wr-legend{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim);
-    letter-spacing:0.02em; margin-bottom:var(--sp-3); line-height:1.6; }
+  /* Hollow is the resting state: a day nothing was asked of, and nothing to say about it. */
+  .wr-mark{ width:100%; height:14px; border-radius:2px; background:transparent;
+    box-shadow:inset 0 0 0 1px rgba(251,250,246,0.18); }
+  .wr-mark.on, .wr-flag.on{ background:var(--bg); box-shadow:none; }
+  .wr-mark.ahead, .wr-flag.ahead{ background:var(--block-lime); box-shadow:none; }
+  .wr-mark.below, .wr-flag.below{ background:var(--block-red); box-shadow:none; }
+  /* The row's verdict, right-aligned so the flags stack into a column you can read down
+     without reading the sentences. Small: the number beside it is the claim, this only says
+     which way it points. */
+  .wr-head{ display:flex; align-items:center; gap:var(--sp-2); }
+  .wr-head strong{ flex:1 1 auto; }
+  .wr-flag{ flex:none; width:9px; height:9px; border-radius:1px; background:transparent; }
+  /* Three swatches and three words, on one line, for the strip and the flags together. The
+     old key named up to five fills and reflowed as the week changed shape; this one is the
+     same width every week. */
+  .wr-key{ display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap;
+    font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim);
+    letter-spacing:0.02em; margin-bottom:var(--sp-3); }
+  .wr-key span{ display:inline-flex; align-items:center; gap:5px; }
+  .wr-key i{ width:8px; height:8px; border-radius:1px; display:block; }
   #weekBlockStrip{ background:var(--field);
     margin:0 calc(-1 * var(--gutter)) calc(-1 * var(--sp-3)); padding:var(--sp-3) var(--gutter); }
 
@@ -7662,7 +7696,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.302';
+const APP_VERSION = '2026.08.31.303';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7731,6 +7765,7 @@ const APP_NOTES = {
   '2026.08.31.300': 'One mark, not two: it comes down off the score and becomes the answer beside it.',
   '2026.08.31.301': 'The mark falls as itself now, turns over once, and only colours in when it lands.',
   '2026.08.31.302': 'Nothing happens above the number any more. Tap a face and the mark just goes.',
+  '2026.08.31.303': 'The Sunday review says where each thing stands: lime ahead, cream on target, red short.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -18128,8 +18163,18 @@ async function buildWeekReview(dates){
     entries, entryDays: dates.filter(d=>d <= todayStr).length, deload };
 }
 
-function weekReviewRow(label, text, lines){
-  return `<div class="plan-item"><span class="plan-key">${label}</span><strong>${text}</strong>`
+/* WHERE THIS ROW STANDS, AGAINST THE TARGET THE ROW IS ABOUT.
+
+   Three words for the three states, so the flag is announced rather than merely coloured —
+   the colour is the fast read and the label is the one that survives a screen reader and a
+   colour-blind eye. */
+const WR_STATUS_WORD = { ahead: 'ahead of target', on: 'on target', below: 'short of target' };
+function weekReviewRow(label, text, lines, status){
+  const flag = status
+    ? `<span class="wr-flag ${status}" role="img" aria-label="${WR_STATUS_WORD[status]}"></span>`
+    : '';
+  return `<div class="plan-item"><div class="wr-head"><span class="plan-key">${label}</span>`
+    + `<strong>${text}</strong>${flag}</div>`
     + (lines || []).filter(Boolean).map(l=>`<div class="plan-line">${l}</div>`).join('')
     + `</div>`;
 }
@@ -18147,45 +18192,75 @@ async function renderWeekReview(){
   document.getElementById('weekReviewRange').textContent =
     `${when.dates[0].slice(5).replace('-', '/')}\u2013${when.dates[6].slice(5).replace('-', '/')}`;
 
+  /* The day's five states collapse to the three the whole panel speaks in. 'part' joins
+     'below': you were short of what that day asked for, and by how much is the sessions
+     row's job, not a fill pattern's. A day nothing was asked of stays hollow. */
+  const DAY_STATE = { done:'on', extra:'ahead', part:'below', missed:'below' };
+  const DAY_WORD = { done:'as planned', extra:'an extra session', part:'short of the plan',
+    missed:'planned, not logged', rest:'rest', ahead:'still to come' };
   const strip = `<div class="wr-strip">` + r.days.map(d=>
-    `<div class="wr-day"><span class="wr-dow">${d.dow[0]}</span><span class="wr-mark ${d.state}"></span></div>`
+    `<div class="wr-day"><span class="wr-dow">${d.dow[0]}</span>`
+    + `<span class="wr-mark ${DAY_STATE[d.state] || ''}" role="img"`
+    + ` aria-label="${d.dow}, ${DAY_WORD[d.state] || d.state}"></span></div>`
   ).join('') + `</div>`;
+
+  // Fixed rather than built from what happens to be on screen: it is the key to the row
+  // flags as well as the strip, and those three states are always all available.
+  const key = `<div class="wr-key">`
+    + `<span><i style="background:var(--block-lime)"></i>ahead</span>`
+    + `<span><i style="background:var(--bg)"></i>on target</span>`
+    + `<span><i style="background:var(--block-red)"></i>short</span>`
+    + `</div>`;
 
   const done = r.days.filter(d=>d.state === 'done').length;
   const part = r.days.filter(d=>d.state === 'part').length;
-  const missed = r.days.filter(d=>d.state === 'missed').length;
   const extra = r.days.filter(d=>d.state === 'extra').length;
-  // Only the marks actually on screen get a legend line. Naming all five every week put
-  // two wrapped lines of key above three lines of content.
-  const key = [ done ? 'solid \u00b7 done' : null, part ? 'half \u00b7 part done' : null,
-    extra ? 'hatched \u00b7 unplanned' : null, missed ? 'outline \u00b7 not logged' : null,
-    r.days.some(d=>d.state === 'rest') ? 'dashed \u00b7 rest' : null ].filter(Boolean);
-  const legend = `<div class="wr-legend">${key.join(' &nbsp; ')}</div>`;
+  const plannedDays = r.days.filter(d=>d.planned.length).length;
 
   const rows = [];
-  // Sessions. The count is the sentence — no adjective on it either way.
+  /* Sessions. Covered every day that asked for something and did more besides is ahead;
+     covered them all is on; anything left is short. A week that planned nothing has no
+     target to be measured against, so it gets no flag. */
   rows.push(weekReviewRow('Sessions',
-    r.planned ? `${done + part} of ${r.days.filter(d=>d.planned.length).length} planned days logged`
+    r.planned ? `${done} of ${plannedDays} planned days logged`
               : 'nothing was planned this week',
-    [ missed ? `${missed} planned day${missed === 1 ? '' : 's'} went unlogged` : null,
-      extra ? `${extra} session${extra === 1 ? '' : 's'} you added yourself` : null ]));
+    /* The nuance the half mark used to carry, in prose. A day that planned two things and
+       did one is not a logged day and is not a missed one; the count above is strict, so
+       this says what the strictness swallowed — and only on the weeks it happened. */
+    [ part ? `${part} day${part === 1 ? '' : 's'} did some of what ${part === 1 ? 'it' : 'they'} planned, not all` : null,
+      extra ? `${extra} session${extra === 1 ? '' : 's'} you added yourself` : null ],
+    !r.planned ? null
+      : done < plannedDays ? 'below'
+      : extra ? 'ahead' : 'on'));
 
-  // Mobility, against the target as it is actually defined — per area, not per week.
+  /* Mobility, against the target as it is actually defined — per area, not per week. Ahead
+     needs every area at the target AND a quarter again on top of it, because reaching 600s
+     in every area is the target being met, not beaten. */
   rows.push(weekReviewRow('Mobility',
     r.areasTouched
       ? `${r.areasAtTarget} of ${r.areasTouched} area${r.areasTouched === 1 ? '' : 's'} reached ${Math.round(r.stretchTarget / MIN)} min`
       : 'no stretching logged',
-    [ r.stretchTotal ? `${Math.round(r.stretchTotal / MIN)} min under stretch in total, across all areas` : null ]));
+    [ r.stretchTotal ? `${Math.round(r.stretchTotal / MIN)} min in total, across all areas` : null ],
+    !r.areasTouched ? 'below'
+      : r.areasAtTarget < r.areasTouched ? 'below'
+      : r.stretchTotal >= r.areasTouched * r.stretchTarget * 1.25 ? 'ahead' : 'on'));
 
-  r.skills.forEach(sk=> rows.push(weekReviewRow(sk.action === 'advance' ? 'Ready' : 'Skill', sk.label, [sk.note])));
+  // A skill the progression says you are ready to move up on is the one thing here that is
+  // genuinely ahead of where it was asked to be.
+  r.skills.forEach(sk=> rows.push(
+    weekReviewRow(sk.action === 'advance' ? 'Ready' : 'Skill', sk.label, [sk.note],
+      sk.action === 'advance' ? 'ahead' : 'on')));
 
+  // You cannot log more days than the week has, so this one is never ahead.
   rows.push(weekReviewRow('How you felt',
     `logged on ${r.entries} of ${r.entryDays} day${r.entryDays === 1 ? '' : 's'}`,
-    [ r.entries < r.entryDays ? 'the score is built from these, so the gaps are gaps in it too' : null ]));
+    [ r.entries < r.entryDays ? 'the score is built from these, so the gaps are gaps in it too' : null ],
+    r.entries < r.entryDays ? 'below' : 'on'));
 
+  // Advice about next week rather than a reading of this one: nothing to be ahead or behind of.
   if(r.deload) rows.push(weekReviewRow('Next week', 'a deload is suggested', [r.deload.reason]));
 
-  document.getElementById('weekReviewBody').innerHTML = strip + legend + rows.join('');
+  document.getElementById('weekReviewBody').innerHTML = strip + key + rows.join('');
   _lastWeekReview = { review: r, dates: when.dates };
 }
 let _lastWeekReview = null;
