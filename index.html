@@ -7736,7 +7736,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.315';
+const APP_VERSION = '2026.08.31.316';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7817,6 +7817,7 @@ const APP_NOTES = {
   '2026.08.31.313': 'The app can now be put on a bone ground, header and colours unchanged.',
   '2026.08.31.314': 'Settings > Ground switches the pages between black and bone.',
   '2026.08.31.315': 'Accessory work goes to the biggest gap again, so the back stops being skipped.',
+  '2026.08.31.316': 'Side and rear delts are their own areas, so a press can no longer stand in for a lateral raise.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11796,6 +11797,7 @@ dateInput.addEventListener('change', ()=>loadRecoveryEntry(dateInput.value));
 const BODY_AREAS = {
   hips: 'Hips', glutes: 'Glutes', hamstrings: 'Hamstrings', quads_knees: 'Quads/Knees',
   adductors: 'Adductors', calves: 'Calves', ankles: 'Ankles', shoulders: 'Shoulders',
+  side_delts: 'Side delts', rear_delts: 'Rear delts',
   chest: 'Chest', thoracic: 'Thoracic/Upper back', lower_back: 'Lower back',
   core: 'Core', biceps: 'Biceps', triceps: 'Triceps', forearms: 'Forearms/Grip',
   neck: 'Neck', full_body: 'Full body'
@@ -11890,7 +11892,7 @@ const EXERCISE_LIBRARY = {
   cable_fly: { name:"Cable Fly", longLengthBias:true, longLengthNote:"loaded stretch at the bottom position", aliases:["cable fly", "chest fly"], category:"isolation", area:"chest", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   overhead_press: { name:"Overhead Press", aliases:["overhead press", "strict press", "shoulder press", "military press"], category:"main_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"A", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:1,endurance:0,running:0,power:1,mobility:0,calisthenics:0} },
   dumbbell_shoulder_press: { name:"Dumbbell Shoulder Press", aliases:["dumbbell shoulder press", "db shoulder press"], category:"secondary_strength", area:"shoulders", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"B", tierEvidence:"low" },
-  lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy despite different resistance-curve theory \u2014 equipment choice should follow comfort/progression/preference, not assumed superiority." },
+  lateral_raise: { name:"Lateral Raise", aliases:["lateral raise", "side raise"], category:"isolation", area:"side_delts", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "cable"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy despite different resistance-curve theory \u2014 equipment choice should follow comfort/progression/preference, not assumed superiority." },
   tricep_pushdown: { name:"Tricep Pushdown", aliases:["tricep pushdown", "tricep extension", "pushdown"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   skull_crusher: { name:"Skull Crusher", aliases:["skull crusher", "overhead extension", "french press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["barbell", "dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate" },
   push_up: { name:"Push-up", aliases:["push up", "pushup"], category:"calisthenics", area:"chest", secondaryArea:"triceps", movement:"push", difficulty:"beginner", equipment:["bodyweight"], evidenceConfidence:"rct", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", tierNote:"Kikuchi & Nakazato (2017) matched push-ups to 40% 1RM bench over 8 weeks and found no significant difference in pec or triceps thickness gains; Kotarsky (2018) replicated with progressive variations. Ranked A rather than S only because loading past bodyweight needs a vest or band." },
@@ -11903,7 +11905,7 @@ const EXERCISE_LIBRARY = {
   barbell_row: { name:"Barbell Row", aliases:["barbell row", "bent over row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", goalSuitability:{strength:2,hypertrophy:3,endurance:0,running:0,power:0,mobility:0,calisthenics:0} },
   dumbbell_row: { name:"Dumbbell Row", aliases:["dumbbell row", "db row", "single arm row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   seated_cable_row: { name:"Seated Cable Row", aliases:["seated row", "cable row"], category:"secondary_strength", area:"thoracic", secondaryArea:"biceps", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
-  face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"shoulders", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  face_pull: { name:"Face Pull", aliases:["face pull"], category:"bulletproofing", area:"rear_delts", secondaryArea:"thoracic", movement:"pull", difficulty:"beginner", equipment:["cable", "band"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   bicep_curl: { name:"Bicep Curl", aliases:["bicep curl", "curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell", "barbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   hammer_curl: { name:"Hammer Curl", aliases:["hammer curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"A", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   preacher_curl: { name:"Preacher Curl", longLengthBias:true, longLengthNote:"elbow extended against support at the bottom", aliases:["preacher curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell", "machine"], evidenceConfidence:"meta_analysis", strengthTier:"S", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", regionalEmphasis:{"biceps_distal": "moderate"}, tierNote:"Preacher and incline curls train the biceps at different joint angles/lengths and produce different proximal/distal hypertrophy patterns \u2014 not interchangeable for complete biceps development." },
@@ -11936,8 +11938,8 @@ const EXERCISE_LIBRARY = {
   donkey_calf_raise: { name:"Donkey Calf Raise", aliases:["donkey calf raise"], category:"isolation", area:"calves", secondaryArea:"", movement:"isolation", difficulty:"intermediate", equipment:["machine"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low", regionalEmphasis:{"gastrocnemius": "high"} },
   cable_hip_abduction: { name:"Cable Hip Abduction", aliases:["cable hip abduction", "cable abduction"], category:"isolation", area:"hips", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
   hip_abduction_machine: { name:"Hip Abduction Machine", aliases:["hip abduction machine"], category:"isolation", area:"hips", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
-  reverse_fly: { name:"Reverse Fly", aliases:["reverse fly", "rear delt fly"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
-  cable_lateral_raise: { name:"Cable Lateral Raise", aliases:["cable lateral raise"], category:"isolation", area:"shoulders", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"rct", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy \u2014 pick by equipment/comfort/preference, not assumed resistance-curve superiority." },
+  reverse_fly: { name:"Reverse Fly", aliases:["reverse fly", "rear delt fly"], category:"isolation", area:"rear_delts", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"low" },
+  cable_lateral_raise: { name:"Cable Lateral Raise", aliases:["cable lateral raise"], category:"isolation", area:"side_delts", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"rct", strengthTier:"C", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"Cable and dumbbell lateral raises produce broadly similar lateral-delt hypertrophy \u2014 pick by equipment/comfort/preference, not assumed resistance-curve superiority." },
   close_grip_bench_press: { name:"Close-Grip Bench Press", aliases:["close grip bench", "close-grip bench press"], category:"secondary_strength", area:"triceps", secondaryArea:"chest", movement:"push", difficulty:"intermediate", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"A", powerTier:"S", tierEvidence:"low" },
   jm_press: { name:"JM Press", aliases:["jm press"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"advanced", equipment:["barbell"], evidenceConfidence:"coaching_consensus", strengthTier:"S", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   overhead_tricep_extension: { name:"Overhead Cable Extension", aliases:["overhead cable extension", "overhead tricep extension"], category:"isolation", area:"triceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"rct", strengthTier:"B", hypertrophyTier:"S", powerTier:"C", tierEvidence:"moderate", tierNote:"The triceps long head crosses the shoulder joint \u2014 overhead positions train it at a longer muscle length. Comparisons of overhead vs. neutral-arm elbow extension have found greater triceps hypertrophy from the overhead position." },
@@ -11967,9 +11969,9 @@ const EXERCISE_LIBRARY = {
   lying_leg_curl: { name:"Lying Leg Curl", longLengthBias:true, longLengthNote:"partially — hip extended, shorter than seated", aliases:["lying leg curl","hamstring curl"], category:"isolation", area:"hamstrings", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["machine"], evidenceConfidence:"meta_analysis", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate" },
   single_leg_rdl: { name:"Single-Leg RDL", aliases:["single leg rdl","single leg romanian deadlift"], category:"secondary_strength", area:"hamstrings", secondaryArea:"hips", movement:"hinge", difficulty:"intermediate", equipment:["dumbbell","kettlebell"], evidenceConfidence:"coaching_consensus", strengthTier:"B", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
   cable_pullover: { name:"Cable Pullover", longLengthBias:true, longLengthNote:"lats loaded in full overhead reach", aliases:["cable pullover","straight arm pulldown"], category:"isolation", area:"thoracic", secondaryArea:"", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
-  face_pull_rope: { name:"Cable Face Pull", aliases:["cable face pull"], category:"isolation", area:"thoracic", secondaryArea:"shoulders", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
+  face_pull_rope: { name:"Cable Face Pull", aliases:["cable face pull"], category:"isolation", area:"thoracic", secondaryArea:"rear_delts", movement:"pull", difficulty:"beginner", equipment:["cable"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
   incline_dumbbell_press: { name:"Incline Dumbbell Press", longLengthBias:true, longLengthNote:"increased shoulder extension at the bottom", aliases:["incline dumbbell press","incline db press"], category:"secondary_strength", area:"chest", secondaryArea:"shoulders", movement:"push", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"meta_analysis", strengthTier:"B", hypertrophyTier:"A", powerTier:"C", tierEvidence:"moderate", tierNote:"Incline pressing biases the clavicular (upper) pec relative to flat pressing." },
-  rear_delt_fly: { name:"Rear Delt Fly", aliases:["rear delt fly","reverse pec deck"], category:"isolation", area:"shoulders", secondaryArea:"thoracic", movement:"isolation", difficulty:"beginner", equipment:["dumbbell","machine"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
+  rear_delt_fly: { name:"Rear Delt Fly", aliases:["rear delt fly","reverse pec deck"], category:"isolation", area:"rear_delts", secondaryArea:"thoracic", movement:"isolation", difficulty:"beginner", equipment:["dumbbell","machine"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   concentration_curl: { name:"Concentration Curl", aliases:["concentration curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"A", powerTier:"C", tierEvidence:"low" },
   reverse_curl: { name:"Reverse Curl", aliases:["reverse curl"], category:"isolation", area:"biceps", secondaryArea:"", movement:"isolation", difficulty:"beginner", equipment:["barbell","dumbbell"], evidenceConfidence:"coaching_consensus", strengthTier:"C", hypertrophyTier:"B", powerTier:"C", tierEvidence:"low" },
   chin_up: { name:"Chin-Up", aliases:["chin up","chinup"], category:"calisthenics", area:"biceps", secondaryArea:"thoracic", movement:"pull", difficulty:"intermediate", equipment:["bodyweight"], evidenceConfidence:"coaching_consensus", strengthTier:"A", hypertrophyTier:"A", powerTier:"B", tierEvidence:"low" },
@@ -15264,7 +15266,25 @@ function shiftWeek(dates, weeksBack){
 const VOLUME_LANDMARKS = {
   chest:       { mev: 7, mavLow: 10, mavHigh: 16, mrv: 20 },
   thoracic:    { mev: 9, mavLow: 12, mavHigh: 18, mrv: 22 },
-  shoulders:   { mev: 7, mavLow: 12, mavHigh: 18, mrv: 23 },
+  /* Was one row for the whole deltoid, at mev 7 / mavLow 12. That is roughly right for
+     three heads together and wrong for any of them alone, and because it was one account
+     an overhead press could satisfy it: a measured four-day week booked 10 sets into
+     'shoulders' — 4 from Overhead Press, 6 from Band External Rotation — with no side-delt
+     set in it, and the queue stopped asking.
+     Split three ways. shoulders is now the pressing (anterior) shoulder, which takes
+     indirect work from every press in the plan and so needs the least direct work of the
+     three. Side and rear take the rest of the old numbers: they get almost nothing
+     indirectly, and lateral raises are the only thing in the library that trains the
+     side head at all.
+     The three rows have to ADD UP to roughly what the one row asked for, or the split
+     silently doubles the shoulder demand out of a fixed session budget. Tried at 6/10/8
+     mavLow — 24 against the 12 the app was tuned around — and lateral raises appeared on
+     every upper day while chest fell from 9 sets to 3.8, under its own MEV. These sum to
+     9 mev and 15 mavLow against the old 7 and 12: a little more, because three heads do
+     genuinely need more than one bucket did, and not twice as much. */
+  shoulders:   { mev: 2, mavLow:  4, mavHigh:  8, mrv: 12 },
+  side_delts:  { mev: 4, mavLow:  6, mavHigh: 12, mrv: 16 },
+  rear_delts:  { mev: 3, mavLow:  5, mavHigh: 10, mrv: 14 },
   quads_knees: { mev: 7, mavLow: 10, mavHigh: 16, mrv: 19 },
   hamstrings:  { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
   hips:        { mev: 5, mavLow: 8,  mavHigh: 14, mrv: 18 },
@@ -19274,12 +19294,12 @@ function complementaryArea(tag){
 // Core, forearms and neck sit on every tag: they aren't upper/lower in any useful sense,
 // and grip and trunk are trained alongside whatever else the day contains.
 const TAG_TO_AREAS = {
-  upper:     ['chest','thoracic','shoulders','biceps','triceps','forearms','core','neck'],
-  push:      ['chest','shoulders','triceps','core','neck'],
-  pull:      ['thoracic','biceps','forearms','core'],
+  upper:     ['chest','thoracic','shoulders','side_delts','rear_delts','biceps','triceps','forearms','core','neck'],
+  push:      ['chest','shoulders','side_delts','triceps','core','neck'],
+  pull:      ['thoracic','rear_delts','biceps','forearms','core'],
   lower:     ['quads_knees','hamstrings','hips','glutes','adductors','calves','core','lower_back','ankles'],
   legs:      ['quads_knees','hamstrings','hips','glutes','adductors','calves','core','lower_back','ankles'],
-  full_body: ['chest','thoracic','shoulders','biceps','triceps','forearms','core','neck',
+  full_body: ['chest','thoracic','shoulders','side_delts','rear_delts','biceps','triceps','forearms','core','neck',
               'quads_knees','hamstrings','hips','glutes','adductors','calves','lower_back','ankles']
 };
 // Accessory eligibility is defined by what to EXCLUDE rather than what to include. The
@@ -19305,7 +19325,7 @@ const EMPHASIS_BLOCK_WEEKS = 4;   // matches the existing 4-week block/deload ca
 // when several areas are equally overdue.
 const GOAL_EMPHASIS_POOLS = {
   // Visually-driven: the areas that most change how the body reads.
-  hypertrophy: ['shoulders','chest','biceps','triceps','thoracic','glutes','quads_knees','calves','core'],
+  hypertrophy: ['shoulders','side_delts','rear_delts','chest','biceps','triceps','thoracic','glutes','quads_knees','calves','core'],
   // The prime movers and the areas that support them under heavy load.
   strength:    ['quads_knees','hips','glutes','hamstrings','thoracic','chest','shoulders','lower_back','core','forearms'],
   // Durability and propulsion for running.
@@ -19321,7 +19341,7 @@ const GOAL_EMPHASIS_POOLS = {
 const EMPHASIS_REGION = {
   quads_knees:'lower', hamstrings:'lower', hips:'lower', glutes:'lower',
   adductors:'lower', calves:'lower', ankles:'lower',
-  chest:'upper', thoracic:'upper', shoulders:'upper', biceps:'upper',
+  chest:'upper', thoracic:'upper', shoulders:'upper', side_delts:'upper', rear_delts:'upper', biceps:'upper',
   triceps:'upper', forearms:'upper', neck:'upper',
   core:'trunk', lower_back:'trunk'
 };
@@ -19718,6 +19738,7 @@ const RESTPAUSE_EXTRA_SECONDS = 45;       // 2-3 mini-sets off the back of an ac
 // performance in the second movement; antagonist and unrelated pairings don't.
 const SUPERSET_ANTAGONIST = {
   chest:['thoracic','biceps'], thoracic:['chest','triceps'], shoulders:['thoracic','biceps'],
+  side_delts:['thoracic','biceps'], rear_delts:['chest','triceps'],
   biceps:['triceps','chest'], triceps:['biceps','thoracic'],
   quads_knees:['hamstrings','glutes'], hamstrings:['quads_knees'], glutes:['quads_knees'],
   hips:['quads_knees'], adductors:['glutes'], calves:['ankles'], ankles:['calves'],
