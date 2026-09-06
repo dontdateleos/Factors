@@ -1582,7 +1582,14 @@
   #todayFaceDock{ position:absolute; display:none; width:22px; height:22px; padding:0;
     border:0; border-radius:0; background:var(--face-c); color:#000000; cursor:pointer;
     align-items:center; justify-content:center; z-index:1; flex:none;
-    transition:left 0.2s cubic-bezier(.2,.7,.2,1); }
+    transition:left 0.2s cubic-bezier(.2,.7,.2,1),
+               background-color 0.2s linear, color 0.2s linear; }
+  /* The last beat of the mark's arrival, and the first of its departure, done on the chip
+     rather than on the thing that flew. The flyer is the mark's own 42x32 box shrunk by a
+     transform; a plate painted on THAT lands as a 14x10 rectangle inside a 22px square and
+     pops to size the moment the two swap. So the mark lands colourless — white, as it was
+     the whole way down — and the chip colours in underneath it. Nothing changes size. */
+  #todayFaceDock.landing{ background:transparent; color:var(--bg); }
   #todayFaceDock .eyes{ pointer-events:none; }
   /* On a closed day the chip is a reading, not a button. It keeps its colour and its face —
      that is the record — and stops advertising a tap that would be refused. */
@@ -4875,13 +4882,26 @@ function moveEyes(dest, from, snap){
 
 /* THE MARK COMES DOWN.
 
-   Same flyer, same arc, same tear as the header-to-score flight — this is a third leg of the
-   same journey, not a new animation. It reads the two page positions, dresses the flyer as
-   the mark it is leaving, morphs it to the chip's form on the way and lands the answer in the
-   slot beside the number.
+   Not a morph. The mark keeps the shape it has on the perch for the whole trip: it travels,
+   it turns over once, and only when it is down does the colour arrive. The version this
+   replaces reused the header-to-score flight, which was built to change form on the way — so
+   the mark was most of the way to being something else before it had finished falling, and
+   what you watched was a transition rather than a mark going somewhere. Measured on the old
+   one: the eye was 8px wide of its final 5 at 200ms, a third of the way into a 640ms fall.
+
+   Three things move and they do not overlap:
+     0-640ms   travel and spin, as itself, white, no plate
+     640ms     the flyer is swapped for the real chip, drained of colour, same size
+     640-840ms the chip colours in
+
+   The colour is done on the chip and not on the flyer on purpose. The flyer is the mark's own
+   42x32 box scaled down by a transform; a plate painted on it would be a 14x10 rectangle
+   where the chip is a 22px square, and the handover would pop. Nothing about the mark's own
+   size changes at the swap, so there is nothing to see.
 
    Positions are read live rather than stored: the chip hangs off the number's right edge, and
-   that edge moves with how many digits the score has.
+   that edge moves with how many digits the score has. Centres rather than corners, because
+   the flyer is scaled and a transform scales about its middle.
 
    Booked to land BEFORE the animation starts, the way moveEyes does, because both slots are
    hidden while it is airborne. Anything that throws in between would otherwise leave the band
@@ -4896,77 +4916,72 @@ function flyMarkToDock(v, back){
     if(eyeFlyer){
       if(eyeFlight){ eyeFlight.cancel(); eyeFlight = null; }
       eyeFlyer.style.display = 'none';
+      eyeFlyer.style.transform = 'none';
       eyeFlyer.style.removeProperty('--eye-morph');
       eyeFlyer.style.transition = '';
     }
     eyeAnswerDocked = !back;
     dock.style.visibility = '';
     score.style.visibility = back ? 'visible' : 'hidden';
-    if(back) applyEyeForm(score, 'score');
+    if(back){ dock.classList.remove('landing'); applyEyeForm(score, 'score'); }
+    else {
+      /* The chip goes up colourless and is told to colour on the NEXT frame, so the browser
+         has a painted state to transition from. Set in the same frame it appears in, the
+         change would have nothing to interpolate and the colour would simply be there. */
+      requestAnimationFrame(()=>dock.classList.remove('landing'));
+    }
     startEyeIdle();
-    requestAnimationFrame(()=>{ if(!back && chipEyes()) scheduleChipIdle(900); });
+    requestAnimationFrame(()=>{ if(!back && chipEyes()) scheduleChipIdle(900 + DOCK_COLOUR_MS); });
   };
   // No motion, no flight — but the handover still has to happen, or the mark is in neither
   // place. Same reason moveEyes lands immediately rather than returning.
-  if(eyeMotionOff() || !dock.offsetParent){ land(); return true; }
+  if(eyeMotionOff() || !dock.offsetParent){ dock.classList.remove('landing'); land(); return true; }
 
-  const start = eyePagePos(back ? dock : score);
-  const end   = eyePagePos(back ? score : dock);
-  const flyer = getEyeFlyer();
-  flyer.style.display = 'flex';
-  flyer.style.left = start.x + 'px';
-  flyer.style.top = start.y + 'px';
-  flyer.style.transform = 'none';
-  // Dressed as what it is leaving, with the morph off, so the change of form has something
-  // to start from rather than arriving already changed.
-  flyer.classList.add('no-morph');
-  if(back) setDockEyeVars(flyer, v); else applyEyeForm(flyer, 'score');
-  void flyer.offsetWidth;
-  flyer.classList.remove('no-morph');
-  flyer.style.setProperty('--eye-morph', Math.round(EYE_FLIGHT_MS * 0.78) + 'ms');
-  score.style.visibility = 'hidden';
-  dock.style.visibility = 'hidden';
+  const fly = ()=>{
+    const sr = score.getBoundingClientRect(), dr = dock.getBoundingClientRect();
+    const at = eyePagePos(score);
+    const dx = (dr.left + dr.width / 2) - (sr.left + sr.width / 2);
+    const dy = (dr.top + dr.height / 2) - (sr.top + sr.height / 2);
+    // One turn, clockwise on the way down and unwound on the way back, so the two legs read
+    // as the same move in two directions rather than as two moves.
+    const UP = 'translate(0px, 0px) rotate(0deg) scale(1)';
+    const DOWN = `translate(${dx}px, ${dy}px) rotate(360deg) scale(${DOCK_SCALE})`;
 
-  const dx = end.x - start.x, dy = end.y - start.y;
-  const dir = dy >= 0 ? 1 : -1;
-  const dip = -6 * dir, over = 6 * dir;
-  eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
-  try{
-    eyeFlight = flyer.animate([
-      { transform:'translate(0px, 0px) scale(1, 1)', offset:0, easing:'cubic-bezier(0.3,0,0.5,1)' },
-      { transform:`translate(${dx*0.1}px, ${dip}px) scale(0.94, 1.08)`, offset:0.2, easing:'cubic-bezier(0.55,0,0.35,1)' },
-      { transform:`translate(${dx*0.74}px, ${dy*0.74}px) scale(0.97, 1.05)`, offset:0.58, easing:'cubic-bezier(0.4,0,0.3,1)' },
-      { transform:`translate(${dx}px, ${dy + over}px) scale(1.06, 0.92)`, offset:0.8, easing:'cubic-bezier(0.3,0,0.2,1)' },
-      { transform:`translate(${dx}px, ${dy}px) scale(1, 1)`, offset:1 }
-    ], { duration: EYE_FLIGHT_MS, fill:'forwards' });
-  }catch(e){
-    eyeFlight = null;
-    flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.5,0,0.15,1)`;
-    flyer.style.transform = `translate(${dx}px, ${dy}px)`;
-  }
-  // The form arrives with the eyes, not after them.
-  if(back) applyEyeForm(flyer, 'score'); else setDockEyeVars(flyer, v);
+    const flyer = getEyeFlyer();
+    flyer.style.display = 'flex';
+    flyer.style.left = at.x + 'px';
+    flyer.style.top = at.y + 'px';
+    // Dressed as the mark and left that way. No --eye-morph is set at all: the geometry is
+    // identical at both ends, so there is nothing for a morph to do even if one were on.
+    flyer.classList.add('no-morph');
+    applyEyeForm(flyer, 'score');
+    flyer.style.transform = back ? DOWN : UP;
+    void flyer.offsetWidth;
+    flyer.classList.remove('no-morph');
+    score.style.visibility = 'hidden';
+    dock.style.visibility = 'hidden';
+
+    eyeFlightTimer = setTimeout(land, EYE_FLIGHT_MS);
+    try{
+      eyeFlight = flyer.animate(
+        back ? [{ transform: DOWN }, { transform: UP }]
+             : [{ transform: UP }, { transform: DOWN }],
+        { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.45,0,0.2,1)', fill:'forwards' });
+    }catch(e){
+      eyeFlight = null;
+      flyer.style.transition = `transform ${EYE_FLIGHT_MS}ms cubic-bezier(0.45,0,0.2,1)`;
+      flyer.style.transform = back ? UP : DOWN;
+    }
+  };
+
+  /* Only the way DOWN waits. Going back up there is nothing to drain: the tap that sends the
+     mark home is the tap that opens the picker, and the layout takes the chip's slot away in
+     the same frame to make room for the five. A 200ms colour fade there was measured leaving
+     230ms with the mark on neither perch nor chip — the exact hole .300 was written to close.
+     So the mark leaves the instant it is asked to, and the colour goes with the chip. */
+  dock.classList.add('landing');
+  fly();
   return true;
-}
-/* The chip's form, as variables rather than as markup — the flyer is an element that already
-   exists, so it gets dressed rather than rebuilt. Same numbers faceEyesHtml would produce for
-   the docked face, which is what makes the landing invisible. */
-function setDockEyeVars(el, v){
-  if(!el) return;
-  const st = EYE_STATES[Math.max(1, Math.min(5, v)) - 1];
-  const k = DOCK_SCALE;
-  el.style.setProperty('--eye-box-w', facePx('42px', k));
-  el.style.setProperty('--eye-box-h', facePx('32px', k));
-  el.style.setProperty('--eye-gap', facePx(st.g || '12px', k));
-  el.style.setProperty('--eye-w', facePx(st.w || '15px', k));
-  el.style.setProperty('--eye-r', facePx(st.r || '7.5px', k));
-  el.style.setProperty('--eye-h', facePx(st.h, k));
-  el.style.setProperty('--eye-rb', facePx(st.rb, k));
-  el.style.setProperty('--eye-bl', st.bl);
-  el.style.setProperty('--eye-rot', st.rot);
-  el.style.setProperty('--eye-ink', '#000000');
-  el.style.setProperty('--eye-plate', `var(--face-${v})`);
-  el.style.setProperty('--eye-plate-r', '0px');
 }
 
 // Belt and braces. Both slots are hidden while the mark is in the air, so any path that
@@ -7281,6 +7296,15 @@ const FACE_SCALE = 0.38;
    centring against the numeral measures. The tap target does NOT come down with it: the
    same ::after expansion .subj-face uses puts it back to 46x46. */
 const DOCK_W = 22, DOCK_H = 22, DOCK_SCALE = FACE_SCALE * 0.85;
+/* The mark's own geometry, in the shape faceEyesHtml wants, so the chip can be drawn AS the
+   mark rather than as the face you picked. Same numbers as EYE_SITES.score.
+
+   Which face you gave is carried by the chip's colour now, and only by its colour. The five
+   are far enough apart to read at 22px, and the shape staying put is the point: the thing
+   beside the number is the same mark that was above it, not a different drawing that
+   replaced it. */
+const MARK_FORM = { g:'12px', w:'15px', r:'7.5px', h:'32px', rb:'7.5px', bl:'0%', rot:'0deg' };
+const DOCK_COLOUR_MS = 200;
 let dockWordW = 0;   // the width of the word under the chip; see measureDockWord
 const facePx = (v, k)=> (parseFloat(v) * (k || FACE_SCALE)).toFixed(2) + 'px';
 function faceEyesHtml(st, k, ink, alive){
@@ -7610,7 +7634,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.300';
+const APP_VERSION = '2026.08.31.301';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7677,6 +7701,7 @@ const APP_NOTES = {
   '2026.08.31.298': 'The marks are smaller again, and your answer tucks into the corner of the score.',
   '2026.08.31.299': 'Your answer is a filled chip again, sitting a little further off the digits.',
   '2026.08.31.300': 'One mark, not two: it comes down off the score and becomes the answer beside it.',
+  '2026.08.31.301': 'The mark falls as itself now, turns over once, and only colours in when it lands.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9576,10 +9601,11 @@ function paintTodayFaces(){
       dock.classList.add('asking');
       dock.classList.remove('locked', 'worded');
       dock.setAttribute('aria-label', 'How are you? Tap to rate today');
-      dock.innerHTML = faceEyesHtml(EYE_STATES[3], DOCK_SCALE, 'rgba(251,250,246,0.55)', true)
+      dock.classList.remove('landing');
+      dock.innerHTML = faceEyesHtml(MARK_FORM, DOCK_SCALE, 'rgba(251,250,246,0.55)', true)
         + `<span class="dock-word">How?</span>`;
     }
-    else if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; dock.classList.remove('asking', 'worded'); }
+    else if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; dock.classList.remove('asking', 'worded', 'landing'); }
     else {
       dock.classList.remove('asking');
       dock.style.setProperty('--face-c', `var(--face-${v})`);
@@ -9587,18 +9613,22 @@ function paintTodayFaces(){
       dock.setAttribute('aria-label', editable
         ? `${SUBJECTIVE_WORDS[v-1]} — tap to change`
         : `${SUBJECTIVE_WORDS[v-1]}, recorded on ${stamp(date)}`);
-      /* The mark you chose, at the size you chose it. Drawn at FACE_SCALE and filled in its
-         own colour, so the docked answer and the button in the row are the same object seen
-         twice rather than two sizes of the same idea. */
+      /* The chip is no longer the FACE you chose — it is the MARK, in the colour of the face
+         you chose. It was the face's own eye shape, shrunk, which meant the thing that
+         arrived beside the number was a different drawing from the one that left the perch
+         above it. Shape says "this is the mark"; colour says which of the five. */
       dock.classList.remove('worded');
       /* No word under the answer any more. It named a face you had just chosen, in the app's
          smallest type, two pixels under the mark that already says it — and the band was
          carrying it beside a score whose own label is the reading that matters. The name is
          still on the chip for a screen reader, and still on every button in the row you
-         change it from. Filled again, so the eyes are knocked out of it in black — the five
-         in the picker stay outlines, because there the fill was five loud blocks and here it
-         is one small one, tucked under a numeral. */
-      dock.innerHTML = faceEyesHtml(v, DOCK_SCALE, '#000000', true);
+         change it from. Filled again, so the mark is knocked out of it, because the five in
+         the picker stay outlines: there the fill was five loud blocks and here it is one
+         small one, tucked under a numeral. */
+      /* Drawn as the mark, in the chip's own colour rather than a fixed black, because the
+         colour is what has to travel: the chip lands drained and fills in, and an ink baked
+         into the markup could not follow it. */
+      dock.innerHTML = faceEyesHtml(MARK_FORM, DOCK_SCALE, 'currentColor', true);
     }
     /* WHERE THE ONE MARK BELONGS, DECIDED IN ONE PLACE.
 
@@ -9620,8 +9650,19 @@ function paintTodayFaces(){
          flight measured nothing and landed instantly, which looked exactly like the hard cut
          it replaced. */
       const fv = v;
+      /* Drained and hidden HERE rather than when the flight starts, two frames later. The
+         chip is painted in its colour and the layout shows it in between, so leaving it
+         until then put a fully green chip beside the number for 32ms before the mark had
+         even left the perch — the answer arriving twice, the second time by falling.
+         Measured on the first cut of this: one frame of chip at +250ms, flight at +282ms. */
+      dock.classList.add('landing');
+      dock.style.visibility = 'hidden';
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        if(!eyeAnswerDocked && !eyeFlightTimer) flyMarkToDock(fv, false);
+        if(!eyeAnswerDocked && !eyeFlightTimer){ flyMarkToDock(fv, false); return; }
+        // Something else claimed the mark in between; give the chip back rather than
+        // leaving it invisible and colourless with nothing scheduled to restore it.
+        dock.style.visibility = '';
+        dock.classList.remove('landing');
       }));
     } else if(v != null){
       /* First paint of the session, or already docked: the answer is a fact you are arriving
