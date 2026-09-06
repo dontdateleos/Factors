@@ -1,5 +1,6 @@
 // groundcheck.mjs — the guard for the two grounds.
 //
+//   npm i playwright                   (not vendored; this is the only thing that needs it)
 //   python3 -m http.server 8899        (from the repo root)
 //   node tools/groundcheck.mjs         the black ground
 //   node tools/groundcheck.mjs bone    the bone ground
@@ -15,8 +16,6 @@
 //
 // If you add a --reverse-bg fill, it will show up here as 1:1 until it is added to the
 // :is() list in the bone block.
-// Walks every tab and reports text that does not read against its real backdrop.
-// Usage: node groundcheck.mjs [ground]
 import { chromium } from 'playwright';
 const ground = process.argv[2] || '';
 const MEASURE = `(()=>{
