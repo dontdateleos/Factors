@@ -691,6 +691,41 @@
     padding:4px 10px; min-height:0; width:auto; cursor:pointer; }
   .group-head .head-action:hover{ border-color:var(--bg); }
   .group-head .group-sub{ order:2; }
+  /* ---------- CAPS FOR EVERYTHING THAT IS NOT A SENTENCE ----------
+
+     The app was already about two thirds of the way there and had stopped in an arbitrary
+     place: measured across the five tabs, 266 of the visible strings outside the legal
+     document are not sentences and 165 of those were uppercase, so a hundred labels,
+     names, prescriptions and readings were still sitting in sentence case beside
+     identical things that were not.
+
+     I tried to take the rule off the app's own mono/sans split first, since the comment on
+     those tokens says --mono is "readings, labels and chrome, which take caps" and --sans
+     is "things written for a person to read". It does not predict it: 2% of --mono nodes
+     are sentences and 3% of --sans ones, so --sans is labels too and the distinction the
+     comment describes is not the one the code makes. This is a list instead, and the list
+     was built by reading every string each class actually holds rather than by its name.
+
+     Reading them changed several calls. .mob-check-text sounded like rung names and is
+     instruction prose — "Half-kneel with toes touching a wall, knee reaches the wall, heel
+     down". .label is a column of sentences. .summary holds a question and a label and
+     cannot be split. Those stay down, with the legal document, the score notes, and the
+     colophon's "dogfood (v.)", which is a dictionary entry and lowercase on purpose. */
+  .skill-level-target, .mob-wheel-name, .blc-key, .wheel-add-card, .log-title,
+  .more-toggle-sub, .score-log-when, .wr-key span, .wr-head strong{
+    text-transform:uppercase;
+  }
+  /* Caps need the tracking that lowercase does not: the forms are wider and the spacing
+     was fitted to an x-height these strings no longer have. .log-title is left out because
+     it already carries 0.05em, set for exactly this reason when it was capped. */
+  .skill-level-target, .mob-wheel-name, .blc-key, .wheel-add-card,
+  .more-toggle-sub, .score-log-when, .wr-key span, .wr-head strong{
+    letter-spacing:0.04em;
+  }
+  /* And the other direction, which the same rule demands. These four are questions —
+     the only sentences in the app that were being forced into caps. */
+  #firstRun .group-title{ text-transform:none; letter-spacing:0; }
+
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   /* The middle of the three levels. A band names the section, this is the section. Bled to
@@ -7756,7 +7791,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.319';
+const APP_VERSION = '2026.08.31.320';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7841,6 +7876,7 @@ const APP_NOTES = {
   '2026.08.31.317': 'Past a skill\'s entry condition, the prerequisites stay in the plan at a keeping dose.',
   '2026.08.31.318': 'An upper day is a press and a row again, and a lower day a squat and a hinge.',
   '2026.08.31.319': 'The app is set in Courier Prime now, a typewriter face rather than a code one.',
+  '2026.08.31.320': 'Anything that is not a sentence is set in caps, and the four that are came down.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
