@@ -553,11 +553,6 @@
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
-  /* ...except on its way out. Leaving Today's band, the mark goes BEHIND the lettering
-     rather than across the page, so for those 260ms it drops under the h1 and the letters
-     take it a piece at a time. .header-brand already clips at its own box, so once it is
-     past the D there is nothing left of it. The class comes off at the landing. */
-  .header-brand .header-mark.behind{ z-index:0; }
   main{ padding:var(--sp-3) var(--gutter) var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; counter-reset:section; }
   .panel.active{ display:block; }
@@ -1147,16 +1142,8 @@
   .gauge-wrap, #todayBlockContext{ transition:opacity 0.18s linear; }
   .today-open .gauge-wrap{ margin:0 auto 4px; }
   .today-open .score-num{ color:var(--bg); }
-  /* OPAQUE, AND THE SAME COLOUR AS WHAT IS BEHIND IT.
-     The chip arrives by coming out from under the digits, which it already tucks three
-     pixels beneath. For that to read, it has to be genuinely hidden beforehand, and glyphs
-     are not a wall: a green square parked behind "98" shows through the counter of the 8 and
-     in the gap between the two figures. The band is --ground and nothing sits between the
-     digits and it, so painting the digits' own box in --ground changes not one pixel of what
-     you see and turns them into something the chip can be behind. */
-  .today-open .score-num{ background:var(--ground); }
-  /* The chip's slide in and out, and the settle it lands with. Anchored to its BOTTOM edge:
-     a thing that arrives settles onto what it arrived on, not around its own middle. */
+  /* The settle the chip lands with, anchored to its BOTTOM edge: a thing that arrives
+     settles onto what it arrived on, not around its own middle. */
   #todayFaceDock{ transform-origin:50% 100%; }
   .today-open .score-label, .today-open .conf-chevron{ color:var(--bg); }
   .today-open .score-note, .today-open .conf-headline,
@@ -4081,6 +4068,12 @@ let eyeFlightTimer = null;
    Now there is one place for it down here, the chip beside the number, and this says whether
    the mark is in it. eyeSiteEl reads it to find whatever copy is actually on screen. */
 let eyeAnswerDocked = false;
+/* A trip has been asked for but has not started tearing yet. moveEyes waits for the header to
+   settle before it does anything, and the panel paints the band in the meantime -- so the chip
+   went up whole, sat there, and only then tore itself in. The answer arriving twice, the
+   second time in pieces. This says "one is on its way" for that window, and the paint leaves
+   the chip alone while it is set. */
+let eyeTripPending = false;
 
 /* Whichever copy of the mark is actually on screen. There is only ever one now: the mark
    never leaves the elements it belongs to, so there is no travelling copy to prefer. */
@@ -4786,37 +4779,38 @@ function whenHeaderSettled(fn){
 /* `snap` skips the flight entirely and goes straight to the landing — which already plays
    the tear, so the move reads as a cut rather than a trip. It is what the perch uses: a
    scroll is a continuous gesture, and a 640ms arc chasing your thumb is always behind it. */
-/* THE MARK GOES BEHIND THINGS, NOT ACROSS THEM.
+/* THE MARK TEARS OUT OF ONE PLACE AND TEARS INTO THE OTHER.
 
-   Every version of this trip so far flew the mark over the page: a diagonal from the
-   wordmark to the chip, morphing or spinning or both. Nothing else in this app moves on a
-   diagonal, and nothing else in it slides over its own content.
+   It does not travel. Every version that did -- a diagonal flight, a spin, a slide behind the
+   wordmark -- was trying to draw a line between two points on two different parts of the
+   screen, and this app does not draw lines like that. It cuts. The score tears when you swipe
+   to another day, a card tears as it lands, and the mark already tears the moment it arrives
+   anywhere. So the trip is the gesture the app already owns, used for the whole thing rather
+   than as a flourish on the end of something else.
 
-   So it does not cross the page at all now. The mark slides LEFT out of the wordmark and the
-   lettering takes it, a piece at a time, until the header's own clip has the rest. A beat of
-   nothing. Then the chip comes out from behind the number, which it already tucks three
-   pixels under, and settles.
+   The mark tears where it stands in the wordmark. Partway through, on the frame the tear is
+   at its most broken, it is gone and the chip is there instead, tearing in beside the number.
+   Then it settles onto its base.
 
-   Two short moves in opposite directions with a gap between them, and the page's own content
-   doing the hiding. What connects them is that the mark was nowhere in between, which is a
-   truer thing to say about a mark that is in two places on two screens than a line drawn
-   between the two.
+     0-320ms    the wordmark's mark tears
+     176ms      the cut: one is hidden and the other shown on the same frame
+     176-496ms  the chip tears in
+     296-556ms  the settle: 14% wider, 16% shorter, one rebound, anchored to its base
 
-   The flyer is not used. Both halves happen on the real elements, which is what lets the
-   wordmark occlude one and the digits occlude the other -- a body-level flyer sits above
-   both and could never go behind either. */
-const MARK_EXIT_MS = 260;    // sliding away behind the lettering
-const MARK_GAP_MS = 70;      // out of sight, in neither place
-const MARK_ENTER_MS = 260;   // out from under the digits
-const MARK_SETTLE_MS = 260;  // the squash it lands with
-const MARK_TRIP_MS = MARK_EXIT_MS + MARK_GAP_MS + MARK_ENTER_MS;
-// Far enough left that the D has passed over it and the brand's own overflow has the rest.
-const MARK_EXIT_PX = -178;
-// Its right edge ends up level with the digits' right edge, so nothing of it is clear of them.
-const CHIP_HIDE_PX = -22;
+   The cut at 55% rather than at the end is what tearFaceToDock used before any of this, and
+   for the same reason: a tear that finishes before the next one starts reads as two events,
+   and handing over mid-tear reads as one. */
+/* Read late, not at load. UI_ANIM is declared thirteen hundred lines below this, so a const
+   initialised from it here is a temporal dead zone and the whole script throws on the way in
+   -- which node --check does not see, because it is valid syntax. */
+const markTearMs = ()=> UI_ANIM.markGlitch.ms;                 // 320
+const markCutAt = ()=> Math.round(markTearMs() * 0.55);        // 176
+const MARK_SETTLE_MS = 260;
+const MARK_SETTLE_AT = 120;   // into the arriving tear, so it lands as that finishes
 
 /* Compresses onto its base and settles with one rebound. 14% is the most a 22px square gives
-   before it reads as a wobble rather than as weight. */
+   before it reads as a wobble rather than as weight. On `transform`, where the tear writes
+   `translate` and `clip-path`, so the two compose instead of overwriting each other. */
 function settleSquash(el){
   if(!el || eyeMotionOff()) return;
   try{
@@ -4844,24 +4838,10 @@ function moveEyes(dest, from, snap){
   eyeGazeResetAll();
   eyesHome = dest;
 
-  /* Both slides fill forwards, so clearing the inline transform is not enough: the animation
-     goes on holding its end value and the style has nothing to say about it. Left uncancelled,
-     the mark stayed parked 178px off the left of the wordmark after every arrival, and the
-     next trip out started from there. Measured: leaving Today with no mark on any screen. */
-  const clearMoves = ()=>{
-    header.classList.remove('behind');
-    header.getAnimations().forEach(a=> a.cancel());
-    header.style.transform = '';
-    if(chip){
-      chip.getAnimations().forEach(a=> a.cancel());
-      chip.style.transform = '';
-    }
-  };
-
   const land = ()=>{
     clearTimeout(eyeFlightTimer);
     eyeFlightTimer = null;
-    clearMoves();
+    eyeTripPending = false;
     applyEyeForm(header, 'header');
     // The perch is never shown. It is measured against and it anchors the trace load, and
     // that is all it does now.
@@ -4884,57 +4864,50 @@ function moveEyes(dest, from, snap){
     else scheduleIdle(2600);
   };
 
-  // No motion, or nothing on screen to slide -- but the handover still has to happen, or the
+  // No motion, or nothing on screen to tear -- but the handover still has to happen, or the
   // mark ends up in neither place.
-  if(snap || eyeMotionOff() || (from && from.offscreen) || !chip){ land(); return; }
+  if(snap || eyeMotionOff() || (from && from.offscreen) || !chip || !anim('tearOnFlight')){
+    land();
+    return;
+  }
+
+  /* Hidden NOW rather than when the tear starts. Everything below waits for the header to
+     finish settling, and the panel paints the band inside that wait: measured, the chip was
+     on screen whole from 50ms and did not tear until 176. */
+  const arriving = dest === 'score' ? chip : header;
+  eyeTripPending = true;
+  arriving.style.visibility = 'hidden';
 
   whenHeaderSettled(()=>{
     // Bail if another tab switch overtook this one while we were waiting.
-    if(eyesHome !== dest) return;
-    clearMoves();
+    if(eyesHome !== dest){ eyeTripPending = false; return; }
 
     const away = dest === 'score' ? header : chip;
-    const back = dest === 'score' ? chip : header;
-    const awayTo = dest === 'score' ? `translateX(${MARK_EXIT_PX}px)` : `translateX(${CHIP_HIDE_PX}px)`;
-    const backFrom = dest === 'score' ? `translateX(${CHIP_HIDE_PX}px)` : `translateX(${MARK_EXIT_PX}px)`;
+    const back = arriving;
+    const px = EYE_ANIM.tearOnFlight.px;
 
-    header.classList.add('behind');
-    /* NOTHING IS HIDDEN DURING THE TRIP. BOTH ENDS ARE COVERED.
-
-       The obvious way to write this is to hide the mark once it is off and show the chip when
-       it is due -- and then there really is a window with no mark rendered anywhere, which is
-       the hole every version of this has had to be tested for. There does not need to be one.
-       The wordmark clips at its own box and the digits are opaque, so the mark can simply sit
-       where it has gone and be covered by the page. It is not missing during the gap. It is
-       behind something, which is the whole idea. */
     away.style.visibility = 'visible';
-    back.style.visibility = 'visible';
-    back.style.transform = backFrom;
+    back.style.visibility = 'hidden';
 
     // Booked before anything below runs, so a throw in here cannot strand the mark.
-    eyeFlightTimer = setTimeout(land, MARK_TRIP_MS);
+    eyeFlightTimer = setTimeout(land, markCutAt() + markTearMs());
 
-    try{
-      // Away: accelerating, because it is being taken rather than travelling.
-      away.animate([{ transform:'translateX(0px)' }, { transform: awayTo }],
-        { duration: MARK_EXIT_MS, easing:'cubic-bezier(.55,0,.85,.4)', fill:'forwards' });
-    }catch(e){ away.style.transform = awayTo; }
+    playGlitch(away, 'markGlitch', px + 2);
 
     setTimeout(()=>{
       if(eyesHome !== dest) return;
-      // Back: decelerating out from under whatever was covering it.
-      try{
-        back.animate([{ transform: backFrom }, { transform:'translateX(0px)' }],
-          { duration: MARK_ENTER_MS, easing:'cubic-bezier(.2,0,.2,1)', fill:'forwards' });
-      }catch(e){ back.style.transform = ''; }
-      /* The settle lands on the beat the slide finishes, on the thing that arrived. Coming
-         down only: the wordmark end has its own pop as the plate closes, and two arrivals
-         playing over each other is one too many. */
-      setTimeout(()=>{
-        if(eyesHome !== dest) return;
-        if(dest === 'score') settleSquash(back);
-      }, MARK_ENTER_MS);
-    }, MARK_EXIT_MS + MARK_GAP_MS);
+      // The cut. Both on one frame, so the mark is never on neither.
+      away.style.visibility = 'hidden';
+      back.style.visibility = 'visible';
+      playGlitch(back, 'markGlitch', px);
+      /* The settle rides over the tail of the arriving tear rather than queueing behind it:
+         they write different properties, so the square is still breaking up while it is
+         already coming down. Only on the way here -- the wordmark end has its own pop as the
+         plate closes, and two arrivals playing over each other is one too many. */
+      if(dest === 'score') setTimeout(()=>{
+        if(eyesHome === dest) settleSquash(back);
+      }, MARK_SETTLE_AT);
+    }, markCutAt());
   });
 }
 
@@ -4944,7 +4917,7 @@ function moveEyes(dest, from, snap){
 // active panel decides, not any state we have been keeping.
 let eyeSettleTimer = null;
 function settleEyes(){
-  if(eyeFlightTimer) return;   // one is in the air; its own landing does this properly
+  if(eyeFlightTimer || eyeTripPending) return;   // a trip owns the mark; its landing does this
   const header = document.querySelector('.header-mark');
   const score = document.getElementById('scoreEyes');
   const today = document.getElementById('panel-insights');
@@ -7614,7 +7587,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.305';
+const APP_VERSION = '2026.08.31.307';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7686,6 +7659,7 @@ const APP_NOTES = {
   '2026.08.31.303': 'The Sunday review says where each thing stands: lime ahead, cream on target, red short.',
   '2026.08.31.304': 'No mark above the number any more. It comes down from the wordmark straight into the chip.',
   '2026.08.31.305': 'The mark slides behind the wordmark and comes out from under the number, and settles.',
+  '2026.08.31.307': 'The mark tears out of the wordmark and tears in beside the number, then settles.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9632,7 +9606,7 @@ function paintTodayFaces(){
 
        The flag still says the mark is down on the band rather than up in the header, which is
        what eyeSiteEl reads to find it; it is just no longer a question with two answers. */
-    if(!eyeFlightTimer && eyesHome === 'score'){
+    if(!eyeFlightTimer && !eyeTripPending && eyesHome === 'score'){
       eyeAnswerDocked = true;
       dock.style.visibility = '';
       const sc = document.getElementById('scoreEyes');
