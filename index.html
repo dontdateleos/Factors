@@ -1793,19 +1793,23 @@
      page. This is that, at the one place this app has a headline reading: a dot grid behind
      the score, bled to both screen edges and stopping where the score's own band does.
 
-     Behind, not around: it takes --ink-rgb so it inverts with the ground, and it is a
-     background-image, which means the contrast checker cannot see it. Reasoned instead —
-     a 0.9px dot on a 7px grid covers 5.2% of the area at 26% alpha, so it moves the
-     effective ground about 1.4% toward the ink. Immaterial to anything reading on it, and
-     the numbers below confirm nothing moved.
+     A halftone rather than a scatter: the reference's field is fine and even enough to read
+     as a tint, which a 7px grid does not do — at that spacing it reads as scattered dots on
+     a page. 2.5px does.
+     It takes --ink-rgb so it inverts with the ground. It is a background-image, which the
+     contrast checker cannot see, so the cost is sampled off the rendered pixels instead —
+     an empty 80px patch inside the field, at 3x, on both grounds. The ground under it moves
+     #fbfaf6 to #e7e6e2 on bone and #0c0d0b to #20211f on dark, which costs about 2.5 points
+     of contrast: the score label goes 18.65 to 15.6, and the dimmest ink that sits on the
+     field, --dim, goes 11.95 to 9.99. Both a long way clear.
 
      pointer-events stays none, per the rule above: the gauge is a full-width box with a lot
      of empty space in it and the chip lives underneath. */
   .today-open .gauge-wrap{ padding:12px 0 10px; }
   .today-open .gauge-wrap::before{ content:''; position:absolute;
     inset:0 calc(-1 * var(--gutter));
-    background-image:radial-gradient(rgba(var(--ink-rgb),0.26) 0.9px, transparent 0.9px);
-    background-size:7px 7px; pointer-events:none; z-index:0; }
+    background-image:radial-gradient(rgba(var(--ink-rgb),0.45) 0.5px, transparent 0.5px);
+    background-size:2.5px 2.5px; pointer-events:none; z-index:0; }
   .today-open .score-stack, .today-open .score-label-row{ position:relative; z-index:1; }
   #todayFaceRow, #scoreTrace{ z-index:3; }
   /* Once one is chosen the other four step back — the answer should read as an answer, not
@@ -7898,7 +7902,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.329';
+const APP_VERSION = '2026.08.31.330';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7993,6 +7997,7 @@ const APP_NOTES = {
   '2026.08.31.327': 'The skill ladders are in caps, and no row runs past two lines.',
   '2026.08.31.328': 'Shorter names on every progression rung — the ladder says the movement, not the paragraph.',
   '2026.08.31.329': 'The score sits on a dotted field now, the way the watch face prints its readings.',
+  '2026.08.31.330': 'The field behind the score is a halftone now, fine enough to read as a tint.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
