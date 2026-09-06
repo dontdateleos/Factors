@@ -213,77 +213,41 @@
   /* The five tabs share the bar rather than sitting at their natural width with the slack
      left over on the right. The gap goes with it — each tab's own padding is the gap now,
      and an active tab's colour block runs to its neighbours instead of floating. */
-  .tabs{ display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 calc(-1 * var(--gutter)); padding:0 var(--gutter) 16px; background:var(--ground); scrollbar-width:none; }
+  /* THE BAR IS A SCALE NOW, NOT FIVE BUTTONS.
+
+     Five lines, and everything up to and including the tab you are on is lit. Where you are
+     is read off how far the light has got rather than off which block is coloured, which is
+     the same thing the watch face does along its top edge and the same thing the old plate
+     symbols were trying to say one tab at a time.
+
+     The words are still here, they are just not drawn. Two places set the header's tab label
+     from tabButton.textContent, and a screen reader has nothing else to name these by, so the
+     name stays in the box and .tab-name takes it out of the picture rather than out of the
+     document. */
+  .tabs{ display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    margin:0 calc(-1 * var(--gutter)); padding:0 var(--gutter) 6px; background:var(--ground);
+    scrollbar-width:none; --lit:var(--block-lime); }
   .tabs::-webkit-scrollbar{ display:none; }
-  /* flex:1 1 0 rather than a fixed min-width: five equal shares of whatever the phone is.
-     It also ends an overflow that had been there the whole time — at 320px the bar was 49px
-     too wide and clipped "Settings", and at 360px 9px too wide. Nothing clips at any width
-     now, because the labels shrink the tab rather than the tab shrinking the label.
-     The symbols stay ABOVE the labels, which was measured rather than chosen: beside them,
-     "Settings" clips at every width up to 393 even with the icon down at 14px, and buying
-     the room by shrinking the type is the opposite of the last three days' work. */
-  .tab{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding:10px 2px 8px; font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em; text-transform:uppercase; color:var(--dim); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
-  /* THE TAB SYMBOLS. One stack of five plates seen corner-on. Every tab wears the identical
-     pile; the only thing that changes is which plate is lit, and it climbs one slot per tab,
-     so the bar reads as a single object with a marker travelling through it rather than as
-     five unrelated pictures.
-
-     The pile carried its tab's number beside it for four builds. The number was legible and
-     it was redundant: the marker's height already says which of five you are on, the coloured
-     backdrop says it again, and the word underneath says it in full. Three of those are the
-     bar doing its job and the fourth was a caption on it. The box went back to square with
-     it — it was only ever 36 units wide to make room for the digits.
-
-     Plates are thin: 2.1 units of half-height against 8 of half-width. Thick plates filled
-     the box and the pile read as one mass; thin ones let the gaps do the separating that
-     opacity was doing on its own. The slots are centred for that height rather than the old
-     one, because a short pile on the fat pile's slots sat low in the box.
-
-     Unlit plates sit at 26%, which an inactive tab's own 55% takes to about 14%: the pile is
-     a ghost until you look for it, and the lit plate carries the tab. */
-  .tab svg{ width:18px; height:18px; flex:none; opacity:0.55; }
-  /* Dimmer than the word until the tab is yours: the label carries the name, the symbol is
-     there to be found by shape, and two things at full strength read as two things. */
-  .tab.active svg{ opacity:1; }
-  /* THE CLIMB. Switching tabs moves the lit plate to a new slot, and jumping it there
-     asks you to notice a change that has already happened. So the light walks: on the tab
-     becoming active, each plate at or below the marker brightens in turn from the bottom of
-     the pile up, and the marker's own plate lands last. The marker visibly travels the
-     distance rather than teleporting, which is the whole idea of the symbol played out
-     rather than decorated.
-
-     It also encodes something true. The delay is one step per slot, so Settings takes four
-     steps to arrive and Weekly takes one — how far the light has to go is how far up the
-     bar you tapped.
-
-     No JavaScript. .tab.active is a class the tab switcher already sets, so adding the class
-     starts the animation; the plates above the marker carry .above and never animate.
-     animation-fill-mode:both is what makes the delay work — during it the 0% frame holds,
-     so the marker sits dim until the light reaches it. */
-  @media (prefers-reduced-motion: no-preference){
-    @keyframes tabPlatePass{ 0%,100%{ opacity:0.26; } 45%{ opacity:0.9; } }
-    @keyframes tabPlateLand{ 0%{ opacity:0.26; } 55%{ opacity:1; } 70%{ opacity:0.72; } 100%{ opacity:1; } }
-    .tab.active .pl.lead:not(.on){ animation:tabPlatePass 250ms ease-out both; animation-delay:calc(var(--plate) * 62ms); }
-    .tab.active .pl.on{ animation:tabPlateLand 360ms ease-out both; animation-delay:calc(var(--lit) * 62ms); }
-  }
-  .tab.active{ color:var(--text); background:var(--accent); border-radius:0; font-weight:var(--fw-bold); }
-  /* The bar reads left to right as one walk down the wheel: 67deg, 48deg, 9deg, then round
-     past zero to 255deg and 192deg. It used to jump 67, 26, 255, 48, 192 — forward, back,
-     across and back — which is no order at all.
-
-     Orange came out to make room. A real red sits at 9deg and orange at 26deg: seventeen
-     degrees apart, so keeping both spent two of five tabs on what reads as one colour.
-     Orange is not retired, it just stops being a tab — it names the tab above the wordmark.
-
-     Red lands on Body, which is the tab about pain, flare-ups and tissue that will not
-     recover. It shares a hue with --bad, and here that is the point rather than a clash.
-     Settings keeps the blue: red is the loudest thing in the palette and spending it on the
-     tab you visit least was always the wrong trade. */
-  .tab[data-tab="insights"].active{ background:var(--block-lime); }
-  .tab[data-tab="training"].active{ background:var(--block-yellow); }
-  .tab[data-tab="injuries"].active{ background:var(--block-red); }
-  .tab[data-tab="data"].active{ background:var(--block-purple); }
-  .tab[data-tab="settings"].active{ background:var(--block-blue); }
+  /* The line is 3px and the target is 40. Same trick .subj-face and the chip use: the box a
+     thumb hits has nothing to do with the size of the thing it hits. */
+  /* 19 above and 18 below a 3px line is a 40px target. The row used to carry 16px of its own
+     under that as well, which was a lot of clearance for a hairline -- the bar came to 66px
+     with a word in it and would have come to 72 without one. It is 46 now. */
+  .tab{ flex:1 1 0; min-width:0; display:flex; align-items:center; padding:19px 0 18px;
+    cursor:pointer; }
+  .tab-seg{ display:block; width:100%; height:3px; background:var(--lit); }
+  /* Everything AFTER the active tab goes dark. Two rules rather than five, and it needs no
+     JavaScript -- .active is a class the tab switcher already sets. */
+  .tab.active ~ .tab .tab-seg{ background:rgba(251,250,246,0.18); }
+  .tab-name{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+    clip-path:inset(50%); white-space:nowrap; border:0; }
+  /* Which colour the light is. Same five as the blocks the tabs used to wear, in the same
+     order down the wheel. :has is already used in a handful of places here. */
+  .tabs:has(.tab[data-tab="insights"].active){ --lit:var(--block-lime); }
+  .tabs:has(.tab[data-tab="training"].active){ --lit:var(--block-yellow); }
+  .tabs:has(.tab[data-tab="injuries"].active){ --lit:var(--block-red); }
+  .tabs:has(.tab[data-tab="data"].active){ --lit:var(--block-purple); }
+  .tabs:has(.tab[data-tab="settings"].active){ --lit:var(--block-blue); }
   /* The coloured backdrop is flat colour. It used to carry an ordered dot screen — black at
      13% on a 4px grid, offset on a second pass — meant to stop the colour reading as flat
      digital fill. On the real phone it was doing less than that and costing contrast on
@@ -2272,17 +2236,15 @@
   /* 2 — One block behind the tab row, moved to whichever tab is active, instead of six
      backgrounds blinking on and off. The row scrolls, so it is positioned in the row's own
      coordinates and scrolls with it. */
-  .ui-tabIndicator .tabs{ position:relative; }
-  .ui-tabIndicator .tab-indicator{ position:absolute; left:0; top:0; width:0; height:0; z-index:0;
-    pointer-events:none; transform:translateX(0);
-    transition:transform 300ms cubic-bezier(0.2,0.9,0.2,1), width 300ms cubic-bezier(0.2,0.9,0.2,1),
-               background-color 220ms ease; }
-  .ui-tabIndicator .tab{ position:relative; z-index:1; }
-  /* The block is the indicator's job now; the tab keeps only the type change. */
-  .ui-tabIndicator .tab.active{ background:transparent; }
-  .ui-tabIndicator .tab[data-tab="insights"].active, .ui-tabIndicator .tab[data-tab="training"].active,
-  .ui-tabIndicator .tab[data-tab="injuries"].active,
-  .ui-tabIndicator .tab[data-tab="data"].active, .ui-tabIndicator .tab[data-tab="settings"].active{ background:transparent; }
+  /* The toggle now says whether the light TRAVELS or cuts. There is no block to slide any
+     more -- the thing that moves is where the lit run ends -- so the animation is a colour
+     transition on the lines themselves, staggered so it reads as the light running along the
+     bar rather than five lines changing at once. */
+  .ui-tabIndicator .tab-seg{ transition:background-color 200ms linear; }
+  .ui-tabIndicator .tab:nth-child(2) .tab-seg{ transition-delay:45ms; }
+  .ui-tabIndicator .tab:nth-child(3) .tab-seg{ transition-delay:90ms; }
+  .ui-tabIndicator .tab:nth-child(4) .tab-seg{ transition-delay:135ms; }
+  .ui-tabIndicator .tab:nth-child(5) .tab-seg{ transition-delay:180ms; }
 
   /* 5 — A focused field draws its underline in from the left rather than switching a
      border on. Inputs can't hold a pseudo-element, so the line is a background layer and
@@ -2367,7 +2329,6 @@
      starts the same way. */
 
   @media (prefers-reduced-motion: reduce){
-    .tab-indicator{ transition:none; }
     input, select, textarea{ transition:none; }
     button, .type-btn, .rating-btn, .add-row, .goal-priority-btn{ transition:none; }
     header{ transition:none; }
@@ -2395,11 +2356,11 @@
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:0"><path class="pl lead on" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z"/><path class="pl above" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl above" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Today</span></div>
-    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:1"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead on" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z"/><path class="pl above" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Weekly</span></div>
-    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:2"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead on" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z"/><path class="pl above" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Body</span></div>
-    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:3"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl lead on" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z"/><path class="pl above" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z" opacity=".26"/></svg><span>Data</span></div>
-    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="tab-stack" style="--lit:4"><path class="pl lead" style="--plate:0" d="M4 18.6L12 16.5L20 18.6L12 20.7Z" opacity=".26"/><path class="pl lead" style="--plate:1" d="M4 15.3L12 13.2L20 15.3L12 17.4Z" opacity=".26"/><path class="pl lead" style="--plate:2" d="M4 12L12 9.9L20 12L12 14.1Z" opacity=".26"/><path class="pl lead" style="--plate:3" d="M4 8.7L12 6.6L20 8.7L12 10.8Z" opacity=".26"/><path class="pl lead on" style="--plate:4" d="M4 5.4L12 3.3L20 5.4L12 7.5Z"/></svg><span>Settings</span></div>
+    <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Today</span></div>
+    <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Weekly</span></div>
+    <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Body</span></div>
+    <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Data</span></div>
+    <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Settings</span></div>
   </div>
 </header>
 
@@ -6121,7 +6082,7 @@ const UI_ANIM = {
   staggerIn:    { on:true, note:'List entries arrive one after another rather than all at once', ms:260, stagger:32, max:12 },
   toastFrom:    { on:true, note:'The toast comes from wherever you just tapped', px:22 },
   panelDirection:{ on:true, note:'A panel arrives from the side its tab sits on — what runs when the deal is off, since both write the same transform', ms:280, px:26 },
-  tabIndicator: { on:true, note:'The active tab’s block slides between tabs', ms:300 },
+  tabIndicator: { on:true, note:'The light runs along the tab bar to where you tapped, rather than jumping there', ms:300 },
   rowRemove:    { on:true, note:'A removed row closes up instead of vanishing', ms:220 },
   crossFade:    { on:true, note:'A redrawn detail fades rather than hard-swaps', ms:180 },
   fieldUnderline:{ on:true, note:'A focused field draws its underline in from the left', ms:220 },
@@ -6482,35 +6443,7 @@ function slidePanelIn(panel, name, replay){
 // was gone from the stylesheet and still in the motion.
 const UI_TAB_COLOUR = { insights:'--block-lime', training:'--block-yellow', injuries:'--block-red',
                         data:'--block-purple', settings:'--block-blue' };
-function moveTabIndicator(name, animate){
-  if(!uiAnim('tabIndicator')) return;
-  const bar = document.querySelector('.tabs');
-  const tab = document.querySelector(`.tab[data-tab="${name}"]`);
-  if(!bar || !tab) return;
-  let ind = bar.querySelector('.tab-indicator');
-  if(!ind){
-    ind = document.createElement('div');
-    ind.className = 'tab-indicator';
-    ind.setAttribute('aria-hidden', 'true');
-    bar.insertBefore(ind, bar.firstChild);
-  }
-  ind.style.background = `var(${UI_TAB_COLOUR[name] || '--accent'})`;
-  // Offset within the scrolling row, not the viewport, so it stays put when the bar scrolls.
-  const left = tab.offsetLeft, width = tab.offsetWidth, height = tab.offsetHeight;
-  const first = !ind.dataset.placed;
-  ind.dataset.placed = '1';
-  ind.style.height = height + 'px';
-  if(first || !animate){
-    ind.style.transition = 'none';
-    ind.style.transform = `translateX(${left}px)`;
-    ind.style.width = width + 'px';
-    void ind.offsetWidth;
-    ind.style.transition = '';
-    return;
-  }
-  ind.style.transform = `translateX(${left}px)`;
-  ind.style.width = width + 'px';
-}
+
 
 /* 3 — A row that vanishes yanks everything below it up a step. Collapsing its height first
    means the list closes rather than jumping. */
@@ -6684,7 +6617,6 @@ function activateTab(name, opts){
   // out a second time here would find the tab already moved and come back with nothing;
   // playing it a second time is what made the panel jump back to its start mid-slide.
   if(!(opts && opts.deferSlide)) slidePanelIn(targetPanel, name, false);
-  moveTabIndicator(name, true);
   // generateWarmup writes warmupLog:<date>, which generateMobility reads to skip areas
   // already covered — so these must run in order, not fire-and-forget in parallel.
   if(name==='insights'){
@@ -7168,7 +7100,6 @@ function activateTabViaUi(t){
     if(isActive) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current');
   });
   document.getElementById('currentTabLabel').textContent = t.textContent;
-  moveTabIndicator(t.dataset.tab, true);
   noteTabTap(t);
   transitionToTab(t.dataset.tab);
 }
@@ -7602,7 +7533,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.309';
+const APP_VERSION = '2026.08.31.310';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7677,6 +7608,7 @@ const APP_NOTES = {
   '2026.08.31.307': 'The mark tears out of the wordmark and tears in beside the number, then settles.',
   '2026.08.31.308': 'One malformed plan block could stop the whole week grid drawing. It cannot now.',
   '2026.08.31.309': 'Leaving Today, the mark is simply back in the wordmark, in its own colour.',
+  '2026.08.31.310': 'The tab bar is a scale now: five lines, lit up to the one you are on.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -28009,11 +27941,9 @@ countLoggedStreak().then(n=>{ loggedStreak = n; });
 // After layout, and without animating: there is nowhere it moved from.
 requestAnimationFrame(()=>{
   const active = document.querySelector('.tab.active');
-  if(active) moveTabIndicator(active.dataset.tab, false);
 });
 window.addEventListener('resize', ()=>{
   const active = document.querySelector('.tab.active');
-  if(active) moveTabIndicator(active.dataset.tab, false);
   // Both the trace's width and its height off the top of the band come from measuring the
   // score, so a rotate has to take those measurements again.
   const shown = parseInt(document.getElementById('overallScoreOut')?.dataset.value);
