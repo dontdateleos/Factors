@@ -4864,9 +4864,24 @@ function moveEyes(dest, from, snap){
     else scheduleIdle(2600);
   };
 
-  // No motion, or nothing on screen to tear -- but the handover still has to happen, or the
-  // mark ends up in neither place.
-  if(snap || eyeMotionOff() || (from && from.offscreen) || !chip || !anim('tearOnFlight')){
+  /* LEAVING TODAY IS A CUT, NOT A GESTURE.
+
+     The tear is worth watching on the way IN, because you are arriving somewhere and it is
+     the thing that says the mark got there. On the way out you are already going somewhere
+     else: the panel is wiping, the tab is lifting, and a 496ms performance about a mark
+     leaving a screen you are no longer looking at is 496ms of the app admiring itself. It
+     also meant the chip sat there tearing in your colour while the page underneath it had
+     already changed.
+
+     So it is simply back in the wordmark, in the wordmark's own lime, on the frame you tap.
+     applyEyeForm below is what restores that -- the two are separate elements and the chip's
+     colour was never on the header mark, but the form it wears is written fresh either way.
+
+     Everything else that cannot tear lands the same way: no motion, no chip to tear from, or
+     the tear switched off in Settings. The handover still has to happen in all of them, or
+     the mark ends up in neither place. */
+  if(snap || dest === 'header' || eyeMotionOff() || (from && from.offscreen)
+     || !chip || !anim('tearOnFlight')){
     land();
     return;
   }
@@ -7587,7 +7602,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.308';
+const APP_VERSION = '2026.08.31.309';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7661,6 +7676,7 @@ const APP_NOTES = {
   '2026.08.31.305': 'The mark slides behind the wordmark and comes out from under the number, and settles.',
   '2026.08.31.307': 'The mark tears out of the wordmark and tears in beside the number, then settles.',
   '2026.08.31.308': 'One malformed plan block could stop the whole week grid drawing. It cannot now.',
+  '2026.08.31.309': 'Leaving Today, the mark is simply back in the wordmark, in its own colour.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
