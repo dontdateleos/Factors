@@ -2588,14 +2588,12 @@
 
      The reference does not print its readings on the ground, it prints them on a dithered
      field, and that texture is most of why the thing reads as a display rather than a page.
-     This is that, across the whole page rather than behind the score alone.
+     This is that, behind the score.
 
-     Three surfaces, because that is what the page is made of: the body carries the ground
-     between sections, .today-open carries the score's band, and .fields carries every
-     section body. Each of them sets `background` as a shorthand somewhere above, which
-     resets background-image — which is why this sits at the end of the sheet and layers the
-     image back over whatever colour each one resolved to. The dots take --ink-rgb, so the
-     field inverts with the ground and tints with the tab.
+     The score's band only, edge to edge — not the whole page. .today-open sets `background`
+     as a shorthand above, which resets background-image, which is why this sits at the end
+     of the sheet and layers the image back over the colour that rule resolved to. The dots
+     take --ink-rgb, so the field inverts with the ground.
 
      The gaps come for free. Anything with a background of its own — a section head, a chip,
      a button, an input — paints over the field and breaks it, so the texture stops wherever
@@ -2603,7 +2601,7 @@
 
      4px rather than the 2.5 it was at: fine enough to read as a texture, open enough that
      the ground still reads as the ground. */
-  body[class*="tab-"], .today-open, .fields{
+  .today-open{
     background-image:radial-gradient(rgba(var(--ink-rgb),0.38) 0.6px, transparent 0.6px);
     background-size:4px 4px;
   }
@@ -7901,7 +7899,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.331';
+const APP_VERSION = '2026.08.31.332';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7998,6 +7996,7 @@ const APP_NOTES = {
   '2026.08.31.329': 'The score sits on a dotted field now, the way the watch face prints its readings.',
   '2026.08.31.330': 'The field behind the score is a halftone now, fine enough to read as a tint.',
   '2026.08.31.331': 'The dotted field runs the whole page now, and breaks wherever something sits on it.',
+  '2026.08.31.332': 'The dotted field is back to the score alone, edge to edge, and off the rest of the page.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
