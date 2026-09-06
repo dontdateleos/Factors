@@ -36,13 +36,13 @@
      Now it is a stylesheet that starts life as print media — so it is fetched at low
      priority and blocks nothing — and is promoted to all media once it has loaded. The
      preconnects open the two connections while the document is still parsing. Text is drawn
-     immediately in the fallback stack below and re-drawn in Plex when it arrives; anything
+     immediately in the fallback stack below and re-drawn in Courier Prime when it arrives; anything
      whose layout was measured against the font is re-measured on document.fonts.ready. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null;"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap"></noscript>
 <style>
 
   :root{
@@ -106,7 +106,19 @@
     --reverse-bg:#0c0d0b;   /* dark fill for buttons/badges — independent of --text */
     --on-light:#0c0d0b;     /* text on any light fill (inputs, tags, outline buttons) */
     --on-light-dim:#191a0e; /* secondary text on a light fill */
-    /* ONE FACE. The whole interface is set in IBM Plex Mono — the register the boot line was
+    /* ONE FACE, and as of this build it is a TYPEWRITER one. The reference the layout is
+       being drawn from is set in a slab mono, not a code mono: blown up, its labels have
+       serifs on nearly every terminal — the stems of H and U, the arms of T, the foot of Y,
+       the N and the D. Plex has none of those, and neither does Azeret, Martian or any code
+       face: they serif the I and nothing else, because that is all a code font needs it for.
+       Of the handful of slab monos on Google Fonts, Courier Prime at 700 is the closest by
+       a distance.
+       It costs nothing in layout. Both faces are 0.6em monos — measured at 100px, an advance
+       of 60.0 against 60.0 — so every line in the app is exactly the width it was. What it
+       does cost is presence: x-height is 13% smaller, cap height 17%, and the ink of a
+       string 5% lighter at 400 and 13% at 700. See the stroke on body for what pays that
+       back, and why it is not paid back with font-size. */
+    /* ONE FACE. The whole interface is set in one mono — the register the boot line was
        written in, applied to everything rather than to the handful of places that had earned
        it. What used to be a sans/mono split is now a split of TREATMENT inside one family:
        var(--mono) marks readings, labels and chrome, which take caps and tracking; var(--sans)
@@ -118,8 +130,8 @@
        monos, which are close enough that the swap to Plex is a refinement rather than a
        reflow you watch happen. */
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-    --mono: 'IBM Plex Mono', var(--mono-fallback);
-    --sans: 'IBM Plex Mono', var(--mono-fallback);
+    --mono: 'Courier Prime', var(--mono-fallback);
+    --sans: 'Courier Prime', var(--mono-fallback);
     /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
        piece of interface — the per-letter margins below it were fitted to these letterforms
        — so it keeps the face it was made in while everything around it, the tab label
@@ -192,7 +204,15 @@
      a light fill and pins its own colour, so flipping the default fixes what was invisible
      and changes nothing that was not: measured across all six tabs and all three Data
      views, 1 element fixed, 0 broken. The default should be the ink the page mostly is. */
-  body{ margin:0; background:var(--ground); color:var(--bg); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.1px currentColor; }
+  /* 0.1px -> 0.2px, which is what pays for the typewriter face. Courier Prime draws 5%
+     less ink than Plex at 400 and 13% less at 700, and its cap height is 17% shorter, so
+     at the same sizes the whole page reads paler and smaller. Stroke was the right lever
+     rather than font-size: in a monospace, size IS width, so the +1px on tag/sm/md that
+     would have matched Plex's cap height also made every string 8% wider and started
+     re-wrapping lines that used to fit. This costs nothing in layout at all.
+     Elements that set their own stroke (the wordmark at 0.6, the labels at 0.15) are
+     unaffected — they were already overriding this. */
+  body{ margin:0; background:var(--ground); color:var(--bg); font-family:var(--sans); min-height:100vh; position:relative; -webkit-text-stroke:0.2px currentColor; }
   /* The 90px the body used to carry lives here now: it is the last element on every tab,
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
@@ -7736,7 +7756,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.318';
+const APP_VERSION = '2026.08.31.319';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7820,6 +7840,7 @@ const APP_NOTES = {
   '2026.08.31.316': 'Side and rear delts are their own areas, so a press can no longer stand in for a lateral raise.',
   '2026.08.31.317': 'Past a skill\'s entry condition, the prerequisites stay in the plan at a keeping dose.',
   '2026.08.31.318': 'An upper day is a press and a row again, and a lower day a squat and a hinge.',
+  '2026.08.31.319': 'The app is set in Courier Prime now, a typewriter face rather than a code one.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -13152,7 +13173,7 @@ async function isDeloadWeek(date){
 
 
 // Replaces the old "✳" text-character placeholder, which depended on system font
-// fallback rendering (Helvetica Neue isn't a loaded web font, unlike IBM Plex Mono) —
+// fallback rendering (Helvetica Neue isn't a loaded web font, unlike Courier Prime) —
 // unreliable across devices. Pure SVG has no font dependency at all, and stroke-width
 // lets it match the same thick, intentional weight the score numbers now use.
 const SCORE_PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/><line x1="19.5" y1="4.5" x2="4.5" y2="19.5"/></svg>';
