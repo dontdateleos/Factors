@@ -2940,19 +2940,6 @@
 
 
     <div id="weeklyTrainingView" style="display:none;">
-      <!-- Above the week you are about to build, because it is about the one you just
-           finished, and on Sunday and Monday only. Hidden the rest of the time rather
-           than rendered empty: a panel that says "nothing to review yet" for five days
-           out of seven is five days of noise. -->
-      <div class="group form-panel" id="weekReviewPanel" style="display:none;">
-        <!-- No head-est here. It and .head-action both take margin-left:auto, so with both
-             present the button was pushed onto its own line under the range and the sub-line
-             ended up beneath it. The range reads fine in the sub-line, which was otherwise
-             carrying only a description. -->
-        <div class="group-head"><div class="group-title" id="weekReviewTitle">Sunday review</div><div class="group-sub" id="weekReviewRange"></div>
-          <button type="button" class="head-action" id="shareWeekBtn">Share the shape</button></div>
-        <div class="fields" id="weekReviewBody"></div>
-      </div>
       <!-- The week leads, in the same black band the mobility assessment takes on the
            Body tab: a picker at the top of it and what you picked underneath. -->
       <div class="group form-panel week-panel">
@@ -3055,6 +3042,40 @@
 
       <div id="blockEditHome"><div id="blockEditPanel" style="display:none;"></div></div>
 
+      <!-- THE WEEK JUST GONE, AT THE FOOT OF THE PAGE AND SHUT.
+
+           It led this view for a while, on the reasoning that a review of the week you
+           finished belongs above the week you are about to build. Two days out of seven that
+           put a wall of retrospective between you and the thing you came to Weekly to do,
+           with no way past it but scrolling — and on the very day you are most likely to be
+           building the next week. Wrong way round: the week you are planning is the page,
+           and the week you have finished is something you go and read.
+
+           So it is down here, and it is shut. Everything else on this page that reads rather
+           than does — Goals, Why this week — is a head you open, and this is the same head.
+           The two-day gate has not changed: renderWeekReview hides the whole panel from
+           Tuesday to Saturday rather than rendering it empty, because a section that says
+           "nothing to review yet" for five days is five days of noise.
+
+           NEXT TO LAST, NOT LAST, and that is load-bearing. The rule that runs this column
+           into the footer is `#weeklyTrainingView > .group:last-child`, which is structural
+           and does not care that this panel is display:none for five days a week — put it
+           last and on those five days :last-child resolves to something invisible, the real
+           last section keeps its 16px, and the orange strip that rule exists to close comes
+           back. Why this week stays last so it stays the one that closes the column.
+
+           Not remembered across reloads, unlike the Settings sections. It is reachable two
+           days a week and it is read once; opening it on Sunday morning should not mean
+           finding it open on Monday. -->
+      <div class="group form-panel" id="weekReviewPanel" style="display:none;">
+        <!-- No head-est here. It and .head-action both take margin-left:auto, so with both
+             present the button was pushed onto its own line under the range and the sub-line
+             ended up beneath it. The range reads fine in the sub-line, which was otherwise
+             carrying only a description. -->
+        <div class="group-head collapsible" data-collapse="weekreview" style="cursor:pointer;"><div class="group-title" id="weekReviewTitle">Sunday review</div><div class="group-sub" id="weekReviewRange"></div>
+          <button type="button" class="head-action" id="shareWeekBtn">Share the shape</button><span class="collapse-chevron collapsed" data-collapse="weekreview">&#9662;</span></div>
+        <div class="fields collapsible-body" data-collapse="weekreview" id="weekReviewBody" style="display:none;"></div>
+      </div>
       <!-- Every session of the week with its reasoning underneath it: worth having, not
            worth reading every time you open the tab. It opens on a tap and stays a heading
            the rest of the time. -->
@@ -8004,7 +8025,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.335';
+const APP_VERSION = '2026.08.31.336';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8105,6 +8126,7 @@ const APP_NOTES = {
   '2026.08.31.333': 'The field runs down to the suggestions head now, and every reading on it knocks its own gap.',
   '2026.08.31.334': 'The field is a rippled sheet now, and it is cut on that wave at both ends rather than on a line.',
   '2026.08.31.335': 'The readings sit straight on the field again — no boxes cut out behind the words and the number.',
+  '2026.08.31.336': 'The Sunday review is a heading you open at the bottom of Weekly, not a wall at the top of it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -18549,7 +18571,10 @@ async function renderWeekReview(){
   _lastWeekReview = { review: r, dates: when.dates };
 }
 let _lastWeekReview = null;
-document.getElementById('shareWeekBtn').addEventListener('click', async ()=>{
+/* stopPropagation because the head this button sits in is now the section's own toggle:
+   without it, sharing the week also shuts the thing you were reading. */
+document.getElementById('shareWeekBtn').addEventListener('click', async (e)=>{
+  e.stopPropagation();
   if(!_lastWeekReview) return;
   const text = weekShareText(_lastWeekReview.review, _lastWeekReview.dates);
   // navigator.share is the right thing on a phone and is what this will hit on the home
