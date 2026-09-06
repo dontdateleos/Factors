@@ -554,10 +554,23 @@
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
   /* ...except on its way out. Leaving Today's band, the mark goes BEHIND the lettering
-     rather than across the page, so for those 260ms it drops under the h1 and the letters
-     take it a piece at a time. .header-brand already clips at its own box, so once it is
-     past the D there is nothing left of it. The class comes off at the landing. */
+     rather than across the page, so for those 240ms it drops under the h1. The class comes
+     off at the landing. */
   .header-brand .header-mark.behind{ z-index:0; }
+  /* AND THE WORDMARK HAS TO BE A WALL, NOT AN OUTLINE.
+
+     Dropping the plate under the h1 was not enough on its own, and the frames say why: white
+     letters on a dark ground cover almost nothing. A 40px lime square passing under DOGFOOD
+     filled the counter of every O, the gap between every pair of letters and the leading
+     between the two lines, so what you watched was a green shape moving THROUGH the word
+     rather than behind it.
+
+     Each letter's own inline box gets the colour that is already behind it. --ground is what
+     .header-brand paints, in every state it has, and nothing sits between the two — so this
+     changes not one pixel of the wordmark and turns it into something solid. The boxes carry
+     the line's full height and the negative letter-spacing overlaps them, so there is no seam
+     between letters and none between the lines either. */
+  .header-brand h1 .logo-line span{ background:var(--ground); }
   main{ padding:var(--sp-3) var(--gutter) var(--sp-3); max-width:520px; margin:0 auto; }
   .panel{ display:none; counter-reset:section; }
   .panel.active{ display:block; }
@@ -4805,13 +4818,18 @@ function whenHeaderSettled(fn){
    The flyer is not used. Both halves happen on the real elements, which is what lets the
    wordmark occlude one and the digits occlude the other -- a body-level flyer sits above
    both and could never go behind either. */
-const MARK_EXIT_MS = 260;    // sliding away behind the lettering
+const MARK_EXIT_MS = 240;    // sliding away behind the lettering
 const MARK_GAP_MS = 70;      // out of sight, in neither place
 const MARK_ENTER_MS = 260;   // out from under the digits
 const MARK_SETTLE_MS = 260;  // the squash it lands with
 const MARK_TRIP_MS = MARK_EXIT_MS + MARK_GAP_MS + MARK_ENTER_MS;
-// Far enough left that the D has passed over it and the brand's own overflow has the rest.
-const MARK_EXIT_PX = -178;
+/* Far enough left to be inside the wordmark's wall with margin. Measured on the running
+   build: the plate is 124.9-164.9, "Dog" walls x<=109.8 over y 30-82 and "food" walls
+   x<=134.9 over y 72.3-124.3, and the plate's own 57-72.3 band is only covered by the first
+   of those -- so it is completely hidden from -55.1 and this leaves 21px in hand. It used to
+   run to -178 to clear the whole word and reach the brand's clip, which was 120px of
+   travelling something already invisible. */
+const MARK_EXIT_PX = -76;
 // Its right edge ends up level with the digits' right edge, so nothing of it is clear of them.
 const CHIP_HIDE_PX = -22;
 
@@ -7614,7 +7632,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.305';
+const APP_VERSION = '2026.08.31.306';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7686,6 +7704,7 @@ const APP_NOTES = {
   '2026.08.31.303': 'The Sunday review says where each thing stands: lime ahead, cream on target, red short.',
   '2026.08.31.304': 'No mark above the number any more. It comes down from the wordmark straight into the chip.',
   '2026.08.31.305': 'The mark slides behind the wordmark and comes out from under the number, and settles.',
+  '2026.08.31.306': 'The wordmark eats the mark on the way out instead of letting it show through.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
