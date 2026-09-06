@@ -69,7 +69,11 @@
     /* --line is a near-black hairline, which is right on a light fill — a white .type-btn,
        the skeleton's shimmer, a rule under a coloured band. It is invisible on the tab
        grounds now that those are dark, so separators that sit on them take this instead. */
-    --hair:rgba(251,250,246,0.16);
+    /* The ink as bare channels, so every faded ink in the app is one value away from
+     flipping. Anything that means "the text colour, but quieter" must use this and
+     never a literal, or it will not follow the ground. */
+  --ink-rgb:251,250,246; --ground-rgb:12,13,11;
+  --hair:rgba(var(--ink-rgb),0.16);
     --text:#0c0d0b;
     /* The grey explanatory text is set in, sampled off the reference (#c8c7bc there). It
        was #191a0e — a near-black, correct when it sat on a saturated ground and invisible
@@ -178,9 +182,9 @@
   .app-colophon{ background:var(--ground); padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
   .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 var(--gutter);
     font-family:var(--sans); font-size:12px; line-height:1.5; letter-spacing:0.01em;
-    color:rgba(251,250,246,0.62); }
+    color:rgba(var(--ink-rgb),0.62); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
-  .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(251,250,246,0.45); }
+  .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(var(--ink-rgb),0.45); }
   /* touch-action:none because this is the one strip on the page where a vertical drag is
      ours — it sits past the end of the content, so there is nothing left to scroll. */
   .log-strip{ background:var(--ground); padding:22px var(--gutter) calc(90px + env(safe-area-inset-bottom, 0px));
@@ -188,20 +192,20 @@
     touch-action:none; user-select:none; -webkit-user-select:none; }
   .log-strip-word{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--bg); }
-  .log-strip-arrow{ font-size:16px; color:rgba(251,250,246,0.5); }
+  .log-strip-arrow{ font-size:16px; color:rgba(var(--ink-rgb),0.5); }
   .log-strip.pulling .log-strip-arrow{ color:var(--bg); }
   /* Its own pair on its own clock. The real mark has somewhere to be; this one only has to
      blink, so it does it in CSS rather than through the scheduler. */
   .colophon-eyes{ --eye-box-w:15px; --eye-box-h:11px; --eye-gap:4px; --eye-plate:transparent;
     --eye-plate-r:0px; --eye-w:4px; --eye-h:11px; --eye-r:2px; --eye-rb:2px;
-    --eye-ink:rgba(251,250,246,0.62); display:inline-flex; vertical-align:baseline;
+    --eye-ink:rgba(var(--ink-rgb),0.62); display:inline-flex; vertical-align:baseline;
     margin-left:8px; position:relative; top:1px; }
   .colophon-eyes span{ animation:colophonBlink 7.4s infinite; }
   .colophon-eyes span:last-child{ animation-delay:0.04s; }
   @keyframes colophonBlink{ 0%,92%,100%{ height:11px; } 95%,96.5%{ height:2px; } }
   @media (prefers-reduced-motion: reduce){ .colophon-eyes span{ animation:none; } }
-  header{ padding:18px var(--gutter) 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(251,250,246,0.15); }
-  header .tab{ color:rgba(251,250,246,0.55); }
+  header{ padding:18px var(--gutter) 0; position:sticky; top:0; z-index:10; overflow:hidden; border-bottom:1px solid rgba(var(--ink-rgb),0.15); }
+  header .tab{ color:rgba(var(--ink-rgb),0.55); }
   h1{ font-family:var(--wordmark); font-size:var(--fs-display); font-weight:var(--fw-bold); margin:0 0 14px; letter-spacing:-0.035em; line-height:0.92; text-transform:uppercase; }
   /* Pulled left of the 14px content margin. 3px of that is optical correction — the D's
      own side bearing was setting the wordmark's ink in from "TODAY" and the tab row above
@@ -254,7 +258,7 @@
   .tab-seg{ display:block; width:100%; height:3px; background:var(--lit); }
   /* Everything AFTER the active tab goes dark. Two rules rather than five, and it needs no
      JavaScript -- .active is a class the tab switcher already sets. */
-  .tab.active ~ .tab .tab-seg{ background:rgba(251,250,246,0.18); }
+  .tab.active ~ .tab .tab-seg{ background:rgba(var(--ink-rgb),0.18); }
   .tab-name{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
     clip-path:inset(50%); white-space:nowrap; border:0; }
   /* The coloured backdrop is flat colour. It used to carry an ordered dot screen — black at
@@ -393,13 +397,13 @@
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
     line-height:0.9; text-transform:uppercase; color:var(--bg); -webkit-text-stroke:0.6px var(--bg); }
   .rest-note{ font-family:var(--mono); font-size:10px; letter-spacing:0.02em; line-height:1.4;
-    color:rgba(251,250,246,0.56); margin-top:8px; }
+    color:rgba(var(--ink-rgb),0.56); margin-top:8px; }
   /* The day number is the one part you read at a glance, so it carries the weight; the
      words either side of it stay quiet enough not to compete with the logo. */
   /* Measured, so mono — the same rule the readout, the strip figures and the version line
      follow. The day number is a reading off a calendar, not a word. */
   .header-date .hd-day{ font-family:var(--mono); -webkit-text-stroke:0.3px var(--bg); }
-  .header-date .hd-dow, .header-date .hd-mon{ color:rgba(251,250,246,0.6); }
+  .header-date .hd-dow, .header-date .hd-mon{ color:rgba(var(--ink-rgb),0.6); }
   /* THAT THE BAND SWIPES, SAID AS QUIETLY AS POSSIBLE.
      Seven ticks for seven days, the one you are on brighter than the rest. It is the strip's
      own vocabulary at a whisper, which is the point: the seven marks left Today for Data, and
@@ -570,7 +574,7 @@
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase;
     background:transparent; color:var(--bg);
-    border:1px solid rgba(251,250,246,0.45); border-radius:4px;
+    border:1px solid rgba(var(--ink-rgb),0.45); border-radius:4px;
     padding:4px 10px; min-height:0; width:auto; cursor:pointer; }
   .group-head .head-action:hover{ border-color:var(--bg); }
   .group-head .group-sub{ order:2; }
@@ -670,7 +674,7 @@
      air on both sides rather than the top margin a row inside a field gets. */
   .group-head + .chip-row{ margin:11px 0 13px; }
   .chip-row span{ font-family:var(--mono); font-size:10px; letter-spacing:0.1em;
-    text-transform:uppercase; border:1px solid rgba(251,250,246,0.3);
+    text-transform:uppercase; border:1px solid rgba(var(--ink-rgb),0.3);
     color:var(--dim); padding:4px 8px; white-space:nowrap;
     font-weight:var(--fw-medium); }
 
@@ -699,7 +703,7 @@
      black panels and the coloured pages alike. */
   /* One row per behaviour: a switch, what it is, and a live copy of the mark that plays
      it when tapped. Sits on the black form panel, so the ink is the panel's cream. */
-  .eye-anim-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid rgba(251,250,246,0.14); }
+  .eye-anim-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid rgba(var(--ink-rgb),0.14); }
   .eye-anim-row:first-child{ border-top:none; }
   .eye-anim-row input{ width:auto; flex:none; margin:0; }
   .eye-anim-text{ flex:1; min-width:0; }
@@ -734,7 +738,7 @@
   .trend-arrow.up{ color:var(--text); }
   button.primary{ background:var(--bg); color:var(--text); border-color:var(--bg); font-weight:var(--fw-bold); }
   button.small{ flex:none; height:31px; padding:0 12px; font-size:var(--fs-tag); }
-  button.outline{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }
+  button.outline{ background:transparent; color:var(--bg); border-color:rgba(var(--ink-rgb),0.45); }
   button.outline:active{ background:var(--bg); color:var(--text); opacity:1; }
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
@@ -992,13 +996,13 @@
      its own first pill row; every ground in the app is dark now, so it is the base, and the
      rows the override never reached (Today's session type, the trends metric and period
      rows) get it too. */
-  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid rgba(251,250,246,0.4); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:rgba(251,250,246,0.65); cursor:pointer; background:transparent; }
+  .type-btn{ flex:1; text-align:center; padding:10px; border:2px solid rgba(var(--ink-rgb),0.4); border-radius:0; font-family:var(--sans); font-size:var(--fs-sm); color:rgba(var(--ink-rgb),0.65); cursor:pointer; background:transparent; }
   .type-btn.active{ color:var(--text); background:var(--bg); border-color:var(--bg); }
 
   .remove-row{ font-family:var(--mono); color:var(--text); font-size:var(--fs-lg); cursor:pointer; padding:0 4px; flex:none; }
   /* padding raised 8->12px so the row clears 44px on its own rather than relying on a
      pseudo-element that a later rule was overriding anyway. */
-  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--bg); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:var(--sp-3) 8px; border:2px solid rgba(251,250,246,0.45); border-radius:0; }
+  .add-row{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--bg); font-weight:var(--fw-bold); cursor:pointer; text-align:center; padding:var(--sp-3) 8px; border:2px solid rgba(var(--ink-rgb),0.45); border-radius:0; }
 
   /* A section you FILL IN is a black band across the page; a section you read is not.
      That is the whole rule — it is what tells a form apart from a readout at a glance, and
@@ -1071,7 +1075,7 @@
   #recLeft .rl-actions{ display:flex; gap:6px; margin-top:9px; }
   #recLeft .rl-actions button{ width:28px; height:28px; flex:none; padding:0; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    border:1px solid rgba(251,250,246,0.45); background:transparent; color:var(--bg); }
+    border:1px solid rgba(var(--ink-rgb),0.45); background:transparent; color:var(--bg); }
   #recLeft .rl-actions button svg{ width:13px; height:13px; display:block; }
   #recLeft .rl-actions .rl-accept{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   #recLeft .rl-actions button:focus-visible{ outline:2px solid var(--block-lime); outline-offset:2px; }
@@ -1091,13 +1095,13 @@
      above, so a day lines up with its own reading. */
   .trace-sessions{ display:flex; margin-top:6px; }
   .ts-cell{ flex:1; min-width:0; display:flex; align-items:center; justify-content:center;
-    color:rgba(251,250,246,0.45); }
+    color:rgba(var(--ink-rgb),0.45); }
   .ts-cell.on{ color:var(--bg); }
   .ts-cell .eyes{ pointer-events:none; }
-  .ts-none{ display:block; width:5px; height:1px; background:rgba(251,250,246,0.22); }
+  .ts-none{ display:block; width:5px; height:1px; background:rgba(var(--ink-rgb),0.22); }
   .ts-cell.on .ts-none{ background:var(--bg); }
   .trace-cap{ font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
-    color:rgba(251,250,246,0.42); margin-bottom:5px;
+    color:rgba(var(--ink-rgb),0.42); margin-bottom:5px;
     /* Never allowed to set the size of the block it labels. #scoreTrace has no width of its
        own — it is right-anchored and as wide as its widest child — so the moment a caption
        grew past the marks under it, the caption became the column and the trace shifted out
@@ -1122,8 +1126,8 @@
   .today-open .conf-pct, .today-open .conf-stage, .today-open .conf-sub{ color:var(--dim); }
   /* The disclosure opens INSIDE the band, so its panel inverts with everything else. */
   .today-open .conf-name{ color:var(--bg); }
-  .today-open .conf-bar{ background:rgba(251,250,246,0.22); }
-  .today-open .conf-row{ border-top-color:rgba(251,250,246,0.25); }
+  .today-open .conf-bar{ background:rgba(var(--ink-rgb),0.22); }
+  .today-open .conf-row{ border-top-color:rgba(var(--ink-rgb),0.25); }
   /* The opening runs from the header to the first section without a break: pills, date
      and the sleep-debt line are all part of choosing what you are entering, so a stripe of
      yellow between them and the form was the tab's colour appearing once, in the one place
@@ -1212,7 +1216,7 @@
   .wr-dow{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim); letter-spacing:0.02em; }
   /* Hollow is the resting state: a day nothing was asked of, and nothing to say about it. */
   .wr-mark{ width:100%; height:14px; border-radius:2px; background:transparent;
-    box-shadow:inset 0 0 0 1px rgba(251,250,246,0.18); }
+    box-shadow:inset 0 0 0 1px rgba(var(--ink-rgb),0.18); }
   .wr-mark.on, .wr-flag.on{ background:var(--bg); box-shadow:none; }
   .wr-mark.ahead, .wr-flag.ahead{ background:var(--block-lime); box-shadow:none; }
   .wr-mark.below, .wr-flag.below{ background:var(--block-red); box-shadow:none; }
@@ -1257,9 +1261,9 @@
   .score-note:not(.note-live){
     border-left:2px solid var(--band, var(--accent));
     padding:1px 0 1px 11px;
-    color:rgba(251,250,246,0.62);
+    color:rgba(var(--ink-rgb),0.62);
   }
-  .form-panel .score-note:not(.note-live){ color:rgba(251,250,246,0.62); }
+  .form-panel .score-note:not(.note-live){ color:rgba(var(--ink-rgb),0.62); }
   .form-panel .collapse-chevron, .form-panel summary{ color:var(--dim); }
   /* These three used to be stated here, for the panel only, because the base was written
      for a light ground. Every ground is dark now, so they are the base. */
@@ -1338,21 +1342,21 @@
     background:var(--bg); color:var(--text); padding:3px 6px; }
   .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
   .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
-    border-color:rgba(251,250,246,0.5); }
+    border-color:rgba(var(--ink-rgb),0.5); }
 
   /* Side by side, so the separator is a rule between the columns rather than under each
      card. */
   .wheel-workout-card{ padding:0 0 0 0; cursor:pointer; min-width:0; }
   .week-wheel-detail > .wheel-workout-card + .wheel-workout-card{
-    border-left:1px solid rgba(251,250,246,0.25); padding-left:var(--sp-3); }
-  .wheel-workout-card:active{ background:rgba(251,250,246,0.12); }
+    border-left:1px solid rgba(var(--ink-rgb),0.25); padding-left:var(--sp-3); }
+  .wheel-workout-card:active{ background:rgba(var(--ink-rgb),0.12); }
   select:active{ background:#f2f2f2; }
   .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
   .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--bg); }
   .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
-  .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:rgba(251,250,246,0.8); }
-  .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(251,250,246,0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
-  .wheel-add-card:active{ background:rgba(251,250,246,0.12); }
+  .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:rgba(var(--ink-rgb),0.8); }
+  .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(var(--ink-rgb),0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
+  .wheel-add-card:active{ background:rgba(var(--ink-rgb),0.12); }
 
   #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
@@ -1377,13 +1381,13 @@
     letter-spacing:var(--track-ui); text-transform:uppercase; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
   .log-bar-count{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.06em;
-    color:rgba(251,250,246,0.55); flex:0 0 auto; }
+    color:rgba(var(--ink-rgb),0.55); flex:0 0 auto; }
   .log-bar-clock{ align-self:center; font-family:var(--mono); font-size:var(--fs-md);
     font-weight:var(--fw-bold); color:var(--bg); font-variant-numeric:tabular-nums;
     padding:0 12px; flex:0 0 auto; }
   .log-bar-clock.running{ color:var(--bad); }
-  .log-bar-drop{ height:auto; padding:0 16px; background:transparent; color:rgba(251,250,246,0.55);
-    border:none; border-left:2px solid rgba(251,250,246,0.25); font-size:var(--fs-md);
+  .log-bar-drop{ height:auto; padding:0 16px; background:transparent; color:rgba(var(--ink-rgb),0.55);
+    border:none; border-left:2px solid rgba(var(--ink-rgb),0.25); font-size:var(--fs-md);
     flex:0 0 auto; cursor:pointer; }
   /* FIRST RUN. The app has a gate — it cannot plan a week without knowing which days you
      train and what you are training for — and that gate used to be invisible: the training
@@ -1399,7 +1403,7 @@
   /* .type-btn's default active state is a dark fill, which is invisible on the dark panel
      these sit on — the same problem the Data tab's pills already solve for themselves. */
   .fr-pick .type-btn{ flex:1 1 28%; min-width:78px; background:transparent;
-    color:rgba(251,250,246,0.65); border-color:rgba(251,250,246,0.4); }
+    color:rgba(var(--ink-rgb),0.65); border-color:rgba(var(--ink-rgb),0.4); }
   .fr-pick .type-btn.active{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
   #firstRunBuildBtn{ width:100%; margin-top:4px; }
   .fr-note{ margin-top:10px; }
@@ -1418,17 +1422,17 @@
     font-size:var(--fs-tag); font-weight:var(--fw-bold); letter-spacing:var(--track-ui);
     text-transform:uppercase; border-top:2px solid var(--bg); border-bottom:2px solid var(--bg); }
   .more-toggle-sub{ flex:1; min-width:0; font-weight:var(--fw-medium); letter-spacing:0.02em;
-    text-transform:none; color:rgba(251,250,246,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    text-transform:none; color:rgba(var(--ink-rgb),0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .more-toggle-chev{ flex:0 0 auto; transition:transform 0.15s; }
   .more-toggle.open .more-toggle-chev{ transform:rotate(180deg); }
   .subj-row{ display:flex; flex-direction:column; gap:5px; }
   .subj-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
   .subj-name{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:var(--track-ui);
-    text-transform:uppercase; color:rgba(251,250,246,0.85); }
-  .subj-anchor{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(251,250,246,0.45); }
+    text-transform:uppercase; color:rgba(var(--ink-rgb),0.85); }
+  .subj-anchor{ font-family:var(--mono); font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.45); }
   .subj-scale{ display:flex; gap:6px; }
-  .subj-dot{ flex:1; min-width:0; height:36px; background:transparent; color:rgba(251,250,246,0.55);
-    border:2px solid rgba(251,250,246,0.4); font-family:var(--mono); font-size:var(--fs-tag);
+  .subj-dot{ flex:1; min-width:0; height:36px; background:transparent; color:rgba(var(--ink-rgb),0.55);
+    border:2px solid rgba(var(--ink-rgb),0.4); font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); cursor:pointer; padding:0 4px; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; }
   .subj-dot.on{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
@@ -1504,14 +1508,14 @@
   #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
     background:var(--ground); margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:var(--sp-3) var(--gutter); }
   #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
-    color:rgba(251,250,246,0.65); }
+    color:rgba(var(--ink-rgb),0.65); }
   #todayFaceRow.face-row-flow .subj-faces{ gap:6px; }
   #todayFaceRow.face-row-flow .subj-face{ height:44px; }
   /* The captions are 9px. A saturated mid-tone at that size is legible by the numbers and
      hard work in practice, and the colour is already being carried a few pixels away by the
      face itself — the chip is filled in it, the row is outlined in it. So the marks keep the
      hue and the words take the ink every other caption on the page uses. */
-  #todayFaceRow .trace-cap{ color:rgba(251,250,246,0.55); }
+  #todayFaceRow .trace-cap{ color:rgba(var(--ink-rgb),0.55); }
   .subj-faces{ display:flex; gap:3px; }
   /* Every face carries its word; only the column on the band shows it. The horizontal rows
      — the morning sheet, the Data form — are five marks on one line with no room for five
@@ -1604,8 +1608,8 @@
   #todayFaceDock.locked{ cursor:default; }
   /* Nothing recorded yet: an outline where the answer will sit, so the slot reads as waiting
      rather than as filled with a neutral rating. */
-  #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(251,250,246,0.32); }
-  #todayFaceDock.asking .dock-word{ color:rgba(251,250,246,0.45); }
+  #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(var(--ink-rgb),0.32); }
+  #todayFaceDock.asking .dock-word{ color:rgba(var(--ink-rgb),0.45); }
   /* 26 square is the drawing's size, not the target's. Same trick .subj-face uses a few
      hundred lines down: the hit area is pushed back out past the plate on every side, so a
      chip small enough to sit quietly beside the number is still 46px to a thumb. */
@@ -1709,7 +1713,7 @@
   .form-panel .blc-unit{ width:auto; height:22px; flex:none; padding:0 8px; margin:0;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.04em; background:transparent; color:var(--bg); opacity:0.5;
-    border:1px solid rgba(251,250,246,0.35); cursor:pointer; }
+    border:1px solid rgba(var(--ink-rgb),0.35); cursor:pointer; }
   .form-panel .blc-unit.on{ opacity:1; background:var(--bg); color:var(--text);
     border-color:var(--bg); }
   .blc-note{ margin-top:8px; line-height:1.45; }
@@ -1720,7 +1724,7 @@
   .blc-row{ display:flex; align-items:center; gap:9px; margin-bottom:7px; }
   .blc-row:last-child{ margin-bottom:0; }
   .blc-wk{ flex:0 0 14px; font-family:var(--mono); font-size:var(--fs-md); color:var(--bg); }
-  .blc-track{ flex:1; min-width:0; position:relative; background:rgba(251,250,246,0.10); }
+  .blc-track{ flex:1; min-width:0; position:relative; background:rgba(var(--ink-rgb),0.10); }
   /* Grown from the left by growBars, which scales on X — without an origin it would open
      from the middle outwards, which is not how a week accumulates. */
   .blc-bar{ position:absolute; left:0; top:0; bottom:0; transform-origin:left center; }
@@ -1758,7 +1762,7 @@
   .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
-  .drill-bar{ display:block; height:3px; background:rgba(251,250,246,0.14); margin-top:5px; }
+  .drill-bar{ display:block; height:3px; background:rgba(var(--ink-rgb),0.14); margin-top:5px; }
   .drill-bar i{ display:block; height:100%; background:var(--band, var(--accent));
     width:0; transition:width 260ms cubic-bezier(.3,.9,.3,1); }
   /* One slow exhale, once, when a section you have not refreshed in a long time comes on
@@ -1845,11 +1849,11 @@
   .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
     background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
   .morning-q{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
-    letter-spacing:0.08em; color:rgba(251,250,246,0.6); margin:var(--sp-3) 0 6px; }
+    letter-spacing:0.08em; color:rgba(var(--ink-rgb),0.6); margin:var(--sp-3) 0 6px; }
   .morning-panel .subj-faces{ display:flex; gap:8px; }
   .morning-panel .subj-scale{ display:flex; gap:6px; }
   .morning-panel .subj-dot{ flex:1; background:transparent; color:var(--bg);
-    border:2px solid rgba(251,250,246,0.35); font-family:var(--mono); font-size:var(--fs-tag);
+    border:2px solid rgba(var(--ink-rgb),0.35); font-family:var(--mono); font-size:var(--fs-tag);
     padding:9px 4px; letter-spacing:0.02em; }
   .morning-panel .subj-dot.on{ background:var(--accent); color:var(--text); border-color:var(--accent); }
   /* Only the size differs from the row's faces — colour, fill and the picked state are the
@@ -1878,13 +1882,13 @@
     font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:var(--sp-3); }
   .lift-sheet-x{ width:auto; flex:none; height:30px; padding:0 10px; background:transparent;
-    color:var(--bg); border:2px solid rgba(251,250,246,0.4); font-size:var(--fs-md); }
+    color:var(--bg); border:2px solid rgba(var(--ink-rgb),0.4); font-size:var(--fs-md); }
   .lift-row{ display:flex; align-items:baseline; gap:10px; padding:7px 0;
-    border-top:1px solid rgba(251,250,246,0.18); font-family:var(--mono); font-size:var(--fs-tag); }
+    border-top:1px solid rgba(var(--ink-rgb),0.18); font-family:var(--mono); font-size:var(--fs-tag); }
   .lift-date{ flex:0 0 62px; opacity:0.6; }
   .lift-load{ flex:0 0 62px; font-weight:var(--fw-bold); font-variant-numeric:tabular-nums; }
   .lift-reps{ flex:1; opacity:0.75; }
-  .lift-sheet-foot{ margin-top:var(--sp-3); color:rgba(251,250,246,0.6); }
+  .lift-sheet-foot{ margin-top:var(--sp-3); color:rgba(var(--ink-rgb),0.6); }
   .ex-last-line{ flex-basis:100%; font-family:var(--mono); font-size:var(--fs-tag);
     color:var(--dim); opacity:0.75; margin-top:1px; letter-spacing:0.02em; }
   /* Strength skills sit on the tab's own blue. The mobility ones opposite keep the black
@@ -1923,7 +1927,7 @@
      carries cursor:pointer, and a pointer with no keyboard route is exactly what the
      interface sweep flags — correctly, since this row is not tickable. */
   .mob-check-row.prereq{ cursor:default; align-items:flex-start; padding-top:var(--sp-2); padding-bottom:var(--sp-2);
-    border-bottom:1px solid rgba(251,250,246,0.18); opacity:0.72; }
+    border-bottom:1px solid rgba(var(--ink-rgb),0.18); opacity:0.72; }
   .mob-check-row.prereq:active{ opacity:0.72; }
   .skill-prereq-state{ display:block; font-family:var(--mono); font-size:var(--fs-tag);
     letter-spacing:0.02em; opacity:0.75; margin-top:2px; }
@@ -1942,7 +1946,7 @@
   .skg-prog-head{ display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.08em; color:var(--dim); margin-bottom:5px; }
-  .skg-bar{ height:8px; background:rgba(251,250,246,0.16); margin-top:2px; }
+  .skg-bar{ height:8px; background:rgba(var(--ink-rgb),0.16); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
   .skg-bar-fill{ height:100%; background:var(--bg); transform-origin:left center; }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
@@ -1976,7 +1980,7 @@
      --tone is what the card is asking of you. The glyph draws it and the colour says it. */
   .rec-card{ position:relative; border:none; background:transparent; color:var(--bg);
     margin:22px calc(-1 * var(--gutter)) 14px; padding:0 var(--gutter); overflow:visible;
-    --tone:var(--dim); --tone-ink:var(--text); --tone-field:rgba(251,250,246,0.06); }
+    --tone:var(--dim); --tone-ink:var(--text); --tone-field:rgba(var(--ink-rgb),0.06); }
   .rec-card.tone-up  { --tone:var(--block-lime);   --tone-ink:var(--text); --tone-field:var(--field-lime); }
   /* The other two tones take a --field-* token; this one carried a hand-mixed #241413,
      which is the same tint arrived at by hand and then left behind when the red moved. */
@@ -2040,9 +2044,9 @@
   /* Chip and tag side by side rather than stacked: the number no longer needs a whole
      line to itself, and the row is shorter for it. */
   .goal-row-panel .goal-priority-badge{ display:flex; align-items:center; gap:10px; flex:1; }
-  .goal-priority-tag{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,250,246,0.6); }
+  .goal-priority-tag{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.6); }
   .goal-row-panel .field-label{ color:var(--dim); }
-  .goal-row-panel label{ color:rgba(251,250,246,0.8); }
+  .goal-row-panel label{ color:rgba(var(--ink-rgb),0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
   .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--text); border-color:var(--bg); }
   /* Target exercise, weight and date come off the box: saved without one, a strength goal
@@ -2051,13 +2055,13 @@
      every reader and writer of them is left alone. */
   .goal-row [data-goal-field="exercise"], .goal-row [data-goal-field="weight"],
   .goal-row [data-goal-field="date"]{ display:none !important; }
-  .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,250,246,0.55); margin-top:6px; }
+  .rec-conf{ display:block; font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase; letter-spacing:0.08em; color:rgba(var(--ink-rgb),0.55); margin-top:6px; }
   /* Confidence as a length rather than an adjective. Five segments because that is what the
      underlying scale has room for — low, medium and high are the only values the engine
      produces, so the ruler shows 2, 3 and 5 of 5 and never invents a precision the number
      does not have. The word stays in the aria-label; the sighted reading is the length. */
   .conf-ruler{ display:flex; gap:2px; margin-left:auto; flex:none; }
-  .conf-ruler i{ display:block; width:9px; height:4px; background:rgba(251,250,246,0.22); }
+  .conf-ruler i{ display:block; width:9px; height:4px; background:rgba(var(--ink-rgb),0.22); }
   .conf-ruler i.on{ background:var(--bg); }
   /* The field, bled back out to the screen edges the card's own padding pulled in from. */
   .rec-body{ background:var(--tone-field);
@@ -2065,10 +2069,10 @@
   .rec-title{ font-family:var(--sans); font-size:var(--fs-lg); font-weight:var(--fw-bold); letter-spacing:-0.025em; line-height:1.25; color:var(--bg); margin-bottom:10px; }
   /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
      used to lose its own left edge. */
-  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(251,250,246,0.22); }
+  .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(var(--ink-rgb),0.22); }
   .rec-actions{ display:flex; gap:8px; margin-top:16px; }
   .rec-actions .accept-btn{ background:var(--bg); color:var(--text); border-color:var(--bg); }
-  .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(251,250,246,0.45); }  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
+  .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(var(--ink-rgb),0.45); }  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
      moves from a left border to a small colour dot so nothing is lost visually. */
   /* The warm-up and the post-session stretching are preparation, not the session. Stacked
      cards — a heading, a reason, a dosed drill list, a rule under each — gave them the
@@ -6777,7 +6781,7 @@ window.addEventListener('resize', ()=>{
    trailing one. `a` is the alpha, taken off as the card lands. */
 function liftEdge(axis, dir, a){
   const o = n => axis === 'X' ? `${dir > 0 ? -n : n}px 0` : `0 ${dir > 0 ? -n : n}px`;
-  return `${o(2)} 0 rgba(251,250,246,${a}), ${o(5)} 0 rgba(12,13,11,${a * 0.92})`;
+  return `${o(2)} 0 rgba(var(--ink-rgb),${a}), ${o(5)} 0 rgba(var(--ground-rgb),${a * 0.92})`;
 }
 
 /* The tab transition. The page is dealt up out of the app's own black, from the bottom edge.
@@ -7625,7 +7629,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.311';
+const APP_VERSION = '2026.08.31.312';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7702,6 +7706,7 @@ const APP_NOTES = {
   '2026.08.31.309': 'Leaving Today, the mark is simply back in the wordmark, in its own colour.',
   '2026.08.31.310': 'The tab bar is a scale now: five lines, lit up to the one you are on.',
   '2026.08.31.311': 'Swipe left and right to change tab. The scale moved up beside the wordmark.',
+  '2026.08.31.312': 'Every faded ink in the app now comes from one value instead of seventy.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9605,7 +9610,7 @@ function paintTodayFaces(){
       dock.classList.remove('locked', 'worded');
       dock.setAttribute('aria-label', 'How are you? Tap to rate today');
       dock.classList.remove('landing');
-      dock.innerHTML = faceEyesHtml(MARK_FORM, DOCK_SCALE, 'rgba(251,250,246,0.55)', true)
+      dock.innerHTML = faceEyesHtml(MARK_FORM, DOCK_SCALE, 'rgba(var(--ink-rgb),0.55)', true)
         + `<span class="dock-word">How?</span>`;
     }
     else if(v == null){ dock.style.display = 'none'; dock.innerHTML = ''; dock.classList.remove('asking', 'worded', 'landing'); }
@@ -9939,7 +9944,7 @@ async function maybeAskMorning(){
       ${dots('morningAlcohol', [[0,'None'],[1,'A drink or two'],[2,'More']])}
       <div class="morning-q">Illness</div>
       ${dots('morningUnwell', [[0,'Fine'],[1,'Unwell']])}
-      <div class="score-note" style="margin-top:var(--sp-3); color:rgba(251,250,246,0.6);">
+      <div class="score-note" style="margin-top:var(--sp-3); color:rgba(var(--ink-rgb),0.6);">
         A drink or a bug is attributed rather than read as fatigue \u2014 the day still scores
         honestly, it just stops setting what normal looks like for you.</div>
       <button type="button" class="primary morning-done">Done</button>
@@ -15401,8 +15406,8 @@ async function renderSystemConfidence(){
   // On-dark values. This panel only ever renders inside Today's black band now, and
   // --good and --dim are both near-black — they vanished there. Written inline, so no
   // stylesheet rule could have corrected them.
-  const colour = overall==='personalised' ? 'var(--accent)' : overall==='learning' ? 'var(--block-yellow)' : 'rgba(251,250,246,0.65)';
-  const dotColour = s => s==='personalised' ? 'var(--accent)' : s==='learning' ? 'var(--block-yellow)' : 'rgba(251,250,246,0.45)';
+  const colour = overall==='personalised' ? 'var(--accent)' : overall==='learning' ? 'var(--block-yellow)' : 'rgba(var(--ink-rgb),0.65)';
+  const dotColour = s => s==='personalised' ? 'var(--accent)' : s==='learning' ? 'var(--block-yellow)' : 'rgba(var(--ink-rgb),0.45)';
 
   // Lead with whatever is furthest behind and still actionable — that's the single most
   // useful thing to tell someone about a system that's still warming up.
@@ -16700,7 +16705,7 @@ function traceMarkup(W){
     const picked = i === scoreDayIndex;
     const isToday = i === scoreDays.length - 1;
     const h = picked ? TICK_H : 3;
-    const fill = picked ? 'var(--bg)' : (isToday ? 'rgba(251,250,246,0.85)' : 'rgba(251,250,246,0.5)');
+    const fill = picked ? 'var(--bg)' : (isToday ? 'rgba(var(--ink-rgb),0.85)' : 'rgba(var(--ink-rgb),0.5)');
     // A thin reading gets a short mark. Not a fainter one — opacity is already carrying which
     // day you are on and which one is today, and a third meaning stacked on it would make all
     // three unreadable. Length is free, and "less behind it" is what less length says.
@@ -16719,7 +16724,7 @@ function traceMarkup(W){
     const mid2 = (wLo + wHi) / 2, lo2 = mid2 - span / 2;
     const wy = v => WEIGHT_BAND - ((v - lo2) / span) * (WEIGHT_BAND - 2);
     wRow = `<svg width="${W}" height="${WEIGHT_BAND}" viewBox="0 0 ${W} ${WEIGHT_BAND}" style="display:block; margin-top:3px;" aria-hidden="true">
-      ${scoreWeights.map((v,i)=> v == null ? '' : `<rect x="${Math.round(i * slot + (slot - tickW) / 2)}" y="${Math.max(0, Math.round(wy(v)) - 1)}" width="${tickW}" height="1" fill="rgba(251,250,246,0.4)"/>`).join('')}
+      ${scoreWeights.map((v,i)=> v == null ? '' : `<rect x="${Math.round(i * slot + (slot - tickW) / 2)}" y="${Math.max(0, Math.round(wy(v)) - 1)}" width="${tickW}" height="1" fill="rgba(var(--ink-rgb),0.4)"/>`).join('')}
     </svg>`;
   }
   // Said in full where there is room for it, and shortened rather than truncated where there
@@ -16742,7 +16747,7 @@ function traceMarkup(W){
   }).join('') + `</div>`;
   const html = `<div class="trace-cap">${cap}</div>
     <svg width="${W}" height="${TRACE_BAND + 1}" viewBox="0 0 ${W} ${TRACE_BAND + 1}" style="display:block;" aria-hidden="true">
-      <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(251,250,246,0.28)"/>
+      <rect x="0" y="${TRACE_BAND}" width="${W}" height="1" fill="rgba(var(--ink-rgb),0.28)"/>
       ${marks}
     </svg>${wRow}${sRow}`;
   const showing = scoreDays[scoreDayIndex];
