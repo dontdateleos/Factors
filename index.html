@@ -7736,7 +7736,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.314';
+const APP_VERSION = '2026.08.31.315';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7816,6 +7816,7 @@ const APP_NOTES = {
   '2026.08.31.312': 'Every faded ink in the app now comes from one value instead of seventy.',
   '2026.08.31.313': 'The app can now be put on a bone ground, header and colours unchanged.',
   '2026.08.31.314': 'Settings > Ground switches the pages between black and bone.',
+  '2026.08.31.315': 'Accessory work goes to the biggest gap again, so the back stops being skipped.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -19579,7 +19580,40 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
     // maintained — because every row credited its biceps half a set at a short length,
     // nowhere near failure — is a bookkeeping deficit standing in for a real one, and
     // clearing it beats spending the same slot on whatever the block is emphasising.
-    const belowFloor = floorShort ? 800 : 0;
+    // ...and BELOW a genuine deficit means below it, not stacked on top of it. Added, an
+    // area that is both under MEV and short of its direct floor scored 1800 and an area
+    // with nothing at all scored 1000 — so the eight small areas carrying a floor took
+    // every slot a session could reach. Measured on a four-day upper/lower hypertrophy
+    // week, sixty minutes: the queue for an untrained upper day ran biceps(10) triceps(8)
+    // core(8) forearms(6) neck(5) thoracic(12) shoulders(12) chest(10), a session reaches
+    // three or four of those, and the generated week held 0 sets of back against an MEV of
+    // 9 and no lateral raise in eight weeks. Neck, with a five-set gap, outranked a back
+    // that had never been trained.
+    // The larger of the two, so the precedence the comments above describe is the
+    // precedence that runs: a deficit beats a floor beats emphasis.
+    // ...and it fires ONLY in the case it was written for: an area whose gap has closed
+    // and which only the floor is keeping open, i.e. phantom credit standing in for direct
+    // work. An area with a real gap competes on that gap.
+    // Both earlier shapes were wrong in opposite directions, measured on a four-day
+    // upper/lower hypertrophy week at sixty minutes. Added unconditionally, the eight
+    // floor areas scored 1800 against 1000 for an area with nothing at all and took every
+    // slot a session can reach: 0 sets of back against an MEV of 9, and no lateral raise
+    // in eight generated weeks. Taking the larger of the two instead simply swapped the
+    // casualties: back rose to 6, and neck, forearms and core fell to 0.
+    // The distinction is not size, it is whether the number is real. On day one nothing is
+    // trained and biceps genuinely reads 0 of 10, so it needs no help. By day three a row
+    // has credited it 3 phantom sets at a short length, the gap reads closed, and that is
+    // when the floor has something to say.
+    const floorOnly = floorShort && (target - current) <= 0;
+    const belowFloor = floorOnly ? 800 : 0;
+    // Gap size, not gap as a fraction of target. A 4x60min week fits about 70 sets and MEV
+    // across all sixteen areas needs 82, so some area always goes without and this ranking
+    // is only ever choosing which. Ranking on the fraction short was tried and shares the
+    // shortfall out evenly: neck and adductors reached maintenance and the back fell from
+    // 6 sets to 3. Evenness is the wrong goal here. When there is not enough session to go
+    // round, the sets belong to the big movers, and neck and forearms are what a four-hour
+    // week gives up. More days or longer sessions is the lever for those, not a ranking
+    // that takes them off the back.
     return { area, gap, perDay,
       rank: gap + (belowMaintenance ? 1000 : 0) + belowFloor + (emphasis.has(area) ? 500 : 0) };
   }).filter(Boolean).sort((a,b)=> b.rank - a.rank);
