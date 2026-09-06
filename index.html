@@ -1496,6 +1496,11 @@
   .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--bg); }
   .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
   .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:rgba(var(--ink-rgb),0.8); }
+  /* The card listed every exercise on its own line, so a five-exercise day was a seven-line
+     card. One name and a count of the rest — the card is a way into the day, not the
+     session. The count sits on the name's line rather than under it, which is what keeps
+     the whole card to two. */
+  .wheel-ex-more{ color:rgba(var(--ink-rgb),0.5); font-weight:var(--fw-medium); }
   .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(var(--ink-rgb),0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
   .wheel-add-card:active{ background:rgba(var(--ink-rgb),0.12); }
 
@@ -2563,6 +2568,14 @@
      "Skill work is frequency-driven, so repeated easy practice is what moves it, not one
      hard session." are the same element. So the case is decided per line, by whoever writes
      the note, rather than by the class. */
+  /* The mobility, strength and running ladders, and the rows that explain them. These were
+     left in sentence case in .320 because .mob-check-text reads as instruction prose --
+     "Half-kneel with toes touching a wall, knee reaches the wall, heel down". They are still
+     instructions; they are also the only part of a skill ladder that was not caps, sitting
+     under a heading and beside a target that both were. Capped, and the long ones cut to
+     fit two lines rather than left to run. */
+  .mob-check-text, .mob-check-num, .skill-prereq-state, .skill-active-row span,
+  .wheel-ex-names, .mob-step-count, .plan-line,
   .plan-line.caps,
   .plan-item > strong, .plan-dose, .drill-text,
   .ex-target-line, .ex-target-hint, .ex-tags-toggle,
@@ -7864,7 +7877,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.326';
+const APP_VERSION = '2026.08.31.327';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7956,6 +7969,7 @@ const APP_NOTES = {
   '2026.08.31.324': 'The progression note under an exercise is in caps with the rest of the row.',
   '2026.08.31.325': 'The warm-up, the workout and the cool-down are one list now, at one row height.',
   '2026.08.31.326': 'No lines between exercises. The space does the separating instead.',
+  '2026.08.31.327': 'The skill ladders are in caps, and no row runs past two lines.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -12770,7 +12784,7 @@ function renderSkillPicker(category){
   };
   const gateWants = ((tree.prereq && tree.prereq.needs) || []).map(n=>{
     const t2 = PROGRESSION_TREES[category][n.skill];
-    return t2 ? `${t2.label} \u00b7 ${t2.levels[n.minLevel]}` : n.skill;
+    return t2 ? t2.label : n.skill;
   }).join(', ');
   levels.innerHTML = tree.levels.map((name, i)=>{
     const det = tree.levelDetails && tree.levelDetails[i];
@@ -12783,11 +12797,11 @@ function renderSkillPicker(category){
       // nothing where the skill name should be.
       const met = gateWants ? gateMet() : false;
       const state = gateWants
-        ? `<span class="skill-prereq-state">${met ? 'ticked on ' + gateWants : 'tick ' + gateWants + ' to confirm'}</span>`
+        ? `<span class="skill-prereq-state">${met ? 'ticked on ' + gateWants : 'tick ' + gateWants}</span>`
         : (target ? `<span class="skill-prereq-state">${det.holdOrRepTarget}</span>` : '');
       return `<div class="mob-check-row prereq${met ? ' done' : ''}">
         <span class="mob-check-num" aria-hidden="true"></span>
-        <span class="mob-check-text">Before you start: ${name.replace(/\s*\(prerequisite\)$/, '')}
+        <span class="mob-check-text">First: ${name.replace(/\s*\(prerequisite\)$/, '')}
           ${state}</span>
       </div>`;
     }
@@ -13381,7 +13395,9 @@ function weekDayDetailHtml(date, realBlocks, isOff){
     const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
     return `<div class="wheel-workout-card" data-edit-date="${date}" data-edit-slot="${slot}">
         <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
-        <div class="wheel-ex-names">${names.length ? names.join('<br>') : '<em>No details yet</em>'}</div>
+        <div class="wheel-ex-names">${names.length
+          ? names[0] + (names.length > 1 ? ` <span class="wheel-ex-more">+${names.length-1}</span>` : '')
+          : '<em>No details yet</em>'}</div>
       </div>`;
   }).join('');
 }
@@ -17810,7 +17826,7 @@ const PROGRESSION_TREES = {
        read-time tolerance, not storage migration (see the block prescription fallback). */
     muscleup: { label:'Muscle-up', tier:3, researched:false, movement:'pull', area:'thoracic', secondaryArea:'biceps',
       prereq:{ levels:1, needs:[{skill:'pullup', minLevel:5}, {skill:'dip', minLevel:2}] },
-      levels:["Strict pull-up \u00d78-10 + dip \u00d710-15 (prerequisite)", "False grip hang", "Explosive pull-up (chest-to-bar)", "Transition negatives", "Banded muscle-up", "Kipping muscle-up", "Strict muscle-up"],
+      levels:["Pull-up \u00d78-10 + dip \u00d710-15 (prerequisite)", "False grip hang", "Explosive pull-up (chest-to-bar)", "Transition negatives", "Banded muscle-up", "Kipping muscle-up", "Strict muscle-up"],
       levelDetails:[
         {holdOrRepTarget:"8-15 strict pull-ups + 8-10 strict dips", advancementCriteria:"Both prerequisites met before starting muscle-up-specific work", evidence:"coaching_consensus"},
         {holdOrRepTarget:"20-30s hold", advancementCriteria:"Comfortable false-grip hold (rings) before adding explosive pulling", evidence:"coaching_consensus"},
@@ -20691,10 +20707,10 @@ const MOBILITY_SCALE_VERSION = 2;
 const MOBILITY_DOMAIN_TESTS = {
   ankles: [
     'Squat to parallel with both heels staying down',
-    'Half-kneel with toes touching a wall — knee reaches the wall, heel down',
+    'Half-kneel, toes at a wall — knee reaches it, heel down',
     'Same, with your toes 5cm back from the wall',
     'Same, with your toes 10cm back from the wall',
-    'Toes 13cm+ back, and you can sit in a deep squat for a minute'
+    'Toes 13cm+ back, and a deep squat held for a minute'
   ],
   // Ankles is a bent-knee test — knee-to-wall measures soleus. Gastroc is a different
   // tissue, it is the one that tightens from mileage, and nothing here reached it.
@@ -21263,7 +21279,7 @@ const MOBILITY_MAINTENANCE_DOSE = { sets:2, holdSeconds:20 };
 // Dose for the loaded rung, by the domain's assessed level. A restricted domain loads
 // through a shorter range for less time — the modality is the same, the exposure isn't.
 const MOBILITY_LOAD_DOSE = {
-  1: { sets:2, holdSeconds:15, rangeNote:'partial range — only where you have control' },
+  1: { sets:2, holdSeconds:15, rangeNote:'partial range' },
   2: { sets:3, holdSeconds:20, rangeNote:'through your current range' },
   3: { sets:3, holdSeconds:20, rangeNote:'full range' }
 };
@@ -22504,7 +22520,7 @@ async function suggestMobilityAdvance(sg){
   const label = tree.label;
   if(atTop){
     return { skill: sg.skill, label, action:'top',
-      note: `Level ${sg.levelIndex+1} of ${tree.levels.length} — top of this progression. Maintain rather than chase.` };
+      note: `Level ${sg.levelIndex+1} of ${tree.levels.length} — top of the ladder, maintain` };
   }
   const targetMin = Math.round(MOBILITY_WEEKLY_TARGET_SECONDS/60);
   const weeklyMin = Math.round((p.weeklySeconds||0)/60);
@@ -22513,20 +22529,20 @@ async function suggestMobilityAdvance(sg){
       // Two numbers and a verdict, not a paragraph explaining the number. What went was a
       // sentence about total time driving ROM — true, and the bar right above this already
       // draws it, with a tick at the floor.
-      note: `${weeklyMin} min/week of ~${Math.round(MOBILITY_WEEKLY_PRODUCTIVE_SECONDS/60)} — under the dose that moves range.` };
+      note: `${weeklyMin} of ~${Math.round(MOBILITY_WEEKLY_PRODUCTIVE_SECONDS/60)} min/week — under the useful dose` };
   }
   if(p.weeksAtDose < MOBILITY_MIN_WEEKS_AT_DOSE){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `~${targetMin} min/week across ${p.weeksAtDose} week${p.weeksAtDose===1?'':'s'} — ${MOBILITY_MIN_WEEKS_AT_DOSE} before moving up.` };
+      note: `~${targetMin} min/week for ${p.weeksAtDose}wk — ${MOBILITY_MIN_WEEKS_AT_DOSE} before moving up` };
   }
   if(p.testsPassed >= 2){
     return { skill: sg.skill, label, action:'advance', progress: p,
       nextLevel: tree.levels[sg.levelIndex+1],
-      note: `${p.sessions} sessions logged and the next level held on ${p.testsPassed} separate readiness tests. Ready for ${tree.levels[sg.levelIndex+1]}.` };
+      note: `${p.sessions} sessions, ${p.testsPassed} tests held — ready for the next level` };
   }
   if(p.tests === 0){
     return { skill: sg.skill, label, action:'test', progress: p,
-      note: `${p.sessions} sessions in — consistency is there. The readiness test appears every other mobility session; log it when it does and the level moves on the evidence.` };
+      note: `${p.sessions} sessions in — log the readiness test when it appears` };
   }
   return { skill: sg.skill, label, action:'hold', progress: p,
     note: `${p.sessions} sessions logged, next level held ${p.testsPassed} time${p.testsPassed===1?'':'s'}. Two clean holds moves you up.` };
@@ -22646,10 +22662,10 @@ async function renderMobilityProgression(){
 // logging keeps the name but not isSkillWork, so the name is the only thing that survives
 // into history — and it carries the level, which is exactly what has to be counted.
 const EXERCISE_SKILL_SESSIONS_TO_ADVANCE = 6;
-const SKILL_WORK_PRESCRIPTION = '1-2 easy sets, well short of failure';
+const SKILL_WORK_PRESCRIPTION = '1-2 easy sets, short of failure';
 // What a prerequisite drops to once you are past the gate and working the rung above it.
 // Enough to hold the ability, not enough to compete with the thing you are training for.
-const SKILL_MAINTENANCE_PRESCRIPTION = '1 set, keeping it — well short of failure';
+const SKILL_MAINTENANCE_PRESCRIPTION = '1 set, keeping it';
 // The inverse of the naming rule above: given "Muscle-up: Transition negatives", say which
 // skill and which level it is. getExerciseSkillProgress already trusts that name to carry
 // the level, so the same string can be trusted to carry the fact that it is skill work.
@@ -22725,11 +22741,11 @@ async function suggestExerciseAdvance(sg){
       return t2 ? `${t2.label} to ${t2.levels[n.minLevel]}` : n.skill;
     }).join(' and ');
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `Not started. The entry condition is ${tree.levels[0].replace(/\s*\(prerequisite\)$/, '')}${wants ? ` — that is ${wants}` : ''}.` };
+      note: `Not started — needs ${wants || tree.levels[0].replace(/\s*\(prerequisite\)$/, '')}` };
   }
   if(sg.levelIndex >= tree.levels.length - 1){
     return { skill: sg.skill, label, action:'top', progress: p,
-      note: `Level ${lvl} of ${total} — top of this progression. Keep it in rotation rather than chasing further.` };
+      note: `Level ${lvl} of ${total} — top of the ladder, keep it in rotation` };
   }
   if(sg.isMaintenance){
     return { skill: sg.skill, label, action:'hold', progress: p,
@@ -22737,11 +22753,11 @@ async function suggestExerciseAdvance(sg){
   }
   if(p.atLevel === 0){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: 'Nothing logged at this level yet. It gets placed in strength sessions up to 3\u00d7 a week — log those and the level moves on the evidence.' };
+      note: 'Not logged yet — placed up to 3\u00d7 a week' };
   }
   if(p.atLevel < EXERCISE_SKILL_SESSIONS_TO_ADVANCE){
     return { skill: sg.skill, label, action:'hold', progress: p,
-      note: `${p.atLevel} of ${EXERCISE_SKILL_SESSIONS_TO_ADVANCE} sessions logged at level ${lvl}. Skill work is frequency-driven, so repeated easy practice is what moves it, not one hard session.` };
+      note: `${p.atLevel} of ${EXERCISE_SKILL_SESSIONS_TO_ADVANCE} sessions at level ${lvl} — frequency moves it, not effort` };
   }
   return { skill: sg.skill, label, action:'advance', progress: p, nextLevel: tree.levels[sg.levelIndex+1],
     note: `${p.atLevel} sessions logged at level ${lvl}. Ready for ${tree.levels[sg.levelIndex+1]}.` };
@@ -24653,7 +24669,7 @@ async function suggestProgression(ex, focusInfo){
       const inc = progressionIncrementFor(ex.area, focusInfo);
       const reduced = Math.round((last.weight * (1 - REINTRO_LOAD_CUT)) / inc) * inc;
       return { action:'reintroduce', weight: reduced, isReintro:true,
-               note: `First week back — ${reduced}kg, ~${repHigh} reps, stopping about ${REINTRO_TARGET_RIR} short of failure. How this feels sets the block's working load.` };
+               note: `First week back — ${reduced}kg, ~${repHigh} reps, ${REINTRO_TARGET_RIR} short of failure` };
     }
   } catch(e){}
   if(!last || !last.weight){
@@ -27192,7 +27208,7 @@ async function generateWarmup(){
   if(runKey && QUALITY_RUNS.includes(runKey)){
     prime = 'Strides — 4-6 × 80-100m at roughly 5K to mile pace, walking back between. Start the session within 2 minutes of the last one — 4-5 min';
   } else if(!runType){
-    prime = 'Ramp up — sets on the first lift, building toward your working weight — 3 min';
+    prime = 'Ramp up on the first lift, to your working weight — 3 min';
   }
   const raise = runKey ? (RUN_RAISE_BY_TYPE[runKey] || RUN_RAISE_BY_TYPE.easy) : null;
 
