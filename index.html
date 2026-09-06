@@ -7736,7 +7736,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.317';
+const APP_VERSION = '2026.08.31.318';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7819,6 +7819,7 @@ const APP_NOTES = {
   '2026.08.31.315': 'Accessory work goes to the biggest gap again, so the back stops being skipped.',
   '2026.08.31.316': 'Side and rear delts are their own areas, so a press can no longer stand in for a lateral raise.',
   '2026.08.31.317': 'Past a skill\'s entry condition, the prerequisites stay in the plan at a keeping dose.',
+  '2026.08.31.318': 'An upper day is a press and a row again, and a lower day a squat and a hinge.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -19105,6 +19106,27 @@ const MAIN_LIFT_DEFAULTS = {
   full_body: { name:'Back Squat', area:'quads_knees', secondaryArea:'hips', movement:'squat' }
 };
 const TAG_TO_MOVEMENT = { lower:'squat', legs:'squat', upper:'push', push:'push', pull:'pull', full_body:'squat' };
+/* A tag that names HALF A BODY does not name a movement, and this table collapsed each
+   half onto one: every 'upper' day pressed and every 'lower' day squatted. On a four-day
+   upper/lower week that meant two horizontal presses and two squats, with no route to a
+   pull or a hinge main lift at all — measured, a generated week held 0 sets of back
+   against an MEV of 9 and 3.4 of hamstrings against 5, and the accessory queue was left
+   to cover the two biggest patterns in the body on its own.
+   'push' and 'pull' stay single-valued: those tags DO name a movement, and a push/pull/
+   legs split has already made the choice this is making.
+   fullBodyDayPlan solved the same problem for full-body days by cycling patterns across
+   the week. This is that, for the halves. */
+const ALTERNATING_TAG_MOVEMENTS = { upper:['push','pull'], lower:['squat','hinge'], legs:['squat','hinge'] };
+function movementForTag(tag, idx, dayTags){
+  const cycle = ALTERNATING_TAG_MOVEMENTS[tag];
+  if(!cycle || !dayTags) return TAG_TO_MOVEMENT[tag];
+  // Which occurrence of this tag today is, so two upper days in a week alternate rather
+  // than both taking the first pattern. Counted over the tags, not the dates, so a week
+  // with three upper days cycles push, pull, push.
+  let n = 0;
+  for(let j = 0; j < idx; j++) if(dayTags[j] === tag) n++;
+  return cycle[n % cycle.length];
+}
 
 /* ---------- PREFERRED LIFT LEARNING + VARIATION ROTATION ----------
    Two genuinely different things bundled here, worth keeping distinct:
@@ -19213,8 +19235,8 @@ function goalNamedLift(goalList){
     goalNamed: true };
 }
 
-async function selectMainLiftByGoal(tag, goalList){
-  const movement = TAG_TO_MOVEMENT[tag];
+async function selectMainLiftByGoal(tag, goalList, movementOverride){
+  const movement = movementOverride || TAG_TO_MOVEMENT[tag];
   if(!goalList || goalList.length===0) return null;
   let candidates = Object.values(EXERCISE_LIBRARY)
     .filter(ex => ex.goalSuitability && ex.movement===movement && (ex.category==='main_strength' || ex.category==='secondary_strength'));
@@ -19258,14 +19280,17 @@ async function selectMainLiftByGoal(tag, goalList){
   return { name: best.name, area: best.area, secondaryArea: best.secondaryArea, movement };
 }
 
-async function getMainLiftForTag(tag){
-  const movement = TAG_TO_MOVEMENT[tag];
+async function getMainLiftForTag(tag, movementOverride){
+  const movement = movementOverride || TAG_TO_MOVEMENT[tag];
   const learned = await getPreferredLift(movement);
   if(!learned){
     const goals = await getCurrentGoals(todayStr);
-    const goalPick = (goals && goals.list) ? await selectMainLiftByGoal(tag, goals.list) : null;
+    const goalPick = (goals && goals.list) ? await selectMainLiftByGoal(tag, goals.list, movement) : null;
     if(goalPick) return goalPick;
-    const fallback = MAIN_LIFT_DEFAULTS[tag];
+    // Keyed by movement first: MAIN_LIFT_DEFAULTS already carries a pull and a rotating
+    // hinge, and on an alternating day the tag's own default is the wrong half of the
+    // pair. Falls back to the tag for push/pull/full_body, where they agree anyway.
+    const fallback = MAIN_LIFT_DEFAULTS[movement] || MAIN_LIFT_DEFAULTS[tag];
     return fallback ? { ...fallback } : null;
   }
   const variationCheck = await checkVariationDue(learned.name);
@@ -23526,11 +23551,26 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // "Full Body" session across the whole week had the identical primary movement and
     // hamstrings/lower back never got hit by any main lift, any week, regardless of split.
     const dayPlan = tag==='full_body' ? fullBodyDayPlan(sessionsPerWeek, i) : null;
-    const movement = tag==='full_body' ? dayPlan.primary : TAG_TO_MOVEMENT[tag];
+    const movement = tag==='full_body' ? dayPlan.primary : movementForTag(tag, i, dayTags);
+    /* Alternating alone was not enough. Four days of upper/lower is two upper and two
+       lower, so cycling gave push, pull, squat, hinge — all four patterns covered, and
+       every one of them exactly once a week. Measured, that was worse in aggregate than
+       what it replaced: back rose from 0 to 6 but quads fell from 7.4 to 5.6 and triceps
+       from 5.4 to 2.3, because chest and quads had been getting two main-lift exposures
+       and now got one. One exposure per pattern per week is not what an upper/lower split
+       is for.
+       So the other half of the pair comes too, as a secondary. That is what an upper day
+       has always been — a press and a row — and the machinery for it already existed for
+       full-body days. Alternating then decides which of the two leads, so across the week
+       each pattern gets one heavy exposure and one lighter, rather than one of them
+       getting both and the other getting none. */
+    const pairedSecondary = (tag !== 'full_body' && ALTERNATING_TAG_MOVEMENTS[tag])
+      ? ALTERNATING_TAG_MOVEMENTS[tag].find(m => m !== movement)
+      : null;
 
     let mainLift = tag==='full_body'
       ? (await getPreferredLift(movement)) || MAIN_LIFT_DEFAULTS[movement==='squat'?'lower':movement] || SECONDARY_MAIN_LIFT[movement]
-      : await getMainLiftForTag(tag);
+      : await getMainLiftForTag(tag, movement);
     if(mainLift && usedMovementsThisWeek[movement] && usedMovementsThisWeek[movement].includes(mainLift.name)){
       const altLift = getAlternateLiftForMovement(movement, mainLift);
       if(altLift) mainLift = altLift;
@@ -23631,13 +23671,23 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         }
       }
     }
-    if(tag==='full_body'){
-      dayPlan.secondaries.forEach(otherMovement=>{
-        const secondary = SECONDARY_MAIN_LIFT[otherMovement];
-        const safeSecondary = secondary ? applyInjurySafety({ ...secondary }, injuryMovementFlags) : null;
-        if(safeSecondary) exercises.push(safeSecondary);
-      });
-    }
+    const secondaryMovements = tag==='full_body' ? dayPlan.secondaries
+      : (pairedSecondary ? [pairedSecondary] : []);
+    secondaryMovements.forEach(otherMovement=>{
+      const secondary = SECONDARY_MAIN_LIFT[otherMovement];
+      if(!secondary) return;
+      // The week's repeat guard applies here too: two upper days both leading with a
+      // press would otherwise both carry the same Barbell Row behind it.
+      let pick = { ...secondary };
+      if(usedMovementsThisWeek[otherMovement] && usedMovementsThisWeek[otherMovement].includes(pick.name)){
+        const alt = getAlternateLiftForMovement(otherMovement, pick);
+        if(alt) pick = alt;
+      }
+      const safeSecondary = applyInjurySafety(pick, injuryMovementFlags);
+      if(!safeSecondary) return;
+      exercises.push(safeSecondary);
+      (usedMovementsThisWeek[otherMovement] = usedMovementsThisWeek[otherMovement] || []).push(safeSecondary.name);
+    });
     placeGoalLift();   // no-op when it already led; this is the compound case
 
     exerciseGoals.forEach(sg=>{
