@@ -7587,7 +7587,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.307';
+const APP_VERSION = '2026.08.31.308';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7660,6 +7660,7 @@ const APP_NOTES = {
   '2026.08.31.304': 'No mark above the number any more. It comes down from the wordmark straight into the chip.',
   '2026.08.31.305': 'The mark slides behind the wordmark and comes out from under the number, and settles.',
   '2026.08.31.307': 'The mark tears out of the wordmark and tears in beside the number, then settles.',
+  '2026.08.31.308': 'One malformed plan block could stop the whole week grid drawing. It cannot now.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -13040,7 +13041,12 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>
 let activeWheelDayIndex = null; // set to today's index on first render each session
 
 function extractBlockNames(block){
-  if(!block) return [];
+  /* A block with no details at all. Every writer in the app sets it, so this should not
+     happen -- but the whole week grid is rendered from these, and one malformed record was
+     enough to throw out of extractBlockNames, up through weekDayDetailHtml and
+     weekDetailTallest, and leave renderWeekGrid half-drawn. A card with no names under it is
+     a far better failure than a week that does not finish rendering. */
+  if(!block || !block.details) return [];
   if(block.type==='strength') return (block.details.exercises||[]).map(e=>e.name).filter(Boolean);
   if(block.type==='run'){
     const d = block.details;
