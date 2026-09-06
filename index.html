@@ -1182,7 +1182,10 @@
      pointermove events arrived and then pointercancel — the browser claimed the gesture before
      the handler had crossed its own engage threshold. A mouse pointer is never cancelled that
      way, which is why it worked everywhere except the device it is for. */
-  .today-open{ touch-action:pan-y; position:relative; background:var(--ground); margin:calc(-1 * (var(--sp-3) + 4px)) calc(-1 * var(--gutter)) 0; padding:calc(var(--sp-5) + 44px) var(--gutter) var(--sp-3); }
+  /* No background of its own any more. It painted --ground, which is exactly what the page
+     behind it is, so the fill was never visible as a fill — but it WAS opaque, and an opaque
+     child covers the field its parent is carrying. */
+  .today-open{ touch-action:pan-y; position:relative; margin:calc(-1 * (var(--sp-3) + 4px)) calc(-1 * var(--gutter)) 0; padding:calc(var(--sp-5) + 44px) var(--gutter) var(--sp-3); }
   /* The last seven days of the same number, at the number's own eye level, out in the band's
      empty right half. Placed and sized in script rather than here: how much room there is
      depends on how wide the score itself is drawn, which is two digits some days and three
@@ -1647,12 +1650,15 @@
   #todayFaceRow{ position:absolute; right:var(--gutter); display:none; }
   /* Out of the band and into the page: no measuring, full width, and room for the faces to
      be tapped rather than squeezed beside a number.
-     On its own black band, and not for decoration — the five face colours were chosen
-     against the black the score sits on, and two of them are Today's own lime and a yellow
-     a shade off it. Dropped straight onto the page, "good" is lime on lime and invisible.
-     The band gives them back the ground they were drawn for. */
+     The ground under them is not decoration — the five face colours were chosen against the
+     black the score sits on, and two of them are Today's own lime and a yellow a shade off
+     it. Dropped straight onto a tab-coloured surface, "good" is lime on lime and invisible.
+     They still get it, one face at a time: the row has given up the full-bleed plate it used
+     to paint, because on the one morning it is on screen that plate is 296px tall and it was
+     covering the whole of the field. Each face paints the same colour under itself instead,
+     and the field runs between them. See THE FIELD at the end of this sheet. */
   #todayFaceRow.face-row-flow{ position:static; right:auto; display:block; width:auto;
-    background:var(--ground); margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:var(--sp-3) var(--gutter); }
+    margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:var(--sp-3) var(--gutter); }
   #todayFaceRow.face-row-flow .trace-cap{ font-size:var(--fs-tag); margin-bottom:8px;
     color:rgba(var(--ink-rgb),0.65); }
   #todayFaceRow.face-row-flow .subj-faces{ gap:6px; }
@@ -1820,7 +1826,6 @@
      the one thing worse than the band it replaced. */
   #todayCardStack{ margin-top:0; }
   #recommendationCards:not([style*="display: none"]){ padding-top:var(--sp-2); }
-  #acceptanceStats:empty{ margin-bottom:0 !important; }
   /* Hung under the strip it belongs to, in the page's own ink rather than the strip's: it is
      an aside, and an aside that shouts is a second call to action. */
   .cta-aside{ margin:calc(-1 * var(--sp-3)) 0 var(--sp-3); padding:0 0 2px; cursor:pointer;
@@ -2588,23 +2593,91 @@
 
      The reference does not print its readings on the ground, it prints them on a dithered
      field, and that texture is most of why the thing reads as a display rather than a page.
-     This is that, behind the score.
 
-     The score's band only, edge to edge — not the whole page. .today-open sets `background`
-     as a shorthand above, which resets background-image, which is why this sits at the end
-     of the sheet and layers the image back over the colour that rule resolved to. The dots
-     take --ink-rgb, so the field inverts with the ground.
+     WHERE IT RUNS. The top of Today, edge to edge: the score's band, the question that
+     stands in for the band on a morning with no reading yet, and the space between the two.
+     It ends at the suggestions head — or at the "Log this morning" strip that stands in for
+     that head before you have logged — because both are opaque and full-bleed, so the first
+     plate on the page stops the field without a rule saying where. Below that the page is
+     plain ground: .331 dotted the whole of it and there was no display left on the page,
+     only a texture.
 
-     The gaps come for free. Anything with a background of its own — a section head, a chip,
-     a button, an input — paints over the field and breaks it, so the texture stops wherever
-     something is in the way without a single knockout being written.
+     WHERE IT BREAKS. Every gap used to come for free — anything with a background of its own
+     paints over the image — which broke the field around the chips and the buttons and around
+     nothing else, because text has no background. So the two things this page exists to print,
+     the score and the recommendation, were the two sitting straight on the dots. The gaps are
+     written now. Each reading knocks a hole in the field and keeps daylight around itself.
+
+     The hole is a spread-only box-shadow, which paints outside the border box and changes no
+     geometry at all — the trace and the question are absolutely placed and sized in script,
+     and a block that measured wider than it draws would take them with it.
+
+     The score is the one exception, and sideways it is padding instead. The chip and the
+     column beside it are both anchored off the digits' getBoundingClientRect: with a shadow
+     the digits would measure the same, and the chip would have docked three pixels under the
+     glyphs and nine under the knockout, which is a third of the chip gone. Padded, the box the
+     digits report IS the plate, so the arrangement follows the plate on its own; the equal
+     negative margin hands the width back, so nothing moves.
+
+     Sideways ONLY. The suggestion hangs from the number's bottom edge and clears the label
+     beneath it by four pixels, so a plate that measured taller as well would have spent those
+     four and sat on the label. Above and below, the daylight is two offset shadows: painted,
+     not measured.
 
      4px rather than the 2.5 it was at: fine enough to read as a texture, open enough that
-     the ground still reads as the ground. */
-  .today-open{
+     the ground still reads as the ground. The dots take --ink-rgb, so the field inverts with
+     the ground. */
+  .today-field{
+    /* One number for every knockout on the page, so no reading sits closer to the dots than
+       another. Bigger than the 4px grid, or the gap reads as a dropped row rather than a gap. */
+    --field-gap:6px;
+    position:relative;
+    margin:0 calc(-1 * var(--gutter));
+    padding:0 var(--gutter);
     background-image:radial-gradient(rgba(var(--ink-rgb),0.38) 0.6px, transparent 0.6px);
     background-size:4px 4px;
   }
+  /* The bottom margin #acceptanceStats used to carry itself. A child's margin collapses out
+     through a parent with no padding there, so as a margin it was 16px of undotted ground
+     between the field and the head it is supposed to run into. Only when there is something
+     in it: empty, this would be 16px of dots hanging off the end of a band that has ended. */
+  .today-field:has(#acceptanceStats:not(:empty)){ padding-bottom:16px; }
+  /* And the pull the band gives up on a morning with no reading at all. .today-open-empty
+     collapses the band to nothing, including the negative margin that tucks it under the
+     header — which left the field starting two dozen pixels down the page, reading as a
+     texture that had fallen short of the header rather than as the top of the page. The
+     wrapper takes the pull and hands the same distance back as padding, so the field moves
+     and the content does not. */
+  .today-field:has(.today-open-empty){
+    margin-top:calc(-1 * (var(--sp-3) + 4px));
+    padding-top:calc(var(--sp-3) + 4px);
+  }
+
+  /* THE READINGS, AND THE HOLES THEY KNOCK.
+     The score and its label; the recommendation; the seven-day trace; the question, as one
+     block while it is a column inside the band; and the confidence note under all of it. */
+  .today-field .score-label-row,
+  .today-field #recLeft,
+  .today-field #scoreTrace,
+  .today-field #todayFaceRow:not(.face-row-flow),
+  .today-field #baselineStatus:not(:empty){
+    background:var(--ground);
+    box-shadow:0 0 0 var(--field-gap) var(--ground);
+  }
+  .today-field .score-num{
+    background:var(--ground);
+    padding:0 var(--field-gap);
+    margin:0 calc(-1 * var(--field-gap));
+    box-shadow:0 var(--field-gap) 0 var(--ground), 0 calc(-1 * var(--field-gap)) 0 var(--ground);
+  }
+  /* Standing on its own the question is not a block on a field, it IS the page — a 296px
+     knockout would take the field with it. So the pieces print instead: the caption keeps
+     its daylight, and the five faces are already 6px apart, which is the gap. */
+  .today-field #todayFaceRow.face-row-flow .trace-cap{
+    background:var(--ground);
+    box-shadow:0 0 0 var(--field-gap) var(--ground);
+  }
+  .today-field #todayFaceRow.face-row-flow .subj-face{ background:var(--ground); }
 
 </style>
 </head>
@@ -2693,6 +2766,19 @@
       <div id="firstRunResult" class="score-note fr-note"></div>
     </div>
 
+    <!-- THE FIELD IS A REGION, NOT A BAND.
+
+         Everything from under the header down to the suggestions head prints on one dotted
+         field: the score's band, the question that stands in for it on a morning with no
+         reading yet, and the space between the two. One element carries it rather than three,
+         because a background tiles from its own box — three of them would restart the grid
+         twice down the page and put a seam wherever the heights were not a multiple of 4.
+
+         It ends where it does because the next thing down is opaque and full-bleed: the
+         suggestions head, or, before you have logged, the "Log this morning" strip that
+         stands in its place. Nothing has to say where the field stops; the first plate on
+         the page stops it. -->
+    <div class="today-field">
     <div class="today-open">
     <div class="gauge-wrap">
       <div class="score-stack">
@@ -2728,7 +2814,11 @@
          are not a reading; they are the question, and it is the one input a new user can
          answer on their first morning without a watch, a ring or a night's history. -->
     <div id="todayFaceIntro"></div>
-    <div id="acceptanceStats" class="log" style="margin-top:0; margin-bottom:16px;"></div>
+    <!-- The 16px this used to carry as its own bottom margin is the field's padding now. A
+         child's margin collapses straight out through the bottom of a parent that has no
+         padding there, which would have left the last 16px above the head undotted. -->
+    <div id="acceptanceStats" class="log" style="margin-top:0;"></div>
+    </div><!-- /.today-field -->
 
     <!-- The recommendation stack sits directly under the score it is reasoning about.
          It used to sit below the warm-up, three sections down, so the one thing on the
@@ -7899,7 +7989,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.332';
+const APP_VERSION = '2026.08.31.333';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7997,6 +8087,7 @@ const APP_NOTES = {
   '2026.08.31.330': 'The field behind the score is a halftone now, fine enough to read as a tint.',
   '2026.08.31.331': 'The dotted field runs the whole page now, and breaks wherever something sits on it.',
   '2026.08.31.332': 'The dotted field is back to the score alone, edge to edge, and off the rest of the page.',
+  '2026.08.31.333': 'The field runs down to the suggestions head now, and every reading on it knocks its own gap.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
