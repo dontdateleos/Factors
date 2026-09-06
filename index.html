@@ -14,6 +14,11 @@
      worker agree on which spelling of the address they are caching and launching. -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0c0d0b">
+<!-- The ground is stamped before anything paints. It has to run here, in the head, off
+     localStorage rather than the app's async storage, because the alternative is the page
+     drawing itself black and then flipping to bone on every single launch. The masthead is
+     dark on both grounds, which is why theme-color above does not move with it. -->
+<script>try{var g=localStorage.getItem('ground');if(g==='bone')document.documentElement.dataset.ground='bone';}catch(e){}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dogfood">
@@ -3387,6 +3392,17 @@
          distracting, without turning it off across their whole phone, had no way to say so:
          the toggle existed and sat inside a section with display:none. It comes out; the
          per-animation list it used to sit above stays behind the dev flag. -->
+    <div class="group form-panel" id="groundGroup">
+      <div class="group-head collapsible" data-collapse="ground" style="cursor:pointer;"><div class="group-title">Ground</div><span class="head-est" id="groundSummary"></span><span class="collapse-chevron collapsed" data-collapse="ground">&#9662;</span></div>
+      <div class="fields collapsible-body" data-collapse="ground" style="display:none;">
+        <label class="week-deload" for="boneGroundToggle">
+          <input type="checkbox" id="boneGroundToggle">
+          <span>Bone &mdash; put the pages on paper, keep the header dark</span>
+        </label>
+        <div class="score-note">The masthead, the blocks and the five tab colours do not move. What changes is the ground under them and the ink on it.</div>
+      </div>
+    </div>
+
     <div class="group form-panel" id="calmGroup">
       <div class="group-head collapsible" data-collapse="calm" style="cursor:pointer;"><div class="group-title">Motion</div><span class="head-est" id="calmSummary"></span><span class="collapse-chevron collapsed" data-collapse="calm">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="calm" style="display:none;">
@@ -7720,7 +7736,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.313';
+const APP_VERSION = '2026.08.31.314';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7799,6 +7815,7 @@ const APP_NOTES = {
   '2026.08.31.311': 'Swipe left and right to change tab. The scale moved up beside the wordmark.',
   '2026.08.31.312': 'Every faded ink in the app now comes from one value instead of seventy.',
   '2026.08.31.313': 'The app can now be put on a bone ground, header and colours unchanged.',
+  '2026.08.31.314': 'Settings > Ground switches the pages between black and bone.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -28056,6 +28073,19 @@ applyDevMode();
   });
 })();
 
+function setGround(bone){
+  document.documentElement.dataset.ground = bone ? 'bone' : '';
+  if(!bone) delete document.documentElement.dataset.ground;
+  try{ localStorage.setItem('ground', bone ? 'bone' : 'dark'); }catch(e){}
+  const sum = document.getElementById('groundSummary');
+  if(sum) sum.textContent = bone ? 'bone' : 'black';
+}
+const boneGroundToggleEl = document.getElementById('boneGroundToggle');
+if(boneGroundToggleEl){
+  boneGroundToggleEl.checked = document.documentElement.dataset.ground === 'bone';
+  setGround(boneGroundToggleEl.checked);
+  boneGroundToggleEl.addEventListener('change', ()=> setGround(boneGroundToggleEl.checked));
+}
 const eyeCalmToggleEl = document.getElementById('eyeCalmToggle');
 if(eyeCalmToggleEl){
   eyeCalmToggleEl.checked = eyeCalm;
