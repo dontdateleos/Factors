@@ -224,30 +224,39 @@
      from tabButton.textContent, and a screen reader has nothing else to name these by, so the
      name stays in the box and .tab-name takes it out of the picture rather than out of the
      document. */
-  .tabs{ display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
-    margin:0 calc(-1 * var(--gutter)); padding:0 var(--gutter) 6px; background:var(--ground);
-    scrollbar-width:none; --lit:var(--block-lime); }
-  .tabs::-webkit-scrollbar{ display:none; }
+  /* UP BESIDE THE LOGO, NOT ACROSS THE FOOT OF THE HEADER.
+
+     Five lines do not need 390px. The wordmark's ink stops at 134.9 and the date block sits
+     at 295.4 with its baseline at 82.8, so the right of the brand below the date is empty --
+     and a scale reads better short and dense than long and sparse anyway. It sits there now,
+     150px wide, and the header lost the whole row it used to stand in.
+
+     Bone, not the tab's colour. Five colours said which tab twice: once by how far the light
+     had got, once by what colour it was. One of those was the scale doing its job and the
+     other was decoration on it, and the coloured version also meant the bar changed hue on a
+     gesture as light as a swipe. */
+  /* Scoped past `.header-brand > *`, which sets position:relative on every direct child and
+     would otherwise win on specificity -- the row sat at the left edge instead of the right.
+     Same reason .header-date is scoped that way a few rules up. */
+  .header-brand > .tabs{ position:absolute; right:var(--gutter); bottom:12px; width:150px;
+    display:flex; gap:5px; --lit:var(--bg); z-index:1; }
   /* The line is 3px and the target is 40. Same trick .subj-face and the chip use: the box a
      thumb hits has nothing to do with the size of the thing it hits. */
   /* 19 above and 18 below a 3px line is a 40px target. The row used to carry 16px of its own
      under that as well, which was a lot of clearance for a hairline -- the bar came to 66px
      with a word in it and would have come to 72 without one. It is 46 now. */
-  .tab{ flex:1 1 0; min-width:0; display:flex; align-items:center; padding:19px 0 18px;
-    cursor:pointer; }
+  /* The line is 3px and the box around it is 14. The target is pushed back out past the box
+     on every side instead -- the same trick .subj-face and the chip use -- so a 30x14 line is
+     30x54 to a thumb. */
+  .tab{ flex:1 1 0; min-width:0; display:flex; align-items:center; padding:6px 0 5px;
+    cursor:pointer; position:relative; }
+  .tab::after{ content:''; position:absolute; left:0; right:0; top:-20px; bottom:-20px; }
   .tab-seg{ display:block; width:100%; height:3px; background:var(--lit); }
   /* Everything AFTER the active tab goes dark. Two rules rather than five, and it needs no
      JavaScript -- .active is a class the tab switcher already sets. */
   .tab.active ~ .tab .tab-seg{ background:rgba(251,250,246,0.18); }
   .tab-name{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
     clip-path:inset(50%); white-space:nowrap; border:0; }
-  /* Which colour the light is. Same five as the blocks the tabs used to wear, in the same
-     order down the wheel. :has is already used in a handful of places here. */
-  .tabs:has(.tab[data-tab="insights"].active){ --lit:var(--block-lime); }
-  .tabs:has(.tab[data-tab="training"].active){ --lit:var(--block-yellow); }
-  .tabs:has(.tab[data-tab="injuries"].active){ --lit:var(--block-red); }
-  .tabs:has(.tab[data-tab="data"].active){ --lit:var(--block-purple); }
-  .tabs:has(.tab[data-tab="settings"].active){ --lit:var(--block-blue); }
   /* The coloured backdrop is flat colour. It used to carry an ordered dot screen — black at
      13% on a 4px grid, offset on a second pass — meant to stop the colour reading as flat
      digital fill. On the real phone it was doing less than that and costing contrast on
@@ -400,12 +409,6 @@
      how anyone finds out the gesture exists.
      Absolutely placed off the date's left edge rather than in its flow: the date is three
      right-aligned lines and anything added inside them becomes a fourth. */
-  .header-date .hd-swipe{ position:absolute; right:100%; top:50%; transform:translateY(-50%);
-    margin-right:10px; display:none; gap:3px; align-items:center; pointer-events:none; }
-  .header-date .hd-swipe.on{ display:flex; }
-  .header-date .hd-swipe i{ width:3px; height:3px; background:var(--bg); opacity:0.22;
-    border-radius:0.5px; flex:none; transition:opacity 0.18s linear; }
-  .header-date .hd-swipe i.here{ opacity:0.8; }
   h1 .logo-line{ display:block; }
   /* THE EYES. Two capsules, one geometry, driven entirely by custom properties so the
      same rule serves the logo, the score card and the element that flies between them.
@@ -517,7 +520,12 @@
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
-  main{ padding:var(--sp-3) var(--gutter) var(--sp-3); max-width:520px; margin:0 auto; }
+  /* Sideways is ours; up and down is the browser's. Without this Chromium decides a
+     horizontal drag might become a scroll, takes the gesture and fires pointercancel one
+     move in -- measured: the first swipe landed and every one after it died. pinch-zoom is
+     kept because taking it away from a page of small numbers would be a poor trade. */
+  main{ padding:var(--sp-3) var(--gutter) var(--sp-3); max-width:520px; margin:0 auto;
+    touch-action:pan-y pinch-zoom; }
   .panel{ display:none; counter-reset:section; }
   .panel.active{ display:block; }
 
@@ -2348,19 +2356,18 @@
          of the width of the whole date. -->
     <div class="header-date" id="headerDate" aria-label="Today's date">
       <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
-      <span class="hd-swipe" id="headerSwipeHint" aria-hidden="true"></span>
     </div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: two capsules set beside the wordmark. -->
     <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
-  </div>
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Today</span></div>
     <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Weekly</span></div>
     <div class="tab" data-tab="injuries" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Body</span></div>
     <div class="tab" data-tab="data" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Data</span></div>
     <div class="tab" data-tab="settings" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Settings</span></div>
+  </div>
   </div>
 </header>
 
@@ -6596,7 +6603,6 @@ function activateTab(name, opts){
   // the way out so the pair does not carry last night's sleep onto a tab about something else.
   setTimeout(applyEyeFreshness, 0);
   // Same reason: the header is shared by every tab and the swipe is Today's alone.
-  setTimeout(paintSwipeHint, 0);
   let eyesFrom = null;
   if(eyesLeaving){
     const r = document.getElementById('scoreEyes').getBoundingClientRect();
@@ -7110,6 +7116,92 @@ tabs.forEach(t=>{
   });
 });
 
+/* LEFT AND RIGHT MOVE BETWEEN TABS.
+
+   The bar is five lines 150px wide now, which is a fine thing to read and a poor thing to
+   aim at. So the gesture carries the navigation and the bar reports it: swipe anywhere on the
+   page and you step one tab along, in the order the lines are drawn in.
+
+   This is the gesture the band used to spend on browsing the week, which is why that had to
+   go first -- one direction cannot mean two things on the same screen.
+
+   Three things it refuses, in this order. Anything that started on a control, because a drag
+   off a button is not a swipe. Anything more vertical than horizontal, because that is the
+   page scrolling and stealing it makes the whole app feel stuck. And anything inside
+   something that scrolls sideways itself, which it finds by walking up from the target
+   rather than by keeping a list of selectors that would rot. */
+(function wireTabSwipe(){
+  const SWIPE_MIN = 56;        // shorter than this is a tap that wandered
+  const SLOPE = 1.2;           // and it has to be this much more sideways than not
+  let x0 = 0, y0 = 0, dx = 0, dy = 0, live = false;
+
+  const scrollsSideways = el =>{
+    for(let n = el; n && n !== document.body; n = n.parentElement){
+      if(n.scrollWidth > n.clientWidth + 4){
+        const ov = getComputedStyle(n).overflowX;
+        if(ov === 'auto' || ov === 'scroll') return true;
+      }
+    }
+    return false;
+  };
+
+  function begin(x, y, target){
+    live = false; dx = dy = 0;
+    if(!target || target.closest('input, textarea, select, [role="tab"], .wheel-workout-card')) return;
+    if(scrollsSideways(target)) return;
+    x0 = x; y0 = y; live = true;
+  }
+  function update(x, y){ if(live){ dx = x - x0; dy = y - y0; } }
+
+  /* DECIDED WHEN THE GESTURE ENDS, INCLUDING WHEN THE BROWSER ENDS IT.
+
+     Stepping during the move worked exactly once. Chromium watches a sideways drag to see
+     whether it is going to become a scroll, and when it decides it might, it takes the
+     pointer -- so the last good delta is kept as the finger moves and read when it stops. A
+     cancelled gesture still delivers the swipe it had already travelled. It also means the
+     tab changes on release, which is the right moment for a move you cannot half-make. */
+  function finish(){
+    if(!live) return;
+    live = false;
+    if(Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * SLOPE) return;
+    const here = SWEEP_TABS.indexOf(document.querySelector('.tab.active').dataset.tab);
+    const next = here + (dx < 0 ? 1 : -1);      // drag left, go right along the bar
+    if(next < 0 || next >= SWEEP_TABS.length) return;
+    const t = document.querySelector(`.tab[data-tab="${SWEEP_TABS[next]}"]`);
+    if(t) activateTabViaUi(t);
+  }
+
+  /* TOUCH EVENTS RATHER THAN POINTER EVENTS, ON THE PHONE.
+
+     This is where it actually runs, and pointer events do not survive there. Measured on a
+     real touch stream: pointerdown fires, and Chromium cancels the pointer on the same frame
+     -- before a single pointermove -- because it has not decided yet whether the gesture
+     belongs to the page. touchmove keeps coming the whole way through. So the phone is driven
+     off touch and the desktop off pointer, which is also the only place a mouse exists. */
+  document.addEventListener('touchstart', e=>{
+    if(e.touches.length !== 1){ live = false; return; }
+    begin(e.touches[0].clientX, e.touches[0].clientY, e.target);
+  }, { passive:true });
+  document.addEventListener('touchmove', e=>{
+    if(e.touches.length !== 1){ live = false; return; }
+    update(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive:true });
+  document.addEventListener('touchend', finish, { passive:true });
+  document.addEventListener('touchcancel', finish, { passive:true });
+
+  document.addEventListener('pointerdown', e=>{
+    if(e.pointerType === 'touch') return;               // the block above owns those
+    if(e.button !== 0) return;
+    begin(e.clientX, e.clientY, e.target);
+  }, { passive:true });
+  document.addEventListener('pointermove', e=>{
+    if(e.pointerType === 'touch') return;
+    update(e.clientX, e.clientY);
+  }, { passive:true });
+  document.addEventListener('pointerup', e=>{ if(e.pointerType !== 'touch') finish(); }, { passive:true });
+  document.addEventListener('pointercancel', e=>{ if(e.pointerType !== 'touch') finish(); }, { passive:true });
+})();
+
 
 /* ---------- RECOVERY ---------- */
 const THRESH = { hrv: 10, sleepScore: 10, wakeTime: 10 }; // wakeTime in minutes — replaces old event-count threshold
@@ -7533,7 +7625,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.310';
+const APP_VERSION = '2026.08.31.311';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -7609,6 +7701,7 @@ const APP_NOTES = {
   '2026.08.31.308': 'One malformed plan block could stop the whole week grid drawing. It cannot now.',
   '2026.08.31.309': 'Leaving Today, the mark is simply back in the wordmark, in its own colour.',
   '2026.08.31.310': 'The tab bar is a scale now: five lines, lit up to the one you are on.',
+  '2026.08.31.311': 'Swipe left and right to change tab. The scale moved up beside the wordmark.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16764,16 +16857,7 @@ function paintRecLeft(){
    there is somewhere to swipe TO: one scored day is not a week, and a row of ticks with
    nothing behind it would advertise a gesture that does nothing. Today only — the header is
    shared by every tab and the band is not. */
-function paintSwipeHint(){
-  const el = document.getElementById('headerSwipeHint');
-  if(!el) return;
-  const onToday = !!document.querySelector('.tab.active[data-tab="insights"]');
-  const scored = scoreDays.filter(d=> d.score != null).length;
-  if(!onToday || scored < 2){ el.classList.remove('on'); el.innerHTML = ''; return; }
-  el.innerHTML = scoreDays.map((d,i)=>
-    `<i class="${i === scoreDayIndex ? 'here' : ''}"></i>`).join('');
-  el.classList.add('on');
-}
+
 
 /* TODAY NO LONGER DRAWS IT.
 
@@ -16793,7 +16877,6 @@ function paintScoreTrace(){
   if(host) host.style.display = 'none';
   layoutBandColumn(false);
   paintDataTrace();
-  paintSwipeHint();
   paintRecLeft();
 }
 
@@ -16879,15 +16962,6 @@ const SCORE_FADE_STEP = 0.065;   // per day back, over six days
 function scoredIndices(){
   return scoreDays.map((d, i)=> d.score != null ? i : -1).filter(i=>i >= 0);
 }
-function stepScoreDay(dir){
-  const list = scoredIndices();
-  if(list.length < 2 || scoreDayIndex == null) return false;
-  const at = list.indexOf(scoreDayIndex);
-  const next = list[Math.max(0, Math.min(list.length - 1, (at < 0 ? list.length - 1 : at) + dir))];
-  if(next === scoreDayIndex) return false;
-  showScoreDay(next);
-  return true;
-}
 function showScoreDay(idx){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
@@ -16900,8 +16974,8 @@ function showScoreDay(idx){
   setEyeScore(to);
   if(label) label.textContent = idx === scoreDays.length - 1 ? scoreTodayLabel : stamp(scoreDays[idx].date);
   // Days back, and how faint that makes it. Floored well above the point where cream on black
-  // stops being comfortably readable — this is depth, not disappearance.
-  paintSwipeHint();
+  // stops being comfortably readable — this is depth, not disappearance. Always zero now that
+  // the band does not browse, but showScoreDay is still the one place a day gets put on it.
   const back = (scoreDays.length - 1) - idx;
   const dim = back ? String(Math.max(0.6, 1 - back * SCORE_FADE_STEP)) : '';
   // The context line goes with it: it is about the browsed day now, so it belongs to the same
@@ -16925,55 +16999,16 @@ function showScoreDay(idx){
   paintScoreTrace();
 }
 
-(function setupScoreSwipe(){
-  const band = document.querySelector('.today-open');
-  if(!band) return;
-  const STEP_PX = 50;   // how far a swipe has to go to count as one
-  let dragging = false, startX = 0, startY = 0, engaged = false, spent = false, swallowClick = false;
-  band.addEventListener('pointerdown', e=>{
-    if(e.target.closest('button, input, select, a')) return;
-    dragging = true; engaged = false; spent = false; swallowClick = false;
-    startX = e.clientX; startY = e.clientY;
-  });
-  // A swipe that starts on the score's label row would otherwise end in a click on it and
-  // open the disclosure underneath — every swipe toggling a panel you did not ask for.
-  band.addEventListener('click', e=>{
-    if(!swallowClick) return;
-    swallowClick = false;
-    e.stopPropagation();
-    e.preventDefault();
-  }, true);
-  band.addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    // Not until the gesture has committed to sideways. Anything else is the page scrolling,
-    // and stealing it would make the top of Today feel stuck.
-    if(!engaged){
-      if(Math.abs(dy) > Math.abs(dx)){ dragging = false; return; }
-      if(Math.abs(dx) < 12) return;
-      engaged = true;
-      swallowClick = true;
-      band.setPointerCapture(e.pointerId);
-    }
-    // One day per swipe, however far the finger keeps going. Stepping continuously meant a
-    // single flick could travel most of the week, and then the only way to read a particular
-    // day was to overshoot and come back.
-    if(spent || Math.abs(dx) < STEP_PX) return;
-    spent = true;
-    // Dragging right pulls the older end of the week toward you, which is the direction the
-    // trace already reads: oldest on the left, today at the right.
-    stepScoreDay(dx > 0 ? -1 : 1);
-  }, { passive:true });
-  const end = ()=>{ dragging = false; engaged = false; spent = false; };
-  band.addEventListener('pointerup', end);
-  band.addEventListener('pointercancel', end);
-  // The same move from the keyboard, on the one thing in the band that already takes focus.
-  const toggle = document.getElementById('scoreToggle');
-  if(toggle) toggle.addEventListener('keydown', e=>{
-    if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    if(stepScoreDay(e.key === 'ArrowLeft' ? -1 : 1)) e.preventDefault();
-  });
-})();
+/* THE BAND NO LONGER SWIPES THROUGH THE WEEK.
+
+   It browsed the last seven days sideways, and it was the only thing on the page that did.
+   Now that left and right move between tabs, one gesture cannot mean both -- and of the two,
+   the one worth keeping is the one that works on every screen rather than on the top third
+   of one. The seven days are still in Data, under Trends, drawn in full rather than one at
+   a time.
+
+   stepScoreDay went with it. showScoreDay stays: it is still what puts a day on the band,
+   there is just only ever one day to put there now. */
 
 async function isRestDayComing(daysAhead){
   const d = new Date(todayStr);
