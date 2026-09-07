@@ -8638,7 +8638,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.353';
+const APP_VERSION = '2026.08.31.354';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8757,6 +8757,7 @@ const APP_NOTES = {
   '2026.08.31.351': 'Section titles extend out as the page lands instead of arriving whole.',
   '2026.08.31.352': 'Tabs are dealt in from the side you swiped, rather than up from the bottom.',
   '2026.08.31.353': 'The mark in the top bar tears as a new page is dealt in.',
+  '2026.08.31.354': 'The mark in the top bar sits a touch further off the wordmark.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9661,7 +9662,11 @@ function updateHeaderCollapse(){
   // MARK_GAP is the space between the wordmark and the mark at full size; it scales with
   // the type so the two stay in the same relationship all the way through the collapse.
   // Negative: the mark tucks under the tail of the last letter rather than sitting off it.
-  const MARK_GAP = -10;
+  // Four pixels further out than it was. The tuck was measured against the flat plate the
+  // mark used to be; the solid is wider than its box at every angle, so the same number now
+  // buried the bowl of FOOD's last D. At -6 the letter reads whole and the mark still
+  // overlaps it — any further and the two stop being one lockup.
+  const MARK_GAP = -6;
   // MARK_TOP centres the mark on the wordmark's ink — the midpoint between the cap line of
   // "Dog" and the baseline of "food", not the middle of the h1's line boxes.
   const MARK_TOP = 57;
