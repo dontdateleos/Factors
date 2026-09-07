@@ -2254,6 +2254,11 @@
      --reverse-bg panel. Matched at the same weight to actually win. */
   button.primary.morning-done{ margin-top:var(--sp-4); width:100%; background:var(--accent);
     color:var(--text); border:2px solid var(--accent); font-weight:var(--fw-bold); }
+  /* The sheet is a --reverse-bg pocket, so the chart's own hairlines and tick text are read
+     against the dark set the pocket declares rather than the page behind it. Nothing to set
+     here but the room: drawTrendChart takes its colours from tokens that already follow. */
+  .lift-chart{ margin-bottom:var(--sp-3); }
+  .lift-chart .score-note{ margin:0; }
   .lift-sheet-head{ display:flex; justify-content:space-between; align-items:center;
     font-family:var(--mono); font-size:var(--fs-xl); font-weight:var(--fw-bold);
     text-transform:uppercase; letter-spacing:-0.02em; margin-bottom:var(--sp-3); }
@@ -3686,9 +3691,16 @@
            under it — the coloured box, but no band, no top rule and no counter, because the
            counter increments on .group-head and there was none. Workout History's only
            number was therefore a lone 01 beside the LAST of its three sections. -->
+      <!-- ONE LIFT AT A TIME, FIRST, BECAUSE IT IS THE QUESTION PEOPLE ARRIVE WITH.
+           "How has my squat gone" was answerable — every session of every lift is in
+           storage — and had nowhere to be asked. The two sections under it are both
+           by-date: one day's workouts, or one block's totals. This is the other axis. -->
       <div class="group">
-        <div class="group-head"><div class="group-title">Block history</div></div>
-        <div class="fields" id="blockHistoryBody"></div>
+        <div class="group-head"><div class="group-title">Per exercise</div><div class="group-sub">search a lift to see how it has gone</div></div>
+        <div class="fields">
+          <input type="search" id="exSearchInput" placeholder="Search an exercise" autocomplete="off" aria-label="Search a logged exercise">
+          <div id="exSearchResults"></div>
+        </div>
       </div>
 
       <div class="group">
@@ -3697,6 +3709,11 @@
           <div class="field-row"><input type="date" id="prevWorkoutsDate"></div>
           <div id="prevWorkoutsResults"></div>
         </div>
+      </div>
+
+      <div class="group">
+        <div class="group-head"><div class="group-title">Block history</div></div>
+        <div class="fields" id="blockHistoryBody"></div>
       </div>
 
       <div class="group">
@@ -8014,6 +8031,10 @@ function activateDataSubView(view){
   document.getElementById('historyDataView').style.display = view==='history' ? 'block' : 'none';
   if(view==='trends'){ renderTrendChart(); }
   if(view==='history'){
+    // Rebuilt on the way in rather than cached for the session: log a workout, come back,
+    // and the lift you just did should be in the list with its count already up.
+    exSearchIndex = null;
+    renderExerciseSearch();
     renderBlockHistory();
     renderInjuryRetrospective();
     if(document.getElementById('prevWorkoutsDate').value) renderPrevWorkoutsForDate();
@@ -8919,7 +8940,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.370';
+const APP_VERSION = '2026.08.31.371';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9055,6 +9076,7 @@ const APP_NOTES = {
   '2026.08.31.368': 'Athlete Level has gone. Nothing here ranks you against anyone else.',
   '2026.08.31.369': 'Adaptation Tracking has gone. Trends is the chart.',
   '2026.08.31.370': 'The week spinner says the whole day, not the first three letters.',
+  '2026.08.31.371': 'Search a lift on Workout History and see how it has actually gone.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15836,6 +15858,96 @@ function lastLoggedLine(name){
   return `<div class="ex-last-line ex-last-tap" role="button" tabindex="0" data-ex="${exHistKey(name)}">`
     + `Last ${stamp(h.date)} \u00b7 ${load}${reps}${fail}${pr}<span class="ex-last-more">history</span></div>`;
 }
+/* WHAT YOU HAVE ACTUALLY LOGGED, NOT WHAT THE LIBRARY KNOWS.
+   A search over the library would offer four hundred lifts and answer "no history" for
+   almost all of them. This indexes the sessions instead, so everything it offers has
+   something to show. Keyed the same way the rest of the app keys an exercise, so a rename
+   in casing or spacing does not split one lift into two rows.
+
+   The display name is taken from the most recent session rather than the first: if you have
+   been writing it differently over the years, the spelling you use now is the one you will
+   recognise. Aliases come from the library where the name matches one, so searching "side
+   raise" finds the lateral raises you logged under their proper name. */
+let exSearchIndex = null;
+async function buildExerciseIndex(){
+  const sessions = await getAllTrainingSessions();
+  const byKey = {};
+  sessions.forEach(sn=>{
+    (sn.exercises || []).forEach(ex=>{
+      const key = exHistKey(ex.name);
+      if(!key) return;
+      const row = byKey[key] || (byKey[key] = { key, name: ex.name, sessions: 0, last: '' });
+      row.sessions++;
+      if(!row.last || sn.date > row.last){ row.last = sn.date; row.name = ex.name; }
+    });
+  });
+  const aliasOf = {};
+  Object.values(EXERCISE_LIBRARY).forEach(x=>{
+    if(!x || !x.name) return;
+    aliasOf[exHistKey(x.name)] = (x.aliases || []).join(' ');
+  });
+  return Object.values(byKey)
+    .map(r=>({ ...r, haystack: (r.key + ' ' + (aliasOf[r.key] || '')).toLowerCase() }))
+    .sort((a, b)=> b.sessions - a.sessions || a.name.localeCompare(b.name));
+}
+
+/* Empty query shows the lifts you train most rather than nothing. A search box over a blank
+   panel reads as broken, and "what have I been doing" is a fair question in its own right —
+   the list IS the answer to it until you type. */
+const EX_SEARCH_MAX = 12;
+async function renderExerciseSearch(){
+  const input = document.getElementById('exSearchInput');
+  const out = document.getElementById('exSearchResults');
+  if(!input || !out) return;
+  if(!exSearchIndex) exSearchIndex = await buildExerciseIndex();
+  if(!exSearchIndex.length){
+    out.innerHTML = '<div class="score-note">Nothing logged yet. Log a session and every lift in it turns up here.</div>';
+    return;
+  }
+  const q = input.value.trim().toLowerCase();
+  const hits = (q ? exSearchIndex.filter(r=> r.haystack.includes(q)) : exSearchIndex).slice(0, EX_SEARCH_MAX);
+  if(!hits.length){
+    out.innerHTML = `<div class="score-note">Nothing logged matching &ldquo;${input.value.trim()}&rdquo;.</div>`;
+    return;
+  }
+  out.innerHTML = hits.map(r=>
+    `<div class="log-entry ex-search-hit" role="button" tabindex="0" data-ex="${r.key}" data-name="${r.name.replace(/"/g, '&quot;')}">`
+    + `<span>${r.name}</span><span>${r.sessions} session${r.sessions === 1 ? '' : 's'}</span></div>`).join('');
+}
+(function wireExerciseSearch(){
+  const input = document.getElementById('exSearchInput');
+  const out = document.getElementById('exSearchResults');
+  if(!input || !out) return;
+  input.addEventListener('input', ()=> renderExerciseSearch());
+  const open = el => showLiftHistory(el.dataset.ex, el.dataset.name);
+  out.addEventListener('click', e=>{ const el = e.target.closest('.ex-search-hit'); if(el) open(el); });
+  out.addEventListener('keydown', e=>{
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('.ex-search-hit');
+    if(el){ e.preventDefault(); open(el); }
+  });
+})();
+
+/* THE SHAPE OF ONE LIFT OVER ITS WHOLE HISTORY.
+   One point per session — the best estimated single from that day's sets, which is what makes
+   a heavy triple and a light set of ten comparable at all. Raw weight would call 3x5 to 3x10
+   at the same load a flat line, which is the mistake the old Adaptation Tracking made.
+   Sets past fifteen reps are discarded by the estimator, so they cannot drag the line. */
+async function liftProgressSeries(key){
+  const sessions = await getAllTrainingSessions();
+  const byDate = {};
+  sessions.forEach(sn=>{
+    (sn.exercises || []).forEach(ex=>{
+      if(exHistKey(ex.name) !== key || !ex.weight || !ex.reps) return;
+      const est = calculateE1RM(ex.weight, ex.reps);
+      if(!est || est.confidence === 'discard') return;
+      const v = Math.round(est.value * 10) / 10;
+      if(byDate[sn.date] == null || v > byDate[sn.date]) byDate[sn.date] = v;
+    });
+  });
+  return Object.keys(byDate).sort().map(d=>({ x: d, y: byDate[d] }));
+}
+
 /* Every logged session of one lift, newest first, with the load and whether it was a best at
    the time. Built from the sessions rather than from exerciseHistory, which by design keeps
    only the latest of each. */
@@ -15863,6 +15975,7 @@ async function showLiftHistory(key, name){
   sheet.className = 'lift-sheet';
   sheet.innerHTML = `<div class="lift-sheet-panel" role="dialog" aria-label="${name} history">
       <div class="lift-sheet-head"><span>${name}</span><button type="button" class="lift-sheet-x" aria-label="Close">\u00d7</button></div>
+      <div class="lift-chart" id="liftHistChart" role="img" aria-label="${name} estimated one-rep max over time"></div>
       <div class="lift-sheet-body">${rows.slice(0, 40).map(r=>
         `<div class="lift-row"><span class="lift-date">${stamp(r.date)}</span>`
         + `<span class="lift-load">${r.weight ? r.weight + 'kg' : '\u2014'}</span>`
@@ -15874,6 +15987,16 @@ async function showLiftHistory(key, name){
   sheet.addEventListener('click', e=>{ if(e.target === sheet || e.target.closest('.lift-sheet-x')) close(); });
   document.addEventListener('keydown', function esc(e){ if(e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc); } });
   document.body.appendChild(sheet);
+  /* After the append, never before: drawTrendChart sizes itself from the host's clientWidth
+     and a box that is not in the document measures zero. The list is already on screen while
+     this resolves, which is the right order anyway — the sessions are the record and the
+     line is the reading of them. */
+  const chart = sheet.querySelector('#liftHistChart');
+  if(chart){
+    const series = await liftProgressSeries(key);
+    drawTrendChart(chart, series, { line:'var(--bg)', fill:'rgba(var(--ink-rgb),0.14)' }, null,
+      'e1RM', 'Two sessions with weight and reps draw a line. This lift has one so far.');
+  }
 }
 document.addEventListener('click', e=>{
   const line = e.target.closest && e.target.closest('.ex-last-tap');
