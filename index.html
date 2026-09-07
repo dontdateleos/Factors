@@ -1499,11 +1499,26 @@
   .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--bg); }
   .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
   .wheel-ex-names{ font-family:var(--sans); font-size:var(--fs-sm); line-height:1.5; color:rgba(var(--ink-rgb),0.8); }
-  /* The card listed every exercise on its own line, so a five-exercise day was a seven-line
-     card. One name and a count of the rest — the card is a way into the day, not the
-     session. The count sits on the name's line rather than under it, which is what keeps
-     the whole card to two. */
-  .wheel-ex-more{ color:rgba(var(--ink-rgb),0.5); font-weight:var(--fw-medium); }
+  /* EVERY EXERCISE, WITH WHAT THE PLAN ASKS OF IT.
+     This was one name and "+4" for a while, on the reasoning that the card is a way into
+     the day rather than the session itself. But the day IS what you came to this pane to
+     read — you scroll to a day to find out what is on it, and a card that names one lift
+     out of five answers a question nobody asked. The whole list, one per line, with the
+     dose out at the right on the same line so the names still read as a column. */
+  /* flex-end rather than baseline. A name too long for a half-width column wraps to three
+     lines, and a dose on the FIRST of them reads as belonging to that line — "Thoracic 90s"
+     over "extension over a roller". Hung off the last line it reads as belonging to the
+     item, which it does. Single-line rows, which is most of them, look the same either way. */
+  .wheel-ex-line{ display:flex; gap:10px; align-items:flex-end; justify-content:space-between; }
+  .wheel-ex-name{ min-width:0; }
+  /* Mono and tabular so the numbers line up down the column, dimmer than the name because
+     it is the qualifier and the movement is the thing. */
+  .wheel-ex-dose{ flex:none; font-family:var(--mono); font-size:var(--fs-tag);
+    color:rgba(var(--ink-rgb),0.5); font-variant-numeric:tabular-nums; }
+  /* One workout takes the width of both columns rather than sitting in the left half with
+     its names wrapping at 50%. Two keep the split — that is what the rule between them is
+     for, and am/pm side by side is the comparison you want. */
+  .week-wheel-detail > .wheel-workout-card:only-child{ grid-column:1 / -1; }
   .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(var(--ink-rgb),0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
   .wheel-add-card:active{ background:rgba(var(--ink-rgb),0.12); }
 
@@ -8025,7 +8040,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.336';
+const APP_VERSION = '2026.08.31.337';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8127,6 +8142,7 @@ const APP_NOTES = {
   '2026.08.31.334': 'The field is a rippled sheet now, and it is cut on that wave at both ends rather than on a line.',
   '2026.08.31.335': 'The readings sit straight on the field again — no boxes cut out behind the words and the number.',
   '2026.08.31.336': 'The Sunday review is a heading you open at the bottom of Weekly, not a wall at the top of it.',
+  '2026.08.31.337': 'A day on Weekly shows its whole session now — every exercise, with the sets and reps beside it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -13507,23 +13523,43 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>
 
 let activeWheelDayIndex = null; // set to today's index on first render each session
 
-function extractBlockNames(block){
+/* THE DOSE THE PLAN ACTUALLY HOLDS, AND NOTHING INVENTED.
+   Planned strength carries sets with repLow/repHigh, planned mobility carries sets with
+   holdSeconds, and a run carries its distance in the line itself. Anything missing is left
+   off rather than filled with a dash: the plan not having decided a number yet is a
+   different thing from the number being zero. */
+function blockLineDose(e){
+  if(!e) return '';
+  const sets = Number(e.sets) > 0 ? Number(e.sets) : null;
+  if(e.holdSeconds) return sets ? `${sets}\u00d7${e.holdSeconds}s` : `${e.holdSeconds}s`;
+  // repLow/repHigh is what the generator writes; reps is what the fixed templates carry.
+  let reps = null;
+  if(e.repLow != null && e.repHigh != null) reps = e.repLow === e.repHigh ? `${e.repLow}` : `${e.repLow}-${e.repHigh}`;
+  else if(e.reps != null && e.reps !== '') reps = String(e.reps);
+  if(sets && reps) return `${sets}\u00d7${reps}`;
+  if(sets) return `${sets} sets`;
+  return reps || '';
+}
+function extractBlockLines(block){
   /* A block with no details at all. Every writer in the app sets it, so this should not
      happen -- but the whole week grid is rendered from these, and one malformed record was
-     enough to throw out of extractBlockNames, up through weekDayDetailHtml and
-     weekDetailTallest, and leave renderWeekGrid half-drawn. A card with no names under it is
-     a far better failure than a week that does not finish rendering. */
+     enough to throw out of here, up through weekDayDetailHtml and weekDetailTallest, and
+     leave renderWeekGrid half-drawn. A card with no names under it is a far better failure
+     than a week that does not finish rendering. */
   if(!block || !block.details) return [];
-  if(block.type==='strength') return (block.details.exercises||[]).map(e=>e.name).filter(Boolean);
+  if(block.type==='strength') return (block.details.exercises||[]).filter(e=> e && e.name)
+    .map(e=>({ name:e.name, dose:blockLineDose(e) }));
   if(block.type==='run'){
     const d = block.details;
     const typeLabel = d.runType ? d.runType.charAt(0).toUpperCase()+d.runType.slice(1) : 'Run';
     // Long and race runs deliberately carry no auto-solved distance — they're governed
     // by weekly volume, not session length. Rendering that absence as "—km" looked like
     // a failed lookup rather than an intentional blank, so omit the distance entirely.
-    return [d.distanceKm ? `${typeLabel} · ${d.distanceKm}km` : typeLabel];
+    return [{ name: d.distanceKm ? `${typeLabel} \u00b7 ${d.distanceKm}km` : typeLabel, dose:'' }];
   }
-  if(block.type==='mobility') return (block.details.stretches||[]).filter(s=>!s.skippedForInjury).map(s=>s.name).filter(Boolean);
+  if(block.type==='mobility') return (block.details.stretches||[])
+    .filter(st=> st && st.name && !st.skippedForInjury)
+    .map(st=>({ name:st.name, dose:blockLineDose(st) }));
   return [];
 }
 
@@ -13548,12 +13584,13 @@ function weekDayDetailHtml(date, realBlocks, isOff){
       + `<div class="wheel-add-card" data-set-off="${date}" style="opacity:0.55; border-style:dashed;">Not this day</div>`;
   }
   return realBlocks.map(({slot, block}) => {
-    const names = extractBlockNames(block);
+    const lines = extractBlockLines(block);
     const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
     return `<div class="wheel-workout-card" data-edit-date="${date}" data-edit-slot="${slot}">
         <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
-        <div class="wheel-ex-names">${names.length
-          ? names[0] + (names.length > 1 ? ` <span class="wheel-ex-more">+${names.length-1}</span>` : '')
+        <div class="wheel-ex-names">${lines.length
+          ? lines.map(l=> `<div class="wheel-ex-line"><span class="wheel-ex-name">${l.name}</span>`
+              + (l.dose ? `<span class="wheel-ex-dose">${l.dose}</span>` : '') + `</div>`).join('')
           : '<em>No details yet</em>'}</div>
       </div>`;
   }).join('');
