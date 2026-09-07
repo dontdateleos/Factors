@@ -8919,7 +8919,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.369';
+const APP_VERSION = '2026.08.31.370';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9054,6 +9054,7 @@ const APP_NOTES = {
   '2026.08.31.367': 'Trends is the charts. The seven-day strip has gone.',
   '2026.08.31.368': 'Athlete Level has gone. Nothing here ranks you against anyone else.',
   '2026.08.31.369': 'Adaptation Tracking has gone. Trends is the chart.',
+  '2026.08.31.370': 'The week spinner says the whole day, not the first three letters.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14394,6 +14395,12 @@ function getWeekDatesForOffset(weeksAhead){
   });
 }
 const WEEK_DAY_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+/* The spinner says the whole word. The three-letter form is what a row of seven columns
+   needs, and the spinner is not that — it is one line at a time with the page's width to
+   spend, so the abbreviation was buying space it had no use for. Kept separate rather than
+   widening WEEK_DAY_LABELS: the other three callers ARE tight rows — the week review's day
+   column, a toast, and the missed-days line — where MON is the right answer. */
+const WEEK_DAY_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 // Provisional — within Bell et al.'s 40-60% cut range, same "flagged not fabricated"
 // treatment as every other constant in this app.
@@ -14577,7 +14584,7 @@ function renderWeekDayPicker(dayBlocks){
     rows.push(`
       <div class="week-day-item${offset===0?' focused':''}" data-offset="${offset}"
            style="opacity:${offset===0?1:0.45};">
-        <span class="week-day-name">${WEEK_DAY_LABELS[i]}${dates[i]===todayStr?' •':''}</span>
+        <span class="week-day-name">${WEEK_DAY_FULL[i]}${dates[i]===todayStr?' •':''}</span>
         <span class="week-day-mark">${mark}</span>
       </div>`);
   }
