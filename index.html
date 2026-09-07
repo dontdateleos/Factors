@@ -2890,15 +2890,32 @@
      fill:both matters for the same reason at the other end — it holds the to-frame, which is
      also rest, rather than snapping back through an interpolation nobody asked for.
 
-     THE CURVE SETS THE SPEED, NOT THE DURATION. This was a sharp ease-out and read as a flick
-     however long the window was: half the wave passed in the first hundred milliseconds and
-     the rest crawled, peaking at 900px/s. Stretching that curve to 1100ms only takes the peak
-     to 570 — the shape is what you see, and a sharp ease-out spends its distance early
-     whatever its length. Flattened through the middle instead, the peak is 273px/s and the
-     wave passes at something like an even rate: half at 360ms, ninety percent at 760ms. It is
-     a texture drifting, which wants to be read rather than caught. */
-  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 1300ms) cubic-bezier(0.35,0.45,0.3,1) var(--field-drift-delay, 0ms) both; }
-  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 1300ms) cubic-bezier(0.35,0.45,0.3,1) var(--field-drift-delay, 0ms) both; }
+     STEPPED IN WHOLE CELLS, WHICH IS WHY NOTHING SLIDES.
+     Slid smoothly, this was a sheet of dots translating sideways — the wallpaper moving, not a
+     wave. A real wave does the opposite: the disturbance travels and the medium stays where it
+     is. Both come out of the same shift here, and which one you see is decided entirely by
+     whether the shift lands on the grid.
+
+     The dots sit 4px apart and the wave is 168 long, so the tile holds exactly 42 of them.
+     Step the shift in whole 4px cells and every dot lands on the same screen column it was
+     already in — what changes is the dot it is showing, one further along the sine. So each
+     column keeps its x and walks its y, and the field ripples in place. steps(42) is that.
+     Measured off the tile rather than assumed: 42 columns at exactly 4px, one phase each, and
+     a step moves a dot 0.38px on average and 1px at the steepest part of the sine — against a
+     wave only 3px from crest to trough. Too small to read as a step, so it comes out as slow
+     continuous motion rather than as 42 of anything.
+
+     It also stops the field going soft. Every y in the tile is drawn on a half-pixel because a
+     dot on a fractional row is antialiased across two device rows — and a smooth slide put the
+     whole tile on fractional offsets for the entire animation, softening every dot in the
+     field the moment it started moving and sharpening them again when it stopped. On whole
+     cells the tile is only ever drawn at an offset it was designed for. Nothing softens.
+
+     The mask steps with it, still in phase. 4px out of a 168px wavelength barely moves a curve
+     that smooth, so the two cut edges undulate rather than slide, which is what the dots
+     inside them are doing. */
+  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 1300ms) steps(42, end) var(--field-drift-delay, 0ms) both; }
+  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 1300ms) steps(42, end) var(--field-drift-delay, 0ms) both; }
   @media (prefers-reduced-motion: reduce){ .today-field.drift-l::before, .today-field.drift-r::before{ animation:none; } }
   /* The bottom margin #acceptanceStats used to carry itself. A child's margin collapses out
      through a parent with no padding there, so as a margin it was 16px of undotted ground
@@ -7130,7 +7147,7 @@ const UI_ANIM = {
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
   faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
-  fieldDrift:   { on:true, note:'The dot field flows one wave through, in the direction you swiped, once Today has landed', ms:1300 },
+  fieldDrift:   { on:true, note:'The dot field ripples one wave through, in the direction you swiped, once Today has landed', ms:1300 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -8746,7 +8763,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.358';
+const APP_VERSION = '2026.08.31.359';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8870,6 +8887,7 @@ const APP_NOTES = {
   '2026.08.31.356': 'The mark beside the wordmark is smaller, in the same place.',
   '2026.08.31.357': 'The dot field flows as Today arrives, the way you swiped.',
   '2026.08.31.358': 'The dot field drifts slower, at something nearer an even rate.',
+  '2026.08.31.359': 'The dot field ripples in place now, instead of sliding sideways.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
