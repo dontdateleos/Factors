@@ -3662,10 +3662,23 @@
     <div id="trendFlags"></div>
     <div class="score-note">Full history, no windowing — this is the view for spotting slow multi-month drift that trailing 7-14 day windows elsewhere in the app won't show.</div>
 
-    <div class="group">
-      <div class="group-head"><div class="group-title">Adaptation Tracking</div><div class="group-sub">per exercise, recent trend</div></div>
-      <div class="fields" id="adaptationBody"></div>
-    </div>
+    <!-- ADAPTATION TRACKING HAS GONE, AND IT IS NOT COMING BACK IN THAT SHAPE.
+         It compared the last three logged instances of an exercise by WEIGHT — no time
+         window, so three sessions could span a fortnight or a year; no reps, so 3x5 to 3x10
+         at the same load read as "plateaued"; no noise threshold, so one tired set inverted
+         the verdict; and it knew nothing about deloads, so a week the app itself planned came
+         back as "declining" in red. It was also sorted by how OFTEN you log something rather
+         than by what moved, which put your most frequent accessory at the top of a list whose
+         whole job is to say where to look.
+
+         A readout that is confidently wrong is worse than no readout, and this one occupied
+         the space the real thing wants. Per-exercise tracking comes back as e1RM over time on
+         the chart above, off the engine that already exists.
+
+         WHICH IS THE POINT: classifyGoalAdaptation is still here and still wired to goals —
+         18-day windows, best-in-window, a 2% noise threshold, a load-trend cross-reference
+         and a written interpretation, with its own regression tests. Adaptation still reaches
+         you where it decides something. It just stopped being printed as a colour word. -->
     </div>
 
     <div id="historyDataView" style="display:none;">
@@ -7999,7 +8012,7 @@ function activateDataSubView(view){
   document.querySelectorAll('#dataViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
   document.getElementById('historyDataView').style.display = view==='history' ? 'block' : 'none';
-  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); }
+  if(view==='trends'){ renderTrendChart(); }
   if(view==='history'){
     renderBlockHistory();
     renderInjuryRetrospective();
@@ -8906,7 +8919,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.368';
+const APP_VERSION = '2026.08.31.369';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9040,6 +9053,7 @@ const APP_NOTES = {
   '2026.08.31.366': 'The morning check-in moved to Settings, under Your data, as Logging.',
   '2026.08.31.367': 'Trends is the charts. The seven-day strip has gone.',
   '2026.08.31.368': 'Athlete Level has gone. Nothing here ranks you against anyone else.',
+  '2026.08.31.369': 'Adaptation Tracking has gone. Trends is the chart.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17088,8 +17102,8 @@ function scoresForEntry(entry, trailing){
   // Minimum sample size before a trailing average is trusted as a comparison baseline —
   // an "average" of 1-2 days isn't meaningfully more reliable than the raw value itself,
   // and using it with full weight would silently understate how thin the history actually
-  // is. 3 matches this app's own existing minimum-sample convention (Adaptation Tracking,
-  // signal confidence tiers) rather than introducing a new, unrelated number.
+  // is. 3 matches this app's own existing minimum-sample convention (the signal confidence
+  // tiers) rather than introducing a new, unrelated number.
   const MIN_TRAILING_N = 3;
   const aParts = [];
   if(duration!=null && trailing && trailing.avgDuration && trailing.durationN>=MIN_TRAILING_N) aParts.push(clamp(duration/trailing.avgDuration*100,0,100));
@@ -18586,7 +18600,7 @@ const WORKOUT_TIME_ESTIMATE = {
 // Replaces the flat placeholder pace table with each person's own logged pace per run
 // type, once there's enough real history — falling back to the placeholder for any type
 // without enough logged runs yet. Minimum-3 gate matches this app's established
-// convention elsewhere (Adaptation Tracking, scoresForEntry's trailing-average gate) —
+// convention elsewhere (scoresForEntry's trailing-average gate) —
 // an "average" of 1-2 runs isn't meaningfully more reliable than a single logged pace.
 // 90-day window matches computeRunningPaceProfile's own window, for consistency rather
 // than introducing a separate number.
@@ -27208,49 +27222,6 @@ function renderTrendFlags(points){
 // Per-exercise adaptation trend: is this movement progressing, plateaued, or declining
 // for this specific person, based on their last 3 logged instances. Simple first-vs-last
 // comparison, not a statistical model — deliberately readable, not overfit to noisy data.
-async function computeAdaptationTracking(){
-  const sessions = await getAllTrainingSessions();
-  const byExercise = {};
-  sessions.forEach(s=>{
-    if(s.type==='strength' && s.exercises){
-      s.exercises.forEach(e=>{
-        if(e.name && e.weight){
-          const key = e.name.trim().toLowerCase();
-          (byExercise[key] = byExercise[key]||[]).push({ date: s.date, weight: e.weight, name: e.name });
-        }
-      });
-    }
-  });
-  const results = [];
-  Object.values(byExercise).forEach(history=>{
-    if(history.length < 3) return;
-    history.sort((a,b)=> new Date(a.date)-new Date(b.date));
-    const recent = history.slice(-3);
-    const weights = recent.map(h=>h.weight);
-    const delta = weights[weights.length-1] - weights[0];
-    const trend = delta > 0 ? 'progressing' : delta < 0 ? 'declining' : 'plateaued';
-    results.push({ name: recent[recent.length-1].name, trend, from: weights[0], to: weights[weights.length-1], sessions: history.length });
-  });
-  return results.sort((a,b)=> b.sessions - a.sessions);
-}
-
-async function renderAdaptationTracking(){
-  const body = document.getElementById('adaptationBody');
-  body.innerHTML = '<div class="skeleton"></div>';
-  const results = await computeAdaptationTracking();
-  if(results.length === 0){
-    body.innerHTML = '<div class="log-entry">Log the same exercise 3+ times to see its trend here.</div>';
-    return;
-  }
-  const trendColor = { progressing:'var(--good)', plateaued:'var(--warn)', declining:'var(--bad)' };
-  let html = '';
-  results.slice(0,10).forEach(r=>{
-    html += `<div class="log-entry"><span>${r.name}</span><span style="color:${trendColor[r.trend]};">${r.trend} (${r.from}→${r.to}kg)</span></div>`;
-  });
-  html += '<div class="score-note" style="margin-top:8px;">Based on your last 3 logged instances of each exercise — a simple direction check, not a forecast.</div>';
-  body.innerHTML = html;
-}
-
 async function renderTrendChart(){
   const res = await window.storage.list('entry:');
   if(!res||!res.keys||res.keys.length===0) return;
