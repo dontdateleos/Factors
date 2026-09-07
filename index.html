@@ -3616,19 +3616,24 @@
       <div class="type-btn" data-view="history">Workout History</div>
     </div>
 
+    <!-- ATHLETE LEVEL HAS GONE, AND THE REASON IS THE APP'S OWN PREMISE.
+         Everything here measures you against your own history: the score is z-scored against
+         your own rolling distribution, the goals are ones you set, the ladders are ones you
+         climb, and this chart is your past against your present. Athlete Level was the single
+         place that ranked you against a population table, with a sex divisor, and called the
+         result a tier. That is a different idea wearing the same clothes, and no amount of
+         "what the next tier costs" fixes it — it only sharpens the wrong thing.
+
+         The TABLE stays, because it is not doing that job anywhere else. benchmarkAndSuggestTarget
+         uses the tier to pick a rate — how fast someone lifting at this level typically adds
+         weight — when it invents a target for a goal you left blank, and the goal-pressure
+         check uses the same rate to say whether a deadline is realistic. That is calibrating
+         your own goal, not scoring you against anyone. It stays, unshown.
+
+         The one control the card owned goes to Settings, beside the bodyweight it is divided
+         into: the standard is an input to that arithmetic, and it was the only setting living
+         on a reading tab. -->
     <div id="trendsDataView" style="display:none;">
-    <div class="group">
-      <div class="group-head"><div class="group-title">Athlete Level</div><div class="group-sub">calculated, not self-reported</div></div>
-      <div class="fields">
-        <div class="field-row"><span class="field-label">Standard</span>
-          <select id="strengthStandardSex">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
-        <div id="athleteLevelBody"></div>
-      </div>
-    </div>
     <!-- The chart had no head at all: no title, no band, no number, with the metric pills
          sitting straight on the ground while the two readouts around it were banded
          sections. It is the thing this sub-view exists for. -->
@@ -3736,6 +3741,16 @@
       <div class="fields collapsible-body" data-collapse="bodymetrics" style="display:none;">
         <div class="field-row"><span class="field-label">Height (cm)</span><input type="number" step="0.1" id="bodyHeight"></div>
         <div class="field-row"><span class="field-label">Weight (kg)</span><input type="number" step="0.1" id="bodyWeight"></div>
+        <!-- Not shown anywhere any more, and still needed: the strength bands it selects are
+             what benchmarkAndSuggestTarget reads to size a target you did not set. Defaulting
+             it silently would calibrate a woman's goals against men's numbers. -->
+        <div class="field-row"><span class="field-label">Strength standard</span>
+          <select id="strengthStandardSex" aria-label="Which strength standard to calibrate targets against">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="score-note">Only used to size a goal target when you leave one blank.</div>
         <div class="field-row"><span class="field-label">Body fat %</span><input type="number" step="0.1" id="bodyFat" placeholder="optional"></div>
         <div class="score-note" id="bodyFatConfidenceNote">Body fat % is low-confidence — hard to measure precisely, treat as a rough trend indicator rather than an exact number.</div>
         <div class="score-note note-live" id="bodyMetricsLastUpdated">No metrics yet. It only knows what it has been told.</div>
@@ -7984,7 +7999,7 @@ function activateDataSubView(view){
   document.querySelectorAll('#dataViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('trendsDataView').style.display = view==='trends' ? 'block' : 'none';
   document.getElementById('historyDataView').style.display = view==='history' ? 'block' : 'none';
-  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); renderAthleteLevel(); }
+  if(view==='trends'){ renderTrendChart(); renderAdaptationTracking(); }
   if(view==='history'){
     renderBlockHistory();
     renderInjuryRetrospective();
@@ -8794,6 +8809,16 @@ async function loadBodyMetricsDisplay(asOfDate){
   }
 }
 
+/* The standard is read straight from storage by the two places that need it, so this only
+   has to store it — there is nothing on screen to repaint. Seeded from storage on load for
+   the same reason the card used to: a select left at its markup default would silently
+   disagree with what the goal benchmark is actually using. */
+(async function wireStrengthStandard(){
+  const sel = document.getElementById('strengthStandardSex');
+  if(!sel) return;
+  try{ const r = await window.storage.get('settings:strengthStandardSex'); if(r && r.value) sel.value = r.value; } catch(e){}
+  sel.addEventListener('change', ()=> window.storage.set('settings:strengthStandardSex', sel.value));
+})();
 document.getElementById('updateBodyMetricsBtn').addEventListener('click', async ()=>{
   const height = parseFloat(document.getElementById('bodyHeight').value);
   const weight = parseFloat(document.getElementById('bodyWeight').value);
@@ -8881,7 +8906,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.367';
+const APP_VERSION = '2026.08.31.368';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9014,6 +9039,7 @@ const APP_NOTES = {
   '2026.08.31.365': 'Logging an injury and taking the mobility test are sheets off a button too.',
   '2026.08.31.366': 'The morning check-in moved to Settings, under Your data, as Logging.',
   '2026.08.31.367': 'Trends is the charts. The seven-day strip has gone.',
+  '2026.08.31.368': 'Athlete Level has gone. Nothing here ranks you against anyone else.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -19686,53 +19712,6 @@ async function loadCurrentGoals(){
   await refreshGoalDependents();
 }
 
-async function renderAthleteLevel(){
-  const sexSelect = document.getElementById('strengthStandardSex');
-  try{ const r = await window.storage.get('settings:strengthStandardSex'); sexSelect.value = r.value; } catch(e){}
-  const body = document.getElementById('athleteLevelBody');
-  body.innerHTML = '<div class="skeleton"></div>';
-
-  const strength = await computeStrengthLevel(sexSelect.value);
-  const running = await computeRunningPaceProfile();
-
-  let html = '<div class="log-title">Strength (e1RM from logged sets, ±1 tier honest uncertainty)</div>';
-  if(strength.error === 'no-bodyweight'){
-    html += '<div class="log-entry">Log bodyweight (Settings → Body metrics) to calculate this.</div>';
-  } else {
-    const liftLabels = { squat:'Squat', bench:'Bench Press', deadlift:'Deadlift', ohp:'Overhead Press' };
-    let anyFound = false;
-    Object.entries(strength.lifts).forEach(([lift, data])=>{
-      if(!data){
-        html += `<div class="log-entry"><span>${liftLabels[lift]}</span><span style="color:var(--dim);">no logged sets found</span></div>`;
-        return;
-      }
-      anyFound = true;
-      const ohpNote = lift==='ohp' ? ' — low confidence, no real dataset exists for OHP' : '';
-      const confNote = data.confidence==='ok' ? ' (est. from 7-10 reps)' : data.confidence==='low' ? ' (low-confidence est., 11-15 reps)' : '';
-      html += `<div class="log-entry"><span>${liftLabels[lift]}</span><span>${data.ratio}x BW — ${data.tier}${confNote}</span></div>`;
-      if(ohpNote) html += `<div class="score-note" style="margin-top:-4px;">${ohpNote}</div>`;
-    });
-    if(!anyFound) html += '<div class="log-entry">No qualifying sets yet — needs squat/bench/deadlift/OHP logged with ≤15 reps.</div>';
-  }
-
-  html += '<div class="log-title" style="margin-top:14px;">Running (Riegel-normalized from hard efforts)</div>';
-  if(running.error === 'no-hard-runs'){
-    html += '<div class="log-entry">No tempo/interval/race/long runs logged in the last 90 days yet.</div>';
-  } else {
-    Object.entries(running.results).forEach(([label, r])=>{
-      const mins = Math.floor(r.time), secs = Math.round((r.time%1)*60);
-      const methodNote = r.method==='riegel' ? ` (Riegel-projected from ${r.fromDistance}km)` : ' (direct)';
-      html += `<div class="log-entry"><span>${label}</span><span>${mins}:${secs.toString().padStart(2,'0')}${methodNote}</span></div>`;
-    });
-    html += '<div class="score-note" style="margin-top:6px;">No tier label shown — that needs WMA age-grading factor tables, which aren\'t integrated. This is a normalized pace estimate, not a fitness percentile.</div>';
-  }
-
-  body.innerHTML = html;
-}
-document.getElementById('strengthStandardSex').addEventListener('change', async (e)=>{
-  await window.storage.set('settings:strengthStandardSex', e.target.value);
-  renderAthleteLevel();
-});
 
 // Shared current-value lookup, reused by the timeline (keeps the per-type lookup logic
 // in one place rather than duplicated between the progress card and timeline checks).
