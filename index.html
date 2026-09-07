@@ -667,7 +667,12 @@
   .eyes.no-morph, .eyes.no-morph span, .eyes.no-morph .eye-gaze, .eyes.no-morph .eye-motion{ transition:none; transition-delay:0ms; }
   /* Absolutely positioned and transform-origin'd at its top left because the header
      collapse drives left/top/scale on it as you scroll — see updateHeaderCollapse. */
+  /* --mc-scale shrinks the solid inside a box that does not move. The box stays 40 because
+     two other things measure it: the collapse takes the mark's left from it, and a finger
+     has to hit it — 40 is already under the 44 a tap target wants, and taking the drawing's
+     size out of the box would have taken the tap target with it. */
   .header-brand .header-mark{ position:absolute; left:117px; top:57px; z-index:1; transform-origin:left top; cursor:pointer;
+    --mc-scale:0.85;
     --eye-box-w:40px; --eye-box-h:40px; --eye-gap:10px; --eye-plate:var(--block-lime); --eye-plate-r:12px;
     --eye-w:6px; --eye-h:18px; --eye-r:3px; --eye-rb:3px; --eye-ink:var(--text); }
   /* Above the score, centred on the number rather than on the number-and-ring pair.
@@ -5669,7 +5674,14 @@ function drawMarkCube(){ for(const m of mcMounts()) mcPaint(m); }
 function mcPaint(m){
   const svg = m.svg, host = m.host;
   if(!svg || !host) return;
-  const s = parseFloat(getComputedStyle(host).width) || 40;
+  /* The solid is sized off its host box and drawn centred in it, so --mc-scale shrinks the
+     DRAWING and leaves everything else alone: the box keeps its width, which is what the
+     collapse measures its left from and what a finger has to hit, and a smaller cube stays
+     concentric with the box it came from — smaller in the same place, with no position to
+     correct. Shrinking the box itself would have done neither. */
+  const cs = getComputedStyle(host);
+  const k = parseFloat(cs.getPropertyValue('--mc-scale'));
+  const s = (parseFloat(cs.width) || 40) * (k > 0 ? k : 1);
   if(!(s > 0)) return;
   const B = Math.round(s * 1.08), c = B/2, h = s/2, R = MC_R * s;
   svg.setAttribute('width', B); svg.setAttribute('height', B);
@@ -8651,7 +8663,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.355';
+const APP_VERSION = '2026.08.31.356';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8772,6 +8784,7 @@ const APP_NOTES = {
   '2026.08.31.353': 'The mark in the top bar tears as a new page is dealt in.',
   '2026.08.31.354': 'The mark in the top bar sits a touch further off the wordmark.',
   '2026.08.31.355': 'On the bone ground, an armed Clear all and a ticked skill rung are readable again.',
+  '2026.08.31.356': 'The mark beside the wordmark is smaller, in the same place.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
