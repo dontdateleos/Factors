@@ -456,10 +456,16 @@
      fill's partner and paints ink on ink.
      This list is the one thing here that has to be kept by hand. groundcheck.mjs is the
      guard: a new --reverse-bg fill that is not listed shows up as a 1:1 failure. */
+  /* .confirm-armed is the one entry here that does not exist in the markup: confirmInPlace
+     paints a destructive button with --reverse-bg the moment you arm it, which makes it a
+     pocket of the dark ground like any other, but only for the four seconds it is armed.
+     That is why it was missed — groundcheck walks the page at rest, and at rest this button
+     is a plain outline. Unarmed on bone it read black-on-black: the fill is fixed near-black
+     and the ink is --bg, which on bone IS near-black until this line moves it. */
   html[data-ground="bone"] :is(
     .rating-btn.active, .evidence-badge.strong, .plan-key, .ss-tag, .drill-stage,
     .update-banner, .lift-sheet-panel, .morning-panel, .goal-row-panel,
-    .rpe-scale .subj-dot.on, .rest-preset.on
+    .rpe-scale .subj-dot.on, .rest-preset.on, .confirm-armed
   ){
     --ground:#0c0d0b; --bg:#fbfaf6;
     --ink-rgb:251,250,246; --ground-rgb:12,13,11;
@@ -481,10 +487,15 @@
   #strengthSkillPicker .mob-check-num, #mobilitySkillPicker .mob-check-num{ color:var(--bg); }
   #strengthSkillPicker .mob-check-text, #mobilitySkillPicker .mob-check-text{ color:var(--bg); }
   #strengthSkillPicker .mob-check-row.done, #mobilitySkillPicker .mob-check-row.done{ background:var(--bg); }
+  /* --ground, not --text. The fill is --bg, which FLIPS with the ground; --text does not
+     (it means "on a light or coloured fill" and the bone block deliberately leaves it put).
+     So on bone the band went near-black and its ink stayed near-black with it, and a ticked
+     rung was a solid black bar with the level inside it invisible. --bg's partner is
+     --ground, which is the pairing every other filled control in the app already uses. */
   #strengthSkillPicker .mob-check-row.done .mob-check-num,
   #strengthSkillPicker .mob-check-row.done .mob-check-text,
   #mobilitySkillPicker .mob-check-row.done .mob-check-num,
-  #mobilitySkillPicker .mob-check-row.done .mob-check-text{ color:var(--text); }
+  #mobilitySkillPicker .mob-check-row.done .mob-check-text{ color:var(--ground); }
   .gauge-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; margin:20px auto 24px; text-align:center; }
   /* Ring beside the number, filling to score/100. Butt caps and a heavy even stroke so it
      reads as a drawn dial rather than a progress widget. */
@@ -1182,7 +1193,9 @@
      without reading a number — and a filled band says it on its own, which is what the
      split digit beside the old rail was there to help with. */
   .mob-check-row.done{ background:var(--bg); }
-  .mob-check-row.done .mob-check-num, .mob-check-row.done .mob-check-text{ color:var(--text); }
+  /* --ground rather than --text, for the reason the picker override above gives: the band
+     follows the ground and its ink has to follow it too. */
+  .mob-check-row.done .mob-check-num, .mob-check-row.done .mob-check-text{ color:var(--ground); }
   .mob-check-row.done .mob-check-text{ font-weight:var(--fw-medium); }
   .mob-step-count{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:var(--sp-2); letter-spacing:0.02em; }
   /* System confidence. Collapsed it occupies the same one line the old baseline note did. */
@@ -8638,7 +8651,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.354';
+const APP_VERSION = '2026.08.31.355';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8758,6 +8771,7 @@ const APP_NOTES = {
   '2026.08.31.352': 'Tabs are dealt in from the side you swiped, rather than up from the bottom.',
   '2026.08.31.353': 'The mark in the top bar tears as a new page is dealt in.',
   '2026.08.31.354': 'The mark in the top bar sits a touch further off the wordmark.',
+  '2026.08.31.355': 'On the bone ground, an armed Clear all and a ticked skill rung are readable again.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -9776,6 +9790,11 @@ function confirmInPlace(btn, opts){
 
   btn.dataset.arming = '1';
   btn.textContent = opts.label || (mode === 'tap' ? 'Tap again to confirm' : 'Hold to confirm');
+  /* The paint stays inline because "Clear all data" carries its own inline colours in the
+     markup and a class would lose to them. The class is only there to say WHAT this is: a
+     --reverse-bg pocket, which on the bone ground has to take the dark token set back or its
+     --bg ink is the same near-black as its fill. See the bone :is() list. */
+  btn.classList.add('confirm-armed');
   btn.style.backgroundColor = 'var(--reverse-bg)';
   btn.style.color = 'var(--bg)';
   btn.style.borderColor = 'var(--bad)';
@@ -9789,6 +9808,7 @@ function confirmInPlace(btn, opts){
       // Restored as an attribute, not property by property: Clear-all-data carries its own
       // inline border and colour in the markup, and clearing the properties would strip them.
       if(originalStyle) btn.setAttribute('style', originalStyle); else btn.removeAttribute('style');
+      btn.classList.remove('confirm-armed');
       delete btn.dataset.arming;
     };
     const finish = (ok)=>{

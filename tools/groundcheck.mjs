@@ -16,6 +16,14 @@
 //
 // If you add a --reverse-bg fill, it will show up here as 1:1 until it is added to the
 // :is() list in the bone block.
+//
+// A SECOND PASS FOR STATES THE PAGE AT REST DOES NOT SHOW. Two ground bugs shipped past
+// this file because a walk of the rendered page never reaches them: a destructive button
+// only becomes a --reverse-bg pocket for the four seconds it is armed, and a skill rung
+// only becomes a filled band once you have ticked it. Both were black on black on bone.
+// The states pass puts the app into those states deliberately and measures again, so
+// anything whose colours only exist under a class or a timer is covered too. Add to
+// applyStates when you add a state that repaints something.
 import { chromium } from 'playwright';
 const ground = process.argv[2] || '';
 const MEASURE = `(()=>{
@@ -69,7 +77,21 @@ await p.goto(URL); await p.waitForFunction(()=>!!window.storage,{timeout:20000})
 await p.waitForTimeout(2600);
 if(ground) await p.evaluate(g=>document.documentElement.dataset.ground=g, ground);
 await p.waitForTimeout(400);
+// Transient dressing, applied on purpose. Arming is the app's own call rather than a
+// hand-painted imitation, so what gets measured is what a finger would actually produce;
+// it resolves false on its own timer and clears nothing. Returns how many states it found,
+// because a pass that silently applied none is a pass that proves nothing.
+const applyStates = `(()=>{
+  let n = 0;
+  document.querySelectorAll('.mob-check-row:not(.done):not(.prereq)').forEach(r=>{ r.classList.add('done'); n++; });
+  const btn = document.getElementById('clearAllWeekBtn') || document.getElementById('clearAllDataBtn');
+  if(btn && typeof confirmInPlace === 'function' && btn.dataset.arming !== '1'){
+    confirmInPlace(btn, { mode:'tap', label:'Tap again to confirm' }); n++;
+  }
+  return n;
+})()`;
 const seen=new Map();
+let stateCount = 0;
 for(const tab of ['insights','training','injuries','data','settings']){
   await p.evaluate(x=>activateTab(x), tab); await p.waitForTimeout(1000);
   await p.evaluate(()=>{ document.querySelectorAll('.group-head').forEach(h=>{
@@ -80,9 +102,18 @@ for(const tab of ['insights','training','injuries','data','settings']){
     const k=`${f.cls}|${f.txt}`;
     if(!seen.has(k)) seen.set(k,{...f, tab});
   }
+  // Second pass, same tab, with the states on. Measured immediately: the armed button puts
+  // itself back after four seconds.
+  stateCount += await p.evaluate(applyStates);
+  await p.waitForTimeout(250);
+  for(const f of await p.evaluate(MEASURE)){
+    const k=`${f.cls}|${f.txt}`;
+    if(!seen.has(k)) seen.set(k,{...f, tab:tab+'*'});
+  }
 }
 const list=[...seen.values()].sort((a,b)=>a.r-b.r);
 console.log(`ground=${ground||'dark'}  failures=${list.length}`);
 for(const f of list) console.log(`  ${String(f.r).padStart(5)}:1  ${f.fg} on ${f.bg}  ${f.tab.padEnd(9)} ${(f.tag+'.'+f.cls).padEnd(30)} "${f.txt}"`);
+console.log(`states applied: ${stateCount}${stateCount ? '' : '  <- none found; the states pass measured nothing'}`);
 console.log('errors:', errs.length?errs.slice(0,3).join(' | '):'none');
 await b.close();
