@@ -799,36 +799,36 @@
      number and the name are the two display objects and they now agree.
      tabular-nums stays. The score rolls through a digit reel, so the figures have to be
      equal-width or the number shifts sideways as it counts. */
-  /* The wordmark's treatment, not the interface face. That makes the score the second thing
-     in the app set in Helvetica — the first being the wordmark itself — which is the point:
-     the number and the name are the two display objects and they agree.
+  /* MEASURED, SO MONO. The app already had this rule and the score was the one thing not
+     following it — the note on the header's day number states it outright: "the same rule the
+     readout, the strip figures and the version line follow. The day number is a reading off a
+     calendar, not a word." A recovery score is a reading too. It had been set in --wordmark
+     since .286, on the reasoning that the number and the name are the two display objects and
+     should agree; the number is a measurement first, and it agrees with the other
+     measurements now.
 
-     THEY DID NOT ACTUALLY AGREE. The note here used to say "no stroke, because the wordmark
-     does not use one", and that was simply wrong: header h1 carries -webkit-text-stroke 0.6px
-     and tracks at -0.045em, while this sat at 0 and -0.035em. The number was LIGHTER and
-     looser than the name for a reason that was never true. Measured before touching it —
-     0.6px on 46px is 1.30% of the size, and 0 on 58px is 0%.
+     TRACKING GOES BACK TO NORMAL. The -0.045em it was carrying was fitted to Helvetica and
+     borrowed from the wordmark, and it fights this face: the app tracks mono OUTWARD where it
+     tracks it at all — the day number sits at +0.02em — because the figures are already on a
+     fixed advance. At 58px that advance is generous enough on its own, so this takes neither.
 
-     So the weight is the wordmark's, in proportion rather than in pixels: 0.76px at 58px is
-     the same 1.30%, because a stroke is an absolute and the same 0.6px on a bigger face would
-     read lighter, not equal. It comes from a stroke rather than a heavier weight because 700
-     is the end of the road for --wordmark — Helvetica has no 800, and asking for one gets a
-     synthesised smear or nothing depending on the device.
+     THE WEIGHT IS STILL A STROKE, for the same reason it was: 700 is the last weight loaded
+     for Azeret (400, 500, 700), so there is nothing above it to ask for. 0.9px is 1.55% of the
+     size — heavier than body text carries at 0.625% and lighter than the day number's 2.31%,
+     which is what a figure this large wants: small text needs proportionally more stroke to
+     stay solid, not less.
 
-     THE WIDTH IS THE DELIBERATE DIFFERENCE, and the only one. A uniform scale, not tracking:
-     tracking moves the figures apart and leaves them the same shape, which reads as a number
-     spaced out, where scaling makes the figures broader. 1.12 is as far as it goes before
-     Helvetica's counters start to close and the 9 fills in — measured at 1.16 and backed off.
-     Because the scale is uniform the tracking rides with it, so the number stays a wider
-     setting of the same design rather than a different one.
+     AND NOTHING IS SCALED. The 1.12 stretch existed to widen Helvetica, whose digits are
+     narrow. A monospace figure is already wide — this comes out at 69.6px against the 60.5px
+     the Helvetica setting started at — so the scale would be pushing on an open door, and a
+     stretched monospace is a contradiction: the whole point of the face is a fixed advance.
 
-     tabular-nums stays, and matters more than it did: the score rolls through a digit reel,
-     and a uniform scale keeps the figures equal-width so the number cannot shift sideways as
-     it counts. */
-  .score-num{ font-family:var(--wordmark); font-size:var(--fs-score); font-weight:var(--fw-bold);
-    color:var(--text); line-height:0.92; letter-spacing:-0.045em;
-    -webkit-text-stroke:0.76px currentColor;
-    transform:scaleX(1.12);
+     tabular-nums is now belt and braces rather than the mechanism: a monospace gives equal
+     widths by construction, which is what the digit reel needs so the number cannot shift
+     sideways as it counts. It stays for the fallback face. */
+  .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold);
+    color:var(--text); line-height:0.92; letter-spacing:normal;
+    -webkit-text-stroke:0.9px currentColor;
     font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
@@ -8509,7 +8509,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.346';
+const APP_VERSION = '2026.08.31.347';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8621,6 +8621,7 @@ const APP_NOTES = {
   '2026.08.31.344': 'The mark is ink now, and rests off its corner rather than square on.',
   '2026.08.31.345': 'The app icon is the mark again — the ink solid on its corner.',
   '2026.08.31.346': 'The score is wider, and carries the same weight as the wordmark rather than less.',
+  '2026.08.31.347': 'The score is set in the same face as every other number in the app.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
