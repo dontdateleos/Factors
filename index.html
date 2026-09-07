@@ -1506,6 +1506,17 @@
      wave needs: the top mask band is solid only below y=14 and the bottom one above y=10, so
      anything less cuts the first and last rows on the curve. */
   .fields:has(> #weekBlockStrip){ background:transparent; }
+  /* THE OTHER TWO GRAPHS TAKE IT ON .fields ITSELF.
+     Data's trace and its trend chart both measure their own clientWidth to size the SVG they
+     draw — the trace's code says so in as many words, because drawing to the parent's width
+     once put the last mark 22px off the screen. Putting the field on the graph would have
+     meant putting padding on the box it measures, and the SVG would come out that much too
+     wide. Their .fields is already the box the field wants to be: outside .form-panel it
+     bleeds to the page edge and puts the gutter back as padding, and its 16px top and bottom
+     are exactly what the wave needs. So the field goes there and the graph is untouched.
+     Each of these holds nothing but its graph, which is what makes it the graph's box and not
+     the section's. */
+  .fields.dot-field{ background:transparent; }
   #weekBlockStrip{
     margin:calc(-1 * var(--sp-3)) calc(-1 * var(--gutter)) 0;
     padding:var(--sp-3) var(--gutter); }
@@ -3676,7 +3687,7 @@
     <div class="group">
       <div class="group">
         <div class="group-head"><div class="group-title">Last 7 days</div><div class="group-sub">the trailing week &mdash; readiness, bodyweight and what each session cost</div></div>
-        <div class="fields"><div id="dataScoreTrace" class="data-trace" role="button" tabindex="0"></div></div>
+        <div class="fields dot-field"><div id="dataScoreTrace" class="data-trace" role="button" tabindex="0"></div></div>
       </div>
       <div class="group-head"><div class="group-title">Over time</div><div class="group-sub">the whole history, not a trailing window</div></div>
     </div>
@@ -3694,7 +3705,7 @@
       <div class="type-btn" data-period="monthly">Monthly</div>
     </div>
     <div class="group">
-      <div class="fields">
+      <div class="fields dot-field">
         <div id="trendChart" role="img" aria-label=""></div>
       </div>
     </div>
@@ -8809,7 +8820,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.362';
+const APP_VERSION = '2026.08.31.363';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8937,6 +8948,7 @@ const APP_NOTES = {
   '2026.08.31.360': 'The dot field ripples half as far.',
   '2026.08.31.361': 'Training load sits on the dot field now, not a yellow tint, and ripples in with the page.',
   '2026.08.31.362': 'The dots run behind the load chart only, not the reading under it.',
+  '2026.08.31.363': 'Data\u2019s trace and trend chart sit on the dot field too, and ripple in with the page.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
