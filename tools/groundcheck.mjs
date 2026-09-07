@@ -88,6 +88,12 @@ const applyStates = `(()=>{
   if(btn && typeof confirmInPlace === 'function' && btn.dataset.arming !== '1'){
     confirmInPlace(btn, { mode:'tap', label:'Tap again to confirm' }); n++;
   }
+  // A sheet is display:none until you open it, so everything in it is invisible to a walk of
+  // the page. The goals sheet holds a whole form and shipped cream-on-cream on bone for
+  // exactly that reason. Opened, not closed again: it is measured every round from here on.
+  document.querySelectorAll('.lift-sheet, .morning-sheet').forEach(sh=>{
+    if(sh.style.display === 'none'){ sh.style.display = ''; n++; }
+  });
   return n;
 })()`;
 const seen=new Map();

@@ -471,6 +471,18 @@
     --ink-rgb:251,250,246; --ground-rgb:12,13,11;
     --dim:#c9c7bc; --text:#0c0d0b;
   }
+  /* A .fields inside one of those pockets paints the tab's tint, and the tint does not follow
+     the pocket: --field is declared on body as var(--field-<hue>), so it RESOLVES on body and
+     the resolved value is what inherits — redeclaring the hue tokens down here changes
+     nothing, which is worth writing down because it looks like it should. On bone that left a
+     light tint under ink the pocket had just turned cream, and the goals sheet came out
+     cream-on-cream.
+
+     A sheet has no use for the tint anyway: the tab colour separates one section from the
+     next down a page, and a sheet is one surface with nothing to separate it from. So the
+     tint comes off inside sheets on both grounds, which fixes the reading and drops a band of
+     stripes out of a dialog at the same time. */
+  .lift-sheet-panel .fields, .morning-panel .fields{ background:transparent; }
 
   /* ---- what sits on the ground ----------------------------------------------------
      Most of the app is inside .form-panel, which has painted its own contents light on
@@ -1617,6 +1629,25 @@
      already min-width:0 and ellipsised, so shrinking is what they were built to do. */
   .week-gen-row select{ flex:1 1 0; }
   .week-gen-split{ justify-content:space-between; }
+  /* The goals line is a readout, so it is set like one — the same 10px mono the section
+     heads use for their summaries. "Goals" names it and the summary answers it, which is the
+     whole of what the page needs to say about them when they are not being edited. min-width:0
+     so a long list ellipsises instead of pushing the button off the row. */
+  .week-goals-row{ margin-top:var(--sp-2); }
+  .week-goals-line{ display:flex; align-items:baseline; gap:8px; min-width:0; flex:1 1 auto;
+    font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
+    letter-spacing:0.08em; text-transform:uppercase; color:var(--bg); }
+  /* .head-est pushes itself right with margin-left:auto and caps at 64% for a section head.
+     On this row it is one of two things sharing the line, so it sits where it falls. */
+  .week-goals-line .head-est{ margin-left:0; max-width:none; text-align:left;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The sheet is the lift sheet's, so the panel, the head and the close button are all
+     already dressed and already listed in the bone block. What it adds is room: goals are a
+     form, not a list of past sets, and 76vh of a phone is not enough to edit three of them in.
+     The panel inside keeps its .form-panel bleed, which lands on the sheet's own padding —
+     both are the same near-black, so the seam does not show. */
+  .goal-sheet .lift-sheet-panel{ max-height:88vh; }
+  .goal-sheet .group.form-panel{ margin-bottom:0; }
   .week-deload{ display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer;
     font-family:var(--sans); font-size:var(--fs-md); }
   .week-deload input{ width:auto; flex:none; }
@@ -3236,6 +3267,16 @@
           <!-- What builds the week, then the shape it built. Generate used to sit under the
                chart, which put the control after its own output — you read the block, then
                scrolled past it to find the thing that makes one. -->
+          <!-- GOALS SIT WITH THE THING THEY FEED, NOT IN A SECTION OF THEIR OWN.
+               Generate builds the week FROM the goals, so the goals belong on the same row of
+               controls rather than as a numbered section further down that you had to know to
+               unfold. What is left on the page is the answer — which goals are set — and a way
+               in; the setting of them is a sheet, because it is a job you do and finish rather
+               than something the page has to keep showing. -->
+          <div class="week-gen-row week-gen-split week-goals-row">
+            <div class="week-goals-line">Goals<span class="head-est" id="weekGoalsSummary"></span></div>
+            <button type="button" class="small outline" id="updateGoalsBtn">Update goals</button>
+          </div>
           <div class="week-gen-row">
             <select id="programSplitOverride" aria-label="Training split">
               <option value="auto">Auto split</option>
@@ -3287,9 +3328,18 @@
            which is why they were put on one screen. But a goal is set once and revisited;
            the week is what the tab is opened for, so the week goes first. Still folded by
            default: it is an input you set, not one you read. -->
+      <!-- The same markup as before, in a sheet instead of a section. Every id in here is
+           spoken to from a dozen places — #goalListRows, #runStartPanel, #saveGoalsBtn and
+           the rest — and #weekGoalsGroup is where loadCurrentGoals parks the running panel
+           while it clears the rows, so the wrapper keeps its id and its .form-panel dress and
+           only its surroundings change. -->
+      <div class="lift-sheet goal-sheet" id="goalSheet" style="display:none;">
+      <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Goals">
+      <div class="lift-sheet-head"><span>Goals</span>
+        <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
       <div class="group form-panel" id="weekGoalsGroup">
-        <div class="group-head collapsible" data-collapse="weekgoals" style="cursor:pointer;"><div class="group-title">Goals</div><span class="head-est" id="weekGoalsSummary"></span><div class="group-sub">up to 3, in the order you actually mean them — the week is built from these</div><span class="collapse-chevron collapsed" data-collapse="weekgoals">&#9662;</span></div>
-        <div class="fields collapsible-body" data-collapse="weekgoals" style="display:none;">
+        <div class="fields">
+          <div class="score-note">Up to 3, in the order you actually mean them — the week is built from these.</div>
 
           <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
           <div id="goalListRows"></div>
@@ -3328,6 +3378,8 @@
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note note-live" style="margin-top:8px;"></div>
         </div>
+      </div>
+      </div>
       </div>
 
 
@@ -8820,7 +8872,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.363';
+const APP_VERSION = '2026.08.31.364';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8949,6 +9001,7 @@ const APP_NOTES = {
   '2026.08.31.361': 'Training load sits on the dot field now, not a yellow tint, and ripples in with the page.',
   '2026.08.31.362': 'The dots run behind the load chart only, not the reading under it.',
   '2026.08.31.363': 'Data\u2019s trace and trend chart sit on the dot field too, and ripple in with the page.',
+  '2026.08.31.364': 'Goals are a sheet you open from beside Generate, not a section to scroll past.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -19655,6 +19708,18 @@ function attachRunStartToRunningGoal(){
   runRow.insertAdjacentElement('afterend', panel);
 }
 
+/* The line beside Generate is now the only thing on the page that says what the goals are —
+   it used to be a summary on a folded section head, where a stale reading cost little because
+   the section under it was the real answer. It has to be right the moment a save lands, so it
+   is written from here rather than inline in the load, and called from both. Saving from
+   Function writes the same record, so it repaints there too. */
+function paintGoalSummary(list){
+  const el = document.getElementById('weekGoalsSummary');
+  if(!el) return;
+  const named = (list || []).map(g=> GOAL_TYPE_LABELS[g.type] || g.type).filter(Boolean);
+  el.textContent = named.length ? named.join(' \u00b7 ') : 'none set';
+}
+
 async function loadCurrentGoals(){
   const goals = await getCurrentGoals(todayStr);
   // Park the running panel outside the container first. It lives among the goal rows now,
@@ -19671,13 +19736,7 @@ async function loadCurrentGoals(){
     addGoalRow(); // start with one empty row
   }
   attachRunStartToRunningGoal();
-  // Folded, the head is all you see, so it carries the answer: a section called "Goals"
-  // that will not say what they are is a section you have to open to learn nothing.
-  const goalSummary = document.getElementById('weekGoalsSummary');
-  if(goalSummary){
-    const named = ((goals && goals.list) || []).map(g=> GOAL_TYPE_LABELS[g.type] || g.type).filter(Boolean);
-    goalSummary.textContent = named.length ? named.join(' · ') : 'none set';
-  }
+  paintGoalSummary(goals && goals.list);
   // Both skill categories are pickers now — nothing is rendered as an editable row.
   // Scores are pulled once here rather than inside the render: renderSkillPicker runs on
   // every wheel tick and every drag frame, and reading storage there would make the note
@@ -19856,7 +19915,9 @@ async function saveGoalsFromForm(resultElId){
     }
     list.push(g);
   }
-  if(list.length===0){ showToast('Add detail for at least one goal', true); return; }
+  // Reported back, because the caller on Weekly closes the sheet on a save that wrote and
+  // has to leave it open on one that did not.
+  if(list.length===0){ showToast('Add detail for at least one goal', true); return false; }
 
   const record = { date: todayStr, list };
   // Both skill sections are pickers now; nothing is collected from rows.
@@ -19870,15 +19931,48 @@ async function saveGoalsFromForm(resultElId){
       : 'Goals saved.';
     result.style.color = '';
     showToast('Goals saved');
+    paintGoalSummary(list);
     flashConfirm(document.getElementById(resultElId === 'saveFunctionResult' ? 'saveFunctionBtn' : 'saveGoalsBtn'));
     await refreshGoalDependents();
     await renderMobilityProgression();
     await renderExerciseProgression();
+    return true;
   } catch(e){
     result.textContent = 'Save failed — try again.'; result.style.color = '';
+    return false;
   }
 }
-document.getElementById('saveGoalsBtn').addEventListener('click', ()=> saveGoalsFromForm('saveGoalsResult'));
+/* THE GOALS SHEET.
+   Opened from the row beside Generate. It does not reload on open: the rows are already in
+   the DOM and loadCurrentGoals keeps them current from both tabs that show them, so a reload
+   here would do nothing except throw away edits you had not saved yet when you closed it by
+   mistake and opened it again.
+
+   Closes on the backdrop, the ×, Escape, and on a save that actually wrote — the toast says
+   "Goals saved" from outside the sheet, so the confirmation survives the sheet going. A save
+   that fails validation leaves it open, with its own message in it, which is where you need
+   to be to fix it. */
+const goalSheetEl = document.getElementById('goalSheet');
+function openGoalSheet(){
+  if(!goalSheetEl) return;
+  goalSheetEl.style.display = '';
+  const r = document.getElementById('saveGoalsResult');
+  if(r) r.textContent = '';
+}
+function closeGoalSheet(){ if(goalSheetEl) goalSheetEl.style.display = 'none'; }
+const updateGoalsBtn = document.getElementById('updateGoalsBtn');
+if(updateGoalsBtn) updateGoalsBtn.addEventListener('click', openGoalSheet);
+if(goalSheetEl){
+  goalSheetEl.addEventListener('click', e=>{
+    if(e.target === goalSheetEl || e.target.closest('.lift-sheet-x')) closeGoalSheet();
+  });
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape' && goalSheetEl.style.display !== 'none') closeGoalSheet();
+  });
+}
+document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
+  if(await saveGoalsFromForm('saveGoalsResult')) closeGoalSheet();
+});
 document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
 // Adaptation Engine (backlog §4 — "one of the most important changes"). Classifies each
