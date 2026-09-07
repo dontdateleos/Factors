@@ -104,6 +104,17 @@
     --ink-orange:var(--block-orange);
     --wr-on:var(--bg);
     --good:#5c6b0f;
+    /* THE FIELD'S TILE, AS A TOKEN, BECAUSE ITS INK HAS TO FOLLOW THE GROUND UNDER IT.
+       The dots are drawn INTO the svg, so unlike a gradient they cannot take --ink-rgb; there
+       have to be two tiles. They were two rules keyed on the ground, which is right until a
+       dot field turns up inside a --reverse-bg pocket — the skill wheel does, in the mobility
+       sheet — where the page is bone and the surface under the dots is not. As a token the
+       pocket can take the light-ink tile back the same way it takes --bg and --hue-faded back,
+       and any field added inside a sheet later is correct without anybody remembering this.
+       Written once each: --dot-tile is only ever an alias of one of the two. */
+    --dot-tile-light-ink:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='4'%3E%3Cg fill='%23fbfaf6' fill-opacity='.38'%3E%3Ccircle cx='2' cy='2' r='.6'/%3E%3Ccircle cx='6' cy='2.5' r='.6'/%3E%3Ccircle cx='10' cy='3' r='.6'/%3E%3Ccircle cx='14' cy='-0.5' r='.6'/%3E%3Ccircle cx='14' cy='3.5' r='.6'/%3E%3Ccircle cx='18' cy='0.5' r='.6'/%3E%3Ccircle cx='18' cy='4.5' r='.6'/%3E%3Ccircle cx='22' cy='0.5' r='.6'/%3E%3Ccircle cx='22' cy='4.5' r='.6'/%3E%3Ccircle cx='26' cy='1' r='.6'/%3E%3Ccircle cx='30' cy='1.5' r='.6'/%3E%3Ccircle cx='34' cy='1.5' r='.6'/%3E%3Ccircle cx='38' cy='2' r='.6'/%3E%3Ccircle cx='42' cy='2' r='.6'/%3E%3Ccircle cx='46' cy='2' r='.6'/%3E%3Ccircle cx='50' cy='2' r='.6'/%3E%3Ccircle cx='54' cy='1.5' r='.6'/%3E%3Ccircle cx='58' cy='1.5' r='.6'/%3E%3Ccircle cx='62' cy='1' r='.6'/%3E%3Ccircle cx='66' cy='0.5' r='.6'/%3E%3Ccircle cx='66' cy='4.5' r='.6'/%3E%3Ccircle cx='70' cy='0.5' r='.6'/%3E%3Ccircle cx='70' cy='4.5' r='.6'/%3E%3Ccircle cx='74' cy='-0.5' r='.6'/%3E%3Ccircle cx='74' cy='3.5' r='.6'/%3E%3Ccircle cx='78' cy='3' r='.6'/%3E%3Ccircle cx='82' cy='2.5' r='.6'/%3E%3Ccircle cx='86' cy='2' r='.6'/%3E%3Ccircle cx='90' cy='1.5' r='.6'/%3E%3Ccircle cx='94' cy='1' r='.6'/%3E%3Ccircle cx='98' cy='0.5' r='.6'/%3E%3Ccircle cx='98' cy='4.5' r='.6'/%3E%3Ccircle cx='102' cy='-0.5' r='.6'/%3E%3Ccircle cx='102' cy='3.5' r='.6'/%3E%3Ccircle cx='106' cy='-0.5' r='.6'/%3E%3Ccircle cx='106' cy='3.5' r='.6'/%3E%3Ccircle cx='110' cy='3' r='.6'/%3E%3Ccircle cx='114' cy='2.5' r='.6'/%3E%3Ccircle cx='118' cy='2.5' r='.6'/%3E%3Ccircle cx='122' cy='2' r='.6'/%3E%3Ccircle cx='126' cy='2' r='.6'/%3E%3Ccircle cx='130' cy='2' r='.6'/%3E%3Ccircle cx='134' cy='2' r='.6'/%3E%3Ccircle cx='138' cy='2.5' r='.6'/%3E%3Ccircle cx='142' cy='2.5' r='.6'/%3E%3Ccircle cx='146' cy='3' r='.6'/%3E%3Ccircle cx='150' cy='-0.5' r='.6'/%3E%3Ccircle cx='150' cy='3.5' r='.6'/%3E%3Ccircle cx='154' cy='-0.5' r='.6'/%3E%3Ccircle cx='154' cy='3.5' r='.6'/%3E%3Ccircle cx='158' cy='0.5' r='.6'/%3E%3Ccircle cx='158' cy='4.5' r='.6'/%3E%3Ccircle cx='162' cy='1' r='.6'/%3E%3Ccircle cx='166' cy='1.5' r='.6'/%3E%3C/g%3E%3C/svg%3E");
+    --dot-tile-dark-ink:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='4'%3E%3Cg fill='%230c0d0b' fill-opacity='.38'%3E%3Ccircle cx='2' cy='2' r='.6'/%3E%3Ccircle cx='6' cy='2.5' r='.6'/%3E%3Ccircle cx='10' cy='3' r='.6'/%3E%3Ccircle cx='14' cy='-0.5' r='.6'/%3E%3Ccircle cx='14' cy='3.5' r='.6'/%3E%3Ccircle cx='18' cy='0.5' r='.6'/%3E%3Ccircle cx='18' cy='4.5' r='.6'/%3E%3Ccircle cx='22' cy='0.5' r='.6'/%3E%3Ccircle cx='22' cy='4.5' r='.6'/%3E%3Ccircle cx='26' cy='1' r='.6'/%3E%3Ccircle cx='30' cy='1.5' r='.6'/%3E%3Ccircle cx='34' cy='1.5' r='.6'/%3E%3Ccircle cx='38' cy='2' r='.6'/%3E%3Ccircle cx='42' cy='2' r='.6'/%3E%3Ccircle cx='46' cy='2' r='.6'/%3E%3Ccircle cx='50' cy='2' r='.6'/%3E%3Ccircle cx='54' cy='1.5' r='.6'/%3E%3Ccircle cx='58' cy='1.5' r='.6'/%3E%3Ccircle cx='62' cy='1' r='.6'/%3E%3Ccircle cx='66' cy='0.5' r='.6'/%3E%3Ccircle cx='66' cy='4.5' r='.6'/%3E%3Ccircle cx='70' cy='0.5' r='.6'/%3E%3Ccircle cx='70' cy='4.5' r='.6'/%3E%3Ccircle cx='74' cy='-0.5' r='.6'/%3E%3Ccircle cx='74' cy='3.5' r='.6'/%3E%3Ccircle cx='78' cy='3' r='.6'/%3E%3Ccircle cx='82' cy='2.5' r='.6'/%3E%3Ccircle cx='86' cy='2' r='.6'/%3E%3Ccircle cx='90' cy='1.5' r='.6'/%3E%3Ccircle cx='94' cy='1' r='.6'/%3E%3Ccircle cx='98' cy='0.5' r='.6'/%3E%3Ccircle cx='98' cy='4.5' r='.6'/%3E%3Ccircle cx='102' cy='-0.5' r='.6'/%3E%3Ccircle cx='102' cy='3.5' r='.6'/%3E%3Ccircle cx='106' cy='-0.5' r='.6'/%3E%3Ccircle cx='106' cy='3.5' r='.6'/%3E%3Ccircle cx='110' cy='3' r='.6'/%3E%3Ccircle cx='114' cy='2.5' r='.6'/%3E%3Ccircle cx='118' cy='2.5' r='.6'/%3E%3Ccircle cx='122' cy='2' r='.6'/%3E%3Ccircle cx='126' cy='2' r='.6'/%3E%3Ccircle cx='130' cy='2' r='.6'/%3E%3Ccircle cx='134' cy='2' r='.6'/%3E%3Ccircle cx='138' cy='2.5' r='.6'/%3E%3Ccircle cx='142' cy='2.5' r='.6'/%3E%3Ccircle cx='146' cy='3' r='.6'/%3E%3Ccircle cx='150' cy='-0.5' r='.6'/%3E%3Ccircle cx='150' cy='3.5' r='.6'/%3E%3Ccircle cx='154' cy='-0.5' r='.6'/%3E%3Ccircle cx='154' cy='3.5' r='.6'/%3E%3Ccircle cx='158' cy='0.5' r='.6'/%3E%3Ccircle cx='158' cy='4.5' r='.6'/%3E%3Ccircle cx='162' cy='1' r='.6'/%3E%3Ccircle cx='166' cy='1.5' r='.6'/%3E%3C/g%3E%3C/svg%3E");
+    --dot-tile:var(--dot-tile-light-ink);
     --reverse-bg:#0c0d0b;   /* dark fill for buttons/badges — independent of --text */
     --on-light:#0c0d0b;     /* text on any light fill (inputs, tags, outline buttons) */
     --on-light-dim:#191a0e; /* secondary text on a light fill */
@@ -422,6 +433,7 @@
     --field-red:#fbefe9;
     --field-purple:#f4f0f7;
     --field-blue:#e2f5f6;
+    --dot-tile:var(--dot-tile-dark-ink);
     --ink-bad:#cb3318;
     --ink-warn:#956104;
     --ink-yellow:#7e6b24;
@@ -480,6 +492,9 @@
        its domain names in the hue picked to read on cream, at 2.76 to 1 on the sheet's black.
        Read from --hue-faded-dark rather than restated, so there is still one value per tab. */
     --hue-faded:var(--hue-faded-dark);
+    /* And the tile, for the same reason the hue is here: inside one of these the ground is
+       the dark one, whatever the page outside is doing. */
+    --dot-tile:var(--dot-tile-light-ink);
   }
   /* A .fields inside one of those pockets paints the tab's tint, and the tint does not follow
      the pocket: --field is declared on body as var(--field-<hue>), so it RESOLVES on body and
@@ -2889,9 +2904,13 @@
     position:relative;
     z-index:0;
   }
-  .dot-field::before{
+  /* The two spinners take the field as well, and take it differently — see the rule under
+     the mask below. Listed here rather than given the .dot-field class so that fieldDrift
+     leaves them alone: the ripple animates a three-layer mask-position, and a spinner's mask
+     is one layer, so the drift would slide the selection band off its row. */
+  .dot-field::before, .week-day-picker::before, .mob-wheel::before{
     content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='4'%3E%3Cg fill='%23fbfaf6' fill-opacity='.38'%3E%3Ccircle cx='2' cy='2' r='.6'/%3E%3Ccircle cx='6' cy='2.5' r='.6'/%3E%3Ccircle cx='10' cy='3' r='.6'/%3E%3Ccircle cx='14' cy='-0.5' r='.6'/%3E%3Ccircle cx='14' cy='3.5' r='.6'/%3E%3Ccircle cx='18' cy='0.5' r='.6'/%3E%3Ccircle cx='18' cy='4.5' r='.6'/%3E%3Ccircle cx='22' cy='0.5' r='.6'/%3E%3Ccircle cx='22' cy='4.5' r='.6'/%3E%3Ccircle cx='26' cy='1' r='.6'/%3E%3Ccircle cx='30' cy='1.5' r='.6'/%3E%3Ccircle cx='34' cy='1.5' r='.6'/%3E%3Ccircle cx='38' cy='2' r='.6'/%3E%3Ccircle cx='42' cy='2' r='.6'/%3E%3Ccircle cx='46' cy='2' r='.6'/%3E%3Ccircle cx='50' cy='2' r='.6'/%3E%3Ccircle cx='54' cy='1.5' r='.6'/%3E%3Ccircle cx='58' cy='1.5' r='.6'/%3E%3Ccircle cx='62' cy='1' r='.6'/%3E%3Ccircle cx='66' cy='0.5' r='.6'/%3E%3Ccircle cx='66' cy='4.5' r='.6'/%3E%3Ccircle cx='70' cy='0.5' r='.6'/%3E%3Ccircle cx='70' cy='4.5' r='.6'/%3E%3Ccircle cx='74' cy='-0.5' r='.6'/%3E%3Ccircle cx='74' cy='3.5' r='.6'/%3E%3Ccircle cx='78' cy='3' r='.6'/%3E%3Ccircle cx='82' cy='2.5' r='.6'/%3E%3Ccircle cx='86' cy='2' r='.6'/%3E%3Ccircle cx='90' cy='1.5' r='.6'/%3E%3Ccircle cx='94' cy='1' r='.6'/%3E%3Ccircle cx='98' cy='0.5' r='.6'/%3E%3Ccircle cx='98' cy='4.5' r='.6'/%3E%3Ccircle cx='102' cy='-0.5' r='.6'/%3E%3Ccircle cx='102' cy='3.5' r='.6'/%3E%3Ccircle cx='106' cy='-0.5' r='.6'/%3E%3Ccircle cx='106' cy='3.5' r='.6'/%3E%3Ccircle cx='110' cy='3' r='.6'/%3E%3Ccircle cx='114' cy='2.5' r='.6'/%3E%3Ccircle cx='118' cy='2.5' r='.6'/%3E%3Ccircle cx='122' cy='2' r='.6'/%3E%3Ccircle cx='126' cy='2' r='.6'/%3E%3Ccircle cx='130' cy='2' r='.6'/%3E%3Ccircle cx='134' cy='2' r='.6'/%3E%3Ccircle cx='138' cy='2.5' r='.6'/%3E%3Ccircle cx='142' cy='2.5' r='.6'/%3E%3Ccircle cx='146' cy='3' r='.6'/%3E%3Ccircle cx='150' cy='-0.5' r='.6'/%3E%3Ccircle cx='150' cy='3.5' r='.6'/%3E%3Ccircle cx='154' cy='-0.5' r='.6'/%3E%3Ccircle cx='154' cy='3.5' r='.6'/%3E%3Ccircle cx='158' cy='0.5' r='.6'/%3E%3Ccircle cx='158' cy='4.5' r='.6'/%3E%3Ccircle cx='162' cy='1' r='.6'/%3E%3Ccircle cx='166' cy='1.5' r='.6'/%3E%3C/g%3E%3C/svg%3E");
+    background-image:var(--dot-tile);
     background-size:168px 4px;
     -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='20'%3E%3Cpath d='M0,5L2,5.37L4,5.75L6,6.11L8,6.47L10,6.83L12,7.17L14,7.5L16,7.82L18,8.12L20,8.4L22,8.67L24,8.91L26,9.13L28,9.33L30,9.5L32,9.65L34,9.78L36,9.87L38,9.94L40,9.99L42,10L44,9.99L46,9.94L48,9.87L50,9.78L52,9.65L54,9.5L56,9.33L58,9.13L60,8.91L62,8.67L64,8.4L66,8.12L68,7.82L70,7.5L72,7.17L74,6.83L76,6.47L78,6.11L80,5.75L82,5.37L84,5L86,4.63L88,4.25L90,3.89L92,3.53L94,3.17L96,2.83L98,2.5L100,2.18L102,1.88L104,1.6L106,1.33L108,1.09L110,0.87L112,0.67L114,0.5L116,0.35L118,0.22L120,0.13L122,0.06L124,0.01L126,0L128,0.01L130,0.06L132,0.13L134,0.22L136,0.35L138,0.5L140,0.67L142,0.87L144,1.09L146,1.33L148,1.6L150,1.88L152,2.18L154,2.5L156,2.83L158,3.17L160,3.53L162,3.89L164,4.25L166,4.63L168,5L168,20L0,20Z'/%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='20'%3E%3Cpath transform='translate(0,20) scale(1,-1)' d='M0,5L2,5.37L4,5.75L6,6.11L8,6.47L10,6.83L12,7.17L14,7.5L16,7.82L18,8.12L20,8.4L22,8.67L24,8.91L26,9.13L28,9.33L30,9.5L32,9.65L34,9.78L36,9.87L38,9.94L40,9.99L42,10L44,9.99L46,9.94L48,9.87L50,9.78L52,9.65L54,9.5L56,9.33L58,9.13L60,8.91L62,8.67L64,8.4L66,8.12L68,7.82L70,7.5L72,7.17L74,6.83L76,6.47L78,6.11L80,5.75L82,5.37L84,5L86,4.63L88,4.25L90,3.89L92,3.53L94,3.17L96,2.83L98,2.5L100,2.18L102,1.88L104,1.6L106,1.33L108,1.09L110,0.87L112,0.67L114,0.5L116,0.35L118,0.22L120,0.13L122,0.06L124,0.01L126,0L128,0.01L130,0.06L132,0.13L134,0.22L136,0.35L138,0.5L140,0.67L142,0.87L144,1.09L146,1.33L148,1.6L150,1.88L152,2.18L154,2.5L156,2.83L158,3.17L160,3.53L162,3.89L164,4.25L166,4.63L168,5L168,20L0,20Z'/%3E%3C/svg%3E"),
@@ -2925,9 +2944,6 @@
     -webkit-mask-repeat:repeat-x, repeat-x, no-repeat;
             mask-repeat:repeat-x, repeat-x, no-repeat;
   }
-  /* The ink is drawn INTO the tile, so it cannot take --ink-rgb the way the gradient did.
-     Two tiles, one per ground. If --ink-rgb is ever re-cut, both of these go with it. */
-  html[data-ground="bone"] .dot-field::before{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='4'%3E%3Cg fill='%230c0d0b' fill-opacity='.38'%3E%3Ccircle cx='2' cy='2' r='.6'/%3E%3Ccircle cx='6' cy='2.5' r='.6'/%3E%3Ccircle cx='10' cy='3' r='.6'/%3E%3Ccircle cx='14' cy='-0.5' r='.6'/%3E%3Ccircle cx='14' cy='3.5' r='.6'/%3E%3Ccircle cx='18' cy='0.5' r='.6'/%3E%3Ccircle cx='18' cy='4.5' r='.6'/%3E%3Ccircle cx='22' cy='0.5' r='.6'/%3E%3Ccircle cx='22' cy='4.5' r='.6'/%3E%3Ccircle cx='26' cy='1' r='.6'/%3E%3Ccircle cx='30' cy='1.5' r='.6'/%3E%3Ccircle cx='34' cy='1.5' r='.6'/%3E%3Ccircle cx='38' cy='2' r='.6'/%3E%3Ccircle cx='42' cy='2' r='.6'/%3E%3Ccircle cx='46' cy='2' r='.6'/%3E%3Ccircle cx='50' cy='2' r='.6'/%3E%3Ccircle cx='54' cy='1.5' r='.6'/%3E%3Ccircle cx='58' cy='1.5' r='.6'/%3E%3Ccircle cx='62' cy='1' r='.6'/%3E%3Ccircle cx='66' cy='0.5' r='.6'/%3E%3Ccircle cx='66' cy='4.5' r='.6'/%3E%3Ccircle cx='70' cy='0.5' r='.6'/%3E%3Ccircle cx='70' cy='4.5' r='.6'/%3E%3Ccircle cx='74' cy='-0.5' r='.6'/%3E%3Ccircle cx='74' cy='3.5' r='.6'/%3E%3Ccircle cx='78' cy='3' r='.6'/%3E%3Ccircle cx='82' cy='2.5' r='.6'/%3E%3Ccircle cx='86' cy='2' r='.6'/%3E%3Ccircle cx='90' cy='1.5' r='.6'/%3E%3Ccircle cx='94' cy='1' r='.6'/%3E%3Ccircle cx='98' cy='0.5' r='.6'/%3E%3Ccircle cx='98' cy='4.5' r='.6'/%3E%3Ccircle cx='102' cy='-0.5' r='.6'/%3E%3Ccircle cx='102' cy='3.5' r='.6'/%3E%3Ccircle cx='106' cy='-0.5' r='.6'/%3E%3Ccircle cx='106' cy='3.5' r='.6'/%3E%3Ccircle cx='110' cy='3' r='.6'/%3E%3Ccircle cx='114' cy='2.5' r='.6'/%3E%3Ccircle cx='118' cy='2.5' r='.6'/%3E%3Ccircle cx='122' cy='2' r='.6'/%3E%3Ccircle cx='126' cy='2' r='.6'/%3E%3Ccircle cx='130' cy='2' r='.6'/%3E%3Ccircle cx='134' cy='2' r='.6'/%3E%3Ccircle cx='138' cy='2.5' r='.6'/%3E%3Ccircle cx='142' cy='2.5' r='.6'/%3E%3Ccircle cx='146' cy='3' r='.6'/%3E%3Ccircle cx='150' cy='-0.5' r='.6'/%3E%3Ccircle cx='150' cy='3.5' r='.6'/%3E%3Ccircle cx='154' cy='-0.5' r='.6'/%3E%3Ccircle cx='154' cy='3.5' r='.6'/%3E%3Ccircle cx='158' cy='0.5' r='.6'/%3E%3Ccircle cx='158' cy='4.5' r='.6'/%3E%3Ccircle cx='162' cy='1' r='.6'/%3E%3Ccircle cx='166' cy='1.5' r='.6'/%3E%3C/g%3E%3C/svg%3E"); }
   /* THE FIELD FLOWS WHEN YOU ARRIVE ON THE PAGE.
      One wavelength, travelled in the direction the page came from, so the texture reads as
      having been dragged along by the switch rather than as a loop that happens to be running.
@@ -2966,6 +2982,38 @@
           -webkit-mask-position:0px 4px, 0px bottom, 0px 20px;
                   mask-position:0px 4px, 0px bottom, 0px 20px; }
   }
+  /* THE FIELD AS A SELECTION, NOT AS A GROUND.
+     Everywhere else the dots are the surface a whole reading sits on. In a spinner they mark
+     the one row you are on: the field is exactly one row tall, centred, so the day you have
+     landed on is on textured ground and its neighbours are not. Nothing else in the window
+     has to change — the rules stay, the opacity falloff stays — and the texture says the same
+     thing they do, from a second direction.
+
+     A straight-sided mask rather than the wave the ribbon uses, and not for want of trying:
+     the wave needs about 16px of clearance at each end and a row is 38, so cutting a 38px
+     band on it would leave almost nothing solid in the middle. The spinner already has two
+     straight edges drawn across it; this lands on them. */
+  /* THE BAND FOLLOWS THE FOCUS ROW, WHICH IS NOT ALWAYS THE MIDDLE ONE.
+     centre was the obvious answer and the wrong one: --mob-focus-row says which of the three
+     rows a skill wheel is currently focusing, and it is not fixed — the assessment's wheel
+     was drawing its band under CALVES while ANKLES was the row in focus. The band is placed
+     from the same number the focus RULES are placed from, so the two cannot come apart. The
+     day picker has no such variable because its focus never moves off the middle row, which
+     with three 38px rows in a 114px window is row 1. */
+  .week-day-picker{ --sel-row:var(--day-row); --sel-focus-row:1; }
+  .mob-wheel{ --sel-row:var(--mob-row); --sel-focus-row:var(--mob-focus-row, 1); }
+  .week-day-picker, .mob-wheel{ z-index:0; }
+  .week-day-picker::before, .mob-wheel::before{
+    -webkit-mask-image:linear-gradient(#000,#000);
+            mask-image:linear-gradient(#000,#000);
+    -webkit-mask-size:100% var(--sel-row);
+            mask-size:100% var(--sel-row);
+    -webkit-mask-position:left calc(var(--sel-row) * var(--sel-focus-row));
+            mask-position:left calc(var(--sel-row) * var(--sel-focus-row));
+    -webkit-mask-repeat:no-repeat;
+            mask-repeat:no-repeat;
+  }
+
   /* IT WAITS FOR THE CARD TO LAND. The first cut started it with the deal and put 95% of the
      travel inside the first 440ms — which is precisely when the whole card is flying across
      the screen at a multiple of that speed, so none of it could be seen. Measured, not
@@ -8939,7 +8987,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.372';
+const APP_VERSION = '2026.08.31.373';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9077,6 +9125,7 @@ const APP_NOTES = {
   '2026.08.31.370': 'The week spinner says the whole day, not the first three letters.',
   '2026.08.31.371': 'Search a lift on Workout History and see how it has actually gone.',
   '2026.08.31.372': 'Each injury has a button asking what the week before it held.',
+  '2026.08.31.373': 'The spinners put the dot field under the row you are on.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
