@@ -645,6 +645,15 @@
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
+  /* The solid draws the plate, the step and the eyes itself, so the element underneath gives
+     up both: applyEyeForm still writes the header form onto it and both are overridden here
+     rather than made conditional, so nothing has to know which mark it is dressing. */
+  .header-mark.mark-solid{ background-color:transparent !important; }
+  .header-mark.mark-solid > .eye-gaze{ visibility:hidden; }
+  /* Centred and allowed to overflow: a cube at a corner is root-two wider than face on, and
+     the alternative is shrinking the mark to make room for a width it only has while moving. */
+  .mark-cube{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    pointer-events:none; overflow:visible; }
   /* Sideways is ours; up and down is the browser's. Without this Chromium decides a
      horizontal drag might become a scroll, takes the gesture and fires pointercancel one
      move in -- measured: the first swipe landed and every one after it died. pinch-zoom is
@@ -2725,8 +2734,11 @@
     </div>
     <div id="currentTabLabel" class="tab-label">Today</div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
-    <!-- The mark: two capsules set beside the wordmark. -->
-    <div class="header-mark eyes" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
+    <!-- The mark: a solid, drawn face on, which is the same two capsules on the same square
+         it has always been until it turns. The .eye-gaze pair stays in the DOM and stays
+         hidden here — every other copy of the mark still uses it, and the trip down to the
+         score is a cut rather than a morph, so the two never have to agree mid-flight. -->
+    <div class="header-mark eyes mark-solid" id="headerMark" role="button" tabindex="0" aria-label="Back to today"><svg class="mark-cube" id="headerMarkCube" aria-hidden="true"></svg><div class="eye-gaze"><div class="eye-motion"><span></span><span></span></div></div></div>
   <div class="tabs">
     <div class="tab active" data-tab="insights" role="tab" tabindex="0" aria-selected="true" aria-current="page"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Today</span></div>
     <div class="tab" data-tab="training" role="tab" tabindex="0" aria-selected="false"><i class="tab-seg" aria-hidden="true"></i><span class="tab-name">Weekly</span></div>
@@ -4188,6 +4200,7 @@ function setEyeCalm(on){
   const el = eyesDocked();
   if(el) applyEyeForm(el, eyesHome);
   if(!eyeCalm){ startEyeIdle(); scheduleIdle(900); }
+  startMarkCube();
 }
 // One gate for everything: off if the behaviour is off, off in calm mode unless it is one
 // of the keepers, and off entirely under prefers-reduced-motion. No single behaviour has
@@ -5314,6 +5327,144 @@ function moveEyes(dest, from, snap){
 // bring it back. This runs after every tab switch and puts it back where it belongs — the
 // active panel decides, not any state we have been keeping.
 let eyeSettleTimer = null;
+/* ---------- THE MARK AS A SOLID ----------
+
+   The mark in the wordmark is a cube now rather than a flat plate. Face on it is exactly the
+   square it has always been — same 40px box, same corner radius, same two capsules — and the
+   solid only appears because it turns. Orthographic, so nothing is faked: at a corner the
+   silhouette is a true hexagon, and everything between is a five- or six-sided outline.
+
+   SHELL AND CORE. Two cubes: an outer one filled in the page's ink, and a second at 86% of it
+   inside, whose SIDE faces step to a grey. The core's front and top match the shell, which is
+   what keeps the resting square untouched — there is no rim and no panel until it moves.
+   The step is rgba over the shell rather than a picked grey, so it inverts with the ground on
+   its own: --ground-rgb is the dark on the black theme and the cream on bone, so the sides go
+   darker on one and lighter on the other without a second set of values.
+
+   WHY IT CAN LIVE HERE AT ALL. The trip between the wordmark and the score is a CUT, not a
+   morph — moveEyes hides the mark in one place and shows it in the other on the same frame.
+   So this only has to be right in the wordmark. Down on the score the mark is bare eyes with
+   no plate, which is untouched, and so are the five faces, the docked chip and the trace.
+
+   The outline is a path with real rounded corners rather than a fat stroke. Stroking is the
+   cheap way to round a polygon and it cannot be clipped to — clipPath uses fill geometry and
+   throws the stroke away — which is exactly what the core has to be clipped to. */
+const MC_R = 0.20, MC_INSET = 0.86, MC_RAD = Math.PI / 180;
+const mcState = { rx:0, ry:0, aimRx:0, aimRy:0, blink:1, blinkAt:0, raf:null, born:0 };
+function mcProject(rx, ry){
+  const cx = Math.cos(rx*MC_RAD), sx = Math.sin(rx*MC_RAD);
+  const cy = Math.cos(ry*MC_RAD), sy = Math.sin(ry*MC_RAD);
+  return ([x,y,z])=>{ const X = cy*x + sy*z; let Z = -sy*x + cy*z;
+                      const Y = cx*y - sx*Z; Z = sx*y + cx*Z; return [X, Y, Z]; };
+}
+function mcHull(pts){
+  const p = pts.slice().sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+  const cr = (o,a,b)=> (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for(const q of p){ while(lo.length>=2 && cr(lo[lo.length-2],lo[lo.length-1],q)<=0) lo.pop(); lo.push(q); }
+  for(const q of p.slice().reverse()){ while(up.length>=2 && cr(up[up.length-2],up[up.length-1],q)<=0) up.pop(); up.push(q); }
+  lo.pop(); up.pop(); return lo.concat(up);
+}
+function mcRounded(pts, r){
+  const n = pts.length, out = [];
+  for(let i = 0; i < n; i++){
+    const c = pts[i], p = pts[(i-1+n)%n], q = pts[(i+1)%n];
+    const d1 = Math.hypot(p[0]-c[0], p[1]-c[1]), d2 = Math.hypot(q[0]-c[0], q[1]-c[1]);
+    if(!d1 || !d2) continue;
+    const t1 = Math.min(r, d1/2), t2 = Math.min(r, d2/2);
+    const a = [c[0] + (p[0]-c[0])/d1*t1, c[1] + (p[1]-c[1])/d1*t1];
+    const b = [c[0] + (q[0]-c[0])/d2*t2, c[1] + (q[1]-c[1])/d2*t2];
+    out.push(`${i?'L':'M'}${a[0].toFixed(2)},${a[1].toFixed(2)} Q${c[0].toFixed(2)},${c[1].toFixed(2)} ${b[0].toFixed(2)},${b[1].toFixed(2)}`);
+  }
+  return out.join(' ') + ' Z';
+}
+function mcCubePath(P, h, c, r){
+  const V = [];
+  for(const x of [-h,h]) for(const y of [-h,h]) for(const z of [-h,h]){ const v = P([x,y,z]); V.push([c+v[0], c+v[1]]); }
+  return mcRounded(mcHull(V), r);
+}
+function drawMarkCube(){
+  const svg = document.getElementById('headerMarkCube');
+  const host = document.getElementById('headerMark');
+  if(!svg || !host) return;
+  const s = parseFloat(getComputedStyle(host).width) || 40;
+  /* The box is half again the cube, because a cube is WIDER at a corner than face on — root
+     two of the side, not the side. Sized to the square and allowed to overflow, so face on
+     the mark is exactly the 40px it has always been rather than shrunk to make room. */
+  const B = Math.round(s * 1.6), c = B/2, h = s/2, R = MC_R * s;
+  svg.setAttribute('width', B); svg.setAttribute('height', B);
+  svg.setAttribute('viewBox', `0 0 ${B} ${B}`);
+  const P = mcProject(mcState.rx, mcState.ry);
+  const hi = h * MC_INSET, di = mcCubePath(P, hi, c, R * MC_INSET);
+  let out = `<path d="${mcCubePath(P, h, c, R)}" style="fill:var(--bg)"/>`
+          + `<path d="${di}" style="fill:var(--bg)"/>`
+          + `<clipPath id="mcClip"><path d="${di}"/></clipPath><g clip-path="url(#mcClip)">`;
+  for(const f of [[1,0,0],[-1,0,0]]){
+    const n = P(f); if(n[2] <= 0.001) continue;
+    const q = (f[0] > 0
+      ? [[hi,-hi,-hi],[hi,-hi,hi],[hi,hi,hi],[hi,hi,-hi]]
+      : [[-hi,-hi,-hi],[-hi,-hi,hi],[-hi,hi,hi],[-hi,hi,-hi]]).map(v=>P(v));
+    out += `<polygon points="${q.map(([x,y])=>`${(c+x).toFixed(2)},${(c+y).toFixed(2)}`).join(' ')}"`
+         + ` style="fill:rgba(var(--ground-rgb),0.42)"/>`;
+  }
+  out += `</g>`;
+  // The eyes are printed on the front face, so they foreshorten with it and go when it does.
+  const n = P([0,0,1]);
+  if(n[2] > 0.02){
+    const ew = 0.15*s, eh = 0.45*s * mcState.blink, gap = 0.25*s, z = h + 0.4;
+    const ax = P([1,0,0]), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]));
+    const half = Math.max(0, eh/2 - ew/2);
+    for(const sg of [-1,1]){
+      const x = sg * (gap/2 + ew/2), a = P([x,-half,z]), b = P([x,half,z]);
+      out += `<line x1="${(c+a[0]).toFixed(2)}" y1="${(c+a[1]).toFixed(2)}"`
+           + ` x2="${(c+b[0]).toFixed(2)}" y2="${(c+b[1]).toFixed(2)}"`
+           + ` style="stroke:var(--ground)" stroke-width="${w.toFixed(2)}" stroke-linecap="round"/>`;
+    }
+  }
+  svg.innerHTML = out;
+}
+/* A quarter turn out and back, hung off whatever just happened. Tab changes call it, which is
+   the same beat the eyes already glance on — the mark looks up at the tab you picked, and now
+   it turns to it as well. */
+/* HOW FAR IT IS ALLOWED TO TURN, AND WHY IT IS NOT FURTHER.
+   A cube is root-two wider at a corner than face on, and this one sits 117px in with the
+   wordmark's second line directly to its left — turned to 45 it grows 8px each side and eats
+   the D of FOOD. 20 degrees costs 2.6px a side, which clears it, and is still plainly a turn:
+   the side face opens, the silhouette goes five-sided, the eyes foreshorten. The corner view
+   is the better picture and it is the one this position cannot afford. */
+const MC_TURN_MAX = 20;
+function markCubeTurn(dir){
+  mcState.aimRy = (dir || (Math.random() < 0.5 ? -1 : 1)) * (MC_TURN_MAX * (0.7 + Math.random() * 0.3));
+  mcState.aimRx = (Math.random() * 10) - 5;
+  setTimeout(()=>{ mcState.aimRy = 0; mcState.aimRx = 0; }, 1500);
+}
+function startMarkCube(){
+  const svg = document.getElementById('headerMarkCube');
+  if(!svg) return;
+  /* One call for both directions. Calm mode and prefers-reduced-motion do not just skip the
+     start — they cancel a loop that may already be running and put the mark back face on,
+     which is the resting square. Leaving the loop up behind a static frame is how a setting
+     ends up costing a frame a second forever. */
+  if(eyeCalm || eyeMotionOff()){
+    if(mcState.raf){ cancelAnimationFrame(mcState.raf); mcState.raf = null; }
+    mcState.rx = 0; mcState.ry = 0; mcState.blink = 1; drawMarkCube(); return;
+  }
+  if(mcState.raf) return;
+  mcState.born = performance.now();
+  const step = (now)=>{
+    const t = (now - mcState.born) / 1000;
+    // A slow wander under whatever the aim is, so it is never perfectly still and never busy.
+    const wx = 3.5 * Math.sin(t * 0.31), wy = 5 * Math.sin(t * 0.23 + 1.1);
+    mcState.rx += ((mcState.aimRx + wx) - mcState.rx) * 0.045;
+    mcState.ry += ((mcState.aimRy + wy) - mcState.ry) * 0.045;
+    if(now > mcState.blinkAt){ mcState.blinkAt = now + 3600 + Math.random() * 4200; mcState.blink = 0.08;
+      setTimeout(()=>{ mcState.blink = 1; }, 110); }
+    drawMarkCube();
+    mcState.raf = requestAnimationFrame(step);
+  };
+  mcState.raf = requestAnimationFrame(step);
+}
+
 function settleEyes(){
   if(eyeFlightTimer || eyeTripPending) return;   // a trip owns the mark; its landing does this
   const header = document.querySelector('.header-mark');
@@ -5334,6 +5485,7 @@ function settleEyes(){
   eyeAnswerDocked = onToday;
   if(chip){ chip.style.visibility = ''; chip.classList.remove('landing'); }
   startEyeIdle();
+  startMarkCube();
   if(onToday){ if(chipEyes()) scheduleChipIdle(); }
   else scheduleIdle();
 }
@@ -7107,6 +7259,7 @@ function activateTab(name, opts){
   decorateColophon();
   eyeTabName = name;
   eyeGlanceAtTabSoon(name, eyesFlying);
+  markCubeTurn();
   eyeCtx.perched = false;
   eyeFormSettled();
   eyeNoteTabForWander();
@@ -8040,7 +8193,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.337';
+const APP_VERSION = '2026.08.31.338';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8143,6 +8296,7 @@ const APP_NOTES = {
   '2026.08.31.335': 'The readings sit straight on the field again — no boxes cut out behind the words and the number.',
   '2026.08.31.336': 'The Sunday review is a heading you open at the bottom of Weekly, not a wall at the top of it.',
   '2026.08.31.337': 'A day on Weekly shows its whole session now — every exercise, with the sets and reps beside it.',
+  '2026.08.31.338': 'The mark in the wordmark is a solid now — the same square face on, a cube once it turns.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
