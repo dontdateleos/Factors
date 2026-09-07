@@ -5237,7 +5237,7 @@ function idleBeat(el){
     // Six pixels, not two. Two was chosen to keep it proportional to a 42px pair against the
     // score's 72 — but the score's tear is a thing you notice and the mark's was not, and a
     // tear nobody sees is not a quieter version of the effect, it is the effect missing.
-    playGlitch(el, 'markGlitch', 6);
+    playGlitch(el, 'markGlitch', 6, MARK_BLEED);
     scheduleIdle(); return;
   }
   if(anim('saccade') && r < 0.09){
@@ -5345,6 +5345,39 @@ function settleSquash(el){
   }catch(e){}
 }
 
+/* THE MARK TEARS WHEN THE PAGE CHANGES UNDER IT, NOT ONLY WHEN IT MOVES HOUSE.
+   moveEyes already tears, but only on some switches: the trip between the wordmark and the
+   chip beside the score, and only in one direction, since leaving Today is deliberately a cut
+   rather than a gesture. Switching Weekly to Body moved a whole page and left the mark sitting
+   there as though nothing had happened.
+
+   THIS IS A FALLBACK, NOT A SECOND TEAR. The first version asked activateTab whether the mark
+   was flying and stood down if it was — which was the wrong question, and the count proved it:
+   Weekly to Body tore once, Body to Data tore once, and arriving at Today tore NOT AT ALL,
+   because that switch does hand off to the flight and the flight does not always tear. So it
+   asks the only question that matters instead — has the mark torn since this switch began —
+   and fires only if nothing else did. Exactly one tear per switch, whoever ends up playing it.
+
+   Timed to FINISH as the card lands rather than to start there: a tear is something coming
+   apart, which belongs to the part of the switch that is still moving, and the pills draw
+   themselves out at the moment of arrival. Page slides, mark tears, page lands, titles
+   extend — four beats in an order, rather than everything at once on arrival.
+
+   Whether it tears at all stays the eyes' own setting, the same row that governs the tear on
+   the flight; it borrows that row's travel too, so the two are one effect with one dial. */
+function markTearOnSwitch(){
+  if(!uiAnim('markGlitch') || !anim('tearOnFlight')) return;
+  const began = performance.now();
+  const lead = Math.max(0, uiArriving() - UI_ANIM.markGlitch.ms);
+  setTimeout(()=>{
+    if(lastMarkTearAt > began) return;            // the flight, or an idle, got there first
+    // The tab may have changed again inside the wait; tear the mark that is on screen now.
+    const el = eyesHome === 'score' ? todayChipEl() : document.querySelector('.header-mark');
+    if(el && el.isConnected && el.style.visibility !== 'hidden'){
+      playGlitch(el, 'markGlitch', EYE_ANIM.tearOnFlight.px, MARK_BLEED);
+    }
+  }, lead);
+}
 function moveEyes(dest, from, snap){
   const header = document.querySelector('.header-mark');
   const score = document.getElementById('scoreEyes');
@@ -5429,14 +5462,14 @@ function moveEyes(dest, from, snap){
     // Booked before anything below runs, so a throw in here cannot strand the mark.
     eyeFlightTimer = setTimeout(land, markCutAt() + markTearMs());
 
-    playGlitch(away, 'markGlitch', px + 2);
+    playGlitch(away, 'markGlitch', px + 2, MARK_BLEED);
 
     setTimeout(()=>{
       if(eyesHome !== dest) return;
       // The cut. Both on one frame, so the mark is never on neither.
       away.style.visibility = 'hidden';
       back.style.visibility = 'visible';
-      playGlitch(back, 'markGlitch', px);
+      playGlitch(back, 'markGlitch', px, MARK_BLEED);
       /* The settle rides over the tail of the arriving tear rather than queueing behind it:
          they write different properties, so the square is still breaking up while it is
          already coming down. Only on the way here -- the wordmark end has its own pop as the
@@ -6829,7 +6862,7 @@ function updateEyePerch(){
     // reason the perch on Today does.
     const mark = document.querySelector('.header-mark');
     updateHeaderCollapse();
-    if(mark && anim('tearOnFlight')) playGlitch(mark, 'markGlitch', EYE_ANIM.tearOnFlight.px);
+    if(mark && anim('tearOnFlight')) playGlitch(mark, 'markGlitch', EYE_ANIM.tearOnFlight.px, MARK_BLEED);
     return;
   }
 
@@ -7633,6 +7666,7 @@ function activateTab(name, opts){
   const eyesFlying = name === 'insights' ? (eyesHome !== 'score') : !!eyesLeaving;
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
   else if(eyesLeaving) moveEyes('header', eyesFrom);
+  markTearOnSwitch();
   bindEyeTap();
   decorateChevrons(document);
   decorateColophon();
@@ -8604,7 +8638,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.352';
+const APP_VERSION = '2026.08.31.353';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8722,6 +8756,7 @@ const APP_NOTES = {
   '2026.08.31.350': 'The score is heavier and its figures sit closer together.',
   '2026.08.31.351': 'Section titles extend out as the page lands instead of arriving whole.',
   '2026.08.31.352': 'Tabs are dealt in from the side you swiped, rather than up from the bottom.',
+  '2026.08.31.353': 'The mark in the top bar tears as a new page is dealt in.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17991,24 +18026,48 @@ function paintDataTrace(){
    No colour separation: the usual chromatic-aberration trick would put red and cyan on a page
    that has two blacks, one cream and no third thing. Horizontal displacement and a clipped
    band, which is what a broken raster actually does. */
+/* [offset, top %, bottom %, translate multiplier]. Kept as numbers rather than finished
+   inset() strings because the sides are no longer always zero — see the bleed below. A frame
+   with top and bottom both 0 is a WHOLE frame, the one the tear keeps snapping back to. */
 const GLITCH_FRAMES = [
-  [0,    'inset(0 0 0 0)',      0],
-  [0.08, 'inset(14% 0 52% 0)', -1],
-  [0.16, 'inset(0 0 0 0)',      0],
-  [0.28, 'inset(62% 0 10% 0)',  0.86],
-  [0.36, 'inset(0 0 0 0)',      0],
-  [0.52, 'inset(38% 0 38% 0)', -0.57],
-  [0.60, 'inset(0 0 0 0)',      0],
-  [0.76, 'inset(6% 0 74% 0)',   0.43],
-  [0.84, 'inset(0 0 0 0)',      0],
-  [1,    'inset(0 0 0 0)',      0]
+  [0,     0,  0,  0],
+  [0.08, 14, 52, -1],
+  [0.16,  0,  0,  0],
+  [0.28, 62, 10,  0.86],
+  [0.36,  0,  0,  0],
+  [0.52, 38, 38, -0.57],
+  [0.60,  0,  0,  0],
+  [0.76,  6, 74,  0.43],
+  [0.84,  0,  0,  0],
+  [1,     0,  0,  0]
 ];
+/* THE BLEED, AND WHY THE MARK NEEDS ONE.
+   inset() is measured from the border box, so inset(0 0 0 0) — the frame this rests on — clips
+   an element to exactly its own box. That was harmless when the mark was a plate drawn inside
+   its 40px square. It is not harmless now: the solid overflows that square by design, 56x57
+   at rest against a 40px host and up to 69 across a body diagonal, so every whole frame in the
+   tear was quietly squaring the cube off — rounded corners gone, overhang cut — and snapping
+   it back four times a tear. The bleed lets the sides out past the box; a whole frame lets all
+   four out, so it does not clip at all. 40% of 40px is 16px each way, which covers the widest
+   the solid can ever project. Zero for the score's digits, which sit inside their own box. */
+const MARK_BLEED = 40;
 /* The clip-and-slip tear. Both callers hand it something small — the score's digits and the
    mark — because inset() keeps a band and throws the rest away, which reads as a tear at that
    size and as a blackout at any other. A page-sized version of this was tried four ways and
    none of them worked; arriving on a tab is now the deal and nothing else. */
-function playGlitch(el, key, px){
+let lastMarkTearAt = 0;
+function playGlitch(el, key, px, bleed){
   if(!el || !uiAnim(key)) return null;
+  // Stamped here rather than at each call site, so every route to a mark tear counts — the
+  // flight, the idle, the header's own — and the switch tear below can tell whether one has
+  // already happened without knowing which of them did it.
+  if(key === 'markGlitch') lastMarkTearAt = performance.now();
+  const b = bleed || 0;
+  // A whole frame has to let every side out, or it clips the overhang back to the box; a torn
+  // frame keeps its band and only lets the sides out.
+  const clip = (t, bo) => (t === 0 && bo === 0)
+    ? `inset(${-b}% ${-b}% ${-b}% ${-b}%)`
+    : `inset(${t}% ${-b}% ${bo}% ${-b}%)`;
   try{
     // The step easing goes on EVERY KEYFRAME, not in the options. CSS applies
     // animation-timing-function per keyframe segment; the Web Animations API applies an
@@ -18018,8 +18077,9 @@ function playGlitch(el, key, px){
     // until the next offset, then cut. No fill, so the element is back under its own styles
     // the moment it finishes.
     return el.animate(
-      GLITCH_FRAMES.map(([offset, clipPath, mul])=>({
-        offset, clipPath, translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)'
+      GLITCH_FRAMES.map(([offset, top, bot, mul])=>({
+        offset, clipPath: clip(top, bot),
+        translate: (px * mul).toFixed(2) + 'px', easing:'steps(1, end)'
       })),
       { duration: UI_ANIM[key].ms });
   } catch(e){ return null; }
