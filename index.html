@@ -1496,12 +1496,18 @@
      ends the score sits on. The section's own .fields tint goes with it: a tint under a dot
      field is two grounds in a section that needs one.
 
-     Bled top and bottom as well as sideways, so the field is the whole of .fields rather than
-     a panel inside it — which is what puts its top edge directly under the section's band, the
-     way Today's tucks under the header. */
+     THE FIELD IS THE CHART'S GROUND, NOT THE SECTION'S. It runs the full width of the page —
+     bled out by one gutter and given the gutter back as padding — and it stops at the foot of
+     the last bar. The sentences under the chart are reading, and reading does not want a
+     texture behind it; they are their own box now, on the plain ground.
+
+     Bled up as well as sideways, so the field's top edge lands directly under the section's
+     band the way Today's tucks under the header. The 16px of padding at each end is what the
+     wave needs: the top mask band is solid only below y=14 and the bottom one above y=10, so
+     anything less cuts the first and last rows on the curve. */
   .fields:has(> #weekBlockStrip){ background:transparent; }
   #weekBlockStrip{
-    margin:calc(-1 * var(--sp-3)) calc(-1 * var(--gutter)) calc(-1 * var(--sp-3));
+    margin:calc(-1 * var(--sp-3)) calc(-1 * var(--gutter)) 0;
     padding:var(--sp-3) var(--gutter); }
 
   #weeklyTrainingView > .group{ margin-bottom:0; }
@@ -3256,6 +3262,13 @@
         <div class="group-head"><div class="group-title">Training load</div></div>
         <div class="fields">
           <div id="weekBlockStrip" class="dot-field"></div>
+          <!-- Outside the strip, because the field is the strip's background and the field
+               belongs to the chart. What is under the dots is the graph; what is under this
+               is prose. Also the reason the strip is a static element rather than part of the
+               rendered html: fieldDrift puts a class on it, and renderBlockLoadChart runs
+               after an await on arrival — a field inside the rebuilt markup would have its
+               ripple wiped by the render that follows it. -->
+          <div id="weekBlockNotes"></div>
         </div>
       </div>
       <!-- Under the week, not above it. Generate still builds FROM these, and the chain
@@ -8796,7 +8809,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.361';
+const APP_VERSION = '2026.08.31.362';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8923,6 +8936,7 @@ const APP_NOTES = {
   '2026.08.31.359': 'The dot field ripples in place now, instead of sliding sideways.',
   '2026.08.31.360': 'The dot field ripples half as far.',
   '2026.08.31.361': 'Training load sits on the dot field now, not a yellow tint, and ripples in with the page.',
+  '2026.08.31.362': 'The dots run behind the load chart only, not the reading under it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14755,8 +14769,9 @@ async function renderBlockLoadChart(){
     const legend = `<span class="blc-key blc-key-done">Logged</span> vs `
       + `<span class="blc-key blc-key-plan">${isSets ? 'plan' : '4-week average'}</span>`;
     strip.innerHTML = `<div class="blc-head"><span class="score-note blc-cap">${legend}</span>${pills}</div>
-      <div class="blc-rows">${rows.join('')}</div>
-      ${chipRow(headline)}
+      <div class="blc-rows">${rows.join('')}</div>`;
+    const notesEl = document.getElementById('weekBlockNotes');
+    if(notesEl) notesEl.innerHTML = `${chipRow(headline)}
       ${nextLine ? `<div class="score-note" style="margin-top:1px;">${nextLine}</div>` : ''}
       ${notes.length ? `<div class="score-note blc-note">${notes.join(' ')}</div>` : ''}`;
     strip.querySelectorAll('.blc-unit').forEach(btn=>{
@@ -14766,7 +14781,11 @@ async function renderBlockLoadChart(){
         renderBlockLoadChart();
       });
     });
-  } catch(e){ strip.innerHTML = ''; }
+  } catch(e){
+    strip.innerHTML = '';
+    const notesEl = document.getElementById('weekBlockNotes');
+    if(notesEl) notesEl.innerHTML = '';
+  }
 }
 
 async function renderWeekGrid(){
