@@ -3716,10 +3716,10 @@
         <div class="fields" id="blockHistoryBody"></div>
       </div>
 
-      <div class="group">
-        <div class="group-head"><div class="group-title">Looking back</div><div class="group-sub">what preceded past flare-ups</div></div>
-        <div class="fields" id="injuryRetroBody"></div>
-      </div>
+      <!-- "Looking back" was here: what preceded your flare-ups, pooled across all of them.
+           It is a per-injury button on Body now. The question is one you have while looking
+           at the injury, not one you go to a history tab to ask, and pooled it needed several
+           flare-ups before it could say anything at all. -->
     </div>
   </div>
 
@@ -8036,7 +8036,6 @@ function activateDataSubView(view){
     exSearchIndex = null;
     renderExerciseSearch();
     renderBlockHistory();
-    renderInjuryRetrospective();
     if(document.getElementById('prevWorkoutsDate').value) renderPrevWorkoutsForDate();
   }
   updateFooterVisibility();
@@ -8940,7 +8939,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.371';
+const APP_VERSION = '2026.08.31.372';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9077,6 +9076,7 @@ const APP_NOTES = {
   '2026.08.31.369': 'Adaptation Tracking has gone. Trends is the chart.',
   '2026.08.31.370': 'The week spinner says the whole day, not the first three letters.',
   '2026.08.31.371': 'Search a lift on Workout History and see how it has actually gone.',
+  '2026.08.31.372': 'Each injury has a button asking what the week before it held.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17160,6 +17160,7 @@ async function refreshInjuries(){
         <div class="injury-actions">
           ${!inj.resolved ? `<input type="number" min="1" max="10" step="1" inputmode="numeric" class="injury-rerate" data-id="${inj.id}" placeholder="1-10" style="max-width:62px;" aria-label="How is it today, 1 to 10">
           <button class="small rerate-btn" data-id="${inj.id}">Update</button>` : ''}
+          <button class="small diagnose-btn" data-id="${inj.id}">What led to this</button>
           ${!inj.resolved ? `<button class="small resolve-btn" data-id="${inj.id}">Mark resolved</button>` : ''}
           <button class="small outline delete-btn" data-id="${inj.id}">Delete</button>
         </div>`;
@@ -17177,6 +17178,12 @@ async function refreshInjuries(){
        the new initial severity and today becomes the new onset, which is what a fresh
        measurement means. confirmedOn is what the check-in card reads to know how long it
        has been since anybody asked. */
+    // Bound here rather than delegated, for the reason every other button on this card is:
+    // the list is rebuilt whole on each refresh and a listener on a removed node goes with it.
+    list.querySelectorAll('.diagnose-btn').forEach(btn=>{
+      const inj = injuries.find(x=> String(x.id) === btn.dataset.id);
+      if(inj) btn.addEventListener('click', ()=> showInjuryDiagnosis(inj));
+    });
     list.querySelectorAll('.rerate-btn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const id = btn.dataset.id;
@@ -24062,91 +24069,163 @@ async function isTestReady(sg){
 // finding. The copy says so rather than implying the app has proven anything.
 const INJURY_LOOKBACK_DAYS = 7;   // window before onset that training could plausibly bear on
 
-async function buildInjuryRetrospective(){
-  const res = await window.storage.list('injury:');
-  if(!res || !res.keys || !res.keys.length) return null;
-  const injuries = [];
-  for(const k of res.keys){
-    try{ injuries.push(JSON.parse((await window.storage.get(k)).value)); } catch(e){}
-  }
-  if(!injuries.length) return null;
-  const sessions = (await getAllTrainingSessions()).filter(s => s.type === 'strength' && s.date);
-  if(sessions.length < 10) return { tooEarly:true, injuries: injuries.length, sessions: sessions.length };
+/* ONE INJURY, NOT ALL OF THEM. The pooled version answered "what tends to precede your
+   flare-ups", which is a question you have to have had several flare-ups to ask, and it sat
+   in a section on another tab where nobody was thinking about their knee. This answers the
+   question you actually have the moment you log something: what was I doing in the week
+   before this one started.
 
-  // For each injury onset, what was trained in the week before it?
-  const movementCounts = {}, areaCounts = {}, exerciseCounts = {};
-  let analysed = 0;
-  injuries.forEach(inj => {
-    if(!inj.date) return;
-    const onset = new Date(inj.date).getTime();
-    const from = onset - INJURY_LOOKBACK_DAYS*24*60*60*1000;
-    const before = sessions.filter(s => {
-      const t = new Date(s.date).getTime();
-      return t >= from && t <= onset;
-    });
-    if(!before.length) return;
-    analysed++;
-    before.forEach(s => (s.exercises||[]).forEach(e => {
-      if(e.movement) movementCounts[e.movement] = (movementCounts[e.movement]||0) + 1;
-      if(e.area) areaCounts[e.area] = (areaCounts[e.area]||0) + 1;
-      if(e.name) exerciseCounts[e.name] = (exerciseCounts[e.name]||0) + 1;
-    }));
-  });
-  if(!analysed) return { noOverlap:true, injuries: injuries.length };
+   Still association, and it says so. A week of training is one input among sleep, work,
+   stress and chance, and one injury is not a sample. What it can do honestly is put the
+   evidence in front of you — what you trained, whether it loaded the thing that hurts,
+   whether the week was heavier than your usual, and whether this part has gone before. */
+async function diagnoseInjury(inj){
+  if(!inj || !inj.date) return { error: 'no-date' };
+  const all = (await getAllTrainingSessions()).filter(s=> s.type === 'strength' && s.date);
+  const onset = new Date(inj.date).getTime();
+  const dayMs = 86400000;
+  const from = onset - INJURY_LOOKBACK_DAYS * dayMs;
+  const inWindowSessions = all.filter(s=>{ const t = new Date(s.date).getTime(); return t >= from && t <= onset; });
+  if(!inWindowSessions.length) return { none: true, logged: all.length };
 
-  // Compare against the same counts across ALL training — an exercise that shows up before
-  // every injury but is also in every session is just your most frequent exercise, not a
-  // signal. Only over-representation relative to baseline is interesting.
-  const baseMovement = {}, baseExercise = {};
-  let totalEx = 0;
-  sessions.forEach(s => (s.exercises||[]).forEach(e => {
-    totalEx++;
-    if(e.movement) baseMovement[e.movement] = (baseMovement[e.movement]||0) + 1;
-    if(e.name) baseExercise[e.name] = (baseExercise[e.name]||0) + 1;
+  const setsOf = e => Number(e.sets) > 0 ? Number(e.sets) : 1;
+  const winCount = {}, baseCount = {};
+  let winEx = 0, allEx = 0, winSets = 0;
+  inWindowSessions.forEach(s=>(s.exercises || []).forEach(e=>{
+    if(!e.name) return;
+    winCount[e.name] = (winCount[e.name] || 0) + 1; winEx++; winSets += setsOf(e);
   }));
-  const preTotal = Object.values(movementCounts).reduce((a,b)=>a+b,0) || 1;
+  all.forEach(s=>(s.exercises || []).forEach(e=>{ if(!e.name) return; baseCount[e.name] = (baseCount[e.name] || 0) + 1; allEx++; }));
 
-  const overRepresented = Object.entries(exerciseCounts).map(([name, n]) => {
-    const preShare = n / (Object.values(exerciseCounts).reduce((a,b)=>a+b,0) || 1);
-    const baseShare = (baseExercise[name]||0) / (totalEx || 1);
-    return { name, n, lift: baseShare > 0 ? preShare / baseShare : 0 };
-  }).filter(x => x.n >= 2 && x.lift > 1.3).sort((a,b) => b.lift - a.lift).slice(0, 4);
+  /* Over-represented means "more of your week than usual", not "most of your week". Your
+     most frequent lift is in front of every injury because it is in front of everything;
+     only its share ABOVE your own baseline says anything. */
+  const over = Object.entries(winCount).map(([name, n])=>{
+    const winShare = n / (winEx || 1);
+    const baseShare = (baseCount[name] || 0) / (allEx || 1);
+    return { name, n, lift: baseShare > 0 ? winShare / baseShare : 0 };
+  }).filter(x=> x.lift > 1.3).sort((a, b)=> b.lift - a.lift).slice(0, 4);
 
-  const byPart = {};
-  injuries.forEach(i => { if(i.part) byPart[i.part] = (byPart[i.part]||0) + 1; });
-  const recurring = Object.entries(byPart).filter(([,n]) => n >= 2).sort((a,b)=>b[1]-a[1]);
+  /* What the injury says hurts, against what the week actually loaded. This is the one line
+     that can point at a cause rather than at a coincidence, so it is only drawn when the
+     injury names a movement — "not movement-specific" has nothing to match.
 
-  return { analysed, injuries: injuries.length, overRepresented, recurring,
-           topMovements: Object.entries(movementCounts).sort((a,b)=>b[1]-a[1]).slice(0,3) };
+     THE MOVEMENT IS LOOKED UP, NOT READ OFF THE SET. e.movement is written by the generator
+     and is simply absent on a session logged by hand, which is most of them — trusting it
+     alone had this telling me nothing in a week of Back Squats loaded the squat pattern, and
+     saying so in a sentence that pointed away from training. guessTagsFromLibrary resolves
+     the name against the library the same way the goal engine does.
+
+     knownMovements is what stops the fallback lying the other way: a week whose exercises the
+     library does not recognise is a week we cannot classify, which is a different answer from
+     a week that loaded nothing relevant, and the copy below says whichever is true. */
+  const movementHits = [];
+  let knownMovements = 0;
+  if(inj.movement){
+    const byName = {};
+    inWindowSessions.forEach(s=>(s.exercises || []).forEach(e=>{
+      if(!e.name) return;
+      const mv = e.movement || (guessTagsFromLibrary(e.name) || {}).movement;
+      if(!mv) return;
+      knownMovements++;
+      if(mv === inj.movement) byName[e.name] = (byName[e.name] || 0) + setsOf(e);
+    }));
+    Object.entries(byName).sort((a, b)=> b[1] - a[1]).forEach(([name, sets])=> movementHits.push({ name, sets }));
+  }
+
+  /* The four weeks before the window, as weeks — not "your average session", because an
+     injury week with five sessions in it is a different thing from one with two. */
+  const priorWeeks = [];
+  for(let w = 1; w <= 4; w++){
+    const hi = from - (w - 1) * 7 * dayMs, lo = hi - 7 * dayMs;
+    let sets = 0, any = false;
+    all.forEach(s=>{
+      const t = new Date(s.date).getTime();
+      if(t < lo || t >= hi) return;
+      any = true;
+      (s.exercises || []).forEach(e=> sets += setsOf(e));
+    });
+    if(any) priorWeeks.push(sets);
+  }
+  const usualSets = priorWeeks.length ? priorWeeks.reduce((a, b)=> a + b, 0) / priorWeeks.length : null;
+  const loadRatio = usualSets > 0 ? winSets / usualSets : null;
+
+  let priorSamePart = 0;
+  try{
+    const res = await window.storage.list('injury:');
+    for(const k of (res && res.keys) || []){
+      try{
+        const other = JSON.parse((await window.storage.get(k)).value);
+        if(other.id !== inj.id && other.part && inj.part
+           && other.part.trim().toLowerCase() === inj.part.trim().toLowerCase()
+           && new Date(other.date).getTime() < onset) priorSamePart++;
+      } catch(e){}
+    }
+  } catch(e){}
+
+  return { sessions: inWindowSessions.length, dates: inWindowSessions.map(s=>s.date).sort(),
+           winSets, usualSets, loadRatio, weeksCompared: priorWeeks.length,
+           movementHits, knownMovements, over, priorSamePart };
 }
 
-async function renderInjuryRetrospective(){
-  const el = document.getElementById('injuryRetroBody');
-  if(!el) return;
-  try{
-    const r = await buildInjuryRetrospective();
-    if(!r){ el.innerHTML = '<div class="score-note">Nothing logged yet. Once there are injuries and training history, this looks at what preceded each one.</div>'; return; }
-    if(r.tooEarly){ el.innerHTML = `<div class="score-note">${r.injuries} injur${r.injuries===1?'y':'ies'} logged, but only ${r.sessions} strength sessions — not enough history to look for patterns yet.</div>`; return; }
-    if(r.noOverlap){ el.innerHTML = '<div class="score-note">No logged training in the week before any recorded injury, so there is nothing to compare.</div>'; return; }
-    let html = `<div class="score-note">Looking at the ${INJURY_LOOKBACK_DAYS} days before each of ${r.analysed} injur${r.analysed===1?'y':'ies'}.</div>`;
-    if(r.recurring.length){
-      html += '<div class="log-title" style="margin-top:10px;">Recurring</div>';
-      r.recurring.forEach(([part, n]) => {
-        html += `<div class="log-entry"><span>${part}</span><span>${n} separate flare-ups</span></div>`;
-      });
-      html += '<div class="score-note">A part that keeps returning is usually worth a physio rather than another substitution.</div>';
+const INJURY_MOVEMENT_LABELS = { squat:'squat pattern', hinge:'hinge pattern', push:'push pattern',
+                                 pull:'pull pattern', isolation:'isolation work' };
+
+async function showInjuryDiagnosis(inj){
+  const d = await diagnoseInjury(inj);
+  let body;
+  if(d.error === 'no-date'){
+    body = '<div class="score-note">This injury has no onset date, so there is no week to look at.</div>';
+  } else if(d.none){
+    body = `<div class="score-note">No strength sessions logged in the ${INJURY_LOOKBACK_DAYS} days before ${stamp(inj.date)}`
+         + `${d.logged ? '' : ' — and nothing logged at all yet'}. Training cannot be what this points at.</div>`;
+  } else {
+    const lines = [];
+    lines.push(`<div class="score-note">The ${INJURY_LOOKBACK_DAYS} days before ${stamp(inj.date)}: `
+      + `<b>${d.sessions} session${d.sessions === 1 ? '' : 's'}</b>, ${d.winSets} sets.</div>`);
+
+    if(d.movementHits.length){
+      lines.push(`<div class="log-title" style="margin-top:12px;">Loaded the ${INJURY_MOVEMENT_LABELS[inj.movement] || inj.movement} you flagged</div>`);
+      d.movementHits.forEach(h=> lines.push(`<div class="log-entry"><span>${h.name}</span><span>${h.sets} sets</span></div>`));
+    } else if(inj.movement && d.knownMovements){
+      lines.push(`<div class="score-note" style="margin-top:12px;">Nothing in that week loaded the ${INJURY_MOVEMENT_LABELS[inj.movement] || inj.movement} you flagged, which points away from that week's training as the cause.</div>`);
+    } else if(inj.movement){
+      lines.push(`<div class="score-note" style="margin-top:12px;">None of that week's exercises could be matched to a movement pattern, so this cannot say whether the ${INJURY_MOVEMENT_LABELS[inj.movement] || inj.movement} you flagged was loaded.</div>`);
     }
-    if(r.overRepresented.length){
-      html += '<div class="log-title" style="margin-top:10px;">Over-represented beforehand</div>';
-      r.overRepresented.forEach(x => {
-        html += `<div class="log-entry"><span>${x.name}</span><span>${x.n}x · ${x.lift.toFixed(1)}x your usual rate</span></div>`;
-      });
-      html += '<div class="score-note">These appeared more often before injuries than in your training generally. That is an association in a small sample, not a cause — load is one factor among sleep, stress and chance. Worth watching, not worth dropping an exercise over.</div>';
-    } else {
-      html += '<div class="score-note" style="margin-top:8px;">Nothing stands out as over-represented before injuries compared with your training generally.</div>';
+
+    if(d.loadRatio != null){
+      const pct = Math.round((d.loadRatio - 1) * 100);
+      const verdict = d.loadRatio >= 1.3 ? `<b>${pct}% more</b> than your usual week`
+                    : d.loadRatio <= 0.7 ? `<b>${Math.abs(pct)}% less</b> than your usual week`
+                    : 'in line with your usual week';
+      lines.push(`<div class="log-title" style="margin-top:12px;">Volume</div>`
+        + `<div class="log-entry"><span>That week</span><span>${d.winSets} sets · ${verdict}</span></div>`
+        + `<div class="score-note">Against the ${d.weeksCompared} week${d.weeksCompared === 1 ? '' : 's'} before it, averaging ${Math.round(d.usualSets)} sets.</div>`);
     }
-    el.innerHTML = html;
-  } catch(e){ el.innerHTML = '<div class="score-note">Could not build the retrospective.</div>'; }
+
+    if(d.over.length){
+      lines.push('<div class="log-title" style="margin-top:12px;">More of that week than usual</div>');
+      d.over.forEach(x=> lines.push(`<div class="log-entry"><span>${x.name}</span><span>${x.lift.toFixed(1)}x your normal share</span></div>`));
+    }
+
+    if(d.priorSamePart){
+      lines.push(`<div class="score-note" style="margin-top:12px;"><b>${inj.part}</b> has been logged ${d.priorSamePart} time${d.priorSamePart === 1 ? '' : 's'} before this. A part that keeps returning is usually worth a physio rather than another substitution.</div>`);
+    }
+
+    lines.push('<div class="score-note lift-sheet-foot">This is what the week held, not a diagnosis. Load is one input among sleep, work, stress and chance, and one injury is not a sample.</div>');
+    body = lines.join('');
+  }
+
+  const sheet = document.createElement('div');
+  sheet.className = 'lift-sheet';
+  sheet.innerHTML = `<div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="What led to this ${inj.part}">
+      <div class="lift-sheet-head"><span>Before this</span><button type="button" class="lift-sheet-x" aria-label="Close">\u00d7</button></div>
+      ${body}
+    </div>`;
+  const close = ()=> sheet.remove();
+  sheet.addEventListener('click', e=>{ if(e.target === sheet || e.target.closest('.lift-sheet-x')) close(); });
+  document.addEventListener('keydown', function esc(e){ if(e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc); } });
+  document.body.appendChild(sheet);
 }
 
 // ---------- BLOCK HISTORY ----------
