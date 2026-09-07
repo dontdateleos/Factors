@@ -306,27 +306,27 @@
      either end, and the bend is what stops a centred row of five dashes reading as a rule.
 
      The arc is real geometry rather than five guessed angles: a circle through the ends and
-     the middle, sagitta 13 over the 150px the row spans, which is a radius of 222.8 and puts
-     the outer pair at 16.15 degrees and the inner pair at 8. Shallow on purpose — the ask was
+     the middle, sagitta 8 over the 150px the row spans, which is a radius of 355.6 and puts
+     the outer pair at 10.04 degrees and the inner pair at 5. Shallow on purpose — the ask was
      a lower angle than a semicircle, and at this width anything deeper stops being a row of
-     ticks and becomes a bowl.
+     ticks and becomes a bowl. 13 was tried first and read as too much bend for five short
+     dashes; the sagitta is the one number to change if it ever wants more or less.
 
      It arches rather than dips, and that is the direction with the room in it: dipping puts
-     the outer ticks UP into the wordmark's line box — measured, 117.6 against a wordmark that
-     ends at 119.6 — while arching sends them down into 13px of empty bar. Flip the sign on
-     both the rotate and the translate to swap it.
+     the outer ticks UP toward the wordmark's line box while arching sends them down into
+     empty bar. Flip the sign on both the rotate and the translate to swap it.
 
      Each tick is offset so the arc balances on the line the flat row used to sit on, which is
-     why the middle rises 4.4 rather than the ends dropping 8.8: the bar keeps its height.
+     why the middle rises 2.73 rather than the ends dropping 5.46: the bar keeps its height.
      Transformed on .tab and not on .tab-seg, so the 30x54 hit area rides with the tick it
      belongs to instead of staying flat behind a tilted line. */
   .header-brand > .tabs{ position:absolute; left:50%; margin-left:-75px; bottom:12px; width:150px;
     display:flex; gap:5px; --lit:var(--bg); z-index:1; }
-  .header-brand > .tabs .tab:nth-child(1){ transform:translateY(4.4px)  rotate(-16.15deg); }
-  .header-brand > .tabs .tab:nth-child(2){ transform:translateY(-2.23px) rotate(-8deg); }
-  .header-brand > .tabs .tab:nth-child(3){ transform:translateY(-4.4px); }
-  .header-brand > .tabs .tab:nth-child(4){ transform:translateY(-2.23px) rotate(8deg); }
-  .header-brand > .tabs .tab:nth-child(5){ transform:translateY(4.4px)  rotate(16.15deg); }
+  .header-brand > .tabs .tab:nth-child(1){ transform:translateY(2.73px)  rotate(-10.04deg); }
+  .header-brand > .tabs .tab:nth-child(2){ transform:translateY(-1.38px) rotate(-5deg); }
+  .header-brand > .tabs .tab:nth-child(3){ transform:translateY(-2.73px); }
+  .header-brand > .tabs .tab:nth-child(4){ transform:translateY(-1.38px) rotate(5deg); }
+  .header-brand > .tabs .tab:nth-child(5){ transform:translateY(2.73px)  rotate(10.04deg); }
   /* The line is 3px and the target is 40. Same trick .subj-face and the chip use: the box a
      thumb hits has nothing to do with the size of the thing it hits. */
   /* 19 above and 18 below a 3px line is a 40px target. The row used to carry 16px of its own
@@ -8538,7 +8538,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.348';
+const APP_VERSION = '2026.08.31.349';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8652,6 +8652,7 @@ const APP_NOTES = {
   '2026.08.31.346': 'The score is wider, and carries the same weight as the wordmark rather than less.',
   '2026.08.31.347': 'The score is set in the same face as every other number in the app.',
   '2026.08.31.348': 'The tab label is sand, and the page ticks moved to the middle of the bar on an arc.',
+  '2026.08.31.349': 'Less bend in the page ticks.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
