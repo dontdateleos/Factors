@@ -7417,7 +7417,10 @@ const UI_ANIM = {
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
   faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
-  fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900 },
+  fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900,
+                  // A spin is direct manipulation and answers immediately, so its ripple is
+                  // quicker than the one that has to wait for a page to fly in and land.
+                  spinMs:520 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -7627,6 +7630,49 @@ function fieldDrift(name){
     f.style.setProperty('--field-drift-delay', delay);
     f.classList.add(dir);
   });
+}
+
+/* THE BAND RE-SETTLES WHEN THE SELECTION MOVES.
+   Arriving on a page ripples every field on it; this is the other moment a spinner's band
+   has — you turned the wheel and something new is under it. Same texture, same travel, off
+   the same keyframes.
+
+   DEBOUNCED, because a drag is not one move. pointermove fires a step every WHEEL_STEP_PX and
+   re-renders each time, so spinning through four days would have restarted the animation four
+   times — and a restart on steps() timing is a jump back to 84px, so a fast drag would have
+   read as the dots stuttering backwards. It waits for the wheel to stop and plays once, and
+   the direction comes from where the burst STARTED rather than from its last step, so a spin
+   through three days travels the way the whole spin went.
+
+   Keyed by name rather than held on the element: the assessment's wheel is rebuilt by
+   innerHTML on every render, so anything stored on the node itself would be gone by the time
+   the next step asked what the last index was.
+
+   It stands down during a tab arrival. fieldDrift owns that window, and the wheel's first
+   render on a page it has just landed on is not a spin. */
+const spinLastIndex = new Map();
+const spinBurstFrom = new Map();
+const spinTimers = new Map();
+const SPIN_SETTLE_MS = 90;
+function spinRipple(key, wheel, index){
+  if(!wheel || index == null || !uiAnim('fieldDrift')) return;
+  const prev = spinLastIndex.get(key);
+  spinLastIndex.set(key, index);
+  if(prev == null || prev === index) return;   // first paint of this wheel, or a plain re-render
+  if(uiArriving()) return;
+  if(!spinBurstFrom.has(key)) spinBurstFrom.set(key, prev);
+  clearTimeout(spinTimers.get(key));
+  spinTimers.set(key, setTimeout(()=>{
+    const from = spinBurstFrom.get(key);
+    spinBurstFrom.delete(key);
+    const live = document.getElementById(wheel.id) || wheel;
+    if(!live.isConnected) return;
+    live.classList.remove('drift-l', 'drift-r');
+    void live.offsetWidth;
+    live.style.setProperty('--field-drift-ms', UI_ANIM.fieldDrift.spinMs + 'ms');
+    live.style.setProperty('--field-drift-delay', '0ms');
+    live.classList.add(index > from ? 'drift-l' : 'drift-r');
+  }, SPIN_SETTLE_MS));
 }
 
 function pillExtendSoon(){
@@ -9023,7 +9069,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.375';
+const APP_VERSION = '2026.08.31.376';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9164,6 +9210,7 @@ const APP_NOTES = {
   '2026.08.31.373': 'The spinners put the dot field under the row you are on.',
   '2026.08.31.374': 'The dots under the selected row run to the page edges.',
   '2026.08.31.375': 'The spinner\u2019s dots ripple in with the page too.',
+  '2026.08.31.376': 'Turning a spinner ripples the band under the row you land on.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -13971,6 +14018,7 @@ function renderSkillPicker(category){
   }
   wheel.innerHTML = rows.join('') + `<div class="mob-wheel-focus-line"></div>`;
   wheel.style.setProperty('--mob-focus-row', wheelFocusRow);
+  spinRipple('skill:' + category, wheel, st.index);
 
   const key = order[st.index];
   const tree = PROGRESSION_TREES[category][key];
@@ -14231,6 +14279,9 @@ async function renderMobilityAssessment(skipCollapse){
     </div>`;
 
   container.innerHTML = legendHtml + stepperHtml;
+  // Looked up rather than held: this wheel is part of the html above and is a new element on
+  // every render, which is why spinRipple keys its history by name instead of by node.
+  spinRipple('assessment', document.getElementById('mobWheel'), idx);
 
   const goTo = i => {
     mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, i));
@@ -14698,6 +14749,7 @@ function renderWeekDayPicker(dayBlocks){
       </div>`);
   }
   picker.innerHTML = rows.join('') + `<div class="week-day-focus-line"></div>`;
+  spinRipple('weekday', picker, activeWheelDayIndex);
   firstLight(picker);
   const pos = document.getElementById('weekBlockPos');
   // The heading already says "Week", so this is just the position within the block.
