@@ -5414,6 +5414,24 @@ function mcCubePath(P, h, c, r, k){
   }
   return mcRounded(mcHull(V), r * k);
 }
+/* Fixed in view space, so it does not turn with the solid. Upper left and slightly in front.
+   MC_LIT is what a face pointing straight at the viewer scores, and dividing by it is what
+   makes that face come out at zero — the resting square has no tone on it at all. */
+const MC_LIGHT = (()=>{ const v = [-0.30, -0.45, 0.84], m = Math.hypot(v[0], v[1], v[2]);
+                        return v.map(x=> x/m); })();
+const MC_LIT = MC_LIGHT[2];
+function mcShade(n){
+  const lam = n[0]*MC_LIGHT[0] + n[1]*MC_LIGHT[1] + n[2]*MC_LIGHT[2];
+  return Math.max(0, Math.min(1, 1 - lam / MC_LIT));
+}
+const MC_FACES = [
+  { n:[0,0,1],  q:h=> [[-h,-h,h],[h,-h,h],[h,h,h],[-h,h,h]] },
+  { n:[0,0,-1], q:h=> [[-h,-h,-h],[h,-h,-h],[h,h,-h],[-h,h,-h]] },
+  { n:[1,0,0],  q:h=> [[h,-h,-h],[h,-h,h],[h,h,h],[h,h,-h]] },
+  { n:[-1,0,0], q:h=> [[-h,-h,-h],[-h,-h,h],[-h,h,h],[-h,h,-h]] },
+  { n:[0,-1,0], q:h=> [[-h,-h,-h],[h,-h,-h],[h,-h,h],[-h,-h,h]] },
+  { n:[0,1,0],  q:h=> [[-h,h,-h],[h,h,-h],[h,h,h],[-h,h,h]] },
+];
 function drawMarkCube(){
   const svg = document.getElementById('headerMarkCube');
   const host = document.getElementById('headerMark');
@@ -5427,16 +5445,29 @@ function drawMarkCube(){
   let out = `<path d="${mcCubePath(P, h, c, R, k)}" style="fill:var(--bg)"/>`
           + `<path d="${di}" style="fill:var(--bg)"/>`
           + `<clipPath id="mcClip"><path d="${di}"/></clipPath><g clip-path="url(#mcClip)">`;
-  for(const f of [[1,0,0],[-1,0,0],[0,-1,0],[0,1,0]]){
-    const n = P(f); if(n[2] <= 0.001) continue;
-    // Only the sides step. The top and bottom stay at the shell so the mark does not turn
-    // into a lit object — this is a solid with a darker side, not a thing with a lamp on it.
-    if(f[1]) continue;
-    const q = (f[0] > 0
-      ? [[hi,-hi,-hi],[hi,-hi,hi],[hi,hi,hi],[hi,hi,-hi]]
-      : [[-hi,-hi,-hi],[-hi,-hi,hi],[-hi,hi,hi],[-hi,hi,-hi]]).map(v=>P(v));
+  /* THE TONE BELONGS TO THE LIGHT, NOT TO THE FACE.
+     Both side faces used to be painted the same grey, so which one you saw depended on which
+     way it had turned — and the tone jumped from one side of the mark to the other every time
+     it crossed 90 degrees. That is not a shadow, it is a paint job, and it read as the mark
+     flipping rather than turning.
+
+     Each face takes its value from where it is POINTING instead: how square-on it is to a
+     fixed light, which stays where it is while the solid moves. Nothing jumps, because the
+     value is continuous in the rotation — as one face turns away and darkens, the next turns
+     toward you and lightens, and they cross over smoothly.
+
+     Normalised so a face pointing straight at you is exactly zero: that is what keeps the
+     resting square pure, and it is why a side turned fully face on is white rather than grey.
+     The light is off to the upper left rather than down the view axis, because a light ON the
+     axis gives all three faces at a corner the same value and the cube collapses back into a
+     flat hexagon — the one angle where the tone earns its place. */
+  for(const F of MC_FACES){
+    const n = P(F.n); if(n[2] <= 0.001) continue;
+    const a = 0.42 * mcShade(n);
+    if(a < 0.004) continue;
+    const q = F.q(hi).map(v=>P(v));
     out += `<polygon points="${q.map(([x,y])=>`${(c+x*k).toFixed(2)},${(c+y*k).toFixed(2)}`).join(' ')}"`
-         + ` style="fill:rgba(var(--ground-rgb),0.42)"/>`;
+         + ` style="fill:rgba(var(--ground-rgb),${a.toFixed(3)})"/>`;
   }
   out += `</g>`;
   /* Eyes on the front AND the back, so a half turn lands on a face rather than on nothing.
@@ -8287,7 +8318,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.339';
+const APP_VERSION = '2026.08.31.340';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8392,6 +8423,7 @@ const APP_NOTES = {
   '2026.08.31.337': 'A day on Weekly shows its whole session now — every exercise, with the sets and reps beside it.',
   '2026.08.31.338': 'The mark in the wordmark is a solid now — the same square face on, a cube once it turns.',
   '2026.08.31.339': 'The mark turns wherever it likes now, looks around while it does it, and has eyes on two sides.',
+  '2026.08.31.340': 'The mark takes its shading from a fixed light, so it turns instead of flipping.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
