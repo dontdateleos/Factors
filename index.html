@@ -5428,27 +5428,34 @@ function mcRounded(pts, r){
   }
   return out.length ? out.join(' ') + ' Z' : '';
 }
-/* FIT TO THE SLOT, WHICH IS WHAT LETS IT TURN AT ALL.
-   A cube is root-two wider at a corner than face on, and this one sits 117px in with the
-   wordmark's second line directly to its left — so a free turn grew the mark straight into
-   the D of FOOD, and the first version of this capped the rotation at twenty degrees to
-   avoid it. Wrong fix: it solved a collision by taking away the motion. Every orientation is
-   scaled so the silhouette fills the same box instead, which makes the bounding box constant
-   and the collision impossible, and the rotation is free again. Face on the factor is exactly
-   1, so the resting square is untouched. */
-function mcFit(P, h){
-  let m = 0;
-  for(const x of [-h,h]) for(const y of [-h,h]) for(const z of [-h,h]){
-    const v = P([x,y,z]); m = Math.max(m, Math.abs(v[0]), Math.abs(v[1]));
-  }
-  return m ? h / m : 1;
-}
-function mcCubePath(P, h, c, r, k){
+/* THE SOLID DOES NOT RESIZE WHEN IT TURNS, AND THAT IS THE WHOLE POINT.
+   A cube is root-two wider at a corner than face on and root-three across its body diagonal,
+   and this one sits with the wordmark's second line directly to its left. Two versions tried
+   to buy that width back. The first capped the rotation at twenty degrees, which solved a
+   collision by taking away the motion. The second scaled every orientation to fill the same
+   box, which was worse in a way that took a while to name: holding the box constant means the
+   mark SHRINKS the moment it moves. Eight degrees took a fifth off its height, a
+   twenty-two degree glance — the commonest thing it does — took nearly a quarter, and it
+   sprang back to full size at ninety. Measured, a 40px mark went 40x40, 40x35.4, 40x33.1,
+   40x31.8. That is not a solid turning. It is a shape being squashed and let go, which is
+   exactly what it looked like.
+
+   So nothing is scaled. The silhouette grows and shrinks as a real one does, the eyes keep
+   their size, and every orientation is the same object seen from a different angle. It costs
+   the mark up to 14px of overhang each way at the extremes, over the wordmark on one side and
+   into open header on the other — and the mark has always painted OVER the wordmark rather
+   than beside it, so the overhang reads as a solid in front of the type, which is what it is.
+
+   Nothing replaces this because nothing needs to: the widest a cube can ever project is
+   root-three, so any allowance big enough to leave the rotation alone is an allowance that
+   never fires. A clamp that never clamps is not a safeguard, it is eight projections a frame
+   and a line of code that lies about what it does. */
+function mcCubePath(P, h, c, r){
   const V = [];
   for(const x of [-h,h]) for(const y of [-h,h]) for(const z of [-h,h]){
-    const v = P([x,y,z]); V.push([c + v[0]*k, c + v[1]*k]);
+    const v = P([x,y,z]); V.push([c + v[0], c + v[1]]);
   }
-  return mcRounded(mcHull(V), r * k);
+  return mcRounded(mcHull(V), r);
 }
 /* Fixed in view space, so it does not turn with the solid. Upper left and slightly in front.
    MC_LIT is what a face pointing straight at the viewer scores, and dividing by it is what
@@ -5520,8 +5527,8 @@ function mcPaint(m){
   const B = Math.round(s * 1.08), c = B/2, h = s/2, R = MC_R * s;
   svg.setAttribute('width', B); svg.setAttribute('height', B);
   svg.setAttribute('viewBox', `0 0 ${B} ${B}`);
-  const P = mcProject(mcState.rx, mcState.ry, mcState.rz), k = mcFit(P, h);
-  const hi = h * MC_INSET, di = mcCubePath(P, hi, c, R * MC_INSET, k);
+  const P = mcProject(mcState.rx, mcState.ry, mcState.rz);
+  const hi = h * MC_INSET, di = mcCubePath(P, hi, c, R * MC_INSET);
   let out = '';
   if(m.line){
     /* THE OUTLINE IS THE SAME SOLID, UNPAINTED.
@@ -5529,7 +5536,7 @@ function mcPaint(m){
        at the same size and only the treatment differs. The folds are added on top: an edge
        with both its faces showing. Face on there are none, and this comes out as the square
        ring the flat chip drew. */
-    const t = Math.max(1, s * 0.068), ds = mcCubePath(P, h, c, R, k);
+    const t = Math.max(1, s * 0.068), ds = mcCubePath(P, h, c, R);
     out += `<path d="${ds}" fill="none" style="stroke:${m.line}"`
          + ` stroke-width="${t.toFixed(2)}" stroke-linejoin="round"/>`;
     /* The folds run the FULL width of the solid, not the inset the tone is drawn on. Inset,
@@ -5542,14 +5549,14 @@ function mcPaint(m){
     for(const E of MC_EDGES){
       if(P(MC_FACES[E.f[0]].n)[2] <= 0.02 || P(MC_FACES[E.f[1]].n)[2] <= 0.02) continue;
       const [a, b] = E.e.map(v => P(v.map(x => x * h)));
-      fold += `<line x1="${(c+a[0]*k).toFixed(2)}" y1="${(c+a[1]*k).toFixed(2)}"`
-            + ` x2="${(c+b[0]*k).toFixed(2)}" y2="${(c+b[1]*k).toFixed(2)}"`
+      fold += `<line x1="${(c+a[0]).toFixed(2)}" y1="${(c+a[1]).toFixed(2)}"`
+            + ` x2="${(c+b[0]).toFixed(2)}" y2="${(c+b[1]).toFixed(2)}"`
             + ` style="stroke:${m.line}" stroke-width="${t.toFixed(2)}"/>`;
     }
     if(fold) out += `<clipPath id="${m.id}"><path d="${ds}"/></clipPath>`
                   + `<g clip-path="url(#${m.id})">${fold}</g>`;
   } else {
-    out += `<path d="${mcCubePath(P, h, c, R, k)}" style="fill:${m.shell}"/>`
+    out += `<path d="${mcCubePath(P, h, c, R)}" style="fill:${m.shell}"/>`
             + `<path d="${di}" style="fill:${m.shell}"/>`
             + `<clipPath id="${m.id}"><path d="${di}"/></clipPath><g clip-path="url(#${m.id})">`;
     /* THE TONE BELONGS TO THE LIGHT, NOT TO THE FACE.
@@ -5573,7 +5580,7 @@ function mcPaint(m){
       const a = 0.42 * mcShade(n);
       if(a < 0.004) continue;
       const q = F.q(hi).map(v=>P(v));
-      out += `<polygon points="${q.map(([x,y])=>`${(c+x*k).toFixed(2)},${(c+y*k).toFixed(2)}`).join(' ')}"`
+      out += `<polygon points="${q.map(([x,y])=>`${(c+x).toFixed(2)},${(c+y).toFixed(2)}`).join(' ')}"`
            + ` style="fill:rgba(var(--ground-rgb),${a.toFixed(3)})"/>`;
     }
     out += `</g>`;
@@ -5587,14 +5594,14 @@ function mcPaint(m){
     const Q = mcProject(0, face, 0), n = P(Q([0,0,1]));
     if(n[2] <= 0.02) continue;
     const eh = 0.45*s * mcState.blink;
-    const ax = P(Q([1,0,0])), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]) * k);
+    const ax = P(Q([1,0,0])), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]));
     const half = Math.max(0, eh/2 - ew/2);
     const gx = mcState.gx * ew * 0.85, gy = mcState.gy * s * 0.06;
     for(const sg of [-1,1]){
       const x = sg * (gap/2 + ew/2) + gx;
       const a = P(Q([x, -half + gy, z])), b = P(Q([x, half + gy, z]));
-      out += `<line x1="${(c+a[0]*k).toFixed(2)}" y1="${(c+a[1]*k).toFixed(2)}"`
-           + ` x2="${(c+b[0]*k).toFixed(2)}" y2="${(c+b[1]*k).toFixed(2)}"`
+      out += `<line x1="${(c+a[0]).toFixed(2)}" y1="${(c+a[1]).toFixed(2)}"`
+           + ` x2="${(c+b[0]).toFixed(2)}" y2="${(c+b[1]).toFixed(2)}"`
            + ` style="stroke:${m.ink}" stroke-width="${w.toFixed(2)}" stroke-linecap="round"/>`;
     }
   }
@@ -8443,7 +8450,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.342';
+const APP_VERSION = '2026.08.31.343';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8551,6 +8558,7 @@ const APP_NOTES = {
   '2026.08.31.340': 'The mark takes its shading from a fixed light, so it turns instead of flipping.',
   '2026.08.31.341': 'The mark beside the score is a solid too.',
   '2026.08.31.342': 'The seam of half-cut dots above the bottom of the field is gone.',
+  '2026.08.31.343': 'Both marks keep their size when they turn, instead of shrinking and springing back.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
