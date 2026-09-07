@@ -2710,12 +2710,27 @@
       linear-gradient(#000,#000);
     /* The top band starts 4px down, not at the top. The field tucks four pixels under the
        header — it has since the band did — so a wave cut from y=0 spends its crests behind
-       something opaque and arrives with half the amplitude it was drawn with. The middle
-       layer gives the same 4 back so the two still overlap. */
-    -webkit-mask-size:168px 20px, 168px 20px, 100% calc(100% - 44px);
-            mask-size:168px 20px, 168px 20px, 100% calc(100% - 44px);
-    -webkit-mask-position:left 4px, left bottom, center;
-            mask-position:left 4px, left bottom, center;
+       something opaque and arrives with half the amplitude it was drawn with.
+
+       THE MIDDLE IS ANCHORED, NOT CENTRED, AND THAT IS THE WHOLE POINT OF THESE NUMBERS.
+       It used to be centred and 44 short, on the reasoning that taking 4 off its height gave
+       the top band back the 4 it had moved down. Centred, it does no such thing: 4 off the
+       height pulls BOTH ends in by 2. The top was already covered by the band so nothing
+       showed there, and the bottom was left with a 2px strip that no layer reached — a
+       straight seam of half-cut dots, twenty pixels up from the bottom, running the width of
+       the page directly above the wave it was supposed to be part of.
+
+       So the height is stated once and the top edge is pinned, rather than the height being
+       stated and both edges left to fall where centring puts them. 20 down to H-18: four
+       pixels INTO the top band, two pixels INTO the bottom one. Overlapping on purpose —
+       union is what these three layers do, so overlap costs nothing and is the only thing
+       that cannot leave a seam at a fractional height. Both ends land in the part of their
+       band that is solid at every x (the top band is solid from y=14, the bottom from its own
+       y=0 to y=10), so neither overlap can fill in the wave. */
+    -webkit-mask-size:168px 20px, 168px 20px, 100% calc(100% - 38px);
+            mask-size:168px 20px, 168px 20px, 100% calc(100% - 38px);
+    -webkit-mask-position:left 4px, left bottom, left 20px;
+            mask-position:left 4px, left bottom, left 20px;
     -webkit-mask-repeat:repeat-x, repeat-x, no-repeat;
             mask-repeat:repeat-x, repeat-x, no-repeat;
   }
@@ -8428,7 +8443,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.341';
+const APP_VERSION = '2026.08.31.342';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8535,6 +8550,7 @@ const APP_NOTES = {
   '2026.08.31.339': 'The mark turns wherever it likes now, looks around while it does it, and has eyes on two sides.',
   '2026.08.31.340': 'The mark takes its shading from a fixed light, so it turns instead of flipping.',
   '2026.08.31.341': 'The mark beside the score is a solid too.',
+  '2026.08.31.342': 'The seam of half-cut dots above the bottom of the field is gone.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
