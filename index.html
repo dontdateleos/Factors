@@ -820,7 +820,14 @@
      on every render. 1lh is that window measured in the same unit the strip is built from,
      so the two cannot drift apart if the line-height is ever touched; 1em stays as the
      fallback for anything that does not know the unit. */
-  .digit-well{ display:inline-block; overflow:hidden; height:1em; height:1lh; vertical-align:top; }
+  /* The padding and the matching negative margin are horizontal clip slack, and they cancel
+     out in layout. overflow:hidden clips this box on BOTH axes, and the vertical clip is the
+     whole mechanism — a 1lh window onto a ten-digit strip. Pulling the tracking in narrows the
+     cell too, though, and the widest figures ("1" and "3") already reach 33 of the 34.81px
+     advance, so at -0.02em the box would start shaving them down the right-hand side. Padding
+     widens the clip box without widening the cell. */
+  .digit-well{ display:inline-block; overflow:hidden; height:1em; height:1lh; vertical-align:top;
+    padding:0 8px; margin:0 -8px; }
   .digit-strip{ display:block; will-change:transform; }
   /* The wordmark's treatment, not the interface face: --wordmark at its own -0.035em, and no
      stroke, because the wordmark does not use one. That makes the score the second thing in
@@ -836,16 +843,27 @@
      should agree; the number is a measurement first, and it agrees with the other
      measurements now.
 
-     TRACKING GOES BACK TO NORMAL. The -0.045em it was carrying was fitted to Helvetica and
-     borrowed from the wordmark, and it fights this face: the app tracks mono OUTWARD where it
-     tracks it at all — the day number sits at +0.02em — because the figures are already on a
-     fixed advance. At 58px that advance is generous enough on its own, so this takes neither.
+     TRACKING IS PULLED IN AS FAR AS A MONOSPACE ALLOWS, WHICH IS NOT FAR. Every figure sits
+     on the same 34.81px advance and the ink inside it is narrower, so the leftover bearing
+     falls between the digits — and it is not the same on every pair. Measured at 58px: "97"
+     leaves 5.81px between the ink, "45" and "44" leave 2.81px. One tracking value moves all
+     of them, so the tightest pair sets the limit, not the loosest.
+
+     -0.02em with a 1.4px stroke takes "97" from 4.91px of daylight to 3.35 and leaves "44"
+     0.25 — a hairline, which is the point at which two 4s still read as two. -0.035em and
+     1.5px was rendered next to it and the crossbars merge into one shape; 100's zeroes go
+     with them. The stroke counts against this twice over, since it grows the ink on both
+     sides of every gap: whatever it adds comes straight off the space between the figures.
+
+     The gap on "97" cannot close further while the face is a monospace and the reel is a
+     reel — every cell has to hold every digit as it rolls, so no pair can be fitted on its
+     own. Closing it properly means either a proportional face, which is what this was before
+     .347, or fitting each digit inside its cell from the font's own metrics.
 
      THE WEIGHT IS STILL A STROKE, for the same reason it was: 700 is the last weight loaded
-     for Azeret (400, 500, 700), so there is nothing above it to ask for. 0.9px is 1.55% of the
-     size — heavier than body text carries at 0.625% and lighter than the day number's 2.31%,
-     which is what a figure this large wants: small text needs proportionally more stroke to
-     stay solid, not less.
+     for Azeret (400, 500, 700), so there is nothing above it to ask for. 1.4px is 2.41% of
+     the size, near the day number's 2.31% and well over body text at 0.625% — as heavy as it
+     goes before the tightest pair of figures runs out of daylight.
 
      AND NOTHING IS SCALED. The 1.12 stretch existed to widen Helvetica, whose digits are
      narrow. A monospace figure is already wide — this comes out at 69.6px against the 60.5px
@@ -856,8 +874,8 @@
      widths by construction, which is what the digit reel needs so the number cannot shift
      sideways as it counts. It stays for the fallback face. */
   .score-num{ font-family:var(--mono); font-size:var(--fs-score); font-weight:var(--fw-bold);
-    color:var(--text); line-height:0.92; letter-spacing:normal;
-    -webkit-text-stroke:0.9px currentColor;
+    color:var(--text); line-height:0.92; letter-spacing:-0.02em;
+    -webkit-text-stroke:1.4px currentColor;
     font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
   .score-num svg{ width:0.72em; height:0.72em; stroke-width:2.8; }
   .score-label{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);  letter-spacing:0.05em; margin-top:4px; -webkit-text-stroke:0.15px currentColor; }
@@ -8538,7 +8556,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.349';
+const APP_VERSION = '2026.08.31.350';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8653,6 +8671,7 @@ const APP_NOTES = {
   '2026.08.31.347': 'The score is set in the same face as every other number in the app.',
   '2026.08.31.348': 'The tab label is sand, and the page ticks moved to the middle of the bar on an arc.',
   '2026.08.31.349': 'Less bend in the page ticks.',
+  '2026.08.31.350': 'The score is heavier and its figures sit closer together.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
