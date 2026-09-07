@@ -1206,7 +1206,10 @@
   /* --mob-focus-row is which of the three rows currently holds the focused name. It is the
      middle one in the body of the list, but at either end the window clamps rather than
      reserving a blank row, so the line follows it. */
-  .mob-wheel-focus-line{ position:absolute; left:0; right:0; top:calc(var(--mob-row) * var(--mob-focus-row, 1));
+  /* Inset by the gutter, not to the box's edges. The spinner is full-bleed so the dot band can
+     reach the page edges; the rules are not part of that — they belong to the column the words
+     are set in, and running them to the screen edge turned a marked row into a full-width bar. */
+  .mob-wheel-focus-line{ position:absolute; left:var(--gutter); right:var(--gutter); top:calc(var(--mob-row) * var(--mob-focus-row, 1));
     height:var(--mob-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
     opacity:0.45; pointer-events:none; }
   /* The assessment is a form you fill in, so it takes the same black band every other form
@@ -1622,7 +1625,7 @@
   .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--hue-faded); opacity:0.55;
     flex:none; margin-left:8px; }
   .week-day-item.focused .week-day-mark{ opacity:1; }
-  .week-day-focus-line{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+  .week-day-focus-line{ position:absolute; left:var(--gutter); right:var(--gutter); top:50%; transform:translateY(-50%);
     height:var(--day-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
     opacity:0.45; pointer-events:none; }
   /* The day's workouts, one either side of the page. Two is the most a day can hold — the
@@ -3002,7 +3005,18 @@
      with three 38px rows in a 114px window is row 1. */
   .week-day-picker{ --sel-row:var(--day-row); --sel-focus-row:1; }
   .mob-wheel{ --sel-row:var(--mob-row); --sel-focus-row:var(--mob-focus-row, 1); }
-  .week-day-picker, .mob-wheel{ z-index:0; }
+  /* THE BAND RUNS TO THE PAGE EDGES, AND THE WORDS DO NOT MOVE.
+     The bleed is on the SPINNER, not on its ::before, because the spinner is overflow:hidden
+     — it has to be, it is a window over a longer list — so a pseudo-element could never have
+     escaped it. Widened by one gutter each side and given the gutter straight back as padding:
+     the box reaches the edges, inset:0 fills it, and every row sits exactly where it sat.
+     The RULES do not go with it. They are inset back by the same gutter — see the focus-line
+     rules — because they belong to the column the words are set in, and run to the screen edge
+     they stopped reading as a marked row and started reading as a full-width bar. The dots
+     are the thing that spans the page; the lines still frame the column. */
+  .week-day-picker, .mob-wheel{ z-index:0;
+    margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter));
+    padding-left:var(--gutter); padding-right:var(--gutter); }
   .week-day-picker::before, .mob-wheel::before{
     -webkit-mask-image:linear-gradient(#000,#000);
             mask-image:linear-gradient(#000,#000);
@@ -8987,7 +9001,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.373';
+const APP_VERSION = '2026.08.31.374';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9126,6 +9140,7 @@ const APP_NOTES = {
   '2026.08.31.371': 'Search a lift on Workout History and see how it has actually gone.',
   '2026.08.31.372': 'Each injury has a button asking what the week before it held.',
   '2026.08.31.373': 'The spinners put the dot field under the row you are on.',
+  '2026.08.31.374': 'The dots under the selected row run to the page edges.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
