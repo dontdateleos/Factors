@@ -2888,9 +2888,17 @@
      field renders identically to rest, so there is no jump at the start and nothing to hide.
 
      fill:both matters for the same reason at the other end — it holds the to-frame, which is
-     also rest, rather than snapping back through an interpolation nobody asked for. */
-  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 700ms) cubic-bezier(0.2,0.75,0.3,1) var(--field-drift-delay, 0ms) both; }
-  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 700ms) cubic-bezier(0.2,0.75,0.3,1) var(--field-drift-delay, 0ms) both; }
+     also rest, rather than snapping back through an interpolation nobody asked for.
+
+     THE CURVE SETS THE SPEED, NOT THE DURATION. This was a sharp ease-out and read as a flick
+     however long the window was: half the wave passed in the first hundred milliseconds and
+     the rest crawled, peaking at 900px/s. Stretching that curve to 1100ms only takes the peak
+     to 570 — the shape is what you see, and a sharp ease-out spends its distance early
+     whatever its length. Flattened through the middle instead, the peak is 273px/s and the
+     wave passes at something like an even rate: half at 360ms, ninety percent at 760ms. It is
+     a texture drifting, which wants to be read rather than caught. */
+  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 1300ms) cubic-bezier(0.35,0.45,0.3,1) var(--field-drift-delay, 0ms) both; }
+  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 1300ms) cubic-bezier(0.35,0.45,0.3,1) var(--field-drift-delay, 0ms) both; }
   @media (prefers-reduced-motion: reduce){ .today-field.drift-l::before, .today-field.drift-r::before{ animation:none; } }
   /* The bottom margin #acceptanceStats used to carry itself. A child's margin collapses out
      through a parent with no padding there, so as a margin it was 16px of undotted ground
@@ -7122,7 +7130,7 @@ const UI_ANIM = {
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
   faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
-  fieldDrift:   { on:true, note:'The dot field flows one wave through, in the direction you swiped, once Today has landed', ms:700 },
+  fieldDrift:   { on:true, note:'The dot field flows one wave through, in the direction you swiped, once Today has landed', ms:1300 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -8738,7 +8746,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.357';
+const APP_VERSION = '2026.08.31.358';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8861,6 +8869,7 @@ const APP_NOTES = {
   '2026.08.31.355': 'On the bone ground, an armed Clear all and a ticked skill rung are readable again.',
   '2026.08.31.356': 'The mark beside the wordmark is smaller, in the same place.',
   '2026.08.31.357': 'The dot field flows as Today arrives, the way you swiped.',
+  '2026.08.31.358': 'The dot field drifts slower, at something nearer an even rate.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
