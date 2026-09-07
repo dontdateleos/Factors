@@ -7011,8 +7011,8 @@ const UI_ANIM = {
   bannerSlide:  { on:true, note:'The update banner slides down rather than appearing', ms:320 },
   skeleton:     { on:true, note:'Waiting shows the shape of what is coming, pulsing', ms:1200 },
   stickyHeads:  { on:true, note:'A section’s heading sticks to the top while you read it' },
-  tabLift:      { on:true, note:'The tab’s colour fills the page and the new one is dealt up onto it',
-                  axis:'Y', ms:440 },
+  tabLift:      { on:true, note:'A new page is dealt in from the side you swiped, over the app’s own black',
+                  axis:'X', ms:440 },
   planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 },
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
@@ -7728,7 +7728,7 @@ function liftEdge(axis, dir, a){
   return `${o(2)} 0 rgba(var(--ink-rgb),${a}), ${o(5)} 0 rgba(var(--ground-rgb),${a * 0.92})`;
 }
 
-/* The tab transition. The page is dealt up out of the app's own black, from the bottom edge.
+/* The tab transition. The new page is dealt in out of the app's own black, from the side.
 
    Not out of the tab's colour, which is what the backdrop behind the page is set to and what
    this used to show. A whole content area of flat colour appearing on every tap read as a
@@ -7743,11 +7743,25 @@ function liftEdge(axis, dir, a){
    between them. The blob and the ink never had that problem because they covered; this does
    not cover, so instead there is nothing left to compete with.
 
-   And it moves up rather than across. A page here is lines of text, and a boundary travelling
+   AND IT MOVES ACROSS, WHICH REVERSES A MEASURED DECISION. It used to move up, for a reason
+   worth keeping on the record: a page here is lines of text, and a boundary travelling
    sideways cuts through every one of them at once where a boundary travelling up mostly falls
    between them. Counted on the same switch, mid-transition: sideways, ten of nineteen visible
-   lines cut mid-word; upward, none of sixteen. Nothing else about the two differed. `axis`
-   still takes 'X' if it is ever wanted; everything here works either way.
+   lines cut mid-word; upward, none of sixteen.
+
+   That cost is real and this pays it. What the count could not weigh is the gesture. Tabs are
+   swiped here as well as tapped, and a swipe is sideways — drag left and the page should leave
+   to the left, because that is where you just pushed it. Up was arbitrary in a way across is
+   not: it agreed with nothing the finger did. Every other horizontal thing in the app has
+   since lined up behind the same axis too — the tab row, the ticks arcing across the bar, the
+   title pills extending out. A boundary that slices a line for a fifth of a second is a
+   smaller price than a page that moves in a direction nothing asked it to.
+
+   Which side it comes from is not this function's to decide, and it never was: slidePanelIn
+   works it out from the tab's place in the row, and the swipe reaches the same code by the
+   same door — SWEEP_TABS and UI_TAB_ORDER are the same five in the same order, so drag left,
+   go one right along the row, and the page arrives from the right. `axis` still takes 'Y'
+   if this is ever regretted; everything here works either way.
 
    With the outgoing page gone the moment you tap, most of what this used to need goes with
    it: nothing has to be pinned against the scroll reset, nothing has to be given its own
@@ -8590,7 +8604,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.351';
+const APP_VERSION = '2026.08.31.352';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8707,6 +8721,7 @@ const APP_NOTES = {
   '2026.08.31.349': 'Less bend in the page ticks.',
   '2026.08.31.350': 'The score is heavier and its figures sit closer together.',
   '2026.08.31.351': 'Section titles extend out as the page lands instead of arriving whole.',
+  '2026.08.31.352': 'Tabs are dealt in from the side you swiped, rather than up from the bottom.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
