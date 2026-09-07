@@ -384,11 +384,11 @@
      rounded. Change a block and all three have to be recomputed together.
      Literal hex rather than color-mix(): this ships to an iOS home screen, and a wheel that
      silently loses its colour on an older WebKit is not worth the tidier stylesheet. */
-  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); --hue-faded:#dce59c; }
-  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); --hue-faded:#eed98f; }
-  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); --hue-faded:#fdae9d; }
-  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); --hue-faded:#ddcffb; }
-  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); --hue-faded:#9ee7f7; }
+  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); --hue-faded-dark:#dce59c; --hue-faded:var(--hue-faded-dark); }
+  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); --hue-faded-dark:#eed98f; --hue-faded:var(--hue-faded-dark); }
+  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); --hue-faded-dark:#fdae9d; --hue-faded:var(--hue-faded-dark); }
+  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); --hue-faded-dark:#ddcffb; --hue-faded:var(--hue-faded-dark); }
+  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); --hue-faded-dark:#9ee7f7; --hue-faded:var(--hue-faded-dark); }
 
   /* THE GROUND, and the only place it is decided.
      Everything below is derived, not picked. --ground and --bg swap; --ink-rgb and
@@ -433,6 +433,11 @@
      alphas in the app have enough headroom to absorb that; these two did not. */
   html[data-ground="bone"] .app-colophon i{ color:rgba(var(--ink-rgb),0.58); }
   html[data-ground="bone"] .subj-dot{ color:rgba(var(--ink-rgb),0.66); }
+  /* --hue-faded-dark above is the same value written once, not twice: the pocket rule below
+     needs the dark hue back and cannot get it from the bone override that replaced it. It has
+     to be a token the bone block does not touch, and it has to be READ inside the pocket
+     rather than declared on body — a var() in a custom property resolves where it is declared,
+     which is the whole reason the tint could not be fixed the same way. */
   html[data-ground="bone"] body.tab-insights{ --hue-faded:#707a32; }
   html[data-ground="bone"] body.tab-training{ --hue-faded:#846f25; }
   html[data-ground="bone"] body.tab-injuries{ --hue-faded:#8e4233; }
@@ -470,6 +475,11 @@
     --ground:#0c0d0b; --bg:#fbfaf6;
     --ink-rgb:251,250,246; --ground-rgb:12,13,11;
     --dim:#c9c7bc; --text:#0c0d0b;
+    /* The tab's hue, faded for the ground it is on — and inside one of these the ground is
+       the dark one. Found by the mobility test moving into a sheet: on bone the wheel drew
+       its domain names in the hue picked to read on cream, at 2.76 to 1 on the sheet's black.
+       Read from --hue-faded-dark rather than restated, so there is still one value per tab. */
+    --hue-faded:var(--hue-faded-dark);
   }
   /* A .fields inside one of those pockets paints the tab's tint, and the tint does not follow
      the pocket: --field is declared on body as var(--field-<hue>), so it RESOLVES on body and
@@ -3514,10 +3524,19 @@
         <div class="log-title">Active &amp; recent injuries</div>
         <div id="injuryList"></div>
       </div>
-      <!-- Titled the same way the list above it is, so the section reads as two blocks
-           under one heading rather than a form that starts without warning. -->
-      <div class="log-title gutter-inset" style="margin-top:18px;">Log a new one</div>
-      <div class="fields" id="injuryForm">
+      <!-- What the section SHOWS is what is sore. Adding one is a job you do and finish, so
+           it is a sheet off a button rather than a seven-field form sitting open under the
+           list for the rest of the time — on a tab you mostly open to read the list. -->
+      <div class="fields">
+        <button type="button" class="outline" id="logInjuryBtn">Log an injury</button>
+      </div>
+    </div>
+
+    <div class="lift-sheet" id="injurySheet" style="display:none;">
+      <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Log an injury">
+        <div class="lift-sheet-head"><span>Log an injury</span>
+          <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
+        <div class="fields" id="injuryForm">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
         <div class="field-row"><span class="field-label">Type</span>
           <select id="injuryType">
@@ -3546,6 +3565,7 @@
           </select>
         </div>
         <button class="primary" id="addInjuryBtn">Add injury</button>
+        </div>
       </div>
     </div>
 
@@ -3555,7 +3575,16 @@
         <div class="group-sub" id="mobilityAssessmentSummary">tick what you can do in each area — the weakest ones get the mobility work</div>
         <button type="button" class="head-action" id="mobilityAssessmentStartBtn" aria-expanded="false" aria-controls="mobilityAssessmentBody">Take the test</button>
       </div>
-      <div class="fields" id="mobilityAssessmentBody" style="display:none;">
+    </div>
+
+    <!-- The head stays on the page: the summary under the title is the readout, and it is
+         what tells you whether the test is worth taking. The eleven-domain rating wheel is
+         the tallest thing on this tab and it is not a readout, so it moves off the page. -->
+    <div class="lift-sheet" id="mobilityAssessmentSheet" style="display:none;">
+      <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Mobility assessment">
+        <div class="lift-sheet-head"><span>Mobility assessment</span>
+          <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
+      <div class="fields" id="mobilityAssessmentBody">
         <!-- The one condition worth stating on a five-rung self-rating. The rungs are far
              too coarse for most of the measurement protocol to matter here — ankles steps
              5cm at the toe between rungs, against about 0.5cm of drift from time of day —
@@ -3565,6 +3594,7 @@
         <div id="mobilityAssessmentRows"></div>
         <button id="saveMobilityAssessmentBtn">Save assessment</button>
         <div id="saveMobilityAssessmentResult" class="score-note note-live"></div>
+      </div>
       </div>
     </div>
 
@@ -8872,7 +8902,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.364';
+const APP_VERSION = '2026.08.31.365';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9002,6 +9032,7 @@ const APP_NOTES = {
   '2026.08.31.362': 'The dots run behind the load chart only, not the reading under it.',
   '2026.08.31.363': 'Data\u2019s trace and trend chart sit on the dot field too, and ripple in with the page.',
   '2026.08.31.364': 'Goals are a sheet you open from beside Generate, not a section to scroll past.',
+  '2026.08.31.365': 'Logging an injury and taking the mobility test are sheets off a button too.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14193,7 +14224,7 @@ async function renderMobilityAssessment(skipCollapse){
   mobilityAssessmentLabel = assessedCount === 0 ? 'Take the test' : 'Retest';
   const startBtn = document.getElementById('mobilityAssessmentStartBtn');
   const bodyEl = document.getElementById('mobilityAssessmentBody');
-  if(startBtn && bodyEl && bodyEl.style.display === 'none') startBtn.textContent = mobilityAssessmentLabel;
+  if(startBtn && !mobilityAssessmentIsOpen()) startBtn.textContent = mobilityAssessmentLabel;
   if(skipCollapse) return;
   const body = bodyEl;
   /* One slow exhale, the first time a stale assessment comes on screen in a visit. The
@@ -14218,20 +14249,28 @@ async function renderMobilityAssessment(skipCollapse){
 }
 // One place that owns the open state, so the button label, the aria and the panel cannot
 // disagree — which is what happens when a toggle writes some of them and a re-render the rest.
+// It writes the SHEET's display now, not the body's: the body is always shown, and whether
+// you can see it is whether the sheet is up. Self-contained rather than going through
+// wireSheet, because renderMobilityAssessment calls this on the first tab activation and
+// wireSheet is declared a long way further down the file.
+function mobilityAssessmentIsOpen(){
+  const sheet = document.getElementById('mobilityAssessmentSheet');
+  return !!sheet && sheet.style.display !== 'none';
+}
 function setMobilityAssessmentOpen(open){
+  const sheet = document.getElementById('mobilityAssessmentSheet');
   const body = document.getElementById('mobilityAssessmentBody');
   const btn = document.getElementById('mobilityAssessmentStartBtn');
-  if(!body || !btn) return;
-  body.style.display = open ? 'flex' : 'none';
+  if(!sheet || !btn) return;
+  sheet.style.display = open ? '' : 'none';
   btn.textContent = open ? 'Close' : mobilityAssessmentLabel;
   btn.setAttribute('aria-expanded', String(open));
-  if(open){
+  if(open && body){
     body.classList.remove('snap-reveal'); void body.offsetWidth; body.classList.add('snap-reveal');
   }
 }
 document.getElementById('mobilityAssessmentToggleHeader').addEventListener('click', ()=>{
-  const body = document.getElementById('mobilityAssessmentBody');
-  setMobilityAssessmentOpen(body.style.display === 'none');
+  setMobilityAssessmentOpen(!mobilityAssessmentIsOpen());
 });
 // A two-rung jump is not a measurement error, it is a claim — and since the level now picks
 // how hard the loaded movement is, not just how many sets of it, an optimistic tick buys a
@@ -14292,6 +14331,9 @@ document.getElementById('saveMobilityAssessmentBtn').addEventListener('click', a
     showToast('Assessment saved');
     flashConfirm(document.getElementById('saveMobilityAssessmentBtn'));
     await renderMobilityAssessment(true);
+    // Last, so the label and the summary behind it are already the post-save ones when the
+    // sheet comes off and you are looking at the section again.
+    setMobilityAssessmentOpen(false);
   } catch(e){
     result.textContent = 'Save failed — try again.';
     result.style.color = '';
@@ -16853,10 +16895,12 @@ async function addInjury(){
   // knee. The decay model still needs it, so it comes from the type.
   const halfLife = INJURY_TYPE_HALFLIFE_DEFAULT[type] || 14;
   const notes = '';
-  if(!part){ showToast('Enter a body part', true); return; }
-  if(isNaN(severity)){ showToast('Enter a severity (1-10)', true); return; }
+  // Reported back for the same reason the goals save is: the sheet closes on a write and
+  // stays open on a refusal, and only this function knows which happened.
+  if(!part){ showToast('Enter a body part', true); return false; }
+  if(isNaN(severity)){ showToast('Enter a severity (1-10)', true); return false; }
   const onset = stampableDate(date);
-  if(!onset.ok){ showToast(onset.why, true); return; }
+  if(!onset.ok){ showToast(onset.why, true); return false; }
   const id = Date.now().toString();
   const injury = { id, part, type, date, initialSeverity: severity, movement, irritability, halfLife, notes, resolved: false };
   try{
@@ -16871,12 +16915,16 @@ async function addInjury(){
     eyeWince();
     refreshInjuries();
     generateWarmup();
+    return true;
   } catch(e){
     showToast('Save failed — try again', true);
     console.error(e);
+    return false;
   }
 }
-document.getElementById('addInjuryBtn').addEventListener('click', addInjury);
+document.getElementById('addInjuryBtn').addEventListener('click', async ()=>{
+  if(await addInjury()) injurySheet.close();
+});
 // Half-life auto-suggestion by injury type — tendinopathy genuinely takes longer to
 // resolve than a general strain/sprain in real coaching/rehab consensus; not precise
 // clinical fact, just a more reasonable starting point than one flat number for
@@ -19942,36 +19990,62 @@ async function saveGoalsFromForm(resultElId){
     return false;
   }
 }
-/* THE GOALS SHEET.
-   Opened from the row beside Generate. It does not reload on open: the rows are already in
-   the DOM and loadCurrentGoals keeps them current from both tabs that show them, so a reload
-   here would do nothing except throw away edits you had not saved yet when you closed it by
-   mistake and opened it again.
+/* SHEETS THAT WERE SECTIONS.
+   Three things on Weekly and Body are jobs you do and finish rather than readings the page
+   has to keep showing: setting the goals, logging an injury, taking the mobility test. Each
+   leaves its answer on the page — which goals are set, what is sore, where the test left you
+   — and puts the doing in a sheet off a button.
 
-   Closes on the backdrop, the ×, Escape, and on a save that actually wrote — the toast says
-   "Goals saved" from outside the sheet, so the confirmation survives the sheet going. A save
-   that fails validation leaves it open, with its own message in it, which is where you need
-   to be to fix it. */
-const goalSheetEl = document.getElementById('goalSheet');
-function openGoalSheet(){
-  if(!goalSheetEl) return;
-  goalSheetEl.style.display = '';
+   One helper rather than three copies of the same four listeners. Every sheet closes the same
+   four ways: the backdrop, the ×, Escape, and the save that actually wrote. That last one is
+   why the save functions report a boolean — a save that fails validation has to leave its
+   sheet open, with its message in it, which is where you are going to fix it. The toast says
+   what happened from outside the sheet, so the confirmation survives the sheet going. */
+function wireSheet(id, onClose){
+  const el = document.getElementById(id);
+  if(!el) return { open(){}, close(){}, isOpen(){ return false; } };
+  const api = {
+    open(){ el.style.display = ''; },
+    close(){ el.style.display = 'none'; if(onClose) onClose(); },
+    isOpen(){ return el.style.display !== 'none'; }
+  };
+  el.addEventListener('click', e=>{
+    if(e.target === el || e.target.closest('.lift-sheet-x')) api.close();
+  });
+  // On the document, not the sheet: a sheet only has focus if you have tapped into it, and
+  // Escape is expected to work the moment it is up.
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && api.isOpen()) api.close(); });
+  return api;
+}
+
+/* Goals. It does not reload on open: the rows are already in the DOM and loadCurrentGoals
+   keeps them current from both tabs that render them, so a reload would do nothing except
+   throw away edits you had not saved when you closed it by mistake. */
+const goalSheet = wireSheet('goalSheet');
+const updateGoalsBtn = document.getElementById('updateGoalsBtn');
+if(updateGoalsBtn) updateGoalsBtn.addEventListener('click', ()=>{
   const r = document.getElementById('saveGoalsResult');
   if(r) r.textContent = '';
-}
-function closeGoalSheet(){ if(goalSheetEl) goalSheetEl.style.display = 'none'; }
-const updateGoalsBtn = document.getElementById('updateGoalsBtn');
-if(updateGoalsBtn) updateGoalsBtn.addEventListener('click', openGoalSheet);
-if(goalSheetEl){
-  goalSheetEl.addEventListener('click', e=>{
-    if(e.target === goalSheetEl || e.target.closest('.lift-sheet-x')) closeGoalSheet();
-  });
-  document.addEventListener('keydown', e=>{
-    if(e.key === 'Escape' && goalSheetEl.style.display !== 'none') closeGoalSheet();
-  });
-}
+  goalSheet.open();
+});
 document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
-  if(await saveGoalsFromForm('saveGoalsResult')) closeGoalSheet();
+  if(await saveGoalsFromForm('saveGoalsResult')) goalSheet.close();
+});
+
+/* The mobility test. setMobilityAssessmentOpen still owns the state — this only gives the
+   sheet the three ways out that do not go through the header button, and hands each of them
+   back to it so the button label and the aria go with them. */
+wireSheet('mobilityAssessmentSheet', ()=> setMobilityAssessmentOpen(false));
+
+/* Logging an injury. The list stays on the tab; the form comes to you. */
+const injurySheet = wireSheet('injurySheet');
+const logInjuryBtn = document.getElementById('logInjuryBtn');
+if(logInjuryBtn) logInjuryBtn.addEventListener('click', ()=>{
+  // Today, unless you say otherwise: an onset date is a thing you correct, not a thing you
+  // fill in, and an empty date field fails stampableDate rather than defaulting.
+  const d = document.getElementById('injuryDate');
+  if(d && !d.value) d.value = todayStr;
+  injurySheet.open();
 });
 document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
