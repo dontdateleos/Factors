@@ -173,6 +173,10 @@
     --mark-shell:#1c1d17;
     --mark-ink:#fbfaf6;
     --mark-tone-rgb:251,250,246;
+    /* Sand. The same value --face-3 carries as a rating, named separately because this is not
+       one: a token used for its hue has no business reading as "ok" wherever it turns up. If
+       the rating scale is ever recut, that one moves and this does not. */
+    --sand:#dfd0a4;
     --block-lime:#c3d353;
     --block-orange:#ff984a;
     --block-blue:#52d8f7;
@@ -297,8 +301,32 @@
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child and
      would otherwise win on specificity -- the row sat at the left edge instead of the right.
      Same reason .header-date is scoped that way a few rules up. */
-  .header-brand > .tabs{ position:absolute; right:var(--gutter); bottom:12px; width:150px;
+  /* CENTRED, AND BENT. It sat in the right corner as a flat row, which put it under the date
+     and made the corner carry two things. In the middle it belongs to the bar rather than to
+     either end, and the bend is what stops a centred row of five dashes reading as a rule.
+
+     The arc is real geometry rather than five guessed angles: a circle through the ends and
+     the middle, sagitta 13 over the 150px the row spans, which is a radius of 222.8 and puts
+     the outer pair at 16.15 degrees and the inner pair at 8. Shallow on purpose — the ask was
+     a lower angle than a semicircle, and at this width anything deeper stops being a row of
+     ticks and becomes a bowl.
+
+     It arches rather than dips, and that is the direction with the room in it: dipping puts
+     the outer ticks UP into the wordmark's line box — measured, 117.6 against a wordmark that
+     ends at 119.6 — while arching sends them down into 13px of empty bar. Flip the sign on
+     both the rotate and the translate to swap it.
+
+     Each tick is offset so the arc balances on the line the flat row used to sit on, which is
+     why the middle rises 4.4 rather than the ends dropping 8.8: the bar keeps its height.
+     Transformed on .tab and not on .tab-seg, so the 30x54 hit area rides with the tick it
+     belongs to instead of staying flat behind a tilted line. */
+  .header-brand > .tabs{ position:absolute; left:50%; margin-left:-75px; bottom:12px; width:150px;
     display:flex; gap:5px; --lit:var(--bg); z-index:1; }
+  .header-brand > .tabs .tab:nth-child(1){ transform:translateY(4.4px)  rotate(-16.15deg); }
+  .header-brand > .tabs .tab:nth-child(2){ transform:translateY(-2.23px) rotate(-8deg); }
+  .header-brand > .tabs .tab:nth-child(3){ transform:translateY(-4.4px); }
+  .header-brand > .tabs .tab:nth-child(4){ transform:translateY(-2.23px) rotate(8deg); }
+  .header-brand > .tabs .tab:nth-child(5){ transform:translateY(4.4px)  rotate(16.15deg); }
   /* The line is 3px and the target is 40. Same trick .subj-face and the chip use: the box a
      thumb hits has nothing to do with the size of the thing it hits. */
   /* 19 above and 18 below a 3px line is a 40px target. The row used to carry 16px of its own
@@ -490,12 +518,13 @@
   .toast-icon{ display:inline-block; vertical-align:middle; margin-right:6px; width:14px; height:14px; }
 
   .header-brand{ display:block; position:relative; }
-  /* Orange stopped being a tab when red took Body, and this is where it went. The label
-     names the tab you are on, so it is the one piece of chrome that changes with the tab
-     and has no colour of its own — cream, beside a cream wordmark, saying nothing twice.
-     One colour for it, used nowhere else in this corner, and the corner has two voices
-     instead of one. */
-  .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--block-orange); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+  /* The label names the tab you are on, so it is the one piece of chrome that changes with
+     the tab and has no colour of its own — cream, beside a cream wordmark, saying nothing
+     twice. One colour for it, used nowhere else in this corner, and the corner has two voices
+     instead of one. The colour was orange, inherited from when orange stopped being a tab and
+     needed somewhere to go; it is sand now, which is the same idea with a quieter voice — a
+     warm off-white against a cream wordmark rather than a second saturated thing beside it. */
+  .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--sand); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
   /* Set to match .tab-label, since it is the other thing in this corner of the black. */
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
      to lift them over the mark. At equal specificity that rule wins on order,
@@ -8509,7 +8538,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.347';
+const APP_VERSION = '2026.08.31.348';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8622,6 +8651,7 @@ const APP_NOTES = {
   '2026.08.31.345': 'The app icon is the mark again — the ink solid on its corner.',
   '2026.08.31.346': 'The score is wider, and carries the same weight as the wordmark rather than less.',
   '2026.08.31.347': 'The score is set in the same face as every other number in the app.',
+  '2026.08.31.348': 'The tab label is sand, and the page ticks moved to the middle of the bar on an arc.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
