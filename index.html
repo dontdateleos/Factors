@@ -2849,10 +2849,16 @@
      One wavelength, travelled in the direction the page came from, so the texture reads as
      having been dragged along by the switch rather than as a loop that happens to be running.
 
-     168px EXACTLY, which is why this is a one-shot and not a marquee. The tile is 168 wide and
-     both wave bands repeat at 168, so a shift of one whole wavelength starts and ends on a
-     rendered state identical to rest — the field is never left standing anywhere but home,
-     and there is nothing to clean up if the animation is cut short.
+     HALF A WAVELENGTH, AND THE HALF THAT MATTERS IS THE END. The travel ends at 0, which is
+     rest, so the field is never left standing anywhere but home and there is nothing to clean
+     up if the animation is cut short. The START is a half-phase, and that costs nothing here
+     because there is no before to jump from: the panel is display:none until the switch that
+     plays this, so the first frame anyone sees is already the from-frame. The one case with a
+     before — tapping Today while you are on Today — is refused in fieldDrift rather than
+     papered over here.
+
+     84 is 21 whole 4px cells. That is the only constraint the number has: whole cells, for the
+     reason the timing function below gives.
 
      The mask travels with the dots rather than staying put. The two cut edges are drawn from
      the same wave at the same wavelength, so moving one without the other would put the
@@ -2862,17 +2868,17 @@
      background-position is the readable half: if a browser refuses to interpolate a
      multi-layer mask-position, the dots still travel inside edges that stay where they are. */
   @keyframes fieldDriftL{
-    from{ background-position:168px 0;
-          -webkit-mask-position:168px 4px, 168px bottom, 0px 20px;
-                  mask-position:168px 4px, 168px bottom, 0px 20px; }
+    from{ background-position:84px 0;
+          -webkit-mask-position:84px 4px, 84px bottom, 0px 20px;
+                  mask-position:84px 4px, 84px bottom, 0px 20px; }
     to  { background-position:0px 0;
           -webkit-mask-position:0px 4px, 0px bottom, 0px 20px;
                   mask-position:0px 4px, 0px bottom, 0px 20px; }
   }
   @keyframes fieldDriftR{
-    from{ background-position:-168px 0;
-          -webkit-mask-position:-168px 4px, -168px bottom, 0px 20px;
-                  mask-position:-168px 4px, -168px bottom, 0px 20px; }
+    from{ background-position:-84px 0;
+          -webkit-mask-position:-84px 4px, -84px bottom, 0px 20px;
+                  mask-position:-84px 4px, -84px bottom, 0px 20px; }
     to  { background-position:0px 0;
           -webkit-mask-position:0px 4px, 0px bottom, 0px 20px;
                   mask-position:0px 4px, 0px bottom, 0px 20px; }
@@ -2896,14 +2902,15 @@
      is. Both come out of the same shift here, and which one you see is decided entirely by
      whether the shift lands on the grid.
 
-     The dots sit 4px apart and the wave is 168 long, so the tile holds exactly 42 of them.
-     Step the shift in whole 4px cells and every dot lands on the same screen column it was
-     already in — what changes is the dot it is showing, one further along the sine. So each
-     column keeps its x and walks its y, and the field ripples in place. steps(42) is that.
-     Measured off the tile rather than assumed: 42 columns at exactly 4px, one phase each, and
-     a step moves a dot 0.38px on average and 1px at the steepest part of the sine — against a
-     wave only 3px from crest to trough. Too small to read as a step, so it comes out as slow
-     continuous motion rather than as 42 of anything.
+     The dots sit 4px apart, so a shift of whole 4px cells lands every dot on the same screen
+     column it was already in — what changes is the dot it is showing, one further along the
+     sine. Each column keeps its x and walks its y, and the field ripples in place. steps(21)
+     over 84px is that: one step, one cell. Measured off the tile rather than assumed — 42
+     columns per wavelength at exactly 4px, one phase each — a step moves a dot 0.38px on
+     average and 1px at the steepest part of the sine, against a wave only 3px from crest to
+     trough. Too small to read as a step, so it comes out as continuous motion rather than as
+     21 of anything. 900ms over 21 of them holds the rate the travel had at twice the distance,
+     near enough: the move is smaller, not slower.
 
      It also stops the field going soft. Every y in the tile is drawn on a half-pixel because a
      dot on a fractional row is antialiased across two device rows — and a smooth slide put the
@@ -2914,8 +2921,8 @@
      The mask steps with it, still in phase. 4px out of a 168px wavelength barely moves a curve
      that smooth, so the two cut edges undulate rather than slide, which is what the dots
      inside them are doing. */
-  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 1300ms) steps(42, end) var(--field-drift-delay, 0ms) both; }
-  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 1300ms) steps(42, end) var(--field-drift-delay, 0ms) both; }
+  .today-field.drift-l::before{ animation:fieldDriftL var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
+  .today-field.drift-r::before{ animation:fieldDriftR var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
   @media (prefers-reduced-motion: reduce){ .today-field.drift-l::before, .today-field.drift-r::before{ animation:none; } }
   /* The bottom margin #acceptanceStats used to carry itself. A child's margin collapses out
      through a parent with no padding there, so as a margin it was 16px of undotted ground
@@ -7147,7 +7154,7 @@ const UI_ANIM = {
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
   faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
-  fieldDrift:   { on:true, note:'The dot field ripples one wave through, in the direction you swiped, once Today has landed', ms:1300 },
+  fieldDrift:   { on:true, note:'The dot field ripples half a wave through, in the direction you swiped, once Today has landed', ms:900 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -7337,6 +7344,11 @@ function pillExtend(root){
    back to Today twice in a row is exactly when you would notice it not playing. */
 function fieldDrift(name){
   if(name !== 'insights' || !uiAnim('fieldDrift')) return;
+  /* Tapping the tab you are already on is not an arrival. It reaches transitionToTab like any
+     other switch, and it is the one path where the field is already on screen at rest — which
+     is the one path where starting the ripple half a phase from rest would be seen as a jump.
+     slidePanelIn has just worked the step out; zero means the tab did not move. */
+  if(!uiPendingSlideDx) return;
   const f = document.querySelector('#panel-insights .today-field');
   if(!f) return;
   f.classList.remove('drift-l', 'drift-r');
@@ -8763,7 +8775,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.359';
+const APP_VERSION = '2026.08.31.360';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -8888,6 +8900,7 @@ const APP_NOTES = {
   '2026.08.31.357': 'The dot field flows as Today arrives, the way you swiped.',
   '2026.08.31.358': 'The dot field drifts slower, at something nearer an even rate.',
   '2026.08.31.359': 'The dot field ripples in place now, instead of sliding sideways.',
+  '2026.08.31.360': 'The dot field ripples half as far.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
