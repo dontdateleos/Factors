@@ -3028,6 +3028,26 @@
             mask-repeat:no-repeat;
   }
 
+  /* THE SPINNER RIPPLES TOO, BUT ONLY THE DOTS.
+     Its own keyframes rather than the field's, and this is the whole reason it was left out of
+     fieldDrift in the first place: the field's ripple moves background-position AND a
+     three-layer mask-position together, so the ribbon's cut edges stay in phase with the rows
+     inside them. A spinner's mask is one layer and it is not decoration — it is what puts the
+     band on the focused row — so handing it those three values would have walked the band off
+     the row it marks. Here the mask is untouched and only the tile inside it travels.
+
+     Same 84px over 21 whole cells as everywhere else, so a spinner and the chart above it
+     ripple at one rate and land together. */
+  @keyframes spinDriftL{ from{ background-position:84px 0; } to{ background-position:0px 0; } }
+  @keyframes spinDriftR{ from{ background-position:-84px 0; } to{ background-position:0px 0; } }
+  .week-day-picker.drift-l::before, .mob-wheel.drift-l::before{
+    animation:spinDriftL var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
+  .week-day-picker.drift-r::before, .mob-wheel.drift-r::before{
+    animation:spinDriftR var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
+  @media (prefers-reduced-motion: reduce){
+    .week-day-picker.drift-l::before, .mob-wheel.drift-l::before,
+    .week-day-picker.drift-r::before, .mob-wheel.drift-r::before{ animation:none; } }
+
   /* IT WAITS FOR THE CARD TO LAND. The first cut started it with the deal and put 95% of the
      travel inside the first 440ms — which is precisely when the whole card is flying across
      the screen at a multiple of that speed, so none of it could be seen. Measured, not
@@ -7575,8 +7595,8 @@ function pillExtend(root){
     });
 }
 /* THE DOT FIELDS RIPPLE AS THEIR PAGE ARRIVES.
-   Every .dot-field on the arriving panel, not a named one: Today's score field was the first,
-   the block chart is the second, and a third should need nothing here. Only on a switch —
+   Every field on the arriving panel, not a named one: Today's score field was the first,
+   the block chart is the second, the spinners' selection bands are the latest. Only on a switch —
    this hangs off transitionToTab rather than activateTab so that opening the app cold does not
    play it. Nothing arrived, so nothing should ripple.
 
@@ -7598,7 +7618,9 @@ function fieldDrift(name){
   // Held back until the card has all but stopped — 90ms of overlap, so the field picks the
   // motion up off the page rather than starting from nothing after a pause.
   const delay = Math.max(0, uiArriving() - 90).toFixed(0) + 'ms';
-  panel.querySelectorAll('.dot-field').forEach(f=>{
+  // The spinners are not .dot-field — see the tile rule for why — but they carry the same
+  // texture and ripple on the same beat, off keyframes of their own that leave their mask be.
+  panel.querySelectorAll('.dot-field, .week-day-picker, .mob-wheel').forEach(f=>{
     f.classList.remove('drift-l', 'drift-r');
     void f.offsetWidth;
     f.style.setProperty('--field-drift-ms', UI_ANIM.fieldDrift.ms + 'ms');
@@ -9001,7 +9023,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.374';
+const APP_VERSION = '2026.08.31.375';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9141,6 +9163,7 @@ const APP_NOTES = {
   '2026.08.31.372': 'Each injury has a button asking what the week before it held.',
   '2026.08.31.373': 'The spinners put the dot field under the row you are on.',
   '2026.08.31.374': 'The dots under the selected row run to the page edges.',
+  '2026.08.31.375': 'The spinner\u2019s dots ripple in with the page too.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
