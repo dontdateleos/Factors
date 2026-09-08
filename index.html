@@ -2371,17 +2371,6 @@
   /* Only the size differs from the row's faces — colour, fill and the picked state are the
      shared .subj-face rules, so the two cannot drift apart. */
   .morning-panel .subj-face{ height:46px; overflow:hidden; touch-action:manipulation; }
-  /* The hold's own fill. Rises from the bottom in the face's colour, so the square filling
-     up IS the progress bar rather than a separate one sitting next to it.
-
-     Washed rather than solid, because the eyes are drawn in that same colour: at full
-     strength the fill swallowed the face you were holding, which is the one thing you need
-     to keep seeing. At this weight the rise is still unmistakable and the eyes stay above
-     it. The solid fill belongs to .on, which lands the moment it commits and turns the eyes
-     black against it — so the finish reads as a state change rather than more of the same. */
-  .morning-panel .face-fill{ position:absolute; inset:0; background:var(--face-c); opacity:0.45;
-    transform:scaleY(0); transform-origin:bottom; pointer-events:none; }
-  .morning-panel .subj-face.on .face-fill{ opacity:0; }
   .morning-panel .subj-face .eyes{ position:relative; z-index:1; }
   /* button.primary is --reverse-bg on --reverse-bg here, which is an invisible primary
      action. On this panel the accent is the only fill that reads. */
@@ -2393,24 +2382,24 @@
 
   /* THE DAILY QUESTIONS, IN THE SAME VOICE THE SETUP ASKS IN.
      ------------------------------------------------------------------
-     Two surfaces ask them: the morning sheet, and the row on Today that stands in for it for
-     anyone who dismissed the sheet. Both were five squares in a line and two rows of pills —
-     controls, laid out. They are questions, and the app already has a way of asking one: the
-     first-run thread, set in the masthead's face with the answers listed under it behind an
-     arrow. Same treatment here, so being asked how you slept reads like being asked, and the
-     app sounds like one thing whether it is your first morning or your four hundredth.
+     ONE TYPOGRAPHIC RULE, EVERYWHERE: a question is set in --wordmark, the masthead's face;
+     the machine — every label, reading, count and note — is set in --mono. That is what makes
+     the app sound like one thing. It is the reason "How are you?" and "Alcohol last night"
+     moved faces while "THIS MORNING" and the note under the answers did not.
 
-     SCOPED, NOT SHARED. faceButtonHtml and .subj-face are used by a third row as well — the
-     15px column that sits beside the score inside the band once you have rated. That one is
-     not a question, it is a control small enough to live next to a number, and it keeps
-     everything it has. So none of this touches the builder or the base class; it is two
-     scopes restyling what they were already given.
+     Two surfaces ask these: the morning sheet, and the row on Today that stands in for it for
+     anyone who dismissed the sheet. Both take the first-run thread's own sizes rather than a
+     size of their own — 26px for the question, 24px for the answers — because being asked how
+     you slept and being asked what you want to get better at are the same act.
 
-     THE MARK KEEPS THE HUE, THE WORD TAKES THE INK. That is not a new rule, it is the one
-     already written against the stacked column a few hundred lines up, and it is the reason
-     the chosen answer here is --bg rather than --face-c: five saturated words is five loud
-     things, and the five colours were picked against the black the score sits on rather than
-     against bone. The eyes carry the colour, which is what they are for. */
+     SCOPED, NOT SHARED. .subj-face is used by a third row as well: the column beside the score
+     inside the band, which is not a question but the way back to one. It is at the bottom of
+     this block, and it is the only one that keeps its old size.
+
+     THE MARK KEEPS THE HUE, THE WORD TAKES THE INK — not a new rule, the one already written
+     against that column, and the reason the chosen answer is --bg rather than --face-c: five
+     saturated words is five loud things, and those five colours were picked against the black
+     the score sits on rather than against bone. The ball carries the colour. */
   .morning-panel .subj-faces,
   .morning-panel .subj-scale,
   #todayFaceRow.face-row-flow .subj-faces{
@@ -2418,11 +2407,12 @@
   .morning-panel .subj-face,
   .morning-panel .subj-dot,
   #todayFaceRow.face-row-flow .subj-face{
-    font-family:var(--wordmark); font-weight:var(--fw-medium); letter-spacing:0;
-    text-transform:none; height:auto; flex:0 0 auto; width:auto;
-    display:flex; align-items:center; justify-content:flex-start; gap:9px;
+    font-family:var(--wordmark); font-weight:var(--fw-medium); font-size:24px;
+    line-height:1.3; letter-spacing:0; text-transform:none;
+    height:auto; flex:0 0 auto; width:auto; padding:7px 0;
+    display:flex; align-items:center; justify-content:flex-start; gap:11px;
     background:transparent; border:0; border-radius:0; box-shadow:none;
-    text-align:left; position:relative;
+    text-align:left; position:relative; color:rgba(var(--ink-rgb),0.92);
     transition:color 140ms ease; -webkit-tap-highlight-color:transparent; }
   .morning-panel .subj-face::before,
   .morning-panel .subj-dot::before,
@@ -2432,54 +2422,80 @@
   #todayFaceRow.face-row-flow .face-word{ display:block; font-family:inherit;
     font-size:inherit; font-weight:inherit; letter-spacing:0; text-transform:none;
     color:inherit; white-space:normal; }
-  /* The eyes go quiet with the row and come back in their own colour when it is chosen, so
-     the colour on screen is only ever the answer you gave. */
-  .morning-panel .subj-face .eyes,
-  #todayFaceRow.face-row-flow .subj-face .eyes{
-    flex:0 0 auto; transform:scale(0.8); opacity:0.55; transition:opacity 140ms ease; }
-  /* The word rides over the hold's fill for the same reason the eyes already do: the fill is
-     absolutely positioned, so without this it paints over the one thing you are reading while
-     you hold it. */
-  .morning-panel .face-word{ position:relative; z-index:1; }
-  .morning-panel .subj-face.on .eyes,
-  #todayFaceRow.face-row-flow .subj-face.on .eyes{ opacity:1; color:var(--face-c); }
-
-  /* THE SHEET is a panel at 76vh with three questions in it, so it is set a size down from
-     the first-run thread and its answers are ordinary text rather than large: 19px owes the
-     full 4.5:1, which 0.58 pays at 6.61 on the dark ground and 4.72 on bone. */
-  .morning-q{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:20px;
-    line-height:1.2; letter-spacing:-0.01em; text-transform:none; color:var(--bg);
-    margin:22px 0 7px; }
-  .morning-panel > .morning-q:first-of-type{ margin-top:var(--sp-3); }
-  .morning-panel .subj-face,
-  .morning-panel .subj-dot{ font-size:19px; line-height:1.25; padding:6px 0;
-    color:rgba(var(--ink-rgb),0.92); }
-  .morning-panel .subj-face{ height:auto; overflow:hidden; }
+  /* 24px is the WCAG large-text floor at 18pt, where a stepped-back answer owes 3:1 rather
+     than 4.5 — 0.5 measures 5.16 on the dark ground and 3.62 on bone. It is also why these
+     are not set smaller in the sheet to save its scroll: below 24 the dim state cannot be
+     paid for at any weight that still reads as stepped back. */
   .morning-panel .subj-faces.picked .subj-face:not(.on),
-  .morning-panel .subj-scale.answered .subj-dot:not(.on){
-    opacity:1; color:rgba(var(--ink-rgb),0.58); }
-  .morning-panel .subj-face.on,
-  .morning-panel .subj-dot.on{ background:transparent; color:var(--bg); border-color:transparent; }
-  /* The hold's fill was inset:0 on a 46px square and is inset:0 on a row now — same rise, same
-     scaleY from the bottom, no JS to change. It stops at the row rather than the panel because
-     .subj-face is the positioned box either way. */
-  .morning-panel .face-fill{ opacity:0.30; }
-
-  /* THE ROW ON TODAY is a page rather than a panel, so it takes the thread's own size — and
-     24px is the WCAG large-text floor, where the dimmed state owes 3:1 and 0.5 pays it. */
-  #todayFaceRow.face-row-flow .trace-cap{ font-family:var(--wordmark);
-    font-weight:var(--fw-bold); font-size:24px; line-height:1.18; letter-spacing:-0.012em;
-    text-transform:none; color:var(--bg); margin-bottom:14px; }
-  #todayFaceRow.face-row-flow .subj-face{ font-size:24px; line-height:1.3; padding:7px 0;
-    height:auto; color:rgba(var(--ink-rgb),0.92); }
+  .morning-panel .subj-scale.answered .subj-dot:not(.on),
   #todayFaceRow.face-row-flow .subj-faces.picked .subj-face:not(.on){
     opacity:1; color:rgba(var(--ink-rgb),0.5); }
-  #todayFaceRow.face-row-flow .subj-face.on{ color:var(--bg); }
-  /* The base class expands its own target with an ::after, which these rows do not need — a
-     40px line is already past the 24 this app holds to — and which would take taps from the
-     row above now that they are stacked with no gap between them. */
+  .morning-panel .subj-face.on,
+  .morning-panel .subj-dot.on,
+  #todayFaceRow.face-row-flow .subj-face.on{
+    background:transparent; border-color:transparent; color:var(--bg); }
+  .morning-panel .subj-faces.picked .subj-face:not(.on) .face-ball,
+  #todayFaceRow.face-row-flow .subj-faces.picked .subj-face:not(.on) .face-ball{ opacity:0.4; }
+  /* The base class expands its own target with an ::after, which a 40px line does not need
+     and which would take taps from the row above now that they are stacked. */
+  .morning-panel .subj-face::after,
   #todayFaceRow.face-row-flow .subj-face::after{ display:none; }
-  .morning-panel .subj-face::after{ display:none; }
+
+  .morning-q{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:26px;
+    line-height:1.16; letter-spacing:-0.012em; text-transform:none; color:var(--bg);
+    margin:30px 0 12px; text-wrap:balance; }
+  .morning-panel > .morning-q:first-of-type{ margin-top:var(--sp-3); }
+  #todayFaceRow.face-row-flow .trace-cap{ font-family:var(--wordmark);
+    font-weight:var(--fw-bold); font-size:26px; line-height:1.16; letter-spacing:-0.012em;
+    text-transform:none; color:var(--bg); margin-bottom:12px; }
+
+  /* THE BALL. One rule, three sizes, set by --ball wherever it is used. Round, filled in the
+     step's colour, with that step's eyes drawn on it in black — which is what the answered
+     chip beside the score already is, so giving an answer is now the ball you tapped becoming
+     the chip rather than two unrelated pictures of the same fact. */
+  .face-ball{ flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+    width:var(--ball, 26px); height:var(--ball, 26px); border-radius:50%;
+    background:var(--face-c); color:#000000; overflow:hidden;
+    transition:opacity 140ms ease; }
+  .morning-panel .subj-face,
+  #todayFaceRow.face-row-flow .subj-face{ --ball:30px; }
+  .morning-panel .subj-face .eyes,
+  #todayFaceRow.face-row-flow .subj-face .eyes{ transform:scale(0.78); }
+  /* A dot row has no ball, so its arrow needs the ball's width made up or the two questions
+     under one heading start at different places down the page. */
+  .morning-panel .subj-dot::before{ margin-right:calc(var(--ball, 30px) + 11px); }
+
+  /* THEY ROLL IN.
+     A flat disc turning is a flat disc — the same thing that decides how the mark reads, and
+     the reason the eyes had to go ON the ball rather than beside it: they are the only feature
+     on it, so they are the whole of what says it rolled rather than slid. Two and a bit turns
+     over 44px, staggered, so the five arrive as a line being laid down rather than five
+     things appearing.
+
+     The stagger is on --i rather than five nth-child rules, because the same five are laid
+     out three different ways and one of them is a column read bottom to top. */
+  @keyframes faceRollIn{
+    from{ transform:translateX(-44px) rotate(-250deg); opacity:0; }
+    to{ transform:none; opacity:1; }
+  }
+  .faces-roll .face-ball{ animation:faceRollIn 560ms cubic-bezier(0.2,0.85,0.3,1) both;
+    animation-delay:calc(var(--i, 0) * 62ms); }
+
+  /* AND THE WAY BACK, WHICH IS NOT A QUESTION.
+     Tapping the chip beside the score reopens the five to change an answer you already gave.
+     That is a control, not the app asking — so it keeps the mono, and the balls stand on each
+     other in a column with the word beside each, which is the scale itself made into an
+     object. gap:0 is the point: they touch, so it reads as a stack rather than a list. */
+  #todayFaceRow:not(.face-row-flow) .subj-faces{ gap:0; }
+  #todayFaceRow:not(.face-row-flow) .subj-face{ --ball:16px; height:16px; gap:7px;
+    border:0; box-shadow:none; background:transparent; padding-left:0; }
+  #todayFaceRow:not(.face-row-flow) .subj-face .eyes{ transform:scale(0.42); }
+  #todayFaceRow:not(.face-row-flow) .subj-faces.picked .subj-face:not(.on) .face-ball{ opacity:0.4; }
+  /* Stacked with no gap, the rows are their own neighbours, so the expanded target the base
+     class paints would take taps from the ball above it. 16px is under the 24 this app holds
+     to and is the price of a column that fits beside the number; sideways it is free, so the
+     target keeps the full width of the row. */
+  #todayFaceRow:not(.face-row-flow) .subj-face::after{ top:0; bottom:0; }
   /* The sheet is a --reverse-bg pocket, so the chart's own hairlines and tick text are read
      against the dark set the pocket declares rather than the page behind it. Nothing to set
      here but the room: drawTrendChart takes its colours from tokens that already follow. */
@@ -7654,7 +7670,7 @@ const UI_ANIM = {
   planDeal:     { on:true, note:'A generated week is dealt out day by day rather than appearing whole', ms:200 },
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
-  faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
+  facesRollIn:  { on:true, note:'The five faces roll in as balls when the question is put to you', ms:560, stagger:62 },
   firstRunThread:{ on:true, note:'The setup questions arrive one at a time, each as the last is answered', ms:340 },
   fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900,
                   // A spin is direct manipulation and answers immediately, so its ripple is
@@ -9035,12 +9051,20 @@ function faceEyesHtml(st, k, ink, alive){
   return `<span class="eyes" style="${style}" aria-hidden="true">${inner}</span>`;
 }
 function faceButtonHtml(n){
-  // The mark at the state this rating means, drawn small and static, in that step's colour.
-  // .eyes declares its own defaults for every --eye-* property, so they have to be set ON it:
-  // an inherited value from the button would lose to the class's own declaration.
-  return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n});"`
+  /* The mark at the state this rating means, drawn small and static, in that step's colour.
+     .eyes declares its own defaults for every --eye-* property, so they have to be set ON it:
+     an inherited value from the button would lose to the class's own declaration.
+
+     ON A BALL. The five were bare pairs of eyes floating in a bordered box; they are the same
+     five pairs on a round plate in the step's colour now — which is the chip this answer
+     becomes when you give it, and the shape of the app's own mark. It also gives the roll
+     something to be: a flat disc turning is a flat disc, and the eyes tumbling on it are the
+     only reason you can see it move at all. The eyes go BLACK on the plate rather than
+     carrying the colour themselves, which is exactly what #todayFaceDock already does with
+     the answer once it is given. */
+  return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n}); --i:${n - 1};"`
     + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
-    + faceEyesHtml(n, FACE_SCALE, 'currentColor')
+    + `<span class="face-ball">${faceEyesHtml(n, FACE_SCALE, 'currentColor')}</span>`
     + `<span class="face-word">${SUBJECTIVE_WORDS_CAP[n-1]}</span></button>`;
 }
 /* Both context rows behave identically — tap to set, tap again to clear — so they run
@@ -11635,6 +11659,20 @@ async function setDayFace(date, value){
    actually touched, because there was no path from the row to the chip for the eye to follow.
    There is one now, and it is the mark itself. */
 
+/* THE ROLL IS SET OFF, NOT LEFT ON.
+   Restarting a CSS animation means taking the class off, forcing a reflow, and putting it
+   back — otherwise the second time a surface asks, the balls are already at rest and nothing
+   happens. Only where the five are being PUT TO YOU: the sheet when it opens, the row on
+   Today the first time it stands in for the sheet, and the column when the chip reopens it.
+   Not on every paintTodayFaces, which runs on every score repaint and would have the answer
+   you already gave rolling across the page while you read the number above it. */
+function rollFaces(host){
+  if(!host || !uiAnim('facesRollIn')) return;
+  host.classList.remove('faces-roll');
+  void host.offsetWidth;
+  host.classList.add('faces-roll');
+}
+
 let faceSaving = false;
 async function onFaceTap(n){
   const date = faceDate();
@@ -11761,21 +11799,18 @@ async function maybeAskMorning(){
   function esc(e){ if(e.key === 'Escape') close(); }
   document.addEventListener('keydown', esc);
 
-  /* A HOLD, NOT A TAP.
+  /* A TAP, NOT A HOLD.
 
-     This is the heaviest input in the score at 0.28, and the reason to keep the prompt cheap
-     was that a question you cannot dismiss gets answered carelessly. A tap is the cheapest
-     possible answer; a half-second hold is not. The square filling in the face's own colour
-     is the progress — the control shows what it costs rather than putting a bar beside it.
+     This was a half-second hold, and the square filled in the face's own colour while you
+     held it. The argument was that this is the heaviest input in the score at 0.28, that a
+     prompt you cannot dismiss gets answered carelessly, and that a tap is the cheapest
+     possible answer while a hold is not. It is a decent argument and it cost the wrong thing:
+     the row on Today behind this sheet was always a tap, so the same five faces answered two
+     different ways depending on which surface you happened to be looking at, and the one that
+     asked was the slower one. They are five balls you tap, in both places.
 
-     Only here. The row on the page behind stays a tap: it is the quick correction you make
-     when you already know what you meant, and making it slower would be friction with
-     nothing to buy. The two look different while held, which is what says so.
-
-     Falls back to a plain tap wherever the animation is off — reduced motion, or the switch
-     in Settings — because a hold whose progress you cannot see is a control with no feedback,
-     and holding a button that appears to do nothing is worse than tapping one. Keyboard
-     always commits on Enter or Space for the same reason. */
+     commitFace stays exactly as it was — tapping the one already chosen still clears it, so a
+     mis-tap does not become a permanent reading. */
   const commitFace = async (face, clearing)=>{
     const n = +face.dataset.v;
     sheet.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', !clearing && b === face));
@@ -11787,75 +11822,13 @@ async function maybeAskMorning(){
     await setDayFace(todayStr, clearing ? null : n);
     paintTodayFaces(); relayoutColumn();
   };
-  const holdOn = uiAnim('faceHold');
-  if(holdOn){
-    sheet.querySelectorAll('.subj-face').forEach(btn=>{
-      const fill = document.createElement('span');
-      fill.className = 'face-fill';
-      btn.insertBefore(fill, btn.firstChild);
-    });
-    let timer = null, anim = null, held = null;
-    const stop = ()=>{
-      if(timer) clearTimeout(timer);
-      if(anim){ try{ anim.cancel(); }catch(e){} }
-      if(held) held.classList.remove('holding');
-      timer = null; anim = null; held = null;
-    };
-    sheet.addEventListener('pointerdown', e=>{
-      const face = e.target.closest('.subj-face');
-      if(!face) return;
-      e.preventDefault();
-      stop();
-      held = face;
-      face.classList.add('holding');
-      try{ face.setPointerCapture(e.pointerId); }catch(err){}
-      const fill = face.querySelector('.face-fill');
-      anim = uiPlay(fill, [{ transform:'scaleY(0)' }, { transform:'scaleY(1)' }],
-        { duration: UI_ANIM.faceHold.ms, easing:'linear', fill:'forwards' });
-      // The eyes lean into it while the square fills, and land when it commits.
-      uiPlay(face.querySelector('.eyes'),
-        [{ transform:'scale(1)' }, { transform:'scale(1.18)' }],
-        { duration: UI_ANIM.faceHold.ms, easing:'cubic-bezier(0.3,0.9,0.3,1)', fill:'forwards' });
-      const target = face, clearing = face.classList.contains('on');
-      timer = setTimeout(async ()=>{
-        stop();
-        const f = target.querySelector('.face-fill');
-        if(f) f.style.transform = clearing ? 'scaleY(0)' : 'scaleY(1)';
-        uiPlay(target.querySelector('.eyes'),
-          [{ transform:'scale(1.18)' }, { transform:'scale(0.86)' }, { transform:'scale(1)' }],
-          { duration: 260 });
-        await commitFace(target, clearing);
-      }, UI_ANIM.faceHold.ms);
-    });
-    const release = ()=>{
-      if(!held) return;
-      const fill = held.querySelector('.face-fill');
-      const wasOn = held.classList.contains('on');
-      stop();
-      // Let go early and it drains back rather than freezing part-full, so an abandoned hold
-      // does not leave a square looking half-answered.
-      if(fill) uiPlay(fill, [{ transform:getComputedStyle(fill).transform }, { transform: wasOn ? 'scaleY(1)' : 'scaleY(0)' }], { duration:160 });
-    };
-    sheet.addEventListener('pointerup', release);
-    sheet.addEventListener('pointercancel', release);
-    sheet.addEventListener('pointerleave', release, true);
-  }
-  // Enter and Space commit outright, hold or no hold.
-  sheet.addEventListener('keydown', async e=>{
-    const face = e.target.closest && e.target.closest('.subj-face');
-    if(!face || (e.key !== 'Enter' && e.key !== ' ')) return;
-    e.preventDefault();
-    const clearing = face.classList.contains('on');
-    const fill = face.querySelector('.face-fill');
-    if(fill) fill.style.transform = clearing ? 'scaleY(0)' : 'scaleY(1)';
-    await commitFace(face, clearing);
-  });
+  // A <button> already commits on Enter and Space by firing a click, which the handler below
+  // takes; the separate keydown path this used to need existed only to get past the hold.
 
   sheet.addEventListener('click', async e=>{
     if(e.target === sheet || e.target.closest('.lift-sheet-x') || e.target.closest('.morning-done')){ await close(); return; }
     const face = e.target.closest('.subj-face');
     if(face){
-      if(holdOn) return;                       // the hold owns this control when it is on
       await commitFace(face, face.classList.contains('on'));
       return;
     }
@@ -11870,6 +11843,7 @@ async function maybeAskMorning(){
     }
   });
   document.body.appendChild(sheet);
+  rollFaces(sheet.querySelector('.subj-faces'));
 }
 
 function chipSaid(){ const v = faceValues[faceDate()]; return v == null ? null : v; }
@@ -12003,6 +11977,7 @@ async function loadFaceValues(dates){
     faceRowOpen = faceDate();
     paintTodayFaces();
     relayoutColumn();
+    rollFaces(host);
     const row = document.getElementById('todayFaceRow');
     if(row) playGlitch(row, 'scoreGlitch', 6);
   });
@@ -23712,6 +23687,7 @@ async function applyTodayStage(){
   // own edge, which is why they could not stand before there was a score; out here they are
   // an ordinary block, full width, and the question is the first thing on the page.
   if(faces){
+    const wasFlow = faces.classList.contains('face-row-flow');
     const intro = document.getElementById('todayFaceIntro');
     const band = panel.querySelector('.today-open');
     const home = seen ? band : intro;
@@ -23721,7 +23697,10 @@ async function applyTodayStage(){
     }
     faces.classList.toggle('face-row-flow', !seen);
     faces.style.display = '';
-    if(!seen){ faces.style.width = ''; faces.style.top = ''; }
+    if(!seen){
+      faces.style.width = ''; faces.style.top = '';
+      if(!wasFlow) rollFaces(document.getElementById('todayFaces'));
+    }
   }
   // The band is the score's own ground. Emptied but still standing it is a black hole at the
   // top of the page, so it collapses with what it was holding.
