@@ -757,6 +757,15 @@
   .header-brand > *{ position:relative; z-index:1; }
   /* The plate overlaps the last letter, so it has to paint over the wordmark, not under. */
   .header-brand .header-mark{ z-index:2; }
+  /* THE BOX IS 40; THE FINGER GETS 44.
+     Apple asks 44 and WCAG's AAA target size asks the same, and the box cannot simply grow to
+     meet them — it is what the collapse takes the mark's left from and what the wordmark is
+     laid out against, so widening it moves the mark. An ::after expands the HIT AREA and
+     nothing else, which is the same trick the chip beside the score already uses.
+     It rides the collapse's scale along with everything else, so perched at 0.6 this is 26.4
+     — still clear of the 24 that AA asks for. */
+  .header-brand .header-mark::after{ content:''; position:absolute;
+    left:-2px; right:-2px; top:-2px; bottom:-2px; }
   /* The solid draws the plate, the step and the eyes itself, so the element underneath gives
      up both: applyEyeForm still writes the header form onto it and both are overridden here
      rather than made conditional, so nothing has to know which mark it is dressing. */
@@ -7304,7 +7313,14 @@ function updateEyePerch(){
 }
 // Beside the tab's name, on the one row the collapsed header still has. Measured off the
 // text itself rather than the block, which is full width and would put the mark off-screen.
-const EYE_PERCH_SCALE = 0.5;
+/* 0.6 of the 40px header form is 24, which is the mark's floor and the reason it is not 0.5.
+   Two things bottom out at 24 and they agree: the DRAWING, because the untoned rim between
+   the silhouette and the shaded core is 0.07 of the size and below 24 it stops reading as a
+   step, which is what makes this a lit solid rather than a dark blob; and the TARGET, because
+   this is a button — role=button, "Back to today" — and WCAG 2.2 AA asks 24 by 24 CSS px.
+   At 0.5 the perch was 20 and missed both. Scrolled, this is the state the mark is in most
+   of the time, so it is the one that had to clear. */
+const EYE_PERCH_SCALE = 0.6;
 function eyePerchSpot(){
   const lbl = document.getElementById('currentTabLabel');
   const brand = document.querySelector('.header-brand');
