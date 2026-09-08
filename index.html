@@ -5934,6 +5934,10 @@ let eyeSettleTimer = null;
    cheap way to round a polygon and it cannot be clipped to — clipPath uses fill geometry and
    throws the stroke away — which is exactly what the core has to be clipped to. */
 const MC_R = 0.20, MC_INSET = 0.86, MC_RAD = Math.PI / 180;
+/* How far each EDGE bows outward, as a fraction of that edge's own length. 0 is a straight
+   edge — the honest orthographic silhouette, where the corners are the only curvature in the
+   drawing. Above 0 the sides swell, which trades the cube's geometry for something softer. */
+const MC_BOW = 0;
 /* The core's half-height, separately from its 0.86 width. Equal to MC_INSET the core is a
    smaller cube and its outline is the silhouette scaled; below it, the shaded faces sit
    further in from the top and bottom than they do from the sides. */
@@ -5967,18 +5971,43 @@ function mcRounded(pts, r){
     if(!l || Math.hypot(p[0]-l[0], p[1]-l[1]) > 0.01) uniq.push(p); }
   while(uniq.length > 1 && Math.hypot(uniq[0][0]-uniq[uniq.length-1][0], uniq[0][1]-uniq[uniq.length-1][1]) <= 0.01) uniq.pop();
   pts = uniq;
-  const n = pts.length, out = [];
+  const n = pts.length;
   if(n < 3) return '';
+  /* Each corner is a Q through the corner itself, from a to b. Collected rather than emitted
+     inline, because a bowed EDGE needs the previous corner's b as well as this one's a, and
+     the closing edge needs the last b and the first a. */
+  const arc = [];
   for(let i = 0; i < n; i++){
     const c = pts[i], p = pts[(i-1+n)%n], q = pts[(i+1)%n];
     const d1 = Math.hypot(p[0]-c[0], p[1]-c[1]), d2 = Math.hypot(q[0]-c[0], q[1]-c[1]);
     if(!d1 || !d2) continue;
     const t1 = Math.min(r, d1/2), t2 = Math.min(r, d2/2);
-    const a = [c[0] + (p[0]-c[0])/d1*t1, c[1] + (p[1]-c[1])/d1*t1];
-    const b = [c[0] + (q[0]-c[0])/d2*t2, c[1] + (q[1]-c[1])/d2*t2];
-    out.push(`${out.length?'L':'M'}${a[0].toFixed(2)},${a[1].toFixed(2)} Q${c[0].toFixed(2)},${c[1].toFixed(2)} ${b[0].toFixed(2)},${b[1].toFixed(2)}`);
+    arc.push({ a:[c[0] + (p[0]-c[0])/d1*t1, c[1] + (p[1]-c[1])/d1*t1],
+               c, b:[c[0] + (q[0]-c[0])/d2*t2, c[1] + (q[1]-c[1])/d2*t2] });
   }
-  return out.length ? out.join(' ') + ' Z' : '';
+  const m = arc.length;
+  if(!m) return '';
+  const f = v => v[0].toFixed(2) + ',' + v[1].toFixed(2);
+  /* Only used to decide which way is OUT, so it does not have to be the true centroid: any
+     interior point separates the two perpendiculars, and a convex hull's mean is interior. */
+  let cx = 0, cy = 0;
+  for(const s2 of arc){ cx += s2.c[0]; cy += s2.c[1]; }
+  cx /= m; cy /= m;
+  const edge = (from, to)=>{
+    if(!MC_BOW) return 'L' + f(to);
+    const mx = (from[0]+to[0])/2, my = (from[1]+to[1])/2;
+    let nx = -(to[1]-from[1]), ny = to[0]-from[0];
+    const L = Math.hypot(nx, ny) || 1;
+    nx /= L; ny /= L;
+    if((mx-cx)*nx + (my-cy)*ny < 0){ nx = -nx; ny = -ny; }
+    /* A quadratic passes half way to its control point at the midpoint, so the control goes
+       twice the bow out and the curve rises by exactly MC_BOW of the edge's length. */
+    const k = MC_BOW * L * 2;
+    return 'Q' + (mx+nx*k).toFixed(2) + ',' + (my+ny*k).toFixed(2) + ' ' + f(to);
+  };
+  let d = 'M' + f(arc[0].a) + ' Q' + f(arc[0].c) + ' ' + f(arc[0].b);
+  for(let i = 1; i < m; i++) d += ' ' + edge(arc[i-1].b, arc[i].a) + ' Q' + f(arc[i].c) + ' ' + f(arc[i].b);
+  return d + ' ' + edge(arc[m-1].b, arc[0].a) + ' Z';
 }
 /* THE SOLID DOES NOT RESIZE WHEN IT TURNS, AND THAT IS THE WHOLE POINT.
    A cube is root-two wider at a corner than face on and root-three across its body diagonal,
