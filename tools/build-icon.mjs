@@ -9,8 +9,9 @@
  *   python3 -m http.server 8899        (from the repo root)
  *   node tools/build-icon.mjs
  *
- * Writes icon-512.png (what the manifest installs) and rewrites the two inline <link> icons in
- * index.html at the sizes those links are actually for — 180 for apple-touch, 32 for the tab.
+ * Writes icon-512.png and icon-512-maskable.png (the manifest installs one per purpose) and
+ * rewrites the two inline <link> icons in index.html at the sizes those links are actually for
+ * — 180 for apple-touch, 32 for the tab.
  */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'fs';
@@ -28,10 +29,14 @@ const EXEC = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/
    sand sphere on cream is mush and an ink one on the app's black is a hole. Picked from the
    body's luminance so it stays right whatever colour the mark is next. */
 const DARK_GROUND = '#0c0d0b', LIGHT_GROUND = '#fbfaf6';
-/* Maskable icons may be cropped to the central 80% circle, so the drawing has to sit inside a
-   circle of radius 0.4S. Fitted to a half-diagonal of 181.6 — the margin the two-capsule icon
-   this replaces was drawn to — rather than to the full square. */
-const HALF_DIAGONAL = 181.6;
+/* How big the mark is drawn, as a fraction of the tile's WIDTH — its reach, edge to edge for a
+   round mark and corner to corner for one with corners. Over 1 means the mark overruns the tile
+   and the tile crops it, which is the whole idea here: the crescent and the eyes are the mark,
+   the sphere's outline is not, and at 29pt the outline is the only part that still reads. Let
+   it run off and the eyes get 3.85px at 29pt instead of the 2.05px a fitted sphere leaves.
+   Maskable crops take the central 80% — a circle of radius 0.4S — and at this size the eyes and
+   the crescent are both inside it, which is the constraint that fixes the ceiling. */
+const FRAC = 1.34;
 
 const browser = await chromium.launch({ executablePath: EXEC });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -90,7 +95,7 @@ const S = 512;
    points. A circle inscribed in that same bbox has empty corners, and measuring the diagonal
    anyway would shrink the mark by root-two against the margin it is being fitted to. */
 const reach = cube.round ? Math.max(cube.w, cube.h) : Math.hypot(cube.w, cube.h);
-const k  = (2 * HALF_DIAGONAL) / reach;
+const k  = (S * FRAC) / reach;
 const tx = S / 2 - (cube.x + cube.w / 2) * k;
 const ty = S / 2 - (cube.y + cube.h / 2) * k;
 /* Every var() the mark emits has to be substituted, not just the two it used to have: an
@@ -101,11 +106,12 @@ const art = cube.inner.replaceAll('var(--mark-shell)', SHELL)
                       .replaceAll('var(--mark-lit)', cube.lit);
 if(/var\(/.test(art)) throw new Error('unsubstituted var() left in the icon art: '
   + art.match(/var\([^)]*\)/g).join(' '));
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
-  + `<rect width="${S}" height="${S}" fill="${GROUND}"/>`
+const tile = (ground)=>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
+  + `<rect width="${S}" height="${S}" fill="${ground}"/>`
   + `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${art}</g></svg>`;
 
-async function png(size) {
+async function png(svg, size) {
   const p = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
   await p.setContent(`<style>html,body{margin:0}svg{width:${size}px;height:${size}px;display:block}</style>${svg}`);
   await p.waitForTimeout(250);
@@ -113,10 +119,25 @@ async function png(size) {
   await p.close();
   return buf;
 }
-const big = await png(512);
-writeFileSync(join(ROOT, 'icon-512.png'), big);
-const b180 = (await png(180)).toString('base64');
-const b32  = (await png(32)).toString('base64');
+
+/* TWO GROUNDS, ONE DRAWING. The corners are the only place the two purposes disagree, and they
+   disagree for a real reason rather than for the padding a maskable icon usually wants — this
+   mark needs none, it already fills the safe circle.
+     any      shown as the square it is, so the corners carry the contrasting ground and the
+              sphere reads as a sphere too big for its box, which is the picture that was picked.
+     maskable cropped to a shape the launcher chooses, and Android's square-ish masks keep most
+              of the corner. On the contrasting ground that leaves four bright wedges where the
+              sphere's edge cuts the corner — a crop artefact, not a design. Filling the ground
+              with the body's own colour makes the corners part of the sphere, so every mask
+              from circle to square lands on the same solid tile with the crescent across it. */
+const anyPng = await png(tile(GROUND), 512);
+const maskPng = await png(tile(SHELL), 512);
+writeFileSync(join(ROOT, 'icon-512.png'), anyPng);
+writeFileSync(join(ROOT, 'icon-512-maskable.png'), maskPng);
+// Both inline links are drawn near-square — iOS rounds the apple-touch icon's corners a little
+// and the tab favicon is not masked at all — so both take the `any` tile.
+const b180 = (await png(tile(GROUND), 180)).toString('base64');
+const b32  = (await png(tile(GROUND), 32)).toString('base64');
 await browser.close();
 
 const file = join(ROOT, 'index.html');
@@ -133,4 +154,5 @@ for (const [re, out] of links) {
   html = html.replace(re, out);
 }
 writeFileSync(file, html);
-console.log(`icon-512.png ${big.length}B · inline 180 + 32 · index.html ${before} -> ${html.length}`);
+console.log(`icon-512.png ${anyPng.length}B on ${GROUND} · icon-512-maskable.png `
+          + `${maskPng.length}B on ${SHELL} · inline 180 + 32 · index.html ${before} -> ${html.length}`);
