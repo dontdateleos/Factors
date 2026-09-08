@@ -5923,16 +5923,57 @@ const MC_EYE_W = 0.2843, MC_EYE_H = 0.5684;
    — so it looked like a round choice and was really a solved one, and it quietly sliced the
    eye the moment the bar got wider. */
 function mcInset(w){ return Math.sqrt(Math.max(0, 1 - w*w - MC_EYE_H*MC_EYE_H)); }
-/* THE TWO CHANNELS ONE EYE NEEDS AND TWO DID NOT.
-   A pair carried expression in the gap between them and in two lids working together. A
-   single aperture has neither, so the only thing left is its own shape: how far it opens
-   (ew, a multiplier on the width) and how far the lid is down (lid, on the height, alongside
-   the blink). Everything the mark can say without turning is one of these two.
+/* TWO SHUTTERS, WHICH IS WHERE THE EXPRESSION ACTUALLY LIVES.
+   A pair of eyes carried expression in the gap between them and in two lids working together.
+   One aperture has neither — so it gets lids of its own, and they are the whole point: a
+   single "how far shut" number can only close an eye, while two edges at their own angles can
+   say WHICH WAY it is closing, and that is the difference between an eye shutting and a face.
+   The same lid position with the tilt mirrored is the difference between a frown and a droop,
+   and nothing a scalar can do tells those apart.
 
-   They interpolate exactly like the angles, so a step can carry any mix of the five, and a
-   move that only touches ew never rotates the body at all. */
-const MC_CH = ['rx', 'ry', 'rz', 'ew', 'lid'];
-const MC_CH_REST = { rx:0, ry:0, rz:0, ew:1, lid:1 };
+   lidT and lidB are where each edge sits across the aperture, in its own half-heights: 0 is
+   the middle, ±MC_LID_OPEN is clear of it altogether. lidTA and lidBA are their tilts, in
+   SCREEN degrees — converted on the way in, because the aperture's own space is twice as tall
+   as it is wide and a line at 20 degrees in it lands at nearly 40 on screen.
+
+   ew is the fifth: how far the aperture opens sideways. All of them interpolate exactly like
+   the angles, so a step can carry any mix, and a move that touches only these never rotates
+   the body at all. */
+const MC_LID_OPEN = 1.25;
+const MC_CH = ['rx', 'ry', 'rz', 'ew', 'lidT', 'lidTA', 'lidB', 'lidBA'];
+const MC_CH_REST = { rx:0, ry:0, rz:0, ew:1,
+                     lidT:-MC_LID_OPEN, lidTA:0, lidB:MC_LID_OPEN, lidBA:0 };
+/* THE OPEN REGION, AS AN INTERSECTION RATHER THAN A DRAWING.
+   The lid is not painted over the hole — it CLIPS it. Two half-planes, cut out of a box with
+   Sutherland-Hodgman: whatever the body is doing behind shows through exactly as it should,
+   and there is no second colour to keep in step with the shading, which on the chip is an
+   animating custom property nobody could match anyway.
+
+   Returns true for "nothing is covering it", which is the common case and skips the clip
+   entirely; null when the two edges have crossed and there is no aperture left to draw. */
+function mcLidPoly(T, aT, B, aB){
+  if(aT === 0 && aB === 0 && T <= -1.02 && B >= 1.02) return true;
+  const tU = Math.tan(aT * MC_RAD) * (MC_EYE_W / MC_EYE_H);
+  const tB = Math.tan(aB * MC_RAD) * (MC_EYE_W / MC_EYE_H);
+  const cut = (poly, at)=>{
+    const out = [];
+    for(let i = 0; i < poly.length; i++){
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const da = at(a), db = at(b);
+      if(da >= 0) out.push(a);
+      if((da >= 0) !== (db >= 0)){
+        const t = da / (da - db);
+        out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      }
+    }
+    return out;
+  };
+  let poly = [[-3,-3], [3,-3], [3,3], [-3,3]];
+  poly = cut(poly, p => p[1] - (T + p[0] * tU));
+  if(poly.length < 3) return null;
+  poly = cut(poly, p => (B + p[0] * tB) - p[1]);
+  return poly.length >= 3 ? poly : null;
+}
 /* The gaze turns the eye ACROSS the sphere rather than sliding it over the surface, so it
    foreshortens on the way out like every other movement of the eye. Degrees at full aim. */
 const MC_GAZE_X = 26, MC_GAZE_Y = 16;
@@ -5945,7 +5986,8 @@ const MC_GAZE_X = 26, MC_GAZE_Y = 16;
    Every move in the repertoire is written as an offset from HERE rather than from zero, so
    moving this moves the whole repertoire with it. */
 const MC_REST = { rx:0, ry:0, rz:0 };
-const mcState = { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, ew:1, lid:1,
+const mcState = { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, ew:1,
+                  lidT:-MC_LID_OPEN, lidTA:0, lidB:MC_LID_OPEN, lidBA:0,
                   gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0, form:1, formAt:0,
                   blink:1, blinkAt:0, raf:null, born:0, step:null, queue:[], nextAt:0 };
 function mcProject(rx, ry, rz){
@@ -6097,7 +6139,9 @@ function mcPaint(m){
        at the limb — the same equation as before, just no longer a constant. */
     const wf = MC_EYE_W * mcState.ew, inset = mcInset(wf);
     const ew = rad * wf;
-    const eh = rad * MC_EYE_H * Math.max(0.05, mcState.blink * mcState.lid);
+    /* Full height, always. The lids do the closing now, so the aperture is never squashed —
+       which is what keeps its round ends round instead of flattening them into a lozenge. */
+    const eh = rad * MC_EYE_H;
     const px = c + dir[0] * rad * inset, py = c + dir[1] * rad * inset;
     /* The caps stay round in SCREEN units, so the stadium keeps its ends whatever the matrix
        does to it — and a blink, which only squashes the height, closes to a lozenge rather
@@ -6119,7 +6163,22 @@ function mcPaint(m){
     }
     eye += `<g transform="${at(px, py)}" style="fill:${m.ink}">`
          + `<rect x="-1" y="-1" width="2" height="2" rx="1" ry="${ry.toFixed(4)}"/></g>`;
-    out += `<g clip-path="url(#${cid})">${eye}</g>`;
+    /* A BLINK IS THE LIDS, NOT A SQUASH.
+       It rides on top of whatever the lids are already doing rather than replacing it: both
+       edges travel toward the middle by the same fraction, so a blink taken mid-frown closes
+       the frown rather than snapping it level first. */
+    const shut = 1 - Math.max(0, Math.min(1, mcState.blink));
+    const poly = mcLidPoly(mcState.lidT * (1 - shut), mcState.lidTA,
+                           mcState.lidB * (1 - shut), mcState.lidBA);
+    if(poly === true){
+      out += `<g clip-path="url(#${cid})">${eye}</g>`;
+    } else if(poly){
+      const pts = poly.map(([x, y])=> `${x.toFixed(3)},${y.toFixed(3)}`).join(' ');
+      /* The transform goes on the POLYGON, not on a group around it — a clipPath ignores a
+         <g> child, and the failure is silent: an empty clip and a sphere with no eye at all. */
+      out += `<clipPath id="${cid}L"><polygon transform="${at(px, py)}" points="${pts}"/></clipPath>`
+           + `<g clip-path="url(#${cid})"><g clip-path="url(#${cid}L)">${eye}</g></g>`;
+    }
   }
   svg.innerHTML = out;
 }
@@ -6132,18 +6191,35 @@ function mcPaint(m){
 const mcSide = ()=> Math.random() < 0.5 ? -1 : 1;
 /* Offsets from MC_REST, not absolute angles: the mark has a home that is not zero now, and a
    move that returned to zero would have walked it back to face on and left it there. */
-const R_X = MC_REST.rx, R_Y = MC_REST.ry, R_Z = MC_REST.rz;
+const R_X = MC_REST.rx, R_Y = MC_REST.ry, R_Z = MC_REST.rz, O = MC_LID_OPEN;
 const MC_MOVES = [
-  /* — WHAT IT DOES WITHOUT MOVING.
-       The body never turns in these three: only the aperture changes shape. They exist
-       because a sphere's silhouette is the same from every angle, so rotation is no longer
-       how the mark shows anything — and because one eye has no gap and no second lid, which
-       is where a pair kept its expression. */
-  { w:4, name:'squint', steps:()=> [{ ew:0.55, ms:260, hold:560 }, { ew:1, ms:340 }] },
-  { w:3, name:'widen',  steps:()=> [{ ew:1.55, rx:R_X - 6, ms:170, hold:400 },
-                                    { ew:1, rx:R_X, ms:440 }] },
-  { w:2, name:'drowse', steps:()=> [{ lid:0.42, ew:1.12, ms:900, hold:1500 },
-                                    { lid:1, ew:1, ms:900 }] },
+  /* — THE LIDS.
+       Nothing here turns the body at all: the shutters do the whole gesture. They are the
+       reason the mark can have a mood rather than only a direction, and the mirrored pairs
+       are the proof — frown and droop are one lid at one position with the tilt reversed,
+       and no amount of "how far shut" tells those apart.
+       O is the open position; a lid at 0 is across the middle of the aperture. */
+  /* Mostly width. On a TALL aperture a squint is a narrow slot, not a short one — bringing
+     the lids in as far as the sides closes it to a square and the eye stops being an eye. */
+  { w:4, name:'squint', steps:()=> [{ lidT:-0.88, lidB:0.88, ew:0.58, ms:280, hold:560 },
+                                    { lidT:-O, lidB:O, ew:1, ms:360 }] },
+  { w:3, name:'widen',  steps:()=> [{ lidT:-1.55, lidB:1.55, ew:1.5, rx:R_X - 6, ms:170, hold:400 },
+                                    { lidT:-O, lidB:O, ew:1, rx:R_X, ms:460 }] },
+  /* The concentrating look, and the sorry one, from the same two numbers with the tilt
+     flipped. mcSide picks which, so one row covers both. */
+  { w:3, name:'frown',  steps:()=>{ const d = mcSide();
+      return [{ lidT:-0.26, lidTA:30*d, lidB:1.05, lidBA:-10*d, ms:340, hold:720 },
+              { lidT:-O, lidTA:0, lidB:O, lidBA:0, ms:460 }]; } },
+  /* Both edges tilted the SAME way rather than mirrored, which is what makes it read as
+     knowing rather than as pained. */
+  { w:2, name:'sly',    steps:()=>{ const d = mcSide();
+      return [{ lidT:-0.34, lidTA:17*d, lidB:0.44, lidBA:17*d, ew:1.1, ms:380, hold:640 },
+              { lidT:-O, lidTA:0, lidB:O, lidBA:0, ew:1, ms:480 }]; } },
+  /* The top lid past the middle and left there. This used to squash the aperture's height,
+     which closed it evenly from both ends; a lid only comes down from the top, which is what
+     an eye losing interest actually does. */
+  { w:2, name:'drowse', steps:()=> [{ lidT:0.12, lidTA:8, lidB:0.92, ew:1.1, ms:900, hold:1500 },
+                                    { lidT:-O, lidTA:0, lidB:O, ew:1, ms:900 }] },
 
   /* — WHERE IT LOOKS.
        glance is still the commonest thing it does. scan and doubletake are the two the cube
@@ -6164,17 +6240,17 @@ const MC_MOVES = [
   { w:2, name:'doubletake', steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 32*d, ms:190 }, { ry:R_Y - 10*d, ms:230 }, { ry:R_Y, ms:320 }]; } },
   /* rz turns NOTHING but the eye's own angle — a sphere is rotationally symmetric about the
-     view axis — so this is the one channel that costs the silhouette nothing. tilt used to
-     spend 11 degrees of it and has been dropped; this is the same idea done properly. */
+     view axis — so this costs the silhouette nothing. The lid tilts with it, which is what
+     turns a rotation into a question. */
   { w:3, name:'quizzical', steps:()=>{ const d = mcSide();
-      return [{ rz:R_Z + 24*d, rx:R_X - 7, ms:420, hold:760 }, { rz:R_Z, rx:R_X, ms:520 }]; } },
+      return [{ rz:R_Z + 20*d, rx:R_X - 7, lidT:-0.58, lidTA:26*d, ms:420, hold:760 },
+              { rz:R_Z, rx:R_X, lidT:-O, lidTA:0, ms:520 }]; } },
 
   /* — ALL THE WAY ROUND.
        The eye is hidden across 183 degrees of every 360, so a great circle spends more than
        half its travel on a blank sphere. peek makes that the point and holds there for a
        beat. orbit refuses it: eight keyframes around the FRONT hemisphere, never past 38
-       degrees, so the eye goes all the way round and stays visible the whole way. It replaces
-       roll and flip, which were 762ms and 661ms of nothing. */
+       degrees, so the eye goes all the way round and stays visible the whole way. */
   { w:2, name:'peek',   steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 92*d, ms:320, hold:140 }, { ry:R_Y, ms:400 }]; } },
   { w:1, name:'orbit',  steps:()=>{ const d = mcSide();
@@ -6187,22 +6263,21 @@ const MC_MOVES = [
 /* THE SPHERE ARRIVING, ONE BAND AT A TIME.
    It is drawn from a body and an aperture, so it forms as those two — but the body does not
    fade up as a whole. The four shading steps arrive one at a time, outermost first, so the
-   mark assembles out of its own construction rather than dissolving in. Then the aperture
-   opens. Nothing here is a new mechanism: form gates the steps that are already there, and
-   the opening is an ordinary queued move on the two channels the repertoire uses.
+   mark assembles out of its own construction rather than dissolving in. Then the lids open.
+   Nothing here is a new mechanism: form gates the steps that are already there, and the
+   opening is an ordinary queued move on channels the repertoire uses anyway.
 
-   Measured at 40px, the light-coming-up arrivals are all much of a muchness, because an
-   unlit ink sphere is 1.15:1 against this header and there is barely anything to see. This
-   one is chosen for what it is rather than for how much of it survives at that size: the
-   bands land in sequence and the last one is the one you notice. */
+   Measured at 40px, the light-coming-up arrivals are all much of a muchness, because an unlit
+   ink sphere is 1.15:1 against this header and there is barely anything to see. This one is
+   chosen for what it is rather than for how much of it survives that size. */
 const MC_FORM_MS = 600;
 let mcFormed = false;
 function mcForm(){
   mcState.form = 0; mcState.formAt = performance.now();
   /* Held shut while the body assembles, then opened. The first step is instant with a hold,
      which is how the queue expresses a wait without a second timer. */
-  mcQueue([{ ew:0.42, lid:0.06, ms:1, hold:380 },
-           { ew:1.08, lid:1, ms:420 },
+  mcQueue([{ ew:0.42, lidT:0, lidB:0, ms:1, hold:380 },
+           { ew:1.08, lidT:-MC_LID_OPEN, lidB:MC_LID_OPEN, ms:420 },
            { ew:1, ms:200 }]);
 }
 const MC_W = MC_MOVES.reduce((a,m)=> a + m.w, 0);
@@ -6233,8 +6308,8 @@ function startMarkCube(){
      ends up costing a frame a second forever. */
   if(eyeCalm || eyeMotionOff()){
     if(mcState.raf){ cancelAnimationFrame(mcState.raf); mcState.raf = null; }
-    Object.assign(mcState, { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, ew:1, lid:1,
-                             form:1, gx:0, gy:0, blink:1, step:null, queue:[] });
+    Object.assign(mcState, { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, form:1,
+                             gx:0, gy:0, blink:1, step:null, queue:[] }, MC_CH_REST);
     drawMarkCube(); return;
   }
   if(mcState.raf) return;
@@ -6268,8 +6343,9 @@ function startMarkCube(){
       mcState.rx += ((2.5 * Math.sin(t * 0.31)) - mcState.rx) * 0.04;
       mcState.ry += ((3.5 * Math.sin(t * 0.23 + 1.1)) - mcState.ry) * 0.04;
       mcState.rz += (0 - mcState.rz) * 0.06;
-      mcState.ew += (1 - mcState.ew) * 0.06;
-      mcState.lid += (1 - mcState.lid) * 0.06;
+      // every channel that is not an angle eases back to its own rest, lids included
+      for(const k of MC_CH) if(k !== 'rx' && k !== 'ry' && k !== 'rz')
+        mcState[k] += (MC_CH_REST[k] - mcState[k]) * 0.06;
     }
     if(now > mcState.gazeAt){
       mcState.gazeAt = now + 1400 + Math.random() * 3200;
@@ -9144,7 +9220,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.386';
+const APP_VERSION = '2026.08.31.387';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9296,6 +9372,7 @@ const APP_NOTES = {
   '2026.08.31.384': 'The chip beside the score is the flat mark again \u2014 its colour and the eye, nothing else.',
   '2026.08.31.385': 'The mark builds itself on load, and has seven new things to do with one eye.',
   '2026.08.31.386': 'The mark arrives one shading band at a time, then opens its eye.',
+  '2026.08.31.387': 'The mark has eyelids \u2014 two of them, at their own angles, so it can have a mood.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in

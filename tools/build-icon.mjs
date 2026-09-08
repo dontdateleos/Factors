@@ -54,8 +54,8 @@ const cube = await page.evaluate(() => {
   mcState.rx = MC_REST.rx; mcState.ry = MC_REST.ry; mcState.rz = MC_REST.rz;
   // The aperture and the light are animated now, so park those too or the icon is whatever
   // frame the arrival happened to be on.
-  mcState.blink = 1; mcState.gx = 0; mcState.gy = 0;
-  mcState.ew = 1; mcState.lid = 1; mcState.form = 1;
+  mcState.blink = 1; mcState.gx = 0; mcState.gy = 0; mcState.form = 1;
+  Object.assign(mcState, MC_CH_REST);   // width and both lids, whatever the set currently is
   drawMarkCube();
   const svg = document.getElementById('headerMarkCube');
   // The body is the first drawn shape and it IS the whole extent: the eye is clipped to it
