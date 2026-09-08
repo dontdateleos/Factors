@@ -1808,19 +1808,73 @@
      setup was collapsed inside a group inside the last tab, and the goals were on a third
      tab, so a new user's Today said "nothing planned this week" and offered no way to change
      that. The three questions that actually unlock the generator now ARE the first screen. */
-  .fr-lead{ font-family:var(--mono); font-size:var(--fs-md); font-weight:var(--fw-bold);
-    letter-spacing:var(--track-ui); text-transform:uppercase; background:var(--accent);
-    color:var(--reverse-bg); padding:14px; margin-bottom:var(--sp-3); }
-  .fr-sub{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
-    text-transform:none; font-weight:var(--fw-medium); display:block; margin-top:4px; opacity:0.72; }
-  .fr-pick{ display:flex; flex-wrap:wrap; gap:8px; }
-  /* .type-btn's default active state is a dark fill, which is invisible on the dark panel
-     these sit on — the same problem the Data tab's pills already solve for themselves. */
-  .fr-pick .type-btn{ flex:1 1 28%; min-width:78px; background:transparent;
-    color:rgba(var(--ink-rgb),0.65); border-color:rgba(var(--ink-rgb),0.4); }
-  .fr-pick .type-btn.active{ background:var(--accent); color:var(--reverse-bg); border-color:var(--accent); }
-  #firstRunBuildBtn{ width:100%; margin-top:4px; }
+  /* IT IS SPOKEN, SO IT IS SET IN THE VOICE THAT SPEAKS. --wordmark is the masthead's face
+     and it is used nowhere else in the app — every other surface is the mono. That is the
+     point: this screen is the only one where the app addresses you directly rather than
+     reporting on you, and the face it says DOG FOOD in is the face it should say this in.
+     Everything is --bg and rgba(--ink-rgb) rather than a literal, so the whole thread turns
+     over with the ground and the accent never has to carry text. */
+  .fr-thread{ list-style:none; margin:0; padding:calc(var(--sp-3) + 6px) 0 0; }
+  .fr-step{ margin:0 0 40px; }
+  .fr-step[hidden]{ display:none; }
+  .fr-q{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:26px;
+    line-height:1.16; letter-spacing:-0.012em; color:var(--bg);
+    margin:0 0 18px; text-wrap:balance; }
+  .fr-answers{ display:flex; flex-direction:column; align-items:flex-start; }
+  /* The base button rule is a filled 31px pill in caps — everything about it has to go, or
+     three answers read as three controls rather than as three things you could say. */
+  /* 24px is not a typographic preference, it is the WCAG large-text floor — 18pt regular —
+     and the dimmed state below needs it. At 22px an unchosen answer has to clear 4.5:1 and
+     cannot do it at any alpha that still reads as stepped back: 0.34 measured 2.97 on the
+     dark ground and 2.24 on bone, which is the first draft of this screen and was wrong on
+     both. At 24 the bar is 3:1 and 0.5 clears it either way. */
+  .fr-a{ font-family:var(--wordmark); font-weight:var(--fw-medium); font-size:24px;
+    line-height:1.3; letter-spacing:0; text-transform:none;
+    height:auto; flex:0 0 auto; display:block; width:auto; text-align:left;
+    padding:7px 0; border:0; border-radius:0; background:transparent;
+    color:rgba(var(--ink-rgb),0.92);
+    transition:color 140ms ease; -webkit-tap-highlight-color:transparent; }
+  .fr-a::before{ content:'\2192'; display:inline-block; width:1.35em; }
+  /* Answered, the thread keeps every option on screen and takes the unchosen ones back, so
+     the row still reads as a question you could answer differently rather than as a result.
+     0.5 measures 5.16 on the dark ground and 3.62 on bone. */
+  .fr-answers.answered .fr-a{ color:rgba(var(--ink-rgb),0.5); }
+  .fr-answers.answered .fr-a[aria-checked="true"]{ color:var(--bg); }
+  .fr-a:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
+  /* The spread the count turned into. Mono, small and set back: it is the app showing its
+     working under an answer, not a fifth question. */
+  .fr-aside{ margin-top:16px; }
+  .fr-aside[hidden]{ display:none; }
+  .fr-aside-lead{ display:block; font-family:var(--mono); font-size:var(--fs-tag);
+    letter-spacing:0.02em; color:var(--dim); margin-bottom:8px; }
+  .fr-aside-lead b{ color:var(--bg); font-weight:var(--fw-bold); }
+  .fr-days{ display:flex; flex-wrap:wrap; gap:6px; }
+  .fr-day{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:var(--track-ui); text-transform:uppercase;
+    height:auto; flex:0 0 auto; padding:6px 11px; border-radius:0;
+    border:1px solid rgba(var(--ink-rgb),0.32); background:transparent;
+    /* Small caps mono, so this one is normal text and owes the full 4.5:1 — 0.5 would read
+       as 3.62 on bone. 0.7 measures 9.26 and 7.27. */
+    color:rgba(var(--ink-rgb),0.7); }
+  .fr-day.on{ background:var(--bg); border-color:var(--bg); color:var(--ground); }
+  /* DOGFOOD's own line, and the only thing on the screen it says rather than asks. The rule
+     down its left is what makes it a quotation instead of a fourth question. */
+  .fr-says{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:24px;
+    line-height:1.22; letter-spacing:-0.012em; color:var(--bg);
+    margin:0 0 26px; padding-left:16px; border-left:3px solid rgba(var(--ink-rgb),0.5);
+    text-wrap:balance; }
+  .fr-extra{ display:block; margin-bottom:20px; }
+  .fr-extra-q{ display:block; font-family:var(--wordmark); font-weight:var(--fw-medium);
+    font-size:18px; line-height:1.3; color:rgba(var(--ink-rgb),0.82); margin-bottom:9px; }
+  .fr-extra-row{ display:flex; align-items:center; gap:11px; flex-wrap:wrap; }
+  .fr-extra-row input{ flex:0 0 96px; width:96px; }
+  .fr-extra-note{ flex:1 1 150px; font-family:var(--mono); font-size:var(--fs-tag);
+    letter-spacing:0.02em; color:var(--dim); }
+  #firstRunBuildBtn{ width:100%; }
   .fr-note{ margin-top:10px; }
+  .fr-note:empty{ display:none; }
+  .fr-after{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
+    color:var(--dim); margin-top:12px; }
   /* The band carries a -20px top margin so its black tucks under the header's black and the
      two read as one field. That only works while there is a band: collapsed, the negative
      margin stays and there is nothing left to fill it, so it drags whatever comes next up
@@ -2865,7 +2919,6 @@
   }
   /* And the other direction, which the same rule demands. These four are questions —
      the only sentences in the app that were being forced into caps. */
-  #firstRun .group-title{ text-transform:none; letter-spacing:0; }
 
   /* The rest of it: the things a session is actually made of. An exercise name is a name,
      a dose is a reading, and both were still in sentence case while the label beside them
@@ -3216,48 +3269,76 @@
          tutorial and not a wizard with its own chrome — the same groups and buttons the rest
          of the app is made of, asking the three things it cannot proceed without. -->
     <div id="firstRun" style="display:none;">
-      <div class="fr-lead">Three answers and it builds your week<span class="fr-sub">All of it changeable afterwards.</span></div>
+      <!-- THE GATE IS A CONVERSATION, NOT A FORM.
+           It was four numbered groups with lime heading pills, every question on screen at
+           once, which is a settings page wearing a welcome. It asks three things and it can
+           ask them the way a person would: one at a time, in the app's own voice, each one
+           arriving once the last is answered. Nothing is hidden that has been reached — the
+           thread stays on screen and every answer stays tappable, so changing your mind is
+           tapping the other one rather than going back. -->
+      <ol class="fr-thread">
 
-      <div class="group form-panel">
-        <div class="group-head"><div class="group-title">1 &middot; What are you training for?</div><div class="group-sub">pick the main one — you can add two more later</div></div>
-        <div class="fields"><div class="fr-pick" id="firstRunGoal">
-          <div class="type-btn" data-goal="strength">Strength</div>
-          <div class="type-btn" data-goal="hypertrophy">Muscle</div>
-          <div class="type-btn" data-goal="running">Running</div>
-        </div></div>
-      </div>
+        <li class="fr-step" data-step="goal">
+          <p class="fr-q">What do you want to get better at?</p>
+          <div class="fr-answers" id="firstRunGoal" role="radiogroup" aria-label="What do you want to get better at?">
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-goal="strength">Get stronger</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-goal="hypertrophy">Build muscle</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-goal="running">Run better</button>
+          </div>
+        </li>
 
-      <div class="group form-panel">
-        <div class="group-head"><div class="group-title">2 &middot; Which days can you train?</div><div class="group-sub">only these ever get a session put on them</div></div>
-        <div class="fields"><div class="fr-pick" id="firstRunDays"></div></div>
-      </div>
+        <li class="fr-step" data-step="often" hidden>
+          <p class="fr-q">How often can you train?</p>
+          <div class="fr-answers" id="firstRunFreq" role="radiogroup" aria-label="How often can you train?">
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-freq="2">Twice a week</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-freq="3">Three times a week</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-freq="4">Four times a week</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-freq="5">Five times a week</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-freq="6">Six times a week</button>
+          </div>
+          <!-- A count is what you know about yourself; named days are what the generator
+               needs. It spreads the count across the week and shows you what it picked
+               rather than choosing in private — only these days ever get a session put on
+               them, so it has to be visible and it has to be changeable here. -->
+          <div class="fr-aside" id="firstRunDaysAside" hidden>
+            <span class="fr-aside-lead">so — <b id="firstRunDaysSaid"></b>. tap to change which.</span>
+            <div class="fr-days" id="firstRunDays"></div>
+          </div>
+        </li>
 
-      <div class="group form-panel">
-        <div class="group-head"><div class="group-title">3 &middot; How long have you got?</div><div class="group-sub">per session, on a normal day</div></div>
-        <div class="fields"><div class="fr-pick" id="firstRunLength">
-          <div class="type-btn" data-len="20">20 min</div>
-          <div class="type-btn" data-len="30">30 min</div>
-          <div class="type-btn active" data-len="45">45 min</div>
-          <div class="type-btn" data-len="60">60 min</div>
-          <div class="type-btn" data-len="90">90 min</div>
-        </div></div>
-      </div>
+        <li class="fr-step" data-step="time" hidden>
+          <p class="fr-q">How much time do you usually have?</p>
+          <div class="fr-answers" id="firstRunLength" role="radiogroup" aria-label="How much time do you usually have?">
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-len="20">20 minutes</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-len="30">30 minutes</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-len="45">45 minutes</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-len="60">An hour</button>
+            <button type="button" class="fr-a" role="radio" aria-checked="false" data-len="90">An hour and a half</button>
+          </div>
+        </li>
 
-      <!-- Bodyweight is load-bearing and was never asked for. computeAthleteLevel returns
-           {error:'no-bodyweight'} without it, calisthenics volume counts as zero because a
-           pull-up with a blank load is a pull-up moving nothing, and the BW button's own
-           error tells you to go to "Settings, under Body metrics". One optional box here
-           is cheaper than every one of those. Optional, because a week can still be built
-           without it — it is the difference between the plan knowing your scale and not. -->
-      <div class="group form-panel">
-        <div class="group-head"><div class="group-title">4 &middot; How much do you weigh?</div><div class="group-sub">optional — it is what the strength standards are measured against</div></div>
-        <div class="fields">
-          <div class="field-row"><span class="field-label">Bodyweight (kg)</span><input type="number" step="0.1" id="firstRunWeight" placeholder="skip if you'd rather not"></div>
-        </div>
-      </div>
+        <li class="fr-step" data-step="done" hidden>
+          <p class="fr-says">Got it. I&rsquo;ll build around that.</p>
+          <!-- Bodyweight is load-bearing and was never asked for anywhere else:
+               computeAthleteLevel returns {error:'no-bodyweight'} without it, calisthenics
+               volume counts as zero because a pull-up with a blank load is a pull-up moving
+               nothing, and the BW button's own error tells you to go to "Settings, under Body
+               metrics". One optional box here is cheaper than every one of those. It sits
+               after the line rather than as a fourth question because a week builds fine
+               without it — it is the difference between the plan knowing your scale and not. -->
+          <label class="fr-extra">
+            <span class="fr-extra-q">And roughly what do you weigh?</span>
+            <span class="fr-extra-row">
+              <input type="number" step="0.1" id="firstRunWeight" placeholder="kg" inputmode="decimal">
+              <span class="fr-extra-note">optional &mdash; it is what the strength standards are measured against</span>
+            </span>
+          </label>
+          <button class="primary" id="firstRunBuildBtn">Build my first week</button>
+          <div id="firstRunResult" class="score-note fr-note" role="status"></div>
+          <div class="fr-after">All of it changeable afterwards.</div>
+        </li>
 
-      <button class="primary" id="firstRunBuildBtn">Build my first week</button>
-      <div id="firstRunResult" class="score-note fr-note"></div>
+      </ol>
     </div>
 
     <!-- THE FIELD IS A REGION, NOT A BAND.
@@ -7484,6 +7565,7 @@ const UI_ANIM = {
   pillExtend:   { on:true, note:'A section\u2019s title pill extends out as the page lands, rather than arriving whole',
                   ms:400, stagger:80, max:8 },
   faceHold:     { on:true, note:'The morning rating is a hold rather than a tap — the square fills as you hold it', ms:500 },
+  firstRunThread:{ on:true, note:'The setup questions arrive one at a time, each as the last is answered', ms:340 },
   fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900,
                   // A spin is direct manipulation and answers immediately, so its ripple is
                   // quicker than the one that has to wait for a page to fly in and land.
@@ -23534,31 +23616,98 @@ async function applyTodayStage(){
   if(todayScoreShown !== seen){ todayScoreShown = seen; settleEyes(); }
 }
 
+/* Which named days a count of sessions turns into. Evenly spaced from Monday rather than
+   packed against it: floor(i * 7 / n) puts three across Mon/Wed/Fri and four across
+   Mon/Tue/Thu/Sat, so the rest days fall between the work rather than all at the end of the
+   week. It is a starting position, not a decision — the chips it fills in are editable in
+   place, and Weekly can move any of it afterwards. */
+function firstRunSpread(n){
+  const out = [];
+  for(let i = 0; i < n; i++) out.push(WEEKDAY_NAMES[Math.floor(i * 7 / n)]);
+  return out;
+}
+
 (function wireFirstRun(){
-  const days = document.getElementById('firstRunDays');
-  if(days) WEEKDAY_NAMES.forEach(d=>{
-    const b = document.createElement('div');
-    b.className = 'type-btn'; b.dataset.day = d; b.textContent = d;
-    b.addEventListener('click', ()=> b.classList.toggle('active'));
-    days.appendChild(b);
-  });
-  // One goal, one length: picking replaces rather than adds.
-  ['firstRunGoal','firstRunLength'].forEach(id=>{
+  const root = document.getElementById('firstRun');
+  if(!root) return;
+  const step = name => root.querySelector(`.fr-step[data-step="${name}"]`);
+
+  /* Revealing is the whole interaction, so it is one function. scrollIntoView with 'nearest'
+     rather than 'center': the first three steps fit on a phone without moving, and a page
+     that jumps when it did not need to reads as a bug rather than as an answer landing. */
+  function reveal(name){
+    const el = step(name);
+    if(!el || !el.hidden) return;
+    el.hidden = false;
+    if(uiAnim('firstRunThread')){
+      uiPlay(el, [{ opacity:0, transform:'translateY(12px)' }, { opacity:1, transform:'none' }],
+        { duration: UI_ANIM.firstRunThread.ms, easing:'cubic-bezier(0.2,0.9,0.3,1)' });
+    }
+    requestAnimationFrame(()=>{
+      try{ el.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'nearest' }); }
+      catch(e){ el.scrollIntoView(false); }
+    });
+  }
+
+  // One answer per question: picking replaces rather than adds, and the group carries
+  // .answered so the unchosen ones can take a step back without leaving the screen.
+  function askOne(id, onPick){
     const box = document.getElementById(id);
     if(!box) return;
     box.addEventListener('click', e=>{
-      const b = e.target.closest('.type-btn');
+      const b = e.target.closest('.fr-a');
       if(!b) return;
-      box.querySelectorAll('.type-btn').forEach(x=> x.classList.toggle('active', x === b));
+      box.classList.add('answered');
+      box.querySelectorAll('.fr-a').forEach(x=> x.setAttribute('aria-checked', String(x === b)));
+      onPick(b);
     });
+  }
+
+  const dayBox = document.getElementById('firstRunDays');
+  const aside = document.getElementById('firstRunDaysAside');
+  const said = document.getElementById('firstRunDaysSaid');
+  const chosenDays = ()=> [...root.querySelectorAll('.fr-day.on')].map(b=> b.dataset.day);
+  function sayDays(){
+    if(!said) return;
+    const d = chosenDays();
+    said.textContent = d.length ? d.join(' · ') : 'no days yet';
+  }
+  if(dayBox) WEEKDAY_NAMES.forEach(d=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'fr-day'; b.dataset.day = d; b.textContent = d;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', ()=>{
+      b.classList.toggle('on');
+      b.setAttribute('aria-pressed', String(b.classList.contains('on')));
+      sayDays();
+    });
+    dayBox.appendChild(b);
   });
+
+  askOne('firstRunGoal', ()=> reveal('often'));
+  askOne('firstRunFreq', b=>{
+    const spread = firstRunSpread(parseInt(b.dataset.freq, 10) || 3);
+    root.querySelectorAll('.fr-day').forEach(x=>{
+      const on = spread.includes(x.dataset.day);
+      x.classList.toggle('on', on);
+      x.setAttribute('aria-pressed', String(on));
+    });
+    sayDays();
+    if(aside) aside.hidden = false;
+    reveal('time');
+  });
+  askOne('firstRunLength', ()=> reveal('done'));
+
   const build = document.getElementById('firstRunBuildBtn');
   if(build) build.addEventListener('click', async ()=>{
     const out = document.getElementById('firstRunResult');
-    const goal = document.querySelector('#firstRunGoal .type-btn.active');
-    const chosen = [...document.querySelectorAll('#firstRunDays .type-btn.active')].map(b=>b.dataset.day);
-    const len = document.querySelector('#firstRunLength .type-btn.active');
-    // Said once, plainly, rather than three separate complaints as you fix them.
+    const goal = document.querySelector('#firstRunGoal .fr-a[aria-checked="true"]');
+    const chosen = chosenDays();
+    const len = document.querySelector('#firstRunLength .fr-a[aria-checked="true"]');
+    /* The thread makes two of these unreachable — this step does not exist until the first
+       and third are answered — but the days can be turned off one at a time after the count
+       set them, and a saved setup with no days is a week the generator cannot fill. Said
+       once, plainly, rather than as separate complaints. */
     const missing = [!goal && 'what you are training for', !chosen.length && 'at least one day'].filter(Boolean);
     if(missing.length){ out.textContent = `Still need ${missing.join(' and ')}.`; return; }
     out.textContent = 'Building...';
