@@ -6074,9 +6074,15 @@ function mcPaint(m){
        animating custom property — so there is no colour here to mix from. A tone at an alpha
        over whatever turned up costs one more circle and never has to know. */
     if(m.tone)
+      /* Each PAIR of stops is one band, and each band has its own gate off form — the outer
+         one opens first. At form 1 every gate is 1 and this is the plain four-step ramp. */
       out += `<radialGradient id="${gid}" cx="${MC_FOCUS[0].toFixed(3)}" cy="${MC_FOCUS[1].toFixed(3)}" r="0.95">`
-           + MC_STEPS.map(([o, a])=> `<stop offset="${o}" stop-color="rgb(${m.tone})"`
-                                   + ` stop-opacity="${(a * mcState.form).toFixed(3)}"/>`).join('')
+           + MC_STEPS.map(([o, a], i)=>{
+               const band = i >> 1;
+               const gate = Math.max(0, Math.min(1, mcState.form * 3 - (3 - band)));
+               return `<stop offset="${o}" stop-color="rgb(${m.tone})"`
+                    + ` stop-opacity="${(a * gate).toFixed(3)}"/>`;
+             }).join('')
            + `</radialGradient>`
            + `<circle cx="${c}" cy="${c}" r="${rad.toFixed(2)}" fill="url(#${gid})"/>`;
     out += `<clipPath id="${cid}"><circle cx="${c}" cy="${c}" r="${rad.toFixed(2)}"/></clipPath>`;
@@ -6178,19 +6184,26 @@ const MC_MOVES = [
               { ry:R_Y, rx:R_X + 38, ms:150 }, { ry:R_Y + 27*d, rx:R_X + 27, ms:150 },
               { ry:R_Y, rx:R_X, ms:240 }]; } },
 ];
-/* THE SPHERE ARRIVING.
-   It is drawn from a body and an aperture, so it forms as those two: the light comes up on
-   the body first, out of a ground it is otherwise almost the same colour as, and then the
-   aperture opens. Nothing here is a new mechanism — form scales the shading steps that are
-   already there, and the opening is an ordinary queued move on the two channels the
-   repertoire above already uses. An ink sphere with no light on it IS the header's black,
-   which is what makes the first half of this work at all. */
-const MC_FORM_MS = 560;
+/* THE SPHERE ARRIVING, ONE BAND AT A TIME.
+   It is drawn from a body and an aperture, so it forms as those two — but the body does not
+   fade up as a whole. The four shading steps arrive one at a time, outermost first, so the
+   mark assembles out of its own construction rather than dissolving in. Then the aperture
+   opens. Nothing here is a new mechanism: form gates the steps that are already there, and
+   the opening is an ordinary queued move on the two channels the repertoire uses.
+
+   Measured at 40px, the light-coming-up arrivals are all much of a muchness, because an
+   unlit ink sphere is 1.15:1 against this header and there is barely anything to see. This
+   one is chosen for what it is rather than for how much of it survives at that size: the
+   bands land in sequence and the last one is the one you notice. */
+const MC_FORM_MS = 600;
 let mcFormed = false;
 function mcForm(){
   mcState.form = 0; mcState.formAt = performance.now();
-  mcState.ew = 0.42; mcState.lid = 0.06;
-  mcQueue([{ ew:1.08, lid:1, ms:520 }, { ew:1, ms:240 }]);
+  /* Held shut while the body assembles, then opened. The first step is instant with a hold,
+     which is how the queue expresses a wait without a second timer. */
+  mcQueue([{ ew:0.42, lid:0.06, ms:1, hold:380 },
+           { ew:1.08, lid:1, ms:420 },
+           { ew:1, ms:200 }]);
 }
 const MC_W = MC_MOVES.reduce((a,m)=> a + m.w, 0);
 function mcPickMove(){
@@ -9131,7 +9144,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.385';
+const APP_VERSION = '2026.08.31.386';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9282,6 +9295,7 @@ const APP_NOTES = {
   '2026.08.31.383': 'The mark is ink again, lit in four steps so it reads as a solid rather than a hole.',
   '2026.08.31.384': 'The chip beside the score is the flat mark again \u2014 its colour and the eye, nothing else.',
   '2026.08.31.385': 'The mark builds itself on load, and has seven new things to do with one eye.',
+  '2026.08.31.386': 'The mark arrives one shading band at a time, then opens its eye.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
