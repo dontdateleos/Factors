@@ -5986,15 +5986,35 @@ function mcCubePath(P, h, c, r){
   }
   return mcRounded(mcHull(V), r);
 }
-/* Fixed in view space, so it does not turn with the solid. Upper left and slightly in front.
-   MC_LIT is what a face pointing straight at the viewer scores, and dividing by it is what
-   makes that face come out at zero — the resting square has no tone on it at all. */
+/* Fixed in view space, so it does not turn with the solid. Upper left and slightly in front,
+   which is enough of an offset to tell three faces apart at a corner and no more. */
 const MC_LIGHT = (()=>{ const v = [-0.30, -0.45, 0.84], m = Math.hypot(v[0], v[1], v[2]);
                         return v.map(x=> x/m); })();
-const MC_LIT = MC_LIGHT[2];
+/* How much of the value comes from the light rather than from the turn. It only has to break
+   a tie, so it is small: at a corner the three faces are the same distance from the viewer
+   and this is the whole of what separates them. Push it past about 0.3 and the light starts
+   to outrank the turn again, which is the bug below. */
+const MC_TILT = 0.22;
+/* THE FACE NEAREST THE VIEWER IS THE LIGHTEST ONE. ALWAYS.
+   This used to be 1 - (n·L)/L.z: how far the face has turned from a light off to the upper
+   left, scaled so a face pointing at the viewer came out at zero. Two different things came
+   out at zero, though — a face pointing at the VIEWER and a face pointing at the LIGHT — and
+   between them the value went UP. Turned one way the front face darkened to full tone while
+   the side coming into view went white; turned the other way it was the mirror. Measured
+   through a roll: at 45 degrees the front face read 0.229 and the side 0.017, and at 315 the
+   same two read 0.017 and 0.229. Both faces are at 45 degrees to the viewer in both, so that
+   is not a light, it is the mark inverting depending on which way it went.
+
+   The turn is the value now, and it can only do the right thing: how far off face-on a face
+   is, which is zero for the resting square, one at the limb, and identical whichever way the
+   solid went to get there. The light is a small term added on top, written as the difference
+   from what it contributes face-on so that it cancels exactly at rest and the resting square
+   stays pure — without it the three faces at a corner are all the same distance from the
+   viewer and come out identical, which is the flat hexagon the old comment warned about. */
 function mcShade(n){
-  const lam = n[0]*MC_LIGHT[0] + n[1]*MC_LIGHT[1] + n[2]*MC_LIGHT[2];
-  return Math.max(0, Math.min(1, 1 - lam / MC_LIT));
+  const away = 1 - n[2];
+  const lean = MC_LIGHT[2]*away - (n[0]*MC_LIGHT[0] + n[1]*MC_LIGHT[1]);
+  return Math.max(0, Math.min(1, away + MC_TILT * lean));
 }
 const MC_FACES = [
   { n:[0,0,1],  q:h=> [[-h,-h,h],[h,-h,h],[h,h,h],[-h,h,h]] },
