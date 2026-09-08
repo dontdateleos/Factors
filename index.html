@@ -29099,7 +29099,11 @@ async function generateWarmup(){
   if(raise) warmItems.push({ group:'RAISE', html: raise });
   // drillAreas runs parallel to drillParts, so each drill carries the tissue it credits.
   drillParts.forEach((d, i)=> warmItems.push({ group:'MOVE', html: d, area: drillAreas[i] }));
-  if(prime) warmItems.push({ group:'PRIME', html: prime });
+  // Marked prose. This row is a sentence — "Ramp up on the first lift, to your working
+  // weight — 3 min" — and the notation rules are for prescriptions: left alone they turn its
+  // comma into a separator between two halves of a clause. DRILL_DOSE_TAIL already had to
+  // know about "the two that carry prose"; now they say so themselves.
+  if(prime) warmItems.push({ group:'PRIME', html: prime, prose:true });
   const warmDeferred = deferredAreasNote(deferred, 'warm-up');
   if(warmDeferred) warmItems.push(warmDeferred);
   // Counted from the printed doses, like the cool-down, instead of a hand-added constant.
@@ -29249,9 +29253,37 @@ function stageLabel(group){
 
    Notes are exempt because they are prose: renderDrillList sends anything flagged .note
    straight through, and a sentence is not a dose. */
+/* RULE 4, THE OTHER HALF. Nine of the fourteen PNF entries in MOBILITY_LIBRARY carry the
+   word PNF inside the movement's own name — "Banded hip flexor PNF: band-resisted hold 6s"
+   — and the row already wears a PNF tag two characters to its left. Said twice, a foot
+   apart. The tag stays, because it is the thing that groups the list; the copy inside the
+   name goes.
+
+   Only the row's OWN stage, only the first occurrence, and never Move or Mobility, which
+   stageLabel blanks — those rows have no tag to be redundant with, so a movement legitimately
+   called "mobility" something keeps its word. Nothing is stripped that is not visibly
+   repeated beside it. */
+function dropStageWord(text, group){
+  const g = String(group || '').trim();
+  if(!g || /^(move|mobility)$/i.test(g)) return String(text);
+  return String(text)
+    .replace(new RegExp('\\s*\\b' + g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i'), '')
+    .replace(/\s+:/g, ':')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 function tighten(text){
   return String(text)
-    .replace(/,\s*/g, ' ')
+    /* RULE 3. These strings are written as sentences — "Foam roll glutes/hip flexors,
+       60-90s each side, pause on tender spots" — and their commas do two different jobs:
+       one separates a name from its dose, the other a dose from a cue. Only the second is
+       worth marking. A dose is already visibly a dose — drillDoseSplit sets it apart — so a
+       dot in front of it is punctuation for its own sake, and "90/90 hip switches ×8-10/side"
+       reads better than the same line with a dot in the middle. A cue is not visibly
+       anything, so it gets the mark the app already uses a few rows up ("2×5 · partial
+       range"). Which is which is decided by what follows: a digit or a × is a dose. */
+    .replace(/,\s*(?=[\d\u00d7x])/ig, ' ')
+    .replace(/,\s*/g, ' \u00b7 ')
     // "each side" and "per side" are the same instruction as the slash the app already uses.
     .replace(/\s*\b(?:each|per)\s+side\b/ig, '/side')
     // "30 seconds" is 30s in every gym on earth. Ranges too: "45-60 seconds" -> 45-60s.
@@ -29259,6 +29291,10 @@ function tighten(text){
     // "3 sets x 8" and "3 sets of 8" are both 3x8.
     .replace(/\b(\d+)\s*sets?\s*(?:x|of|\u00d7)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)/ig, '$1\u00d7$2')
     .replace(/\b(\d+(?:-\d+)?)\s*reps\b/ig, '\u00d7$1')
+    // RULE 4. A contract-relax protocol counts in cycles, which is what sets are called when
+    // the thing being repeated is a hold. "3-4 cycles" is 3-4x, in the notation every other
+    // row on the page is already using.
+    .replace(/\b(\d+(?:\s*[-\u2013]\s*\d+)?)\s*cycles?\b/ig, '\u00d7$1')
     .replace(/\bx(?=\d)/ig, '\u00d7')
     .replace(/\s{2,}/g, ' ')
     .trim();
@@ -29301,7 +29337,7 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${drillDoseSplit(tighten(it.html))}`
+      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${it.prose ? it.html : drillDoseSplit(tighten(dropStageWord(it.html, it.group)))}`
       + `${uiAnim('strikeThrough') ? '<span class="drill-strike"></span>' : ''}</span></button>`;
   }).join('');
   if(uiAnim('strikeThrough')) host.style.setProperty('--strike-ms', (UI_ANIM.strikeThrough.ms || 300) + 'ms');
