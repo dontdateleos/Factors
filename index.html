@@ -2390,6 +2390,96 @@
      --reverse-bg panel. Matched at the same weight to actually win. */
   button.primary.morning-done{ margin-top:var(--sp-4); width:100%; background:var(--accent);
     color:var(--text); border:2px solid var(--accent); font-weight:var(--fw-bold); }
+
+  /* THE DAILY QUESTIONS, IN THE SAME VOICE THE SETUP ASKS IN.
+     ------------------------------------------------------------------
+     Two surfaces ask them: the morning sheet, and the row on Today that stands in for it for
+     anyone who dismissed the sheet. Both were five squares in a line and two rows of pills —
+     controls, laid out. They are questions, and the app already has a way of asking one: the
+     first-run thread, set in the masthead's face with the answers listed under it behind an
+     arrow. Same treatment here, so being asked how you slept reads like being asked, and the
+     app sounds like one thing whether it is your first morning or your four hundredth.
+
+     SCOPED, NOT SHARED. faceButtonHtml and .subj-face are used by a third row as well — the
+     15px column that sits beside the score inside the band once you have rated. That one is
+     not a question, it is a control small enough to live next to a number, and it keeps
+     everything it has. So none of this touches the builder or the base class; it is two
+     scopes restyling what they were already given.
+
+     THE MARK KEEPS THE HUE, THE WORD TAKES THE INK. That is not a new rule, it is the one
+     already written against the stacked column a few hundred lines up, and it is the reason
+     the chosen answer here is --bg rather than --face-c: five saturated words is five loud
+     things, and the five colours were picked against the black the score sits on rather than
+     against bone. The eyes carry the colour, which is what they are for. */
+  .morning-panel .subj-faces,
+  .morning-panel .subj-scale,
+  #todayFaceRow.face-row-flow .subj-faces{
+    display:flex; flex-direction:column; align-items:stretch; gap:0; }
+  .morning-panel .subj-face,
+  .morning-panel .subj-dot,
+  #todayFaceRow.face-row-flow .subj-face{
+    font-family:var(--wordmark); font-weight:var(--fw-medium); letter-spacing:0;
+    text-transform:none; height:auto; flex:0 0 auto; width:auto;
+    display:flex; align-items:center; justify-content:flex-start; gap:9px;
+    background:transparent; border:0; border-radius:0; box-shadow:none;
+    text-align:left; position:relative;
+    transition:color 140ms ease; -webkit-tap-highlight-color:transparent; }
+  .morning-panel .subj-face::before,
+  .morning-panel .subj-dot::before,
+  #todayFaceRow.face-row-flow .subj-face::before{
+    content:'\2192'; flex:0 0 auto; width:1.35em; }
+  .morning-panel .face-word,
+  #todayFaceRow.face-row-flow .face-word{ display:block; font-family:inherit;
+    font-size:inherit; font-weight:inherit; letter-spacing:0; text-transform:none;
+    color:inherit; white-space:normal; }
+  /* The eyes go quiet with the row and come back in their own colour when it is chosen, so
+     the colour on screen is only ever the answer you gave. */
+  .morning-panel .subj-face .eyes,
+  #todayFaceRow.face-row-flow .subj-face .eyes{
+    flex:0 0 auto; transform:scale(0.8); opacity:0.55; transition:opacity 140ms ease; }
+  /* The word rides over the hold's fill for the same reason the eyes already do: the fill is
+     absolutely positioned, so without this it paints over the one thing you are reading while
+     you hold it. */
+  .morning-panel .face-word{ position:relative; z-index:1; }
+  .morning-panel .subj-face.on .eyes,
+  #todayFaceRow.face-row-flow .subj-face.on .eyes{ opacity:1; color:var(--face-c); }
+
+  /* THE SHEET is a panel at 76vh with three questions in it, so it is set a size down from
+     the first-run thread and its answers are ordinary text rather than large: 19px owes the
+     full 4.5:1, which 0.58 pays at 6.61 on the dark ground and 4.72 on bone. */
+  .morning-q{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:20px;
+    line-height:1.2; letter-spacing:-0.01em; text-transform:none; color:var(--bg);
+    margin:22px 0 7px; }
+  .morning-panel > .morning-q:first-of-type{ margin-top:var(--sp-3); }
+  .morning-panel .subj-face,
+  .morning-panel .subj-dot{ font-size:19px; line-height:1.25; padding:6px 0;
+    color:rgba(var(--ink-rgb),0.92); }
+  .morning-panel .subj-face{ height:auto; overflow:hidden; }
+  .morning-panel .subj-faces.picked .subj-face:not(.on),
+  .morning-panel .subj-scale.answered .subj-dot:not(.on){
+    opacity:1; color:rgba(var(--ink-rgb),0.58); }
+  .morning-panel .subj-face.on,
+  .morning-panel .subj-dot.on{ background:transparent; color:var(--bg); border-color:transparent; }
+  /* The hold's fill was inset:0 on a 46px square and is inset:0 on a row now — same rise, same
+     scaleY from the bottom, no JS to change. It stops at the row rather than the panel because
+     .subj-face is the positioned box either way. */
+  .morning-panel .face-fill{ opacity:0.30; }
+
+  /* THE ROW ON TODAY is a page rather than a panel, so it takes the thread's own size — and
+     24px is the WCAG large-text floor, where the dimmed state owes 3:1 and 0.5 pays it. */
+  #todayFaceRow.face-row-flow .trace-cap{ font-family:var(--wordmark);
+    font-weight:var(--fw-bold); font-size:24px; line-height:1.18; letter-spacing:-0.012em;
+    text-transform:none; color:var(--bg); margin-bottom:14px; }
+  #todayFaceRow.face-row-flow .subj-face{ font-size:24px; line-height:1.3; padding:7px 0;
+    height:auto; color:rgba(var(--ink-rgb),0.92); }
+  #todayFaceRow.face-row-flow .subj-faces.picked .subj-face:not(.on){
+    opacity:1; color:rgba(var(--ink-rgb),0.5); }
+  #todayFaceRow.face-row-flow .subj-face.on{ color:var(--bg); }
+  /* The base class expands its own target with an ::after, which these rows do not need — a
+     40px line is already past the 24 this app holds to — and which would take taps from the
+     row above now that they are stacked with no gap between them. */
+  #todayFaceRow.face-row-flow .subj-face::after{ display:none; }
+  .morning-panel .subj-face::after{ display:none; }
   /* The sheet is a --reverse-bg pocket, so the chart's own hairlines and tick text are read
      against the dark set the pocket declares rather than the page behind it. Nothing to set
      here but the room: drawTrendChart takes its colours from tokens that already follow. */
@@ -8843,6 +8933,13 @@ const SUBJECTIVE_ITEMS = [
 // idea and the middle three differ by a few pixels of eyelid, so the word is what makes the
 // reading unambiguous — and it only appears after you have answered, so it never leads you.
 const SUBJECTIVE_WORDS = ['wrecked','rough','ok','good','raring'];
+/* The same five, cased for the two surfaces that print the word as an ANSWER rather than as
+   a label — where it sits in a list beside "A drink or two" and reads wrong in lower case.
+   Written out rather than done with text-transform:capitalize, which turns 'ok' into 'Ok'.
+   The lower-case list stays: it is what the aria-labels say, and "wrecked, recorded on
+   Tuesday" is a sentence. The compact column upper-cases whatever it is given, so it is
+   unaffected either way. */
+const SUBJECTIVE_WORDS_CAP = ['Wrecked','Rough','OK','Good','Raring'];
 // One factor, so the mark stays the mark: every dimension of the full-size pair scaled by the
 // same number rather than five values guessed to look about right. The gap and the widths go
 // down with the heights, which is the whole difference between a small drawing of a face and
@@ -8944,7 +9041,7 @@ function faceButtonHtml(n){
   return `<button type="button" class="subj-face" data-v="${n}" style="--face-c:var(--face-${n});"`
     + ` aria-label="${SUBJECTIVE_WORDS[n-1]} — ${n} of 5">`
     + faceEyesHtml(n, FACE_SCALE, 'currentColor')
-    + `<span class="face-word">${SUBJECTIVE_WORDS[n-1]}</span></button>`;
+    + `<span class="face-word">${SUBJECTIVE_WORDS_CAP[n-1]}</span></button>`;
 }
 /* Both context rows behave identically — tap to set, tap again to clear — so they run
    through one pair of functions rather than two copies that could drift apart. */
@@ -11682,6 +11779,10 @@ async function maybeAskMorning(){
   const commitFace = async (face, clearing)=>{
     const n = +face.dataset.v;
     sheet.querySelectorAll('.subj-face').forEach(b=> b.classList.toggle('on', !clearing && b === face));
+    // Answered, the four you did not pick step back rather than leave — the same thing the
+    // first-run thread does, and the reason any of them can still be tapped afterwards.
+    const faceBox = sheet.querySelector('.subj-faces');
+    if(faceBox) faceBox.classList.toggle('picked', !clearing);
     faceValues[todayStr] = clearing ? undefined : n;
     await setDayFace(todayStr, clearing ? null : n);
     paintTodayFaces(); relayoutColumn();
@@ -11763,6 +11864,7 @@ async function maybeAskMorning(){
       const box = dot.closest('.subj-scale');
       const clearing = dot.classList.contains('on');
       box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', !clearing && b === dot));
+      box.classList.toggle('answered', !clearing);
       await setMorningContext(box.id === 'morningAlcohol' ? 'alcohol' : 'unwell',
         clearing ? null : dot.dataset.v);
     }
@@ -18549,10 +18651,22 @@ async function renderScoreTrace(todayScore){
       scoreSessions[sn.date] = Math.max(scoreSessions[sn.date] || 0, r);
     });
   } catch(e){ scoreSessions = {}; }
-  // Land on the most recent day that has a mark. Normally that is today; on a held morning
-  // today is the hole, and selecting it would open the trace on nothing.
-  scoreDayIndex = scoreDays.length - 1;
+  /* Land on the most recent day that has a mark. Normally that is today; on a held morning
+     today is the hole, and selecting it would open the trace on nothing.
+
+     WITH NOTHING SCORED AT ALL, the walk has nowhere to stop and runs to index 0 — six days
+     ago — which is invisible on the trace, because there is no trace, and quietly wrong
+     everywhere else: faceDate reads this, faceEditable only allows today, and so the face row
+     on Today refused every tap on a brand new install with "that day is closed". The one
+     input a new user can give, on the one morning it is the only thing on the page. So the
+     empty case lands back on today rather than on the far end of a week that has nothing in
+     it either. */
+  const scoreDayEnd = scoreDays.length - 1;
+  scoreDayIndex = scoreDayEnd;
   while(scoreDayIndex > 0 && scoreDays[scoreDayIndex].score == null) scoreDayIndex--;
+  if(scoreDayIndex >= 0 && scoreDays[scoreDayIndex] && scoreDays[scoreDayIndex].score == null){
+    scoreDayIndex = scoreDayEnd;
+  }
   [document.querySelector('.gauge-wrap'), document.getElementById('todayBlockContext')]
     .forEach(el=>{ if(el) el.style.opacity = ''; });
   const lbl = document.getElementById('overallScoreLabel');
