@@ -20,11 +20,14 @@ import { dirname, join } from 'path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const URL_ = process.env.ICON_URL || 'http://localhost:8899/index.html';
 const EXEC = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-/* Cream, not the app's own dark ground. On the dark ground this is the mark exactly as it
-   appears in the header — and as a thing on a home screen it is a dark sphere on a dark
-   square, which is not an icon, it is a hole. The limb darkening needs no substitution: it is
-   black at an alpha, which is a literal already. */
-const GROUND = '#fbfaf6', SHELL = '#1c1d17', INK = '#fbfaf6';
+/* The mark's own two colours are READ off the page rather than repeated here, for the same
+   reason the drawing is: a copy of them in this file is a copy that goes stale the next time
+   the mark is repainted, and it went stale exactly once already. The limb darkening needs no
+   substitution either — it is black at an alpha, which is a literal already.
+   The ground is this file's one real decision, and it is the OPPOSITE of the mark's body: a
+   sand sphere on cream is mush and an ink one on the app's black is a hole. Picked from the
+   body's luminance so it stays right whatever colour the mark is next. */
+const DARK_GROUND = '#0c0d0b', LIGHT_GROUND = '#fbfaf6';
 /* Maskable icons may be cropped to the central 80% circle, so the drawing has to sit inside a
    circle of radius 0.4S. Fitted to a half-diagonal of 181.6 — the margin the two-capsule icon
    this replaces was drawn to — rather than to the full square. */
@@ -56,12 +59,25 @@ const cube = await page.evaluate(() => {
   // and the limb darkening is painted on it. Which element it is says what shape the mark is.
   const body = svg.querySelector('circle, path');
   const bb = body.getBBox();
+  const cs = getComputedStyle(document.documentElement);
   return { inner: svg.innerHTML, x: bb.x, y: bb.y, w: bb.width, h: bb.height,
            round: body.tagName.toLowerCase() === 'circle',
+           shell: cs.getPropertyValue('--mark-shell').trim(),
+           ink: cs.getPropertyValue('--mark-ink').trim(),
            rest: `${MC_REST.rx}/${MC_REST.ry}/${MC_REST.rz}` };
 });
 await page.close();
-console.log(`mark at ${cube.rest}, drawn ${cube.w.toFixed(1)}x${cube.h.toFixed(1)}`);
+
+// sRGB relative luminance of the body, which is what decides which ground it needs.
+const lum = (hex)=>{ const m = hex.match(/^#?([0-9a-f]{6})$/i);
+  if(!m) throw new Error(`--mark-shell is not a plain hex: ${hex}`);
+  const [r,g,b] = [0,2,4].map(i=> parseInt(m[1].slice(i,i+2),16)/255)
+                         .map(v=> v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4));
+  return 0.2126*r + 0.7152*g + 0.0722*b; };
+const SHELL = cube.shell, INK = cube.ink;
+const GROUND = lum(SHELL) > 0.28 ? DARK_GROUND : LIGHT_GROUND;
+console.log(`mark at ${cube.rest}, drawn ${cube.w.toFixed(1)}x${cube.h.toFixed(1)}`
+          + `, ${SHELL} on ${GROUND}`);
 
 const S = 512;
 /* The extent is what the CROP measures: the furthest the drawing gets from its own centre.
