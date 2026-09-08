@@ -21,11 +21,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const URL_ = process.env.ICON_URL || 'http://localhost:8899/index.html';
 const EXEC = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 /* Cream, not the app's own dark ground. On the dark ground this is the mark exactly as it
-   appears in the header — and as a thing on a home screen it is a dark cube on a dark square,
-   which is not an icon, it is a hole. The shading stays the app's: an ink body has nowhere
-   down to go, so its lit faces come UP toward the ink. Flipped to darken, all three faces
-   crush together and the cube goes back to being a blob. */
-const GROUND = '#fbfaf6', SHELL = '#1c1d17', INK = '#fbfaf6', TONE = '251,250,246';
+   appears in the header — and as a thing on a home screen it is a dark sphere on a dark
+   square, which is not an icon, it is a hole. The limb darkening needs no substitution: it is
+   black at an alpha, which is a literal already. */
+const GROUND = '#fbfaf6', SHELL = '#1c1d17', INK = '#fbfaf6';
 /* Maskable icons may be cropped to the central 80% circle, so the drawing has to sit inside a
    circle of radius 0.4S. Fitted to a half-diagonal of 181.6 — the margin the two-capsule icon
    this replaces was drawn to — rather than to the full square. */
@@ -53,20 +52,28 @@ const cube = await page.evaluate(() => {
   mcState.blink = 1; mcState.gx = 0; mcState.gy = 0;
   drawMarkCube();
   const svg = document.getElementById('headerMarkCube');
-  const bb = svg.querySelector('path').getBBox();   // the silhouette IS the extent
+  // The body is the first drawn shape and it IS the whole extent: the eye is clipped to it
+  // and the limb darkening is painted on it. Which element it is says what shape the mark is.
+  const body = svg.querySelector('circle, path');
+  const bb = body.getBBox();
   return { inner: svg.innerHTML, x: bb.x, y: bb.y, w: bb.width, h: bb.height,
+           round: body.tagName.toLowerCase() === 'circle',
            rest: `${MC_REST.rx}/${MC_REST.ry}/${MC_REST.rz}` };
 });
 await page.close();
 console.log(`mark at ${cube.rest}, drawn ${cube.w.toFixed(1)}x${cube.h.toFixed(1)}`);
 
 const S = 512;
-const k  = (2 * HALF_DIAGONAL) / Math.hypot(cube.w, cube.h);
+/* The extent is what the CROP measures: the furthest the drawing gets from its own centre.
+   For the cube that was the bbox's half-diagonal, because the corners were the furthest
+   points. A circle inscribed in that same bbox has empty corners, and measuring the diagonal
+   anyway would shrink the mark by root-two against the margin it is being fitted to. */
+const reach = cube.round ? Math.max(cube.w, cube.h) : Math.hypot(cube.w, cube.h);
+const k  = (2 * HALF_DIAGONAL) / reach;
 const tx = S / 2 - (cube.x + cube.w / 2) * k;
 const ty = S / 2 - (cube.y + cube.h / 2) * k;
 const art = cube.inner.replaceAll('var(--mark-shell)', SHELL)
-                      .replaceAll('var(--mark-ink)', INK)
-                      .replaceAll('var(--mark-tone-rgb)', TONE);
+                      .replaceAll('var(--mark-ink)', INK);
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
   + `<rect width="${S}" height="${S}" fill="${GROUND}"/>`
   + `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${art}</g></svg>`;
