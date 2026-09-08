@@ -1,0 +1,10 @@
+# playwright, which tools/groundcheck.mjs and tools/build-icon.mjs both need and neither
+# vendors — their own headers say "npm i playwright (not vendored)". It is installed outside
+# the repo and symlinked in for the length of a session, so what lands here is a link to a
+# path that exists on one machine. Ignored rather than deleted each time: it came back on
+# every run, and an untracked entry that reappears is a thing to fix once, not to sweep.
+node_modules/
+
+# Scratch renders. The capture scripts write comparison sheets next to the app so a local
+# server can reach them; none of it is the app.
+_proof.html
