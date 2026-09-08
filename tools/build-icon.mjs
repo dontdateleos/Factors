@@ -66,6 +66,7 @@ const cube = await page.evaluate(() => {
            round: body.tagName.toLowerCase() === 'circle',
            shell: cs.getPropertyValue('--mark-shell').trim(),
            ink: cs.getPropertyValue('--mark-ink').trim(),
+           lit: cs.getPropertyValue('--mark-lit').trim(),
            rest: `${mcState.rx}/${mcState.ry}/${mcState.rz}` };
 });
 await page.close();
@@ -90,8 +91,14 @@ const reach = cube.round ? Math.max(cube.w, cube.h) : Math.hypot(cube.w, cube.h)
 const k  = (2 * HALF_DIAGONAL) / reach;
 const tx = S / 2 - (cube.x + cube.w / 2) * k;
 const ty = S / 2 - (cube.y + cube.h / 2) * k;
+/* Every var() the mark emits has to be substituted, not just the two it used to have: an
+   unresolved custom property in a standalone SVG is not transparent, it makes the property
+   invalid and the fill falls back to BLACK. The lit crescent was the third. */
 const art = cube.inner.replaceAll('var(--mark-shell)', SHELL)
-                      .replaceAll('var(--mark-ink)', INK);
+                      .replaceAll('var(--mark-ink)', INK)
+                      .replaceAll('var(--mark-lit)', cube.lit);
+if(/var\(/.test(art)) throw new Error('unsubstituted var() left in the icon art: '
+  + art.match(/var\([^)]*\)/g).join(' '));
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
   + `<rect width="${S}" height="${S}" fill="${GROUND}"/>`
   + `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${art}</g></svg>`;
