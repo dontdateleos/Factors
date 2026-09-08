@@ -6050,19 +6050,25 @@ const MC_RIM_LIFT = 0.058, MC_RIM_OFF = 0.084, MC_RIM_A = 0.38;
    of the face you gave, exactly as the flat chip was. Asking, it is an outline — and it has
    to stay an outline, because a filled chip reads as a rating you have already given.
 
-   ONLY THE WORDMARK IS LIT. tone is the colour the steps are mixed from, and carrying it is
-   what makes a mount a lit one: no tone, no steps and no rim on the eye either, because the
-   rim is not decoration on the aperture — it is that edge catching the same light, so it
-   belongs wherever the light does and nowhere else.
+   BOTH ARE LIT. tone is the colour the steps are mixed from, and carrying it is what makes a
+   mount a lit one: no tone, no steps and no rim on the eye either, because the rim is not
+   decoration on the aperture — it is that edge catching the same light, so it belongs
+   wherever the light does.
 
-   The chip does not want it. It is 22px, where four steps land inside about five pixels and
-   a one-pixel rim is under a device pixel on half the screens it will ever run on; and its
-   whole job is to show the colour you gave the day, which shading mutes. Flat, it is that
-   colour and the eye, which is what it was as a plate.
+   The chip was flat for one reason and it is no longer true. It was 22px, where four steps
+   land inside about five pixels and a one-pixel rim is under a device pixel on half the
+   screens it will ever run on. It draws at 41 now — exactly what the wordmark draws at — and
+   that is precisely where the shading was shown to work.
 
-   Where tone IS carried it is decided by the body, not the theme: every other fill in the app
-   shades DOWN toward the ground, and an ink body has nowhere down to go, so the wordmark's
-   shades UP toward white. A literal on the mount rather than a token, because it has to stay
+   The remaining objection was that shading mutes the colour you gave the day. It does, a
+   little. It costs less than the alternative: at the same size, one mark lit and one flat are
+   not one mark in two homes, they are two marks, and the whole arrangement rests on their
+   being the same object seen twice.
+
+   tone is decided by the BODY, not the theme. Every other fill in the app shades DOWN toward
+   the ground; an ink body has nowhere down to go, so the wordmark's shades UP toward white.
+   The chip's bodies are the five face colours and the cream it lands on, all of them light,
+   so that one shades down. A literal on the mount rather than a token, because it has to stay
    in step with the body and the two mounts do not share one. */
 function mcMounts(){
   const out = [];
@@ -6079,7 +6085,8 @@ function mcMounts(){
   if(dsvg) out.push(dock.classList.contains('asking')
     ? { host:dock, id:'mcClipD', svg:dsvg, line:'rgba(var(--ink-rgb),0.55)',
         ink:'rgba(var(--ink-rgb),0.55)' }
-    : { host:dock, id:'mcClipD', svg:dsvg, shell:'var(--mc-shell)', ink:'currentColor' });
+    : { host:dock, id:'mcClipD', svg:dsvg, shell:'var(--mc-shell)', ink:'currentColor',
+        tone:'0,0,0' });
   return out;
 }
 function drawMarkCube(){ for(const m of mcMounts()) mcPaint(m); }
@@ -9276,7 +9283,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.390';
+const APP_VERSION = '2026.08.31.391';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9432,6 +9439,7 @@ const APP_NOTES = {
   '2026.08.31.388': 'The mark shows the day again \u2014 rest days, deloads and bedtime sit on its lids.',
   '2026.08.31.389': 'The mark beside the score is the size of the one in the wordmark.',
   '2026.08.31.390': 'The mark beside the score sits on the number\u2019s centre line, and over its last digit.',
+  '2026.08.31.391': 'The mark beside the score is lit like the one in the wordmark \u2014 one mark, two homes.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
