@@ -9,12 +9,15 @@
  *   python3 -m http.server 8899        (from the repo root)
  *   node tools/build-icon.mjs
  *
- * Writes icon-512.png and icon-512-maskable.png (the manifest installs one per purpose) and
- * rewrites the two inline <link> icons in index.html at the sizes those links are actually for
- * — 180 for apple-touch, 32 for the tab.
+ * Writes icon-512.png and icon-512-maskable.png (the manifest installs one per purpose),
+ * apple-touch-icon.png (iOS reads this one and nothing else when you Add to Home Screen), and
+ * the inline 32px tab icon in index.html. Every icon URL it writes carries ?v=<stamp>, the
+ * stamp being a hash of the art, so a changed icon is a changed URL and no cache anywhere can
+ * answer with the old one.
  */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -132,27 +135,55 @@ async function png(svg, size) {
               from circle to square lands on the same solid tile with the crescent across it. */
 const anyPng = await png(tile(GROUND), 512);
 const maskPng = await png(tile(SHELL), 512);
+/* THE APPLE TOUCH ICON HAS TO BE A FILE.
+   It was a data: URI, for the same one-file reason everything else in this app is inline, and
+   iOS does not read those: Safari's Add to Home Screen wants a real URL for rel=apple-touch-icon
+   and silently ignores a data one, which is how an icon that had plainly changed kept installing
+   as the old picture. It falls through to the manifest or to a screenshot of the page, and
+   neither is the mark. 180 because that is the size iOS asks for at 3x. Drawn from the `any`
+   tile: iOS rounds the corners itself, it does not mask to a circle. */
+const touchPng = await png(tile(GROUND), 180);
+// The tab favicon stays inline. It is 1KB, it is never masked, and a data: URI cannot go stale.
+const b32 = (await png(tile(GROUND), 32)).toString('base64');
+await browser.close();
+
+/* One stamp for every icon URL, taken from the art itself rather than from a counter someone
+   has to remember to turn. Same drawing, same stamp, no churn in the diff; different drawing,
+   different URL, and the phone has to go and fetch it. Which is the actual problem: the icons
+   live at fixed names, Pages serves them with a max-age, and iOS holds a home-screen icon
+   harder than that — so new bytes at an old URL is a change nobody sees. */
+const STAMP = createHash('sha1').update(anyPng).update(maskPng).digest('hex').slice(0, 8);
 writeFileSync(join(ROOT, 'icon-512.png'), anyPng);
 writeFileSync(join(ROOT, 'icon-512-maskable.png'), maskPng);
-// Both inline links are drawn near-square — iOS rounds the apple-touch icon's corners a little
-// and the tab favicon is not masked at all — so both take the `any` tile.
-const b180 = (await png(tile(GROUND), 180)).toString('base64');
-const b32  = (await png(tile(GROUND), 32)).toString('base64');
-await browser.close();
+writeFileSync(join(ROOT, 'apple-touch-icon.png'), touchPng);
 
 const file = join(ROOT, 'index.html');
 let html = readFileSync(file, 'utf8');
 const before = html.length;
 const links = [
-  [/<link rel="apple-touch-icon" href="data:image\/png;base64,[A-Za-z0-9+/=]+">/,
-   `<link rel="apple-touch-icon" href="data:image/png;base64,${b180}">`],
+  // Matches both spellings — the data: URI this replaces, and the stamped file it becomes —
+  // so the rewrite is idempotent and this script stays re-runnable.
+  [/<link rel="apple-touch-icon"[^>]*>/,
+   `<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=${STAMP}">`],
   [/<link rel="icon" type="image\/png"(?: sizes="32x32")? href="data:image\/png;base64,[A-Za-z0-9+/=]+">/,
    `<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,${b32}">`],
+  // The manifest is stamped too, or the phone reads a cached copy that still names the old
+  // icon URLs and the stamp on those buys nothing.
+  [/<link rel="manifest" href="manifest\.webmanifest[^"]*">/,
+   `<link rel="manifest" href="manifest.webmanifest?v=${STAMP}">`],
 ];
 for (const [re, out] of links) {
   if (!re.test(html)) throw new Error(`inline icon link not found: ${re}`);
   html = html.replace(re, out);
 }
 writeFileSync(file, html);
-console.log(`icon-512.png ${anyPng.length}B on ${GROUND} · icon-512-maskable.png `
-          + `${maskPng.length}B on ${SHELL} · inline 180 + 32 · index.html ${before} -> ${html.length}`);
+
+const mf = join(ROOT, 'manifest.webmanifest');
+let json = readFileSync(mf, 'utf8');
+const stamped = json.replace(/"src":\s*"(icon-512(?:-maskable)?\.png)[^"]*"/g, `"src": "$1?v=${STAMP}"`);
+if (stamped === json) throw new Error('no icon src found in the manifest to stamp');
+JSON.parse(stamped);   // a manifest that does not parse installs nothing at all
+writeFileSync(mf, stamped);
+console.log(`v=${STAMP} · icon-512.png ${anyPng.length}B on ${GROUND} · icon-512-maskable.png `
+          + `${maskPng.length}B on ${SHELL} · apple-touch-icon.png ${touchPng.length}B · inline 32 `
+          + `· index.html ${before} -> ${html.length}`);
