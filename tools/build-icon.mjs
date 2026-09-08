@@ -1,7 +1,7 @@
 /* Regenerates every icon the app ships, FROM THE APP.
  *
  * The icon is the mark, and the only way it cannot drift from the mark is to be the same
- * drawing: this loads the running page, parks the solid at MC_REST, and lifts the SVG that
+ * drawing: this loads the running page, parks the solid face on, and lifts the SVG that
  * drawMarkCube produced. Change the mark's colour, its resting angle or its geometry and this
  * picks all of it up; redraw the icon by hand and it is wrong the next time any of that moves.
  *
@@ -51,11 +51,10 @@ await page.waitForTimeout(1600);
 const cube = await page.evaluate(() => {
   if (mcState.raf) { cancelAnimationFrame(mcState.raf); mcState.raf = null; }
   mcState.step = null; mcState.queue = [];
-  mcState.rx = MC_REST.rx; mcState.ry = MC_REST.ry; mcState.rz = MC_REST.rz;
-  // The aperture and the light are animated now, so park those too or the icon is whatever
-  // frame the arrival happened to be on.
-  mcState.blink = 1; mcState.gx = 0; mcState.gy = 0; mcState.form = 1;
-  Object.assign(mcState, MC_CH_REST);   // width and both lids, whatever the set currently is
+  // Face on, which is the cube's rest. The gaze and the blink animate, so park those or the
+  // icon is whatever frame the idle happened to be on.
+  mcState.rx = 0; mcState.ry = 0; mcState.rz = 0;
+  mcState.blink = 1; mcState.gx = 0; mcState.gy = 0;
   drawMarkCube();
   const svg = document.getElementById('headerMarkCube');
   // The body is the first drawn shape and it IS the whole extent: the eye is clipped to it
@@ -65,18 +64,23 @@ const cube = await page.evaluate(() => {
   const cs = getComputedStyle(document.documentElement);
   return { inner: svg.innerHTML, x: bb.x, y: bb.y, w: bb.width, h: bb.height,
            round: body.tagName.toLowerCase() === 'circle',
-           shell: cs.getPropertyValue('--mark-shell').trim(),
-           ink: cs.getPropertyValue('--mark-ink').trim(),
-           rest: `${MC_REST.rx}/${MC_REST.ry}/${MC_REST.rz}` };
+           shell: cs.getPropertyValue('--bg').trim(),
+           ink: cs.getPropertyValue('--ground').trim(),
+           rest: `${mcState.rx}/${mcState.ry}/${mcState.rz}` };
 });
 await page.close();
 
 // sRGB relative luminance of the body, which is what decides which ground it needs.
 const lum = (hex)=>{ const m = hex.match(/^#?([0-9a-f]{6})$/i);
-  if(!m) throw new Error(`--mark-shell is not a plain hex: ${hex}`);
+  if(!m) throw new Error(`the mark's shell is not a plain hex: ${hex}`);
   const [r,g,b] = [0,2,4].map(i=> parseInt(m[1].slice(i,i+2),16)/255)
                          .map(v=> v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4));
   return 0.2126*r + 0.7152*g + 0.0722*b; };
+/* The cube's mounts read --bg and --ground rather than the mark's own two tokens, so the
+   shell IS the page's cream and the eye ink IS its black. Read them the same way. */
+const hexToRgb = (hex)=>{ const m = hex.match(/^#?([0-9a-f]{6})$/i);
+  if(!m) throw new Error(`not a plain hex: ${hex}`);
+  return [0,2,4].map(i=> parseInt(m[1].slice(i,i+2),16)).join(','); };
 const SHELL = cube.shell, INK = cube.ink;
 const GROUND = lum(SHELL) > 0.28 ? DARK_GROUND : LIGHT_GROUND;
 console.log(`mark at ${cube.rest}, drawn ${cube.w.toFixed(1)}x${cube.h.toFixed(1)}`
@@ -92,7 +96,10 @@ const k  = (2 * HALF_DIAGONAL) / reach;
 const tx = S / 2 - (cube.x + cube.w / 2) * k;
 const ty = S / 2 - (cube.y + cube.h / 2) * k;
 const art = cube.inner.replaceAll('var(--mark-shell)', SHELL)
-                      .replaceAll('var(--mark-ink)', INK);
+                      .replaceAll('var(--mark-ink)', INK)
+                      .replaceAll('var(--bg)', SHELL)
+                      .replaceAll('var(--ground)', INK)
+                      .replaceAll('var(--ground-rgb)', hexToRgb(INK));
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
   + `<rect width="${S}" height="${S}" fill="${GROUND}"/>`
   + `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${art}</g></svg>`;
