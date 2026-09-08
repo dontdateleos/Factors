@@ -5804,11 +5804,12 @@ function markTearOnSwitch(){
     const el = eyesHome === 'score' ? todayChipEl() : document.querySelector('.header-mark');
     if(el && el.isConnected && el.style.visibility !== 'hidden'){
       playGlitch(el, 'markGlitch', EYE_ANIM.tearOnFlight.px, MARK_BLEED);
-      /* And then it lands. Booked for the moment the tear finishes rather than run alongside
-         it: the tear is a clip-path on the HOST and the drop is a transform on the drawing
-         inside it, so they would compose rather than collide — but a mark that is breaking up
-         and falling at the same time reads as neither. */
-      setTimeout(()=> markBody('drop'), UI_ANIM.markGlitch.ms);
+      /* AND THEN NOTHING. A drop used to be booked for the moment the tear finished, so the
+         mark broke up and landed on every switch in and out of Today. It was too much: the
+         switch already has four beats — page slides, mark tears, page lands, titles extend —
+         and a fifth on the mark turned an effect that punctuates the change into the change
+         itself. The tear is the arrival. The bounce lives in the idle now, where it is
+         occasional rather than owed. */
     }
   }, lead);
 }
@@ -5976,23 +5977,19 @@ const mcState = { rx:0, ry:0, rz:0, gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0,
 
    Volume is preserved: sx is 1/sqrt(sy), so what the mark loses in height it gains in width.
    Without that a squash reads as the thing getting smaller rather than being squashed. ty is
-   in units of the mark's own size, so a drop is the same drop at 40px and at 24. */
-const MC_BODY = {
-  /* Falls in, flattens on impact, bounces twice, settles. The flatten is raised to the sixth
-     so it happens only in the few frames around each landing rather than all the way down.
+   in units of the mark's own size, so a bounce is the same bounce at 40px and at 24.
 
-     EVERY TERM IS MULTIPLIED BY (1 - t), which is what makes the move end at exactly rest.
-     Without it the squash keys off nothing but how close the ball is to the floor — so once
-     it has settled THERE it stays squashed, and the mark popped back to round on the frame
-     the move expired. Measured before the fix: sy was 0.739 at the last frame and 1 on the
-     next one. The bounce envelope alone does not fix it; only a term that reaches zero does. */
-  drop: { ms:760, f(t){
-    const end = 1 - t;
-    const h = Math.abs(Math.cos(t * Math.PI * 2.6)) * Math.exp(-2.6 * t) * end;
-    const q = 1 - 0.30 * Math.exp(-2.6 * t) * end * Math.pow(1 - h, 6);
-    return { sy:q, sx:1/Math.sqrt(q), ty:-0.48 * h };
-  } },
-  /* Lands squashed and springs out of it, overshooting tall before it rings down. Same tail. */
+   EVERY TERM IS MULTIPLIED BY (1 - t), which is what makes a move end at exactly rest. Without
+   it the squash keys off nothing but the spring, so once that has rung out the mark sits very
+   slightly squashed and pops back to round on the frame the move expires. Measured on the drop
+   this rule was written for: sy was 0.739 on its last frame and 1 on the next one. The decay
+   envelope alone does not fix it; only a term that reaches zero does.
+
+   There were two moves here. `drop` fell in, flattened on impact and bounced twice, and it ran
+   on every switch in and out of Today — see markTearOnSwitch for why it does not any more. It
+   is in the history rather than sitting here unreachable. */
+const MC_BODY = {
+  /* Lands squashed and springs out of it, overshooting tall before it rings down. */
   boing: { ms:620, f(t){
     const end = 1 - t;
     const q = 1 - 0.30 * Math.exp(-3.4 * t) * Math.cos(t * Math.PI * 3.2) * end;
