@@ -4592,6 +4592,7 @@ const EYE_ANIM = {
   restDayFace:    { on:true, note:'Lids sit lower on a rest day', lid:0.78 },
 
   // — Reacting to you.
+  markForms:      { on:true, note:'The mark builds itself on the first load \u2014 the light comes up on the body, then the eye opens' },
   blinkOnTap:     { on:true, note:'Tap the mark and it blinks back' },
   glanceAtTab:    { on:true, note:'Looks toward the tab you just tapped — at once, or once the mark has landed if it had to fly there' },
   scrollLook:     { on:true, note:'Looks down as you scroll down, up as you scroll up', px:3 },
@@ -5921,7 +5922,17 @@ const MC_EYE_W = 0.2843, MC_EYE_H = 0.5684;
    It was hardcoded at 0.80, which is exactly this number for the 7.2 bar it was written for
    — so it looked like a round choice and was really a solved one, and it quietly sliced the
    eye the moment the bar got wider. */
-const MC_EYE_INSET = Math.sqrt(Math.max(0, 1 - MC_EYE_W*MC_EYE_W - MC_EYE_H*MC_EYE_H));
+function mcInset(w){ return Math.sqrt(Math.max(0, 1 - w*w - MC_EYE_H*MC_EYE_H)); }
+/* THE TWO CHANNELS ONE EYE NEEDS AND TWO DID NOT.
+   A pair carried expression in the gap between them and in two lids working together. A
+   single aperture has neither, so the only thing left is its own shape: how far it opens
+   (ew, a multiplier on the width) and how far the lid is down (lid, on the height, alongside
+   the blink). Everything the mark can say without turning is one of these two.
+
+   They interpolate exactly like the angles, so a step can carry any mix of the five, and a
+   move that only touches ew never rotates the body at all. */
+const MC_CH = ['rx', 'ry', 'rz', 'ew', 'lid'];
+const MC_CH_REST = { rx:0, ry:0, rz:0, ew:1, lid:1 };
 /* The gaze turns the eye ACROSS the sphere rather than sliding it over the surface, so it
    foreshortens on the way out like every other movement of the eye. Degrees at full aim. */
 const MC_GAZE_X = 26, MC_GAZE_Y = 16;
@@ -5934,7 +5945,8 @@ const MC_GAZE_X = 26, MC_GAZE_Y = 16;
    Every move in the repertoire is written as an offset from HERE rather than from zero, so
    moving this moves the whole repertoire with it. */
 const MC_REST = { rx:0, ry:0, rz:0 };
-const mcState = { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0,
+const mcState = { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, ew:1, lid:1,
+                  gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0, form:1, formAt:0,
                   blink:1, blinkAt:0, raf:null, born:0, step:null, queue:[], nextAt:0 };
 function mcProject(rx, ry, rz){
   const cx = Math.cos(rx*MC_RAD), sx = Math.sin(rx*MC_RAD);
@@ -6063,7 +6075,8 @@ function mcPaint(m){
        over whatever turned up costs one more circle and never has to know. */
     if(m.tone)
       out += `<radialGradient id="${gid}" cx="${MC_FOCUS[0].toFixed(3)}" cy="${MC_FOCUS[1].toFixed(3)}" r="0.95">`
-           + MC_STEPS.map(([o, a])=> `<stop offset="${o}" stop-color="rgb(${m.tone})" stop-opacity="${a}"/>`).join('')
+           + MC_STEPS.map(([o, a])=> `<stop offset="${o}" stop-color="rgb(${m.tone})"`
+                                   + ` stop-opacity="${(a * mcState.form).toFixed(3)}"/>`).join('')
            + `</radialGradient>`
            + `<circle cx="${c}" cy="${c}" r="${rad.toFixed(2)}" fill="url(#${gid})"/>`;
     out += `<clipPath id="${cid}"><circle cx="${c}" cy="${c}" r="${rad.toFixed(2)}"/></clipPath>`;
@@ -6073,8 +6086,13 @@ function mcPaint(m){
      point — the cube kept a second eye on its back face because a half turn would otherwise
      have landed on a blank side, and a sphere has no sides to land on. */
   if(dir[2] > 0.02){
-    const ew = rad * MC_EYE_W, eh = rad * MC_EYE_H * Math.max(0.05, mcState.blink);
-    const px = c + dir[0] * rad * MC_EYE_INSET, py = c + dir[1] * rad * MC_EYE_INSET;
+    /* The inset is solved from the width, and the width moves now, so it is solved per frame
+       rather than once. A wider aperture has to sit further in or its corner leaves the body
+       at the limb — the same equation as before, just no longer a constant. */
+    const wf = MC_EYE_W * mcState.ew, inset = mcInset(wf);
+    const ew = rad * wf;
+    const eh = rad * MC_EYE_H * Math.max(0.05, mcState.blink * mcState.lid);
+    const px = c + dir[0] * rad * inset, py = c + dir[1] * rad * inset;
     /* The caps stay round in SCREEN units, so the stadium keeps its ends whatever the matrix
        does to it — and a blink, which only squashes the height, closes to a lozenge rather
        than to a rectangle with two half-discs stuck on. */
@@ -6110,28 +6128,70 @@ const mcSide = ()=> Math.random() < 0.5 ? -1 : 1;
    move that returned to zero would have walked it back to face on and left it there. */
 const R_X = MC_REST.rx, R_Y = MC_REST.ry, R_Z = MC_REST.rz;
 const MC_MOVES = [
+  /* — WHAT IT DOES WITHOUT MOVING.
+       The body never turns in these three: only the aperture changes shape. They exist
+       because a sphere's silhouette is the same from every angle, so rotation is no longer
+       how the mark shows anything — and because one eye has no gap and no second lid, which
+       is where a pair kept its expression. */
+  { w:4, name:'squint', steps:()=> [{ ew:0.55, ms:260, hold:560 }, { ew:1, ms:340 }] },
+  { w:3, name:'widen',  steps:()=> [{ ew:1.55, rx:R_X - 6, ms:170, hold:400 },
+                                    { ew:1, rx:R_X, ms:440 }] },
+  { w:2, name:'drowse', steps:()=> [{ lid:0.42, ew:1.12, ms:900, hold:1500 },
+                                    { lid:1, ew:1, ms:900 }] },
+
+  /* — WHERE IT LOOKS.
+       glance is still the commonest thing it does. scan and doubletake are the two the cube
+       could not make: one is a single continuous sweep across a surface, where a cube had six
+       faces to snap between; the other overshoots on the way back, which needs somewhere in
+       between to overshoot to. */
   { w:5, name:'glance', steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 22*d, rx:R_X - 4, ms:420, hold:620 }, { ry:R_Y, rx:R_X, ms:520 }]; } },
-  /* 66, not the cube's 82. A face at 82 degrees is still a face; an eye at 82 degrees is a
-     hairline four pixels off the limb, and the commonest big move in the set should not be
-     the one where the mark all but empties. */
-  { w:4, name:'turn',   steps:()=>{ const d = mcSide();
+  { w:3, name:'scan',   steps:()=>{ const d = mcSide();
+      return [{ ry:R_Y - 30*d, ms:520 }, { ry:R_Y + 30*d, rx:R_X - 6, ms:980, hold:200 },
+              { ry:R_Y, rx:R_X, ms:600 }]; } },
+  { w:3, name:'turn',   steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 66*d, rx:R_X + 6, ms:640, hold:760 }, { ry:R_Y, rx:R_X, ms:660 }]; } },
-  { w:3, name:'corner', steps:()=>{ const d = mcSide();
-      return [{ ry:R_Y + 45*d, rx:R_X - 35, ms:700, hold:900 }, { ry:R_Y, rx:R_X, ms:720 }]; } },
   { w:3, name:'nod',    steps:()=> [{ rx:R_X + 16, ms:220 }, { rx:R_X - 9, ms:240 },
                                     { rx:R_X, ms:300 }] },
-  { w:2, name:'tilt',   steps:()=>{ const d = mcSide();
-      return [{ rz:R_Z + 11*d, rx:R_X - 5, ms:380, hold:520 }, { rz:R_Z, rx:R_X, ms:520 }]; } },
-  /* Past the limb, so the eye slips off the edge and the mark is a plain solid for a beat.
-     The cube kept an eye on its back face because a half turn would otherwise have landed on
-     a blank side; a sphere has no sides, and going briefly blank IS the gesture. */
+  { w:2, name:'corner', steps:()=>{ const d = mcSide();
+      return [{ ry:R_Y + 45*d, rx:R_X - 35, ms:700, hold:900 }, { ry:R_Y, rx:R_X, ms:720 }]; } },
+  { w:2, name:'doubletake', steps:()=>{ const d = mcSide();
+      return [{ ry:R_Y + 32*d, ms:190 }, { ry:R_Y - 10*d, ms:230 }, { ry:R_Y, ms:320 }]; } },
+  /* rz turns NOTHING but the eye's own angle — a sphere is rotationally symmetric about the
+     view axis — so this is the one channel that costs the silhouette nothing. tilt used to
+     spend 11 degrees of it and has been dropped; this is the same idea done properly. */
+  { w:3, name:'quizzical', steps:()=>{ const d = mcSide();
+      return [{ rz:R_Z + 24*d, rx:R_X - 7, ms:420, hold:760 }, { rz:R_Z, rx:R_X, ms:520 }]; } },
+
+  /* — ALL THE WAY ROUND.
+       The eye is hidden across 183 degrees of every 360, so a great circle spends more than
+       half its travel on a blank sphere. peek makes that the point and holds there for a
+       beat. orbit refuses it: eight keyframes around the FRONT hemisphere, never past 38
+       degrees, so the eye goes all the way round and stays visible the whole way. It replaces
+       roll and flip, which were 762ms and 661ms of nothing. */
   { w:2, name:'peek',   steps:()=>{ const d = mcSide();
-      return [{ ry:R_Y + 92*d, ms:320, hold:200 }, { ry:R_Y, ms:400 }]; } },
-  { w:1, name:'roll',   steps:()=>{ const d = mcSide();
-      return [{ ry:R_Y + 360*d, ms:1500 }, { ry:R_Y, ms:0 }]; } },
-  { w:1, name:'flip',   steps:()=> [{ rx:R_X + 360, ms:1300 }, { rx:R_X, ms:0 }] },
+      return [{ ry:R_Y + 92*d, ms:320, hold:140 }, { ry:R_Y, ms:400 }]; } },
+  { w:1, name:'orbit',  steps:()=>{ const d = mcSide();
+      return [{ ry:R_Y + 38*d, rx:R_X, ms:180 }, { ry:R_Y + 27*d, rx:R_X - 27, ms:150 },
+              { ry:R_Y, rx:R_X - 38, ms:150 }, { ry:R_Y - 27*d, rx:R_X - 27, ms:150 },
+              { ry:R_Y - 38*d, rx:R_X, ms:150 }, { ry:R_Y - 27*d, rx:R_X + 27, ms:150 },
+              { ry:R_Y, rx:R_X + 38, ms:150 }, { ry:R_Y + 27*d, rx:R_X + 27, ms:150 },
+              { ry:R_Y, rx:R_X, ms:240 }]; } },
 ];
+/* THE SPHERE ARRIVING.
+   It is drawn from a body and an aperture, so it forms as those two: the light comes up on
+   the body first, out of a ground it is otherwise almost the same colour as, and then the
+   aperture opens. Nothing here is a new mechanism — form scales the shading steps that are
+   already there, and the opening is an ordinary queued move on the two channels the
+   repertoire above already uses. An ink sphere with no light on it IS the header's black,
+   which is what makes the first half of this work at all. */
+const MC_FORM_MS = 560;
+let mcFormed = false;
+function mcForm(){
+  mcState.form = 0; mcState.formAt = performance.now();
+  mcState.ew = 0.42; mcState.lid = 0.06;
+  mcQueue([{ ew:1.08, lid:1, ms:520 }, { ew:1, ms:240 }]);
+}
 const MC_W = MC_MOVES.reduce((a,m)=> a + m.w, 0);
 function mcPickMove(){
   let r = Math.random() * MC_W;
@@ -6143,9 +6203,12 @@ function markCubeTurn(){                       // the tab you picked, on the eye
   mcQueue(MC_MOVES[Math.random() < 0.6 ? 0 : 1].steps());
 }
 function mcQueue(steps){
-  const from = { rx:mcState.rx, ry:mcState.ry, rz:mcState.rz };
-  mcState.queue = steps.map(st=>({ rx:st.rx, ry:st.ry, rz:st.rz, ms:st.ms, hold:st.hold || 0 }));
-  mcState.step = null; mcState.from = from;
+  mcState.queue = steps.map(st=>{
+    const o = { ms:st.ms, hold:st.hold || 0 };
+    for(const k of MC_CH) if(st[k] !== undefined) o[k] = st[k];
+    return o;
+  });
+  mcState.step = null;
 }
 const mcEase = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2;
 function startMarkCube(){
@@ -6157,28 +6220,27 @@ function startMarkCube(){
      ends up costing a frame a second forever. */
   if(eyeCalm || eyeMotionOff()){
     if(mcState.raf){ cancelAnimationFrame(mcState.raf); mcState.raf = null; }
-    Object.assign(mcState, { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz,
-                             gx:0, gy:0, blink:1, step:null, queue:[] });
+    Object.assign(mcState, { rx:MC_REST.rx, ry:MC_REST.ry, rz:MC_REST.rz, ew:1, lid:1,
+                             form:1, gx:0, gy:0, blink:1, step:null, queue:[] });
     drawMarkCube(); return;
   }
   if(mcState.raf) return;
   mcState.born = performance.now();
   mcState.nextAt = mcState.born + 2200;
+  /* Once a load, and only on the way UP from a stopped loop. startMarkCube is called by every
+     settle, so without the latch the mark would rebuild itself on every tab change. */
+  if(!mcFormed){ mcFormed = true; if(anim('markForms')) mcForm(); }
   const step = (now)=>{
     const t = (now - mcState.born) / 1000;
+    if(mcState.form < 1) mcState.form = Math.min(1, (now - mcState.formAt) / MC_FORM_MS);
     if(!mcState.step && mcState.queue.length){
-      const to = mcState.queue.shift();
-      mcState.step = { t0:now, ms:Math.max(1, to.ms), hold:to.hold,
-                       from:{ rx:mcState.rx, ry:mcState.ry, rz:mcState.rz },
-                       to:{ rx: to.rx == null ? mcState.rx : to.rx,
-                            ry: to.ry == null ? mcState.ry : to.ry,
-                            rz: to.rz == null ? mcState.rz : to.rz } };
+      const to = mcState.queue.shift(), from = {}, dest = {};
+      for(const k of MC_CH){ from[k] = mcState[k]; dest[k] = to[k] == null ? mcState[k] : to[k]; }
+      mcState.step = { t0:now, ms:Math.max(1, to.ms), hold:to.hold, from, to:dest };
     }
     if(mcState.step){
       const st = mcState.step, f = Math.min(1, (now - st.t0) / st.ms), e = mcEase(f);
-      mcState.rx = st.from.rx + (st.to.rx - st.from.rx) * e;
-      mcState.ry = st.from.ry + (st.to.ry - st.from.ry) * e;
-      mcState.rz = st.from.rz + (st.to.rz - st.from.rz) * e;
+      for(const k of MC_CH) mcState[k] = st.from[k] + (st.to[k] - st.from[k]) * e;
       if(f >= 1 && now - st.t0 >= st.ms + st.hold){
         // A full turn lands where it started; keep the angle small so it never drifts away.
         mcState.ry %= 360; mcState.rx %= 360;
@@ -6188,10 +6250,13 @@ function startMarkCube(){
     } else if(now > mcState.nextAt){
       mcQueue(mcPickMove().steps());
     } else {
-      // Between moves it is not frozen, just quiet.
+      // Between moves it is not frozen, just quiet. The aperture eases home too, so a move
+      // that is cut short by a tab change does not leave the mark squinting.
       mcState.rx += ((2.5 * Math.sin(t * 0.31)) - mcState.rx) * 0.04;
       mcState.ry += ((3.5 * Math.sin(t * 0.23 + 1.1)) - mcState.ry) * 0.04;
       mcState.rz += (0 - mcState.rz) * 0.06;
+      mcState.ew += (1 - mcState.ew) * 0.06;
+      mcState.lid += (1 - mcState.lid) * 0.06;
     }
     if(now > mcState.gazeAt){
       mcState.gazeAt = now + 1400 + Math.random() * 3200;
@@ -9066,7 +9131,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.384';
+const APP_VERSION = '2026.08.31.385';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9216,6 +9281,7 @@ const APP_NOTES = {
   '2026.08.31.382': 'The mark\u2019s eye is bored into the body, with its edge catching the light.',
   '2026.08.31.383': 'The mark is ink again, lit in four steps so it reads as a solid rather than a hole.',
   '2026.08.31.384': 'The chip beside the score is the flat mark again \u2014 its colour and the eye, nothing else.',
+  '2026.08.31.385': 'The mark builds itself on load, and has seven new things to do with one eye.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
