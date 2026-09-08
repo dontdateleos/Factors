@@ -162,11 +162,33 @@
     --mono-fallback: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
     --mono: 'Azeret Mono', var(--mono-fallback);
     --sans: 'Azeret Mono', var(--mono-fallback);
-    /* The wordmark is the exception, and the only one. It is a drawn thing rather than a
-       piece of interface — the per-letter margins below it were fitted to these letterforms
-       — so it keeps the face it was made in while everything around it, the tab label
-       directly above it included, is set in the interface face. */
+    /* THREE VOICES, TWO FACES.
+
+       --mono and --sans are the same face and always have been: the machine. Everything the
+       app REPORTS is set in it — every value, label, count, tag, badge, heading and reading —
+       and it is why the thing looks like an instrument rather than a page. 93 rules take
+       --mono directly and 54 take --sans; the split between those two is historical and both
+       resolve here.
+
+       --wordmark was "the exception, and the only one": a drawn thing, the per-letter margins
+       below it fitted to these letterforms. It is not the only one any more. The app also
+       ASKS — the first-run thread, the morning questions — and being asked something is not
+       the machine reporting, so the questions took this face.
+
+       --prose is the third voice and the reason this comment exists. The app also EXPLAINS,
+       at length: the longest strings it renders are 200-325 characters — why a weighting
+       moved, what adaptive compares against, when to rate your sleep — and those were set in
+       a monospace at the tag size. Uniform character width flattens word shapes, which is
+       what fast reading keys off; it costs nothing on a six-character label and it costs real
+       effort on a five-line paragraph, and these are the paragraphs that carry the app's
+       reasoning, so they are the ones you actually want finished.
+
+       Same face as the question for now, and a token of its own so the two can part later
+       without hunting for which is which. What it must never touch: anything measured. A
+       number, a date, a count, an x/y, a weight, a time, or any column that lines up stays in
+       the machine's face and keeps its tabular figures. */
     --wordmark: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --prose: var(--wordmark);
     --track-ui:0.09em;      /* caps tracking, from the boot line */
     --border-bold:#0c0d0b;
     /* Rebalanced. Measured in OKLCH the old set was two families rather than one: lime and
@@ -273,7 +295,7 @@
      while it does it. */
   .app-colophon{ background:var(--ground); padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
   .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 var(--gutter);
-    font-family:var(--sans); font-size:12px; line-height:1.5; letter-spacing:0.01em;
+    font-family:var(--prose); font-size:12px; line-height:1.5; letter-spacing:0;
     color:rgba(var(--ink-rgb),0.62); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
   .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(var(--ink-rgb),0.45); }
@@ -856,7 +878,7 @@
   .evidence-badge.practical{ background:transparent; border:1px solid var(--dim); color:var(--dim); }
   .evidence-badge[data-evidence]{ cursor:pointer; }
   /* flex-basis so it takes its own line inside the log row rather than squeezing the name. */
-  .evidence-note{ flex-basis:100%; width:100%; font-family:var(--sans); font-size:var(--fs-tag);
+  .evidence-note{ flex-basis:100%; width:100%; font-family:var(--prose); font-size:var(--fs-sm);
     color:var(--dim); letter-spacing:0.02em; line-height:1.45; margin-top:4px; }
   .field-label{ font-family:var(--sans); font-size:var(--fs-md); color:var(--dim); width:112px; flex-shrink:0; letter-spacing:-0.005em; -webkit-text-stroke:0.15px currentColor; }
   .src-tag{ font-family:var(--mono); font-size:var(--fs-tag); padding:2px 6px; border-radius:0; color:var(--on-light); background:var(--accent); width:52px; text-align:center; flex-shrink:0; font-weight:var(--fw-bold); }
@@ -888,7 +910,7 @@
      :focus-visible rather than :focus, so a tap never draws a ring nobody asked for. */
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
   input:focus-visible, select:focus-visible, textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
-  .disagree-note{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); margin-top:2px; display:none; }
+  .disagree-note{ font-family:var(--prose); font-size:var(--fs-sm); color:var(--text); margin-top:2px; display:none; }
   .disagree-note.show{ display:block; }
 
   .score-box{ display:flex; gap:10px; margin-bottom:16px; }
@@ -1637,6 +1659,17 @@
     border-left:2px solid var(--band, var(--accent));
     padding:1px 0 1px 11px;
     color:rgba(var(--ink-rgb),0.62);
+    /* THE SAME SELECTOR THAT DECIDES THE RULE DECIDES THE FACE, because it is the same
+       distinction: .note-live is a reading and gets neither, and everything else here is the
+       app explaining itself in sentences. The size moves with it — --fs-tag is described in
+       the scale as "mono tags, uppercase meta, badges", which is what a note is not, and
+       --fs-sm is described as "secondary text, notes, captions", which is what it is. These
+       have been set at the tag size since before there was a note. And the tracking goes:
+       0.015em is a device for holding monospace apart and it only loosens prose. */
+    font-family:var(--prose);
+    font-size:var(--fs-sm);
+    letter-spacing:0;
+    line-height:1.5;
   }
   .form-panel .score-note:not(.note-live){ color:rgba(var(--ink-rgb),0.62); }
   .form-panel .collapse-chevron, .form-panel summary{ color:var(--dim); }
@@ -1868,12 +1901,12 @@
     font-size:18px; line-height:1.3; color:rgba(var(--ink-rgb),0.82); margin-bottom:9px; }
   .fr-extra-row{ display:flex; align-items:center; gap:11px; flex-wrap:wrap; }
   .fr-extra-row input{ flex:0 0 96px; width:96px; }
-  .fr-extra-note{ flex:1 1 150px; font-family:var(--mono); font-size:var(--fs-tag);
-    letter-spacing:0.02em; color:var(--dim); }
+  .fr-extra-note{ flex:1 1 150px; font-family:var(--prose); font-size:var(--fs-sm);
+    letter-spacing:0; color:var(--dim); }
   #firstRunBuildBtn{ width:100%; }
   .fr-note{ margin-top:10px; }
   .fr-note:empty{ display:none; }
-  .fr-after{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.02em;
+  .fr-after{ font-family:var(--prose); font-size:var(--fs-sm); letter-spacing:0;
     color:var(--dim); margin-top:12px; }
   /* The band carries a -20px top margin so its black tucks under the header's black and the
      two read as one field. That only works while there is a band: collapsed, the negative
