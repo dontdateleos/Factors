@@ -26840,7 +26840,11 @@ async function blockSummaryHtml(block){
       // session — the single worst instruction in the app, and worse than any set it might
       // have dropped. The weight holds instead, and says why.
       progression = holdLoadIfFatigued(ex, progression, tissue);
-      let weightLabel = progression.weight != null ? `${progression.weight}kg` : 'add weight';
+      // "add weight" was twelve characters carrying three characters of meaning, on every
+      // lift with no recorded load, in a column that is otherwise pure notation. The question
+      // mark IS the question the row is asking, and it reads in the same breath as the kg
+      // that will replace it.
+      let weightLabel = progression.weight != null ? `${progression.weight}kg` : '?kg';
       if(progression.weight != null && adjustment.lever==='weight'){
         weightLabel = `${Math.round(progression.weight * (1 + adjustment.delta/100) * 2) / 2}kg`;
       }
@@ -29214,9 +29218,50 @@ function writeDrillLog(logKey, listKey, secondsPerArea){
 // named the default, which is the one thing a label never needs to say. The column is still
 // held for those rows so every drill's text starts on the same line.
 // Cased differently by the two generators ('MOVE' and 'Move'), hence the fold.
+/* SAY THE STAGE ONCE, AND ONLY WHERE IT DISTINGUISHES SOMETHING.
+
+   MOVE was already blanked here. MOBILITY joins it, for a stronger reason: it sat on four
+   of the eight rows of the mobility COOL-DOWN, where everything is mobility, so it was the
+   section's own name repeated down its own list. What those four rows actually are is the
+   planned work — the half with a dose and a level on it, the half that progresses — and the
+   thing that separates them from the flow is that they come first, which is exactly why the
+   generator puts them there and says so. Position already carried it; the label was a second
+   copy of a distinction the order was making anyway.
+
+   What is left tags only what differs from its neighbours: Roll, Hold, PNF. */
 function stageLabel(group){
   if(!group) return '';
-  return String(group).toUpperCase() === 'MOVE' ? '' : group;
+  const g = String(group).toUpperCase();
+  return (g === 'MOVE' || g === 'MOBILITY') ? '' : group;
+}
+
+/* THE NOTATION, IN ONE PLACE.
+
+   This was four replacements inside the cool-down generator, run over the mobility library
+   on its way to one section. Every row on Today is written in the same shorthand — 4×3-6,
+   10/side, 3×45s — so the rules that produce it belong somewhere every row can reach, and
+   the two it did not reach were still saying "3 sets x 8 reps, each side" the long way.
+
+   What it does NOT do is invent a code. Everything here is notation a gym already reads, and
+   the file's own note a few hundred lines down makes the case: a label that needs no glossary
+   is better than a glossary. So the movement's name is never touched — "bear crawl shoulder
+   taps" stays what it is called — and only the dose around it is compressed.
+
+   Notes are exempt because they are prose: renderDrillList sends anything flagged .note
+   straight through, and a sentence is not a dose. */
+function tighten(text){
+  return String(text)
+    .replace(/,\s*/g, ' ')
+    // "each side" and "per side" are the same instruction as the slash the app already uses.
+    .replace(/\s*\b(?:each|per)\s+side\b/ig, '/side')
+    // "30 seconds" is 30s in every gym on earth. Ranges too: "45-60 seconds" -> 45-60s.
+    .replace(/\b(\d+(?:\s*[-\u2013]\s*\d+)?)\s*(?:seconds|second|secs|sec)\b/ig, '$1s')
+    // "3 sets x 8" and "3 sets of 8" are both 3x8.
+    .replace(/\b(\d+)\s*sets?\s*(?:x|of|\u00d7)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)/ig, '$1\u00d7$2')
+    .replace(/\b(\d+(?:-\d+)?)\s*reps\b/ig, '\u00d7$1')
+    .replace(/\bx(?=\d)/ig, '\u00d7')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 /* THE DOSE IN A WARM-UP ROW, WHICH WAS NEVER ITS OWN THING.
@@ -29256,7 +29301,7 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${drillDoseSplit(it.html)}`
+      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${drillDoseSplit(tighten(it.html))}`
       + `${uiAnim('strikeThrough') ? '<span class="drill-strike"></span>' : ''}</span></button>`;
   }).join('');
   if(uiAnim('strikeThrough')) host.style.setProperty('--strike-ms', (UI_ANIM.strikeThrough.ms || 300) + 'ms');
@@ -29410,11 +29455,6 @@ async function generateMobility(){
     .replace(/^the\s+/i, '');
   // Durations that were fine on their own line ("60-90s", "10-12 reps") are the bulk of the
   // width once three modalities share one. Compact them the same way the warm-up does.
-  const tighten = (text)=> text
-    .replace(/,\s*/g, ' ')
-    .replace(/\s*\beach side\b/ig, '/side')
-    .replace(/\b(\d+(?:-\d+)?)\s*reps\b/ig, '\u00d7$1')
-    .replace(/\bx(?=\d)/ig, '\u00d7');
   // Grouped by modality, not by area. Per-area segments repeated the word "Roll" once for
   // every area, so the labels outnumbered the instructions and the same pass through the
   // tissue was described four times. You roll everything, then move everything, then hold
