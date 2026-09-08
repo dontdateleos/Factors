@@ -2049,10 +2049,18 @@
      rather than as filled with a neutral rating. */
   #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(var(--ink-rgb),0.32); }
   #todayFaceDock.asking .dock-word{ color:rgba(var(--ink-rgb),0.45); }
-  /* 26 square is the drawing's size, not the target's. Same trick .subj-face uses a few
-     hundred lines down: the hit area is pushed back out past the plate on every side, so a
-     chip small enough to sit quietly beside the number is still 46px to a thumb. */
-  #todayFaceDock::after{ content:''; position:absolute; left:-10px; right:-10px; top:-10px; bottom:-10px; }
+  /* THE BOX IS 22; THE FINGER GETS 44.
+     Same trick .subj-face uses a few hundred lines down, and the same one the wordmark's mark
+     uses: the hit area is pushed back out past the box on every side, so a chip small enough
+     to sit quietly beside the number is still a full target to a thumb. The box cannot grow
+     to meet it — DOCK_W is what dockPlan reserves and what the placement anchors to the
+     numeral's right edge, so widening it would move the chip off the digit it overlaps.
+
+     22 + 11 + 11 = 44, which is what Apple asks and what WCAG's AAA target size asks; AA asks
+     24. It was -10, which is 42 — and the note here said 26 and 46, both of which stopped
+     being true when the box came down to 22. The daylight it grows into is there: DOCK_GAP is
+     9 to the numeral and DOCK_TRACE_GAP is 9 to the week's first tick. */
+  #todayFaceDock::after{ content:''; position:absolute; left:-11px; right:-11px; top:-11px; bottom:-11px; }
   #todayFaceDock.locked::after{ content:none; }
   /* Reads out from under the chip, in the chip's own colour, so the word and the mark are
      obviously one statement. Positioned off the chip rather than the band, so it rides with
