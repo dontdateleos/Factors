@@ -2220,8 +2220,8 @@
   .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
-  .drill-bar{ display:block; height:6px; background:rgba(var(--ink-rgb),0.08); margin-top:5px;
-    overflow:hidden; }
+  .drill-bar{ display:block; position:relative; z-index:0; height:6px; --bar-field-x:10px;
+    background:rgba(var(--ink-rgb),0.08); margin-top:5px; }
   .drill-bar i{ display:block; height:100%;
     width:0; transition:width 260ms cubic-bezier(.3,.9,.3,1); }
   /* One slow exhale, once, when a section you have not refreshed in a long time comes on
@@ -2657,8 +2657,8 @@
      trimming exercises off the end, and the only trace left on screen is a bare "~55min" with
      nothing to measure it against. This is that number against the setting it was fitted to:
      full bar, your session length; the fill, what the day actually estimates at. */
-  .budget-bar{ position:relative; height:6px; margin:2px var(--gutter) 12px; background:rgba(var(--ink-rgb),0.08);
-    border-radius:1px; overflow:hidden; }
+  .budget-bar{ position:relative; z-index:0; height:6px; margin:2px var(--gutter) 12px;
+    background:rgba(var(--ink-rgb),0.08); border-radius:1px; }
   .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0; border-radius:1px; }
   /* Over the ceiling still goes red, and keeps the texture: background-COLOR, because the
      shorthand would drop the dots along with the colour it is replacing. */
@@ -2670,52 +2670,77 @@
   /* The learning is the most interesting thing in here and it was nine static percentages
      with an arrow beside them. The bar is the weight; the tick is where that weight started,
      left in place so the distance travelled is still readable after the movement stops. */
-  .weight-bar{ position:relative; height:6px; margin:3px 0 9px; background:rgba(var(--ink-rgb),0.08); border-radius:2px; }
+  .weight-bar{ position:relative; z-index:0; height:6px; margin:0 0 9px;
+    background:rgba(var(--ink-rgb),0.08); border-radius:2px; }
   .weight-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0; border-radius:2px; }
   .weight-bar > u{ position:absolute; top:-2px; bottom:-2px; width:1px;
     background:var(--dim); opacity:0.7; text-decoration:none; }
-  /* THE PART THAT HAS RUN IS A PIECE OF THE FIELD.
+  /* A BLACK BAR CUT INTO A BAND OF THE FIELD.
 
      Three bars in the app fill left to right — the day's estimate against your session length,
-     the drills ticked off in a section, and what each weighting learned — and all three used to
-     be a length of the tab's own colour. That put a second lime slab immediately under a lime
-     section head, which is the tab saying its own name twice, and it made the reading a colour
-     rather than a texture.
+     the drills ticked off in a section, and what each weighting learned — and all three were a
+     length of the tab's own colour. Under a lime section head that is a second lime slab an
+     inch below the first, which is the tab saying its own name twice, and it made the reading
+     a colour rather than a texture.
 
-     Now the run part is the same dark plate the masthead uses with the same dithered field
-     printed on it, so a bar is a strip of the display rather than a coloured line. --reverse-bg
-     rather than a ground-dependent ink because it is black on BOTH grounds, which is the whole
-     reason the header band can be one value; and the light-ink tile explicitly rather than
-     --dot-tile, because --dot-tile flips to dark dots on the bone ground and dark dots on a
-     black plate is a black plate.
+     THE RUN IS BLACK. --reverse-bg rather than a ground-dependent ink because it is black on
+     BOTH grounds, which is the whole reason the masthead band can be one value.
 
-     THE TILE IS LAID TWICE. One pass is the field's own weight — 0.38 alpha, right for a
-     texture behind a whole page — and inside a 6px bar on the dark ground that is a whisper.
-     Two identical layers at the same offset composite to 0.62 without a second asset to keep
-     in step with the first. Measured against three: three reads as speckle rather than as the
-     field, so two.
+     THE FIELD IS AROUND IT, NOT IN IT. The dots are a band the bar is laid across — wider than
+     the bar and taller than it — rather than a texture printed on the run. That is what makes
+     the black work on the dark ground, where the plate is the page colour to within a fraction
+     of a step: the run is not a mark ON the page, it is a clean slot cut THROUGH the texture,
+     and the slot is what you read. On bone the black reads on its own and the band is the
+     surface it is printed on. One device, two ways of being seen.
 
-     SIX PIXELS, up from two and three. The tile's cell is 4px and its wave rides two either
-     side of true, so a 2px bar can only ever show a broken row of half-dots. Six is one clear
-     wave with the row above and below it, which is the field as it appears anywhere else.
+     --dot-tile rather than one of the two tiles it aliases, because this band sits on the page
+     rather than on the plate: it wants the ground's own dots, the same ones .dot-field lays
+     under the score.
 
-     AND A LEADING EDGE, one pixel of ink at the head of the run. On the bone ground the black
-     plate already ends against a light track and needs nothing; on the dark ground the plate
-     IS the page colour, so without this the run has no terminus and only the dots say how far
-     it got. rgba(--ink) covers both: bright on dark, and on bone it is black at the end of a
-     black plate, which is invisible and costs nothing.
+     Z-INDEX 0 ON THE BAR is what keeps the -1 below from dropping through the page, the same
+     note .dot-field carries. And overflow has to be visible or the band, which is entirely
+     outside the bar's box, is clipped away to nothing.
 
-     AND ALL THREE TRACKS DROPPED, from 0.16 and 0.14 to 0.08. They had to: the run part is a
-     dotted plate rather than a length of solid colour, so at the old weight the EMPTY half was
-     the more solid of the two and the bar read backwards. Written out at each of the three
-     rather than held in a token, because a token on :root resolves against :root's --ink-rgb
-     and would miss the reverse pockets, which flip it. */
+     ALL THREE TRACKS DROPPED from 0.16 and 0.14 to 0.08. Against a band of dots the old weight
+     made the unrun half the most solid thing in the row and the bar read backwards. Written out
+     at each of the three rather than held in a token, because a token on :root resolves against
+     :root's --ink-rgb and would miss the reverse pockets, which flip it.
+
+     AND A LEADING EDGE, one pixel of ink at the head of the run. On bone the black plate ends
+     against a light track and needs nothing; on the dark ground the slot has no terminus of its
+     own, and only this says where the run stopped rather than where the dots happen to thin
+     out. rgba(--ink) covers both: bright on dark, and on bone it is black at the end of a black
+     plate, which is invisible and costs nothing. */
   .budget-bar > i, .drill-bar i, .weight-bar > i{
     background-color:var(--reverse-bg);
-    background-image:var(--dot-tile-light-ink), var(--dot-tile-light-ink);
-    background-size:168px 4px;
     box-shadow:1px 0 0 0 rgba(var(--ink-rgb),0.85);
   }
+  .budget-bar::before, .drill-bar::before, .weight-bar::before{
+    content:''; position:absolute; z-index:-1; pointer-events:none;
+    top:calc(-1 * var(--bar-field-y)); bottom:calc(-1 * var(--bar-field-y));
+    left:calc(-1 * var(--bar-field-x)); right:calc(-1 * var(--bar-field-x));
+    background-image:var(--dot-tile); background-size:168px 4px;
+  }
+  /* HOW FAR THE BAND RUNS IS PER BAR, because only one of the three is a block in the page's
+     own column.
+
+     The budget bar is, so its band runs the full width of that column: two gutters out, main's
+     padding plus the bar's own margin, measured off the page rather than guessed — 44px at a
+     22px gutter, which puts the band at 0 and 390 on a 390 viewport.
+
+     The drills bar is 72px wide at the right end of a heading row, so how far its left edge is
+     from the column's is a function of the text beside it and cannot be written as an offset.
+     It runs OFF the right edge instead — right is the one side that is a known distance away,
+     one gutter — and stops at a fixed 56 on the left. A ribbon leaving the page reads as
+     deliberate where a rectangle floating in the corner reads as a swatch.
+
+     The weightings bars stack about 40px apart with a label between each pair, so eight above
+     and below ran the dots through the type and welded three bands into one slab. Four, and a
+     little more air above the bar, keeps them three. */
+  .budget-bar{ --bar-field-x:calc(2 * var(--gutter)); --bar-field-y:8px; }
+  .drill-bar{ --bar-field-y:8px; }
+  .drill-bar::before{ left:-56px; right:calc(-1 * var(--gutter)); }
+  .weight-bar{ --bar-field-x:10px; --bar-field-y:4px; margin-top:6px; }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
   /* A stamped plate rather than coloured text. This line can land on black (under the
