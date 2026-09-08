@@ -1841,18 +1841,33 @@
      setup was collapsed inside a group inside the last tab, and the goals were on a third
      tab, so a new user's Today said "nothing planned this week" and offered no way to change
      that. The three questions that actually unlock the generator now ARE the first screen. */
-  /* IT IS SPOKEN, SO IT IS SET IN THE VOICE THAT SPEAKS. --wordmark is the masthead's face
-     and it is used nowhere else in the app — every other surface is the mono. That is the
-     point: this screen is the only one where the app addresses you directly rather than
-     reporting on you, and the face it says DOG FOOD in is the face it should say this in.
-     Everything is --bg and rgba(--ink-rgb) rather than a literal, so the whole thread turns
-     over with the ground and the accent never has to carry text. */
+  /* IT IS SPOKEN, SO IT IS SET IN THE VOICE THAT SPEAKS. --wordmark is the masthead's face,
+     and this is where the app addresses you rather than reporting on you, so it is the face
+     it says this in. Everything is --bg and rgba(--ink-rgb) rather than a literal, so the
+     whole thread turns over with the ground and the accent never has to carry text.
+
+     .ask-* IS THE SAME THING WITHOUT THE THREAD AROUND IT. Four surfaces ask something now,
+     and they were on their way to being four copies of these values. The generic names below
+     are the definition; .fr-* is the first-run thread's own alias for them, kept because the
+     thread has a stepped reveal that nothing else does.
+
+     THE TEST FOR USING THIS, because it will otherwise spread until it means nothing: the
+     app is asking YOU about YOURSELF, from a short list, and the answer changes what it
+     plans. The first run, the morning questions, the running starting point, an injury. Not
+     a setting — a setting is returned to and scanned, and a conversation is slower to scan
+     and slower to change, which is backwards. Not a control, and not a reading.
+
+     The two daily surfaces are not in these selectors: they restyle .subj-face and .subj-dot,
+     which are controls they inherit rather than markup they write, so their copy of these
+     values lives with the rules that override those. Two definitions, not four. */
   .fr-thread{ list-style:none; margin:0; padding:calc(var(--sp-3) + 6px) 0 0; }
   .fr-step{ margin:0 0 40px; }
   .fr-step[hidden]{ display:none; }
+  .ask-q,
   .fr-q{ font-family:var(--wordmark); font-weight:var(--fw-bold); font-size:26px;
     line-height:1.16; letter-spacing:-0.012em; color:var(--bg);
     margin:0 0 18px; text-wrap:balance; }
+  .ask-list,
   .fr-answers{ display:flex; flex-direction:column; align-items:flex-start; }
   /* The base button rule is a filled 31px pill in caps — everything about it has to go, or
      three answers read as three controls rather than as three things you could say. */
@@ -1861,19 +1876,35 @@
      cannot do it at any alpha that still reads as stepped back: 0.34 measured 2.97 on the
      dark ground and 2.24 on bone, which is the first draft of this screen and was wrong on
      both. At 24 the bar is 3:1 and 0.5 clears it either way. */
+  /* max-width, because a flex column with align-items:flex-start sizes every item to its own
+     max-content and lets it overrun the container — which nothing showed while the answers
+     were "Get stronger" and "Twice a week", and which clipped the first long one that came
+     along. And a hanging indent, so the second line of a wrapped answer starts under the
+     first word rather than under the arrow: the arrow marks the answer, not each line of it. */
+  .ask-a,
   .fr-a{ font-family:var(--wordmark); font-weight:var(--fw-medium); font-size:24px;
     line-height:1.3; letter-spacing:0; text-transform:none;
-    height:auto; flex:0 0 auto; display:block; width:auto; text-align:left;
-    padding:7px 0; border:0; border-radius:0; background:transparent;
+    height:auto; flex:0 0 auto; display:block; width:auto; max-width:100%; text-align:left;
+    padding:7px 0 7px 1.35em; text-indent:-1.35em;
+    border:0; border-radius:0; background:transparent;
     color:rgba(var(--ink-rgb),0.92);
     transition:color 140ms ease; -webkit-tap-highlight-color:transparent; }
-  .fr-a::before{ content:'\2192'; display:inline-block; width:1.35em; }
+  .ask-a::before,
+  .fr-a::before{ content:'\2192'; display:inline-block; width:1.35em; text-indent:0; }
   /* Answered, the thread keeps every option on screen and takes the unchosen ones back, so
      the row still reads as a question you could answer differently rather than as a result.
      0.5 measures 5.16 on the dark ground and 3.62 on bone. */
+  .ask-list.answered .ask-a,
   .fr-answers.answered .fr-a{ color:rgba(var(--ink-rgb),0.5); }
+  .ask-list.answered .ask-a[aria-checked="true"],
   .fr-answers.answered .fr-a[aria-checked="true"]{ color:var(--bg); }
+  .ask-a:focus-visible,
   .fr-a:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
+  /* Standing on its own rather than inside a stepped thread, a question needs its own air
+     above and below — the thread got that from .fr-step's margin. */
+  .ask-q{ margin:26px 0 14px; }
+  .ask-q:first-child{ margin-top:6px; }
+  .ask-list + .ask-q{ margin-top:30px; }
   /* The spread the count turned into. Mono, small and set back: it is the app showing its
      working under an answer, not a fifth question. */
   .fr-aside{ margin-top:16px; }
@@ -2331,8 +2362,24 @@
   .log-grab:active{ cursor:grabbing; }
   .log-grab-hint{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.04em;
     text-transform:none; opacity:0.5; white-space:nowrap; }
-  .rpe-row{ margin-top:12px; display:flex; flex-direction:column; gap:5px; }
-  .rpe-row .subj-name, .rpe-row .subj-anchor{ color:var(--on-light); opacity:0.75; }
+  .rpe-row{ margin-top:12px; display:flex; flex-direction:column; gap:7px; }
+  /* --on-light is "text on any light fill", and every other use of it in this file is on
+     --accent or --block-yellow. This row is not on a fill at all: it sits on the block
+     editor's own ground, which is the page's. So the question and its anchor were #0c0d0b on
+     #0c0d0b — measured at 1.00:1, invisible, and invisible since before this was a question.
+     They follow the ink now, the way .subj-name and .subj-anchor already do everywhere else.
+     0.6 on the anchor rather than the 0.45 those carry: it is 11px, which owes the full
+     4.5:1, and 0.45 pays 4.3 on the dark ground and 3.1 on bone. */
+  .rpe-row .subj-name{ color:rgba(var(--ink-rgb),0.9); opacity:1; }
+  .rpe-row .subj-anchor{ color:rgba(var(--ink-rgb),0.6); opacity:1; }
+  /* THE QUESTION ONLY. "How hard was that" is a question and was set as a mono caps label
+     like every reading around it; it takes the asking face now. The SCALE stays a scale —
+     Borg CR-10 is ten steps, and ten steps is a dial rather than a list of answers, so it
+     keeps its faces. Arrow rows here would make rating a session feel like a decision.
+     Sized to the row rather than to a question standing alone on a page: it sits inside the
+     log sheet a few pixels under a set of numbers, and 26px there would out-shout them. */
+  .rpe-row .subj-name{ font-family:var(--prose); font-size:var(--fs-lg);
+    font-weight:var(--fw-bold); letter-spacing:-0.01em; text-transform:none; }
   /* Ten across a phone leaves about 28px each, so the padding the numbered version needed
      goes and the face fills the box. Same fill-on-choose as everywhere else the mark is a
      control: chosen is solid, and the eyes inside it invert with it. */
@@ -3733,26 +3780,28 @@
            isn't one — it is that goal's own setup, not a section of its own. -->
       <div class="group form-panel" id="runStartPanel">
         <div class="group-head"><div class="group-title">Running starting point</div><div class="group-sub">so the plan starts where you are, not where a beginner is</div></div>
+        <!-- These two were <select>s, and they were the only place in the app that asked the
+             first-run thread's own questions in a dropdown: how far can you go, how often do
+             you go. Same species — the app asking you about yourself from a short list, where
+             the answer changes what it plans — so they are asked the same way. The panel head
+             above stays in the machine's face, which is the pattern the morning sheet already
+             sets: the label says what section this is, the questions do the asking. -->
         <div class="fields">
-          <div class="field-row"><span class="field-label">Longest run you could do today</span>
-            <select id="runStartLongest">
-              <option value="">— select —</option>
-              <option value="0">I'm starting from scratch</option>
-              <option value="1">Under 2 km / can jog a few minutes</option>
-              <option value="3">Around 3 km / 20-30 min continuous</option>
-              <option value="5">Around 5 km</option>
-              <option value="10">10 km or more</option>
-              <option value="18">Half marathon or beyond</option>
-            </select>
+          <p class="ask-q">How far could you run today?</p>
+          <div class="ask-list" id="runStartLongest" role="radiogroup" aria-label="How far could you run today?">
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="0">I&rsquo;m starting from scratch</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="1">Under 2km &mdash; I can jog a few minutes</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="3">Around 3km, or 20&ndash;30 minutes</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="5">Around 5km</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="10">10km or more</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="18">Half marathon or beyond</button>
           </div>
-          <div class="field-row"><span class="field-label">Runs per week recently</span>
-            <select id="runStartFrequency">
-              <option value="">— select —</option>
-              <option value="0">None</option>
-              <option value="1">1-2</option>
-              <option value="3">3-4</option>
-              <option value="5">5+</option>
-            </select>
+          <p class="ask-q">And how often have you been running?</p>
+          <div class="ask-list" id="runStartFrequency" role="radiogroup" aria-label="And how often have you been running?">
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="0">Not at all</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="1">Once or twice a week</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="3">Three or four times</button>
+            <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="5">Five or more</button>
           </div>
           <button class="small" id="saveRunStartBtn">Save running starting point</button>
           <div id="runStartResult" class="score-note note-live"></div>
@@ -3910,34 +3959,49 @@
       <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Log an injury">
         <div class="lift-sheet-head"><span>Log an injury</span>
           <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
+        <!-- THE THREE THAT ARE QUESTIONS, AND THE THREE THAT ARE NOT.
+             Six fields, and they are not one kind of thing. A body part is free text, an
+             onset is a date and a severity is a number out of ten — none of those is a short
+             list and none of them can be asked, so they stay a form and they go first, where
+             they read as the facts you are filing. The other three are the app asking you
+             about yourself from a short list, and the answers shape what it will let you
+             train, which is the test.
+
+             They were interleaved with the form rows before, and could not be asked in place
+             without a question landing between a date box and a number box. Split rather
+             than mixed. The irritability options were already whole sentences crammed into
+             <option> — "Low — rarely flares with load" — which is the clearest sign these
+             wanted to be answers rather than a dropdown; the question carries the frame now,
+             so each one says only the part that differs. -->
         <div class="fields" id="injuryForm">
         <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
-        <div class="field-row"><span class="field-label">Type</span>
-          <select id="injuryType">
-            <option value="general">General</option>
-            <option value="tendinopathy">Tendinopathy</option>
-            <option value="sprain_strain">Sprain / Strain</option>
-          </select>
-        </div>
         <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
         <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
-        <div class="field-row"><span class="field-label">Movement that hurts</span>
-          <select id="injuryMovement">
-            <option value="">Not movement-specific</option>
-            <option value="squat">Squat pattern</option>
-            <option value="hinge">Hinge pattern (deadlift/RDL)</option>
-            <option value="push">Push pattern (press)</option>
-            <option value="pull">Pull pattern (row/pull-up)</option>
-            <option value="isolation">Isolation/single-joint only</option>
-          </select>
+
+        <p class="ask-q">What kind of injury is it?</p>
+        <div class="ask-list answered" id="injuryType" role="radiogroup" aria-label="What kind of injury is it?">
+          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="general">General</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="tendinopathy">Tendinopathy</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="sprain_strain">Sprain or strain</button>
         </div>
-        <div class="field-row"><span class="field-label">Irritability</span>
-          <select id="injuryIrritability">
-            <option value="low">Low — rarely flares with load</option>
-            <option value="moderate">Moderate — flares with heavier load</option>
-            <option value="high">High — flares easily, avoid loading directly</option>
-          </select>
+
+        <p class="ask-q">Which movement hurts?</p>
+        <div class="ask-list answered" id="injuryMovement" role="radiogroup" aria-label="Which movement hurts?">
+          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="">Nothing in particular</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="squat">Squatting</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="hinge">Hinging &mdash; deadlifts, RDLs</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="push">Pressing</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="pull">Pulling &mdash; rows, pull-ups</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="isolation">Only single-joint work</button>
         </div>
+
+        <p class="ask-q">How easily does it flare up?</p>
+        <div class="ask-list answered" id="injuryIrritability" role="radiogroup" aria-label="How easily does it flare up?">
+          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="low">Rarely, under load</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="moderate">With heavier load</button>
+          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="high">Easily &mdash; best not loaded directly</button>
+        </div>
+
         <button class="primary" id="addInjuryBtn">Add injury</button>
         </div>
       </div>
@@ -17476,11 +17540,11 @@ function severityAtDaysAgo(initial, onsetDate, halfLife, daysAgo){
 
 async function addInjury(){
   const part = document.getElementById('injuryPart').value.trim();
-  const type = document.getElementById('injuryType').value;
+  const type = askValue('injuryType');
   const date = document.getElementById('injuryDate').value;
   const severity = parseFloat(document.getElementById('injurySeverity').value);
-  const movement = document.getElementById('injuryMovement').value;
-  const irritability = document.getElementById('injuryIrritability').value;
+  const movement = askValue('injuryMovement');
+  const irritability = askValue('injuryIrritability');
   // Half-life is no longer asked for — it is what the injury TYPE already implies, and a
   // number of days for an injury to halve is not something anyone knows about their own
   // knee. The decay model still needs it, so it comes from the type.
@@ -17498,9 +17562,11 @@ async function addInjury(){
     const result = await window.storage.set(`injury:${id}`, JSON.stringify(injury));
     if(!result) throw new Error('save failed');
     document.getElementById('injuryPart').value=''; document.getElementById('injurySeverity').value='';
-    document.getElementById('injuryType').value='general';
-    document.getElementById('injuryMovement').value='';
-    document.getElementById('injuryIrritability').value='low';
+    // The three lists reset to the answer they open on, which is the same one the <option>
+    // order used to default to — general, nothing in particular, rarely.
+    askReset('injuryType', 'general');
+    askReset('injuryMovement', '');
+    askReset('injuryIrritability', 'low');
     showToast('Injury logged');
     flashConfirm(document.getElementById('addInjuryBtn'));
     eyeWince();
@@ -24038,9 +24104,38 @@ const RUN_WARMUP_BY_TYPE = {
 };
 
 
+/* One answer per question, and the group carries .answered so the unchosen ones can step
+   back without leaving the screen. The same three lines the first-run thread runs on; they
+   are here rather than shared because that one also has to reveal the next step, and a
+   shared helper that took a callback to do nothing would be the longer way to write this. */
+function wireAsk(id){
+  const box = document.getElementById(id);
+  if(!box) return;
+  box.addEventListener('click', e=>{
+    const b = e.target.closest('.ask-a');
+    if(!b) return;
+    box.classList.add('answered');
+    box.querySelectorAll('.ask-a').forEach(x=> x.setAttribute('aria-checked', String(x === b)));
+  });
+}
+function askValue(id){
+  const b = document.querySelector(`#${id} .ask-a[aria-checked="true"]`);
+  return b ? b.dataset.v : '';
+}
+/* Back to a named answer, and out of the answered state with it — a list that reopened
+   still dimmed would be showing you last time's answer as this time's. */
+function askReset(id, value){
+  const box = document.getElementById(id);
+  if(!box) return;
+  box.classList.remove('answered');
+  box.querySelectorAll('.ask-a').forEach(b=> b.setAttribute('aria-checked', String(b.dataset.v === value)));
+}
+['runStartLongest','runStartFrequency',
+ 'injuryType','injuryMovement','injuryIrritability'].forEach(wireAsk);
+
 document.getElementById('saveRunStartBtn').addEventListener('click', async ()=>{
-  const longest = document.getElementById('runStartLongest').value;
-  const freq = document.getElementById('runStartFrequency').value;
+  const longest = askValue('runStartLongest');
+  const freq = askValue('runStartFrequency');
   const el = document.getElementById('runStartResult');
   if(longest === '' || freq === ''){ el.textContent = 'Answer both to set a starting point.'; return; }
   const longestKm = parseFloat(longest), perWeek = parseFloat(freq);
