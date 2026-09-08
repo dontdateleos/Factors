@@ -57,8 +57,8 @@ const cube = await page.evaluate(() => {
   mcState.blink = 1; mcState.gx = 0; mcState.gy = 0;
   drawMarkCube();
   const svg = document.getElementById('headerMarkCube');
-  // The body is the first drawn shape and it IS the whole extent: the eye is clipped to it
-  // and the limb darkening is painted on it. Which element it is says what shape the mark is.
+  // The body is the first drawn shape and it IS the whole extent. Which element it is says
+  // what shape the mark is: a path for the cube, a circle for anything round.
   const body = svg.querySelector('circle, path');
   const bb = body.getBBox();
   const cs = getComputedStyle(document.documentElement);
@@ -78,9 +78,6 @@ const lum = (hex)=>{ const m = hex.match(/^#?([0-9a-f]{6})$/i);
   return 0.2126*r + 0.7152*g + 0.0722*b; };
 /* The cube's mounts read --bg and --ground rather than the mark's own two tokens, so the
    shell IS the page's cream and the eye ink IS its black. Read them the same way. */
-const hexToRgb = (hex)=>{ const m = hex.match(/^#?([0-9a-f]{6})$/i);
-  if(!m) throw new Error(`not a plain hex: ${hex}`);
-  return [0,2,4].map(i=> parseInt(m[1].slice(i,i+2),16)).join(','); };
 const SHELL = cube.shell, INK = cube.ink;
 const GROUND = lum(SHELL) > 0.28 ? DARK_GROUND : LIGHT_GROUND;
 console.log(`mark at ${cube.rest}, drawn ${cube.w.toFixed(1)}x${cube.h.toFixed(1)}`
@@ -98,8 +95,7 @@ const ty = S / 2 - (cube.y + cube.h / 2) * k;
 const art = cube.inner.replaceAll('var(--mark-shell)', SHELL)
                       .replaceAll('var(--mark-ink)', INK)
                       .replaceAll('var(--bg)', SHELL)
-                      .replaceAll('var(--ground)', INK)
-                      .replaceAll('var(--ground-rgb)', hexToRgb(INK));
+                      .replaceAll('var(--ground)', INK);
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">`
   + `<rect width="${S}" height="${S}" fill="${GROUND}"/>`
   + `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${art}</g></svg>`;
