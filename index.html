@@ -2220,8 +2220,9 @@
   .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
-  .drill-bar{ display:block; height:3px; background:rgba(var(--ink-rgb),0.14); margin-top:5px; }
-  .drill-bar i{ display:block; height:100%; background:var(--band, var(--accent));
+  .drill-bar{ display:block; height:6px; background:rgba(var(--ink-rgb),0.08); margin-top:5px;
+    overflow:hidden; }
+  .drill-bar i{ display:block; height:100%;
     width:0; transition:width 260ms cubic-bezier(.3,.9,.3,1); }
   /* One slow exhale, once, when a section you have not refreshed in a long time comes on
      screen. Not a badge and not a dot — those stay, and this is gone in a second. */
@@ -2656,11 +2657,12 @@
      trimming exercises off the end, and the only trace left on screen is a bare "~55min" with
      nothing to measure it against. This is that number against the setting it was fitted to:
      full bar, your session length; the fill, what the day actually estimates at. */
-  .budget-bar{ position:relative; height:2px; margin:2px var(--gutter) 12px; background:var(--hair);
+  .budget-bar{ position:relative; height:6px; margin:2px var(--gutter) 12px; background:rgba(var(--ink-rgb),0.08);
     border-radius:1px; overflow:hidden; }
-  .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
-    background:var(--band, var(--accent)); border-radius:1px; }
-  .budget-bar.over > i{ background:var(--bad); }
+  .budget-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0; border-radius:1px; }
+  /* Over the ceiling still goes red, and keeps the texture: background-COLOR, because the
+     shorthand would drop the dots along with the colour it is replacing. */
+  .budget-bar.over > i{ background-color:var(--bad); }
   /* Where the productive band begins on the weekly-stretch bar. */
   .skg-bar{ position:relative; }
   .skg-bar-floor{ position:absolute; top:-2px; bottom:-2px; width:1px;
@@ -2668,11 +2670,52 @@
   /* The learning is the most interesting thing in here and it was nine static percentages
      with an arrow beside them. The bar is the weight; the tick is where that weight started,
      left in place so the distance travelled is still readable after the movement stops. */
-  .weight-bar{ position:relative; height:3px; margin:3px 0 9px; background:var(--hair); border-radius:2px; }
-  .weight-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0;
-    background:var(--band, var(--accent)); border-radius:2px; }
-  .weight-bar > u{ position:absolute; top:-3px; bottom:-3px; width:1px;
+  .weight-bar{ position:relative; height:6px; margin:3px 0 9px; background:rgba(var(--ink-rgb),0.08); border-radius:2px; }
+  .weight-bar > i{ position:absolute; left:0; top:0; bottom:0; width:0; border-radius:2px; }
+  .weight-bar > u{ position:absolute; top:-2px; bottom:-2px; width:1px;
     background:var(--dim); opacity:0.7; text-decoration:none; }
+  /* THE PART THAT HAS RUN IS A PIECE OF THE FIELD.
+
+     Three bars in the app fill left to right — the day's estimate against your session length,
+     the drills ticked off in a section, and what each weighting learned — and all three used to
+     be a length of the tab's own colour. That put a second lime slab immediately under a lime
+     section head, which is the tab saying its own name twice, and it made the reading a colour
+     rather than a texture.
+
+     Now the run part is the same dark plate the masthead uses with the same dithered field
+     printed on it, so a bar is a strip of the display rather than a coloured line. --reverse-bg
+     rather than a ground-dependent ink because it is black on BOTH grounds, which is the whole
+     reason the header band can be one value; and the light-ink tile explicitly rather than
+     --dot-tile, because --dot-tile flips to dark dots on the bone ground and dark dots on a
+     black plate is a black plate.
+
+     THE TILE IS LAID TWICE. One pass is the field's own weight — 0.38 alpha, right for a
+     texture behind a whole page — and inside a 6px bar on the dark ground that is a whisper.
+     Two identical layers at the same offset composite to 0.62 without a second asset to keep
+     in step with the first. Measured against three: three reads as speckle rather than as the
+     field, so two.
+
+     SIX PIXELS, up from two and three. The tile's cell is 4px and its wave rides two either
+     side of true, so a 2px bar can only ever show a broken row of half-dots. Six is one clear
+     wave with the row above and below it, which is the field as it appears anywhere else.
+
+     AND A LEADING EDGE, one pixel of ink at the head of the run. On the bone ground the black
+     plate already ends against a light track and needs nothing; on the dark ground the plate
+     IS the page colour, so without this the run has no terminus and only the dots say how far
+     it got. rgba(--ink) covers both: bright on dark, and on bone it is black at the end of a
+     black plate, which is invisible and costs nothing.
+
+     AND ALL THREE TRACKS DROPPED, from 0.16 and 0.14 to 0.08. They had to: the run part is a
+     dotted plate rather than a length of solid colour, so at the old weight the EMPTY half was
+     the more solid of the two and the bar read backwards. Written out at each of the three
+     rather than held in a token, because a token on :root resolves against :root's --ink-rgb
+     and would miss the reverse pockets, which flip it. */
+  .budget-bar > i, .drill-bar i, .weight-bar > i{
+    background-color:var(--reverse-bg);
+    background-image:var(--dot-tile-light-ink), var(--dot-tile-light-ink);
+    background-size:168px 4px;
+    box-shadow:1px 0 0 0 rgba(var(--ink-rgb),0.85);
+  }
   #appVersionOut{ font-family:var(--mono); }
   /* The machine names the condition; the sentence under it says what to do about it. */
   /* A stamped plate rather than coloured text. This line can land on black (under the
