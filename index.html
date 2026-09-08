@@ -9276,7 +9276,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.389';
+const APP_VERSION = '2026.08.31.390';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9431,6 +9431,7 @@ const APP_NOTES = {
   '2026.08.31.387': 'The mark has eyelids \u2014 two of them, at their own angles, so it can have a mood.',
   '2026.08.31.388': 'The mark shows the day again \u2014 rest days, deloads and bedtime sit on its lids.',
   '2026.08.31.389': 'The mark beside the score is the size of the one in the wordmark.',
+  '2026.08.31.390': 'The mark beside the score sits on the number\u2019s centre line, and over its last digit.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11490,10 +11491,13 @@ function layoutBandColumn(traceShown){
          now wider than the chip actually needs. */
       dock.style.left = Math.round(numRect.right - bandRect.left - DOCK_OVERLAP
         + (plan.blockW - DOCK_W) / 2) + 'px';
-      /* Same on the other axis: the sphere hangs below the box, so the box rides up by the
-         bleed to keep the drawing's foot on the numeral's baseline. */
-      dock.style.top = Math.round(numRect.top - bandRect.top + numRect.height - DOCK_H - 2
-        - (DOCK_DRAW - DOCK_H) / 2) + 'px';
+      /* CENTRED ON THE NUMBER, not sat on its baseline. The drawing is centred in the box,
+         so centring the BOX on the numeral's middle centres the sphere on it — and this is
+         the same expression the faces and the trace are placed by a few lines down, with
+         DOCK_H where their groupH goes, so all three share one vertical centre by
+         construction rather than by three numbers that have to agree. */
+      dock.style.top = Math.round(numRect.top - bandRect.top
+        + (numRect.height - DOCK_H) / 2) + 'px';
     }
   }
 
@@ -18432,9 +18436,11 @@ const TRACE_GAP = 16;           // clear space between the score's digits and th
    is still not enough band for both, and the trace hides itself under the rule it already
    had: below TRACE_MIN_W it is a squiggle, not a reading. */
 const DOCK_GAP = 9;             // daylight between the last numeral and the chip
-const DOCK_OVERLAP = 3;         // ...and how far it now tucks back UNDER them instead.
-                                // 3 rather than 6: filled, the chip needs more of the digit
-                                // visible beside it than an outline did.
+/* How far the mark tucks back UNDER the digits. It has been 6, then 3 when the chip was a
+   filled square that needed daylight beside it. At 10 the sphere's left edge lands ON the
+   last digit rather than beside it — which is the point: the answer belongs to the number,
+   and a round mark can sit over a numeral without the collision a square made. */
+const DOCK_OVERLAP = 10;
 const DOCK_TRACE_GAP = 9;       // and between the chip's word and the week's first tick
 const DOCK_RESERVE_MAX = 61;    // the widest answer, for before there is one to measure
 /* Taken when the word is written rather than when the column is laid out. The column asks
