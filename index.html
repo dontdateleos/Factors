@@ -4639,8 +4639,8 @@ const EYE_ANIM = {
 
   // — Fourth batch: mostly about having a body rather than a bigger repertoire.
   focusGaze:      { on:true, note:'Looks at the field you are typing in' },
-  converge:       { on:true, note:'The two eyes turn very slightly toward each other for something close', px:1.6, far:220 },
-  plateSag:       { on:true, note:'The whole plate sits lower on a bad score, not just the lids', px:3 },
+  converge:       { on:false, note:'RETIRED \u2014 the mark is one aperture in a solid, and this needs two eyes' , was:'The two eyes turn very slightly toward each other for something close', px:1.6, far:220 },
+  plateSag:       { on:false, note:'RETIRED \u2014 the plate only exists mid-flight now, so there is nothing to sag', was:'The whole plate sits lower on a bad score, not just the lids', px:3 },
   blinkOnReturn:  { on:true, note:'A blink when you come back to the app after a look away', afterMs:20000 },
   impatience:     { on:true, note:'The scan tightens when something runs longer than it should', afterMs:1600, floorMs:150 },
   anticipate:     { on:true, note:'Learns which tab usually follows which, and looks at the next one', minVisits:6, minShare:0.55 },
@@ -4650,8 +4650,8 @@ const EYE_ANIM = {
   refusesHeld:    { on:true, note:'Starts the glance down at a held score, then turns away instead' },
   weekArc:        { on:true, note:'Fresher at the start of a training week, worn by the end of it' },
   dilate:         { on:true, note:'The eye opens up a little in the dark' },
-  wink:           { on:true, note:'One eye, rarely, when a logged lift beats your best' },
-  sleepDebtFresh: { on:true, note:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
+  wink:           { on:false, note:'RETIRED \u2014 the mark is one aperture in a solid, and this needs two eyes; a full close is now just a blink', was:'One eye, rarely, when a logged lift beats your best' },
+  sleepDebtFresh: { on:false, note:'RETIRED \u2014 the solid has no whites to dull; the bias carries tiredness instead', was:'The white of the eyes dulls with your sleep debt, on Today only', floorPerNight:1.5 },
   looksAway:      { on:true, note:'Closes while you are choosing your morning face, so it is not watching you answer' },
   readsWithYou:   { on:true, note:'Now and then, reads along a line of a long explanation you have just opened', chance:0.34 },
   sessionHeaviness:{ on:true, note:'Heavier lids for the rest of the day once you have logged a real session', afterMin:45, lid:0.76 },
@@ -6253,6 +6253,11 @@ const MC_MOVES = [
        degrees, so the eye goes all the way round and stays visible the whole way. */
   { w:2, name:'peek',   steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 92*d, ms:320, hold:140 }, { ry:R_Y, ms:400 }]; } },
+  /* Weight zero: the idle never picks it. It exists for markReact, because a failure wants a
+     recoil rather than anything in the resting repertoire. */
+  { w:0, name:'startle', steps:()=> [{ rx:R_X - 14, ew:1.5, lidT:-1.55, lidB:1.55, ms:90 },
+                                     { rx:R_X + 5, ms:140 },
+                                     { rx:R_X, ew:1, lidT:-O, lidB:O, ms:420 }] },
   { w:1, name:'orbit',  steps:()=>{ const d = mcSide();
       return [{ ry:R_Y + 38*d, rx:R_X, ms:180 }, { ry:R_Y + 27*d, rx:R_X - 27, ms:150 },
               { ry:R_Y, rx:R_X - 38, ms:150 }, { ry:R_Y - 27*d, rx:R_X - 27, ms:150 },
@@ -6279,6 +6284,35 @@ function mcForm(){
   mcQueue([{ ew:0.42, lidT:0, lidB:0, ms:1, hold:380 },
            { ew:1.08, lidT:-MC_LID_OPEN, lidB:MC_LID_OPEN, ms:420 },
            { ew:1, ms:200 }]);
+}
+/* THE STANDING BIAS.
+   Six signals in EYE_ANIM are not gestures at all — a rest day, a deload, past bedtime, a
+   logged session, being asleep — they are a pose the mark HOLDS until the day changes. The
+   app has been computing exactly that number all along, in eyeLidScale(), and handing it to
+   a pair of eyes that is hidden under the solid. So nothing new is calculated here: the idle
+   drift just eases the lids toward this instead of toward wide open, and five rows that were
+   doing invisible work start showing up.
+
+   A lid comes down from the TOP, which is the half of it a scalar could never say. The bottom
+   comes in a little too, because an eye going heavy narrows from both ends — just not evenly. */
+function mcBias(){
+  const k = (typeof eyeLidScale === 'function') ? eyeLidScale() : 1;
+  const h = Math.max(0, Math.min(0.6, 1 - k));
+  return { lidT: -MC_LID_OPEN + h * 2.30, lidB: MC_LID_OPEN - h * 0.50,
+           lidTA: h * 10, lidBA: 0, ew: 1 + h * 0.16 };
+}
+/* THE ONE DOOR IN.
+   Until now exactly one thing in the app could reach the solid — markCubeTurn, on a tab
+   switch. Everything else spoke to the pair. This is the way in for the rest: a name from the
+   repertoire, fired now.
+
+   A reaction PREEMPTS whatever the idle was doing rather than queueing behind it. It reads as
+   an answer only if it lands on the beat, and nothing snaps, because every step interpolates
+   from wherever the mark actually is. */
+function markReact(name){
+  if(!mcState.raf) return;                    // calm mode and reduced motion have no loop
+  const mv = MC_MOVES.find(m => m.name === name);
+  if(mv) mcQueue(mv.steps());
 }
 const MC_W = MC_MOVES.reduce((a,m)=> a + m.w, 0);
 function mcPickMove(){
@@ -6343,9 +6377,10 @@ function startMarkCube(){
       mcState.rx += ((2.5 * Math.sin(t * 0.31)) - mcState.rx) * 0.04;
       mcState.ry += ((3.5 * Math.sin(t * 0.23 + 1.1)) - mcState.ry) * 0.04;
       mcState.rz += (0 - mcState.rz) * 0.06;
-      // every channel that is not an angle eases back to its own rest, lids included
+      // Toward the day's bias rather than toward wide open — which is the whole of it.
+      const bias = mcBias();
       for(const k of MC_CH) if(k !== 'rx' && k !== 'ry' && k !== 'rz')
-        mcState[k] += (MC_CH_REST[k] - mcState[k]) * 0.06;
+        mcState[k] += ((bias[k] === undefined ? MC_CH_REST[k] : bias[k]) - mcState[k]) * 0.06;
     }
     if(now > mcState.gazeAt){
       mcState.gazeAt = now + 1400 + Math.random() * 3200;
@@ -6663,7 +6698,8 @@ function noteTabTap(buttonEl){
   const c = EYE_ANIM.dizzySpin, now = Date.now();
   eyeTapTimes.push(now);
   while(eyeTapTimes.length && now - eyeTapTimes[0] > c.withinMs) eyeTapTimes.shift();
-  if(eyeTapTimes.length >= c.taps){ eyeTapTimes.length = 0; setTimeout(()=>eyeSpin(), EYE_FLIGHT_MS + 200); }
+  if(eyeTapTimes.length >= c.taps){ eyeTapTimes.length = 0;
+    setTimeout(()=>{ eyeSpin(); markReact('orbit'); }, EYE_FLIGHT_MS + 200); }
 }
 
 // Looks the way the page is moving. Decays back a beat after you stop.
@@ -7336,6 +7372,8 @@ function eyeMarkPressEnd(which){
   if(!anim('blinkOnTap') || !el) return;
   stopIdle();
   blinkOnce(el, ()=>scheduleIdle());
+  // The solid's blink is its lids, and it has its own clock — so this drives that, not a form.
+  mcState.blink = 0.08; setTimeout(()=>{ mcState.blink = 1; }, 130);
 }
 
 
@@ -9220,7 +9258,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.387';
+const APP_VERSION = '2026.08.31.388';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9373,6 +9411,7 @@ const APP_NOTES = {
   '2026.08.31.385': 'The mark builds itself on load, and has seven new things to do with one eye.',
   '2026.08.31.386': 'The mark arrives one shading band at a time, then opens its eye.',
   '2026.08.31.387': 'The mark has eyelids \u2014 two of them, at their own angles, so it can have a mood.',
+  '2026.08.31.388': 'The mark shows the day again \u2014 rest days, deloads and bedtime sit on its lids.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -10354,7 +10393,8 @@ function showToast(message, isError, ms){
   t.className = isError ? 'error show' : 'show';
   // Every save, every failure, comes through here — so this is the one place the mark
   // needs to hear about it.
-  if(anim('nodOnSave')){ if(isError) eyeShake(); else eyeNod(); }
+  if(anim('nodOnSave')){ if(isError) eyeShake(); else eyeNod();
+                         markReact(isError ? 'startle' : 'nod'); }
   eyeNoteToast(isError);
   if(!isError) eyeFormSettled();
   clearTimeout(toastTimer);
@@ -17805,7 +17845,7 @@ function confRulerHtml(confidence){
 
 function buildRecCard(type, title, signals, confidence, meta){
   // A card telling you to back off is the one piece of bad news the mark should register.
-  if(type === 'reduce' && anim('wince')) setTimeout(eyeWince, 250);
+  if(type === 'reduce' && anim('wince')) setTimeout(()=>{ eyeWince(); markReact('frown'); }, 250);
   const isReview = type === 'week_review' || type === 'block_review';
   const card = document.createElement('div');
   card.className = `rec-card ${type} tone-${REC_TONE[type] || 'flat'}`;
