@@ -55,6 +55,8 @@ const cube = await page.evaluate(() => {
   // icon is whatever frame the idle happened to be on.
   mcState.rx = 0; mcState.ry = 0; mcState.rz = 0;
   mcState.blink = 1; mcState.gx = 0; mcState.gy = 0;
+  // The body moves too, or a bounce caught mid-flight would park the drawing squashed.
+  mcState.body = null; mcState.sx = 1; mcState.sy = 1; mcState.ty = 0;
   drawMarkCube();
   const svg = document.getElementById('headerMarkCube');
   // The body is the first drawn shape and it IS the whole extent. Which element it is says

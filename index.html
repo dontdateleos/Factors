@@ -5798,6 +5798,11 @@ function markTearOnSwitch(){
     const el = eyesHome === 'score' ? todayChipEl() : document.querySelector('.header-mark');
     if(el && el.isConnected && el.style.visibility !== 'hidden'){
       playGlitch(el, 'markGlitch', EYE_ANIM.tearOnFlight.px, MARK_BLEED);
+      /* And then it lands. Booked for the moment the tear finishes rather than run alongside
+         it: the tear is a clip-path on the HOST and the drop is a transform on the drawing
+         inside it, so they would compose rather than collide — but a mark that is breaking up
+         and falling at the same time reads as neither. */
+      setTimeout(()=> markBody('drop'), UI_ANIM.markGlitch.ms);
     }
   }, lead);
 }
@@ -5954,7 +5959,47 @@ const MC_LIT_R = 1.534, MC_LIT_DY = 0.922, MC_RAD = Math.PI / 180;
    0.15 wide, 0.45 tall and 0.25 apart. */
 const MC_EYE_W = 0.099, MC_EYE_H = 0.176, MC_EYE_GAP = 0.082;
 const mcState = { rx:0, ry:0, rz:0, gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0,
-                  blink:1, blinkAt:0, raf:null, born:0, step:null, queue:[], nextAt:0 };
+                  blink:1, blinkAt:0, raf:null, born:0, step:null, queue:[], nextAt:0,
+                  sx:1, sy:1, ty:0, body:null, bodyAt:0 };
+/* THE BODY MOVES, WHICH THE QUEUE CANNOT CARRY.
+   MC_MOVES are ORIENTATIONS: the queue lerps rx/ry/rz from one to the next, and every move in
+   it is a pose the mark could be parked at. A squash is not a pose. It has a shape of its own
+   over time — it overshoots, it rings, it has to come back to exactly 1 — so it runs on its
+   own clock beside the queue rather than inside it, which also means the mark can be drifting
+   or mid-glance while it bounces.
+
+   Volume is preserved: sx is 1/sqrt(sy), so what the mark loses in height it gains in width.
+   Without that a squash reads as the thing getting smaller rather than being squashed. ty is
+   in units of the mark's own size, so a drop is the same drop at 40px and at 24. */
+const MC_BODY = {
+  /* Falls in, flattens on impact, bounces twice, settles. The flatten is raised to the sixth
+     so it happens only in the few frames around each landing rather than all the way down.
+
+     EVERY TERM IS MULTIPLIED BY (1 - t), which is what makes the move end at exactly rest.
+     Without it the squash keys off nothing but how close the ball is to the floor — so once
+     it has settled THERE it stays squashed, and the mark popped back to round on the frame
+     the move expired. Measured before the fix: sy was 0.739 at the last frame and 1 on the
+     next one. The bounce envelope alone does not fix it; only a term that reaches zero does. */
+  drop: { ms:760, f(t){
+    const end = 1 - t;
+    const h = Math.abs(Math.cos(t * Math.PI * 2.6)) * Math.exp(-2.6 * t) * end;
+    const q = 1 - 0.30 * Math.exp(-2.6 * t) * end * Math.pow(1 - h, 6);
+    return { sy:q, sx:1/Math.sqrt(q), ty:-0.48 * h };
+  } },
+  /* Lands squashed and springs out of it, overshooting tall before it rings down. Same tail. */
+  boing: { ms:620, f(t){
+    const end = 1 - t;
+    const q = 1 - 0.30 * Math.exp(-3.4 * t) * Math.cos(t * Math.PI * 3.2) * end;
+    const up = Math.exp(-4.2 * t) * Math.sin(t * Math.PI * 3.2) * end;
+    return { sy:q, sx:1/Math.sqrt(q), ty:-0.065 * Math.max(0, up) };
+  } }
+};
+/* Nothing happens if the rig is not running — the same gate markReact uses. A squash left
+   applied while the mark is off screen would still be applied the next time it appeared. */
+function markBody(name){
+  if(!MC_BODY[name] || !mcState.raf) return;
+  mcState.body = name; mcState.bodyAt = performance.now();
+}
 function mcProject(rx, ry, rz){
   const cx = Math.cos(rx*MC_RAD), sx = Math.sin(rx*MC_RAD);
   const cy = Math.cos(ry*MC_RAD), sy = Math.sin(ry*MC_RAD);
@@ -6072,6 +6117,27 @@ function mcPaint(m){
   if(eyes) out += `<clipPath id="${m.id}E"><circle cx="${c}" cy="${c}" r="${h.toFixed(2)}"/></clipPath>`
                 + `<g clip-path="url(#${m.id}E)">${eyes}</g>`;
   svg.innerHTML = out;
+  /* THE SQUASH GOES ON THE SVG, NOT ON THE HOST.
+     The host's transform is already spoken for: updateHeaderCollapse writes a scale to it on
+     every scroll frame and the perch writes another, so anything written there would be
+     overwritten within a frame or would overwrite them. The drawing's own element is free.
+
+     .mark-cube is centred with translate(-50%,-50%) in the stylesheet, so an inline transform
+     has to carry that itself. The origin is the sphere's BOTTOM — 0.5 + 1/(2 * 1.08) of the
+     box, since the box is 8% larger than the mark — because a sphere compressing around its
+     own centre is a shape being scaled, where one compressing against its footing is an
+     object landing on something. */
+  const sq = mcState.sx !== 1 || mcState.sy !== 1 || mcState.ty !== 0;
+  if(sq){
+    svg.style.transformOrigin = '50% 96.3%';
+    svg.style.transform = `translate(-50%,-50%) translate(0,${(mcState.ty * s).toFixed(2)}px)`
+                        + ` scale(${mcState.sx.toFixed(4)},${mcState.sy.toFixed(4)})`;
+    svg.dataset.sq = '1';
+  } else if(svg.dataset.sq){
+    // Back under the stylesheet's own centring rather than a hardcoded copy of it.
+    svg.style.transform = ''; svg.style.transformOrigin = '';
+    delete svg.dataset.sq;
+  }
 }
 
 /* WHAT IT DOES WHEN NOBODY ASKED.
@@ -6096,6 +6162,10 @@ const MC_MOVES = [
   { w:1, name:'roll',   steps:()=>{ const d = mcSide();
       return [{ ry:360*d, ms:1500 }, { ry:0, ms:0 }]; } },
   { w:1, name:'flip',   steps:()=> [{ rx:360, ms:1300 }, { rx:0, ms:0 }] },
+  /* The one entry here that is not an orientation. It carries a body move instead of steps,
+     which the picker dispatches rather than queues. Weight 3 of 24, so about one idle move in
+     eight is a bounce rather than a turn. */
+  { w:3, name:'boing',  body:'boing' },
 ];
 const MC_W = MC_MOVES.reduce((a,m)=> a + m.w, 0);
 function mcPickMove(){
@@ -6134,7 +6204,8 @@ function startMarkCube(){
      ends up costing a frame a second forever. */
   if(eyeCalm || eyeMotionOff()){
     if(mcState.raf){ cancelAnimationFrame(mcState.raf); mcState.raf = null; }
-    Object.assign(mcState, { rx:0, ry:0, rz:0, gx:0, gy:0, blink:1, step:null, queue:[] });
+    Object.assign(mcState, { rx:0, ry:0, rz:0, gx:0, gy:0, blink:1, step:null, queue:[],
+                             sx:1, sy:1, ty:0, body:null });
     drawMarkCube(); return;
   }
   if(mcState.raf) return;
@@ -6162,12 +6233,22 @@ function startMarkCube(){
         if(!mcState.queue.length) mcState.nextAt = now + 3200 + Math.random() * 6000;
       }
     } else if(now > mcState.nextAt){
-      mcQueue(mcPickMove().steps());
+      /* A body move is not a queue of poses, so it is dispatched rather than queued — and it
+         books the next slot itself, which the queue would otherwise have done on draining. */
+      const mv = mcPickMove();
+      if(mv.body){ markBody(mv.body); mcState.nextAt = now + 3200 + Math.random() * 6000; }
+      else mcQueue(mv.steps());
     } else {
       // Between moves it is not frozen, just quiet.
       mcState.rx += ((2.5 * Math.sin(t * 0.31)) - mcState.rx) * 0.04;
       mcState.ry += ((3.5 * Math.sin(t * 0.23 + 1.1)) - mcState.ry) * 0.04;
       mcState.rz += (0 - mcState.rz) * 0.06;
+    }
+    /* Advanced beside the queue, not inside it, so a bounce can play over a drift. */
+    if(mcState.body){
+      const B = MC_BODY[mcState.body], e = now - mcState.bodyAt;
+      if(e >= B.ms){ mcState.body = null; mcState.sx = 1; mcState.sy = 1; mcState.ty = 0; }
+      else { const b = B.f(e / B.ms); mcState.sx = b.sx; mcState.sy = b.sy; mcState.ty = b.ty; }
     }
     if(now > mcState.gazeAt){
       mcState.gazeAt = now + 1400 + Math.random() * 3200;
