@@ -1270,6 +1270,20 @@
   .d-badge{ color:var(--text); }
 
   .session-type{ display:flex; gap:8px; margin-bottom:var(--sp-3); }
+  /* SIX METRICS DO NOT FIT ON ONE ROW, AND flex:1 COULD NOT SAVE THEM.
+     A flex item's default min-width is auto, so a pill can never shrink below its own text —
+     "Body Fat" held the row 31px wider than a 390 screen and 101 wider than a 320 one, and the
+     document scrolled sideways on the only view this tab has left. Neither shrinking nor
+     scrolling is the answer at this count: six across a phone is 48px each, which is narrower
+     than the words.
+
+     So they wrap, three to a row, which is the shape of the Daily/Weekly/Monthly row directly
+     under them — the two rows read as one control rather than as a long one and a short one.
+     A fixed third of the width rather than flex:1, because with basis 0 the browser lays them
+     out at their content size to decide the wrap and then stretches them, and the rows come
+     out ragged; a third is a third at every width. */
+  #trendMetricPills{ flex-wrap:wrap; }
+  #trendMetricPills .type-btn{ flex:0 1 calc((100% - 16px) / 3); min-width:0; }
   /* The three buttons on Today always follow something black and full-bleed — the score
      band, the card stack's own black head, or the rest plate — and every one of those ends
      with margin-bottom:0, because the things that USUALLY follow them are also black and are
@@ -9069,7 +9083,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.08.31.376';
+const APP_VERSION = '2026.08.31.377';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9211,6 +9225,7 @@ const APP_NOTES = {
   '2026.08.31.374': 'The dots under the selected row run to the page edges.',
   '2026.08.31.375': 'The spinner\u2019s dots ripple in with the page too.',
   '2026.08.31.376': 'Turning a spinner ripples the band under the row you land on.',
+  '2026.08.31.377': 'The trend metrics fit the screen \u2014 three to a row, two rows.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
