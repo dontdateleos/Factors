@@ -1440,6 +1440,37 @@
   /* Inset by the gutter, not to the box's edges. The spinner is full-bleed so the dot band can
      reach the page edges; the rules are not part of that — they belong to the column the words
      are set in, and running them to the screen edge turned a marked row into a full-width bar. */
+  /* NINE LADDERS, ONE ROW EACH. Cells are the app's own bar — the same 3px flat mark the
+     drill rows and the masthead ticks are drawn from — so this reads as more of the app
+     rather than as a scoreboard bolted to it. Grid, not flex, so the three columns line up
+     down the whole set however long a label or a rung name runs. */
+  .skill-board{ display:flex; flex-direction:column; gap:1px; margin-bottom:10px; }
+  /* 120px on the name, which is where the labels stop truncating for all but the two longest
+     ladders. Fixed rather than auto because each lane is its own grid — auto would size every
+     row to its own content and the cells would stop lining up down the set, which is the one
+     thing making this readable as a board rather than thirteen rows. */
+  .skill-lane{ display:grid; grid-template-columns:120px auto 1fr; align-items:center;
+    gap:9px; width:100%; height:auto; padding:6px 0; border:0; border-radius:0;
+    background:transparent; color:var(--bg); text-align:left; cursor:pointer;
+    font-family:var(--mono); text-transform:none; letter-spacing:0; }
+  .skill-lane-name{ font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    text-transform:uppercase; letter-spacing:0.04em;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .skill-lane-cells{ display:flex; gap:2px; flex:none; }
+  .skill-lane-cells i{ display:block; width:9px; height:3px;
+    background:rgba(var(--ink-rgb),0.22); }
+  .skill-lane-cells i.on{ background:var(--bg); }
+  /* The rung you are on, in the quiet ink the doses use — 6.61 dark, 4.72 bone. */
+  .skill-lane-rung{ font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.58);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The one the wheel is on, and the ones you are actually training. A left rule rather than
+     a fill: the row is a line of data, and filling it would make nine of them nine cards. */
+  .skill-lane.here{ box-shadow:inset 2px 0 0 var(--bg); padding-left:8px; }
+  /* No --band here. These sections live on the Body tab, whose band is RED — so colouring
+     the skills you are actively training with it drew the two you care about most in the one
+     hue this app uses for injury. The cells stay ink on every tab; which two are active is
+     already on the wheel below, numbered, which is where that question is asked. */
+  .skill-lane:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
   .mob-wheel-focus-line{ position:absolute; left:var(--gutter); right:var(--gutter); top:calc(var(--mob-row) * var(--mob-focus-row, 1));
     height:var(--mob-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
     opacity:0.45; pointer-events:none; }
@@ -4081,6 +4112,8 @@
             <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand come from coaching consensus. Muscle-up is our own extension, marked with an asterisk.</div>
           </details>
           <div id="strengthSkillPicker">
+            <!-- The whole ladder set, above the wheel that shows one at a time. -->
+            <div class="skill-board" id="strengthSkillBoard"></div>
             <div class="mob-wheel" id="strengthSkillWheel"></div>
             <label class="skill-active-row" for="strengthSkillActive">
               <input type="checkbox" id="strengthSkillActive">
@@ -4102,6 +4135,8 @@
             <div class="mobility-legend-body">Pike, bridge and the splits are verified against real studies. Pancake, deep squat and overhead squat are our own extensions, marked with an asterisk.</div>
           </details>
           <div id="mobilitySkillPicker">
+            <!-- The whole ladder set, above the wheel that shows one at a time. -->
+            <div class="skill-board" id="mobilitySkillBoard"></div>
             <div class="mob-wheel" id="mobilitySkillWheel"></div>
             <label class="skill-active-row" for="mobilitySkillActive">
               <input type="checkbox" id="mobilitySkillActive">
@@ -9758,7 +9793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.442';
+const APP_VERSION = '2026.09.09.443';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9925,6 +9960,7 @@ const APP_NOTES = {
   '2026.09.09.440': 'Last session\u2019s numbers sit in the logging boxes until you type over them.',
   '2026.09.09.441': 'A lift within reach of your best says how far off it is.',
   '2026.09.09.442': 'Why the score moved opens with what actually moved it.',
+  '2026.09.09.443': 'Every skill ladder at once, above the wheel \u2014 tap one to spin to it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14462,10 +14498,10 @@ document.getElementById('saveTrainingSetupBtn').addEventListener('click', async 
 const SKILL_PICKERS = {
   exercise: { host:'strengthSkillPicker', wheel:'strengthSkillWheel', levels:'strengthSkillLevels',
               active:'strengthSkillActive', activeLabel:'strengthSkillActiveLabel',
-              note:'strengthSkillNote', progress:'exerciseProgressBody' },
+              note:'strengthSkillNote', progress:'exerciseProgressBody', board:'strengthSkillBoard' },
   mobility: { host:'mobilitySkillPicker', wheel:'mobilitySkillWheel', levels:'mobilitySkillLevels',
               active:'mobilitySkillActive', activeLabel:'mobilitySkillActiveLabel',
-              note:'mobilitySkillNote', progress:'mobilityProgressBody' }
+              note:'mobilitySkillNote', progress:'mobilityProgressBody', board:'mobilitySkillBoard' }
 };
 // Grease-the-groove's own guidance is 1-2 skills at a time, and the mobility side has the
 // same problem for the same reason: a session padded with thin entries advances none of
@@ -14651,6 +14687,60 @@ function activeSkillCount(category){
   return skillKeysFor(category).filter(k=>st.draft[k] && st.draft[k].active).length;
 }
 
+/* EVERY LADDER AT ONCE, ABOVE THE ONE THE WHEEL IS ON.
+
+   The picker shows a single skill and asks you to spin to see any other, so the nine trees
+   are a collection you can only ever read one row of. This is the same data as one strip per
+   tree: cells for levels, filled to where you are, your current rung named beside it.
+
+   Deliberately NOT a grid of badges — that is where this idea usually turns into a wall. It
+   is nine rows of the app's own bar language, the same one the drill rows and the masthead
+   ticks already use, in the space the section already occupies. Tapping a row spins the wheel
+   to it, which also gives the wheel the random access it never had.
+
+   A gate is not a level. skillGateLevels is what the wheel's own badge counts from, so the
+   strip drops the gate rungs too and a ladder that opens with a prerequisite does not draw
+   you a cell into work you have not started. */
+function renderSkillBoard(category){
+  const ids = SKILL_PICKERS[category];
+  const el = ids && ids.board && document.getElementById(ids.board);
+  if(!el) return;
+  const st = skillPickerState[category];
+  const order = skillPickerOrder(category);
+  const here = order[st.index];
+  el.innerHTML = order.map(key=>{
+    const tree = PROGRESSION_TREES[category][key];
+    if(!tree) return '';
+    const gate = skillGateLevels(tree);
+    const rungs = Math.max(0, (tree.levels || []).length - gate);
+    const d = st.draft[key] || {};
+    // levelIndex counts from the ladder's own start, cells count from the first real rung.
+    const done = d.levelIndex == null ? 0 : Math.max(0, Math.min(rungs, d.levelIndex + 1 - gate));
+    const cells = Array.from({ length: rungs }, (_, i) =>
+      `<i class="${i < done ? 'on' : ''}"></i>`).join('');
+    /* Blank, not "not started". Ten trees you have never touched printed the same two words
+       ten times down the column, which is the exact mess this idea is supposed to avoid — an
+       empty strip already says it, and says it in one glance instead of ten readings. */
+    const rung = d.levelIndex == null ? '' : ((tree.levels || [])[d.levelIndex] || '');
+    return `<button type="button" class="skill-lane${key === here ? ' here' : ''}${d.active ? ' on' : ''}"
+        data-skill-key="${key}" aria-label="${tree.label}, ${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
+      <span class="skill-lane-name">${tree.label}</span>
+      <span class="skill-lane-cells">${cells}</span>
+      <span class="skill-lane-rung">${rung}</span></button>`;
+  }).join('');
+  if(!el.dataset.bound){
+    el.dataset.bound = '1';
+    el.addEventListener('click', e=>{
+      const lane = e.target.closest('.skill-lane');
+      if(!lane) return;
+      const at = skillPickerOrder(category).indexOf(lane.dataset.skillKey);
+      if(at < 0) return;
+      skillPickerState[category].index = at;
+      renderSkillPicker(category);
+    });
+  }
+}
+
 function renderSkillPicker(category){
   const ids = SKILL_PICKERS[category];
   const st = skillPickerState[category];
@@ -14693,6 +14783,7 @@ function renderSkillPicker(category){
         <span class="mob-wheel-score">${mark}</span>
       </div>`);
   }
+  renderSkillBoard(category);
   wheel.innerHTML = rows.join('') + `<div class="mob-wheel-focus-line"></div>`;
   wheel.style.setProperty('--mob-focus-row', wheelFocusRow);
   spinRipple('skill:' + category, wheel, st.index);
