@@ -26988,17 +26988,29 @@ async function blockSummaryHtml(block){
         // the row.
         const m = skillWorkFromName(ex.name);
         const cut = ex.name.indexOf(': ');
-        const movementName = m
+        const levelText = m
           ? (m.levelIndex != null ? m.tree.levels[m.levelIndex] : m.level)
           : (cut > 0 ? ex.name.slice(cut + 2) : ex.name);
-        // A gate placement is the one case where the row is NOT the skill you picked —
-        // it is the prerequisite standing in for it. With the label cut, "Full strict"
-        // under a Muscle-up goal would read as an unexplained substitution, so the row
-        // says whose entry condition it is.
-        // Past the gate the same thing happens for the opposite reason: the prerequisite
-        // is still there, but now it is the ability being held rather than the one being
-        // built toward, and "Full strict" under a Muscle-up goal reads as an unexplained
-        // substitution either way unless the row says which.
+        /* EXCEPT ON A PREREQUISITE ROW, WHERE THE LABEL IS THE POINT.
+
+           Cutting the label is right while the row IS the skill you picked: the SKILL box
+           and the goal group above both already say "Muscle-up", so "Muscle-up: Explosive
+           pull-up" says it a third time.
+
+           A gate or maintenance row is not that row. Its label is a DIFFERENT skill — the
+           prerequisite standing in for the one you picked — and cutting it left "Full
+           strict" and "Full ROM", which name no movement at all. The note underneath said
+           "what Muscle-up is built on", which answers what the row is FOR and never what
+           it IS. Two rows on the page, both unreadable, and the note reading as if it were
+           the explanation.
+
+           So the label stays on exactly those rows: "Pull-up: Full strict", "Dip: Full
+           ROM", each still carrying the note that says whose prerequisite it is. towardSkill
+           and maintainingFor are what mark them, the same pair the note keys off. */
+        const isPrereqRow = !!(ex.towardSkill || ex.maintainingFor);
+        const movementName = isPrereqRow
+          ? (m ? `${m.tree.label}: ${levelText}` : ex.name)
+          : levelText;
         const skillNote = ex.towardSkill
           ? [{ key:'Toward', text:`${ex.towardSkill} — its entry condition` }]
           : ex.maintainingFor
