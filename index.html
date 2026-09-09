@@ -1502,6 +1502,18 @@
      the tag is fixed and pinned right. On the ten ladders you have not started the rung is
      blank, so the tag sits alone against the edge and the column reads as a difficulty
      scale down the set. */
+  /* The rank the wheel used to carry, now on the lane it belongs to. */
+  .skill-lane-name .skill-rank{ margin-right:5px; }
+  /* The way back to the full ladder. A link, not a button: it reveals reference material
+     rather than doing anything, and a filled control here would out-weigh the rungs above
+     it — which are the thing you came to tap. */
+  .mob-check-more{ display:block; width:100%; height:auto; margin-top:6px; padding:7px 0;
+    background:transparent; border:0; border-top:1px solid var(--hair); border-radius:0;
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58);
+    text-align:left; cursor:pointer; }
+  .mob-check-more:hover{ color:var(--bg); }
+  .mob-check-more:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
   .skill-lane-end{ display:flex; align-items:center; gap:8px; min-width:0; }
   /* The rung you are on, in the quiet ink the doses use — 6.61 dark, 4.72 bone. */
   .skill-lane-rung{ flex:1; min-width:0; font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.58);
@@ -4161,9 +4173,8 @@
             <div class="mobility-legend-body">Pull-up, push-up, pistol, dip and handstand come from coaching consensus. Muscle-up is our own extension, marked with an asterisk.</div>
           </details>
           <div id="strengthSkillPicker">
-            <!-- The whole ladder set, above the wheel that shows one at a time. -->
+            <!-- The whole ladder set. It IS the picker: tap a lane to select that skill. -->
             <div class="skill-board" id="strengthSkillBoard"></div>
-            <div class="mob-wheel" id="strengthSkillWheel"></div>
             <label class="skill-active-row" for="strengthSkillActive">
               <input type="checkbox" id="strengthSkillActive">
               <span id="strengthSkillActiveLabel">Working on this</span>
@@ -4184,9 +4195,8 @@
             <div class="mobility-legend-body">Pike, bridge and the splits are verified against real studies. Pancake, deep squat and overhead squat are our own extensions, marked with an asterisk.</div>
           </details>
           <div id="mobilitySkillPicker">
-            <!-- The whole ladder set, above the wheel that shows one at a time. -->
+            <!-- The whole ladder set. It IS the picker: tap a lane to select that skill. -->
             <div class="skill-board" id="mobilitySkillBoard"></div>
-            <div class="mob-wheel" id="mobilitySkillWheel"></div>
             <label class="skill-active-row" for="mobilitySkillActive">
               <input type="checkbox" id="mobilitySkillActive">
               <span id="mobilitySkillActiveLabel">Working on this</span>
@@ -9886,7 +9896,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.447';
+const APP_VERSION = '2026.09.09.448';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10058,6 +10068,7 @@ const APP_NOTES = {
   '2026.09.09.445': 'A skill says how far the top of its ladder is at the rate you are going.',
   '2026.09.09.446': 'The mark sleeps on a rest day and when you wander off \u2014 shut eyes, and z\u2019s.',
   '2026.09.09.447': 'Skills run easiest to hardest, each with how hard it is.',
+  '2026.09.09.448': 'The skill sections are half the length \u2014 the board is the picker now.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14837,7 +14848,8 @@ function renderSkillBoard(category){
   const el = ids && ids.board && document.getElementById(ids.board);
   if(!el) return;
   const st = skillPickerState[category];
-  const here = skillPickerOrder(category)[st.index];
+  const picked = skillPickerOrder(category);
+  const here = picked[st.index];
   el.innerHTML = skillTierOrder(category).map(key=>{
     const tree = PROGRESSION_TREES[category][key];
     if(!tree) return '';
@@ -14858,7 +14870,8 @@ function renderSkillBoard(category){
       : '';
     return `<button type="button" class="skill-lane${key === here ? ' here' : ''}${d.active ? ' on' : ''}"
         data-skill-key="${key}" aria-label="${tree.label}, ${tier ? tier.word.toLowerCase() + ', ' : ''}${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
-      <span class="skill-lane-name">${tree.label}</span>
+      <span class="skill-lane-name">${d.active
+        ? `<span class="skill-rank">${picked.indexOf(key) + 1}</span>` : ''}${tree.label}</span>
       <span class="skill-lane-cells">${cells}</span>
       <span class="skill-lane-end"><span class="skill-lane-rung">${rung}</span>${tag}</span></button>`;
   }).join('');
@@ -14878,49 +14891,26 @@ function renderSkillBoard(category){
 function renderSkillPicker(category){
   const ids = SKILL_PICKERS[category];
   const st = skillPickerState[category];
-  const wheel = document.getElementById(ids.wheel);
   const levels = document.getElementById(ids.levels);
   const activeBox = document.getElementById(ids.active);
   const activeLabel = document.getElementById(ids.activeLabel);
   const note = document.getElementById(ids.note);
-  if(!wheel || !levels || !activeBox) return;
+  if(!levels || !activeBox) return;
   if(!Object.keys(st.draft).length) seedSkillPicker(category, []);
 
   const order = skillPickerOrder(category);
   st.index = Math.max(0, Math.min(order.length-1, st.index));
 
-  // Same clamped three-row window as the assessment wheel: at the top or bottom of the list
-  // the window slides instead of reserving a blank row.
-  const WHEEL_ROWS = 3;
-  const wheelStart = Math.max(0, Math.min(st.index - 1, order.length - WHEEL_ROWS));
-  const wheelFocusRow = st.index - wheelStart;
-  const rows = [];
-  for(let i = wheelStart; i < wheelStart + WHEEL_ROWS; i++){
-    const offset = i - st.index;
-    const key = order[i];
-    if(!key){ rows.push(`<div class="mob-wheel-item" style="opacity:0;" aria-hidden="true"></div>`); continue; }
-    const tree = PROGRESSION_TREES[category][key];
-    const d = st.draft[key];
-    // A numbered badge for the two you are training, so which is first and which is second
-    // is on the face of the wheel. Anything else shows its level if you have set one, and
-    // nothing at all if you have not.
-    // Levels count from the first REAL rung, so a skill whose ladder opens with a gate
-    // does not report you a level into work you have not started.
-    const gate = skillGateLevels(PROGRESSION_TREES[category][key]);
-    const mark = d.active
-      ? `<span class="skill-rank">${order.indexOf(key)+1}</span>`
-      : ((d.levelIndex == null || d.levelIndex < gate) ? '' : `L${d.levelIndex+1-gate}`);
-    rows.push(`
-      <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
-           style="opacity:${offset===0?1:0.5};">
-        <span class="mob-wheel-name">${tree.label}</span>
-        <span class="mob-wheel-score">${mark}</span>
-      </div>`);
-  }
+  /* THE WHEEL IS GONE. It showed one skill in a three-row window and asked you to spin for
+     any other; the board above shows all thirteen at once, selects on a tap, and carries the
+     difficulty tag as well. Everything the wheel did the board does, and better — two
+     selectors for one job is what was making this section long. Measured open at 390: the
+     wheel was 114px of the strength section's 1071.
+
+     bindSkillPickerDrag stays and is inert: it only acts on a pointer inside the wheel
+     element, and there is no longer one. The .mob-wheel component itself is untouched — the
+     Mobility Assessment still uses it. */
   renderSkillBoard(category);
-  wheel.innerHTML = rows.join('') + `<div class="mob-wheel-focus-line"></div>`;
-  wheel.style.setProperty('--mob-focus-row', wheelFocusRow);
-  spinRipple('skill:' + category, wheel, st.index);
 
   const key = order[st.index];
   const tree = PROGRESSION_TREES[category][key];
@@ -14952,7 +14942,28 @@ function renderSkillPicker(category){
     const t2 = PROGRESSION_TREES[category][n.skill];
     return t2 ? t2.label : n.skill;
   }).join(', ');
+  /* ONLY WHERE YOU ARE AND WHAT IS NEXT, UNLESS YOU ASK FOR THE REST.
+
+     Nine rungs, each with its own target line, is 414px — the largest single thing in this
+     section and more than the board and the old wheel put together. It is also more than the
+     question needs: you tick the hardest level you can do, so what you want on screen is the
+     rung you are on and the one above it. The rest is reference.
+
+     Gates always show. They are the entry condition, there are never more than a couple, and
+     a ladder you cannot start yet is exactly the case where the reason has to be visible.
+
+     The expansion is per skill, not sticky: pick another skill and it closes again, because
+     "show all" was an answer to a question about the skill you were looking at then. */
+  const showAll = st.showAllFor === key;
+  const shownIdx = i => {
+    if(i < gateCount) return true;
+    if(showAll) return true;
+    if(d.levelIndex == null) return i === gateCount;
+    return i === d.levelIndex || i === d.levelIndex + 1;
+  };
+  const hiddenCount = tree.levels.filter((_, i)=> !shownIdx(i)).length;
   levels.innerHTML = tree.levels.map((name, i)=>{
+    if(!shownIdx(i)) return '';
     const det = tree.levelDetails && tree.levelDetails[i];
     const target = det && det.holdOrRepTarget ? ` <span class="skill-level-target">${det.holdOrRepTarget}</span>` : '';
     if(i < gateCount){
@@ -14975,7 +14986,13 @@ function renderSkillPicker(category){
       <span class="mob-check-num">${i+1-gateCount}</span>
       <span class="mob-check-text">${name}${target}</span>
     </div>`;
-  }).join('');
+  }).join('')
+    /* Drawn when something is hidden OR when it is open — hiddenCount is 0 once everything
+       is showing, so keying only off that removed the one control that closes it again. */
+    + ((hiddenCount || showAll)
+        ? `<button type="button" class="mob-check-more" data-more="1">`
+          + `${showAll ? 'Show less' : 'Show all ' + skillLadderTotal(tree) + ' levels'}</button>`
+        : '');
 
   if(category === 'exercise') renderExerciseProgression(); else renderMobilityProgression();
   /* One line grew four middot-joined clauses by accretion — instruction, count, sourcing,
@@ -14994,6 +15011,11 @@ function renderSkillPicker(category){
   }
   paintSkillSummary(category);
 
+  const moreBtn = levels.querySelector('.mob-check-more');
+  if(moreBtn) moreBtn.addEventListener('click', ()=>{
+    st.showAllFor = (st.showAllFor === key) ? null : key;
+    renderSkillPicker(category);
+  });
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
     row.addEventListener('click', ()=>{
       const lvl = parseInt(row.dataset.level, 10);

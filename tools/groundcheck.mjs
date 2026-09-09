@@ -83,6 +83,13 @@ await p.waitForTimeout(400);
 // because a pass that silently applied none is a pass that proves nothing.
 const applyStates = `(()=>{
   let n = 0;
+  // The skill ladders open on the rung you are on and the one above it, with the rest behind
+  // "show all". A walk of the page therefore never saw the other seven, and the states pass
+  // that ticks them dropped from 40 rows to 16 the day that landed. Expanded first, so the
+  // whole ladder is measured rather than the two rungs that happen to be showing.
+  document.querySelectorAll('.mob-check-more').forEach(b=>{
+    if(/show all/i.test(b.textContent || '')){ b.click(); n++; }
+  });
   document.querySelectorAll('.mob-check-row:not(.done):not(.prereq)').forEach(r=>{ r.classList.add('done'); n++; });
   const btn = document.getElementById('clearAllWeekBtn') || document.getElementById('clearAllDataBtn');
   if(btn && typeof confirmInPlace === 'function' && btn.dataset.arming !== '1'){
