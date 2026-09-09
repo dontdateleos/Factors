@@ -238,23 +238,6 @@
     --block-yellow:#e4be3a;
     --block-purple:#c4acff;
     --block-red:#ff7055;
-    /* THE STAGE PALETTE. One hue per stage of the session, in two families: the warm-up runs
-       warm, the cool-down runs cool, and the session's own rows take the tab's lime between
-       them. Within a family the hue steps, so ROLL / HOLD / PNF are told apart at a glance
-       and still read as one kind of thing.
-       As triples, not hex: the plate is the hue at an alpha over whatever surface the row
-       sits on — the tinted field under a drill, the plain ground under a plan row — so one
-       value covers both without knowing which. (It is also what groundcheck can parse; it
-       reads rgb()/rgba() and skips color-mix()'s color(srgb ...) form.)
-       Three of the six are block hues restated as triples; three are new. Red is deliberately
-       not here — it means injury everywhere else in the app, and a red PNF reads as a warning.
-       An unmapped stage falls back to the session lime, which is safe on both grounds. */
-    --stage-raise:240,169,60;    /* amber  — new */
-    --stage-prime:228,190,58;    /* --block-yellow */
-    --stage-session:195,211,83;  /* --block-lime, and the fallback */
-    --stage-roll:111,227,224;    /* cyan   — new */
-    --stage-hold:82,216,247;     /* --block-blue */
-    --stage-pnf:169,166,255;     /* violet — new */
     /* The same five hues at 8% over the page's black. The tab colour stops being a
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
@@ -1205,26 +1188,20 @@
   .plan-item.has-lead > .plan-key{ position:absolute; left:calc(100% - var(--stage-gutter));
     right:auto; top:50%; transform:translateY(-50%); margin-right:0; }
 
-  /* THE STAGE PALETTE, APPLIED. The plate is the stage's hue at an alpha over the row's own
-     surface, with the hue itself as the type. data-stage is what selects the hue, and it is
-     also what tells a gutter plate from an inline .plan-key — the Skill/Test leads carry it,
-     the High/Moderate/Low keys in Help and the ones inside .plan-line do not, and those stay
-     the black tag they have always been.
-     Two alphas, because the two grounds are not symmetric. On dark the hue is lighter than
-     the field, so 18% is already a visible chip and the hue reads as type on top of it. On
-     bone the hue is lighter than the ink but darker than the page, so the fill has to work
-     harder (45%) and the type goes to near-black rather than the hue. Measured: chip steps
-     1.42-1.56 dark and 1.16-1.33 bone, type 5.16-6.74 and 12.94-14.86. */
-  .drill-stage, .plan-item.has-lead > .plan-key{ --fam-rgb:var(--stage-session); }
-  [data-stage="RAISE"]{ --fam-rgb:var(--stage-raise); }
-  [data-stage="PRIME"]{ --fam-rgb:var(--stage-prime); }
-  [data-stage="ROLL"] { --fam-rgb:var(--stage-roll); }
-  [data-stage="HOLD"] { --fam-rgb:var(--stage-hold); }
-  [data-stage="PNF"]  { --fam-rgb:var(--stage-pnf); }
-  .plan-item.has-lead > .plan-key[data-stage]{
-    background:rgba(var(--fam-rgb), 0.18); color:rgb(var(--fam-rgb)); }
-  html[data-ground="bone"] :is(.drill-stage, .plan-item.has-lead > .plan-key[data-stage]){
-    background:rgba(var(--fam-rgb), 0.45); color:var(--bg); }
+  /* THE PLATE, AGAINST THE GROUND. --bg is the ink and --ground the page, and both already
+     flip: cream on black, near-black on bone. So the plate painted --bg with --ground as its
+     type is white on dark and black on bone by construction, with no second rule for the
+     other ground and no hue to keep in step with anything. 18.65:1 either way.
+     What it replaces is --reverse-bg, which was a FIXED near-black — the dark ground's own
+     colour, so on dark the plate measured 1.22:1 against the field and there was no plate at
+     all, only floating text. The fill has to follow the ground; that is the whole of it.
+     data-stage no longer picks a colour, but it still earns its place: it is what tells a
+     gutter plate from an inline .plan-key. The Skill/Test leads carry it, the High/Moderate/
+     Low keys in Help and the ones inside .plan-line do not, and those stay the black tag they
+     have always been — there the key is the subject of the sentence, not a tag on it. It is
+     also why the reverse-pocket list still reads .plan-key:not([data-stage]): these two set
+     both their colours from ground-flipping tokens, so pocketing them would flip them twice. */
+  .plan-item.has-lead > .plan-key[data-stage]{ background:var(--bg); color:var(--ground); }
 
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
@@ -2925,7 +2902,7 @@
   .drill-stage{ display:inline-block; vertical-align:baseline; margin-right:9px;
     font-family:var(--mono); font-size:9.5px; font-weight:var(--fw-bold);
     letter-spacing:0.09em; text-transform:uppercase;
-    background:rgba(var(--fam-rgb), 0.18); color:rgb(var(--fam-rgb)); padding:4px 6px; }
+    background:var(--bg); color:var(--ground); padding:4px 6px; }
   .drill-stage:empty{ display:none; }
   /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
      exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
