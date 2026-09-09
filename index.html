@@ -867,7 +867,21 @@
      Today keeps its numbers: 01/02/03 there are the order you do the session in, which is
      a real sequence rather than a tally of rows. */
   #panel-settings .group-head::before{ content:none; }
-  .group-head .collapse-chevron{ order:1; flex:none; }
+  /* ONE COLUMN FOR THE CHEVRONS.
+
+     The auto margin that pushes the right-hand group over lives on .head-est, and .head-est
+     is display:none when empty and absent altogether on some rows. So a row with no summary
+     had nothing pushing its chevron anywhere and it fell back against the title. Measured
+     down Settings: seven distinct left edges — 32, 102, 118, 160, 193, 226, 361 — for what
+     is the same control on every row, and Weekly's "Why this week" loose at 193.
+
+     The auto moves to the chevron, which is the last thing in the row and therefore the one
+     that should own the free space. When a real summary precedes it, that summary's own auto
+     has already taken the space and the chevron only needs its gap — two autos would split
+     the space between them and leave the summary stranded mid-row. Down to one edge, 361,
+     on every tab. */
+  .group-head .collapse-chevron{ order:1; flex:none; margin-left:auto; }
+  .group-head .head-est:not(:empty) ~ .collapse-chevron{ margin-left:10px; }
   /* A section you OPEN gets a chevron; a test you TAKE gets a button that says so. The
      mobility screen is the second kind — it is not content to read, it is a thing you sit
      down and do — and it used to announce itself by springing open on its own whenever it
@@ -9629,7 +9643,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.435';
+const APP_VERSION = '2026.09.09.436';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9789,6 +9803,7 @@ const APP_NOTES = {
   '2026.08.31.392': 'The mark\u2019s eye is a machined slot in a bezel now, not a shape on a ball.',
   '2026.08.31.393': 'The mark\u2019s lids are plates that slide across the opening, not cuts in it.',
   '2026.09.09.435': 'Settings reads as four sections, the mark stops sitting on the tab\u2019s name, and the version below is finally the one you are running.',
+  '2026.09.09.436': 'Every section\u2019s open-arrow sits in one column instead of wherever the row left it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
