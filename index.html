@@ -9793,7 +9793,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.443';
+const APP_VERSION = '2026.09.09.444';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9961,6 +9961,7 @@ const APP_NOTES = {
   '2026.09.09.441': 'A lift within reach of your best says how far off it is.',
   '2026.09.09.442': 'Why the score moved opens with what actually moved it.',
   '2026.09.09.443': 'Every skill ladder at once, above the wheel \u2014 tap one to spin to it.',
+  '2026.09.09.444': 'Sunday review ranks the week, compares it to the last block, and closes the block.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -20478,6 +20479,136 @@ async function buildWeekReview(dates){
    the colour is the fast read and the label is the one that survives a screen reader and a
    colour-blind eye. */
 const WR_STATUS_WORD = { ahead: 'ahead of target', on: 'on target', below: 'short of target' };
+/* WHERE THIS WEEK SITS IN THE BLOCK, AND WHAT THE SAME WEEK LOOKED LIKE LAST TIME.
+
+   Block history already draws blocks as bars and reports a per-block volume delta. What it
+   cannot answer is the question you actually have on a Sunday: is this week better than the
+   equivalent week last time round. Comparing week 3 of a block against week 3 of the last one
+   is a fair comparison in a way that "this week versus last week" is not — a deload week and
+   a peak week are not the same test, and a block is exactly the structure that says which is
+   which.
+
+   Volume is totalVolume where a session recorded it, which is the same field Block history
+   sums. A week with none logged has nothing to compare and says so rather than reporting 0.
+
+   Weeks are counted from the block's own start, not from the calendar, so week 1 is the first
+   week of the block wherever Monday happens to fall. */
+async function weekInBlockComparison(dates){
+  try{
+    const cfg = await getBlockConfig();
+    if(!cfg || !cfg.anchor || !cfg.length) return null;
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const blockMs = cfg.length * WEEK_MS;
+    const anchorMs = new Date(cfg.anchor).getTime();
+    const weekStart = new Date(dates[0] + 'T00:00:00').getTime();
+    if(!isFinite(anchorMs) || !isFinite(weekStart)) return null;
+    const blockIdx = Math.floor((weekStart - anchorMs) / blockMs);
+    const weekOfBlock = Math.floor(((weekStart - anchorMs) - blockIdx * blockMs) / WEEK_MS);
+    const prevStart = weekStart - blockMs;
+    const prevEnd = prevStart + WEEK_MS;
+    const sessions = await getAllTrainingSessions();
+    const span = (from, to) => {
+      const inSpan = sessions.filter(sn=>{
+        if(!sn || !sn.date) return false;
+        const t = new Date(sn.date + 'T00:00:00').getTime();
+        return t >= from && t < to;
+      });
+      return { sessions: inSpan.length,
+               volume: Math.round(inSpan.reduce((a, sn)=> a + (sn.totalVolume || 0), 0)) };
+    };
+    const now = span(weekStart, weekStart + WEEK_MS);
+    const prev = span(prevStart, prevEnd);
+    return { weekOfBlock: weekOfBlock + 1, blockWeeks: cfg.length, now, prev,
+             hadPrev: prev.sessions > 0 };
+  }catch(e){ return null; }
+}
+
+/* HOW THIS WEEK RANKS AGAINST EVERY WEEK BEFORE IT.
+
+   Idea 4, on the surface that exists for it. Not a percentile printed as a number — "your
+   biggest week in 9 weeks" is the same fact and is a sentence rather than a statistic. Only
+   drawn when it actually places in the top few, because a week that ranks fourteenth is not
+   news and printing its rank every Sunday would make the one that matters unreadable.
+
+   Counts back to the last week that beat it, which is what "in N weeks" means and is more
+   useful than a position in a list: it names the gap since you last did this well. */
+async function weekVolumeRank(dates){
+  try{
+    const sessions = await getAllTrainingSessions();
+    if(!sessions.length) return null;
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const weekStart = new Date(dates[0] + 'T00:00:00').getTime();
+    const volAt = start => Math.round(sessions.reduce((a, sn)=>{
+      if(!sn || !sn.date) return a;
+      const t = new Date(sn.date + 'T00:00:00').getTime();
+      return (t >= start && t < start + WEEK_MS) ? a + (sn.totalVolume || 0) : a;
+    }, 0));
+    const thisWeek = volAt(weekStart);
+    if(!thisWeek) return null;
+    const earliest = Math.min(...sessions.filter(s=>s && s.date)
+      .map(s=>new Date(s.date + 'T00:00:00').getTime()));
+    let back = 0;
+    for(let w = 1; w <= 260; w++){
+      const start = weekStart - w * WEEK_MS;
+      if(start + WEEK_MS <= earliest) break;
+      if(volAt(start) >= thisWeek) break;
+      back = w;
+    }
+    return { volume: thisWeek, back };
+  }catch(e){ return null; }
+}
+
+/* WHAT THE BLOCK ADDED UP TO. Sessions, load, the best single week inside it, and how many
+   lifts finished it heavier than they had ever been. The records count walks each lift's own
+   history rather than the block's, because "a new best" means best ever and a block-local
+   maximum is just the heaviest thing you did recently. */
+async function closeBlockSummary(dates){
+  try{
+    const cfg = await getBlockConfig();
+    if(!cfg || !cfg.anchor || !cfg.length) return null;
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const blockMs = cfg.length * WEEK_MS;
+    const end = new Date(dates[6] + 'T00:00:00').getTime() + 24 * 60 * 60 * 1000;
+    const start = end - blockMs;
+    const sessions = (await getAllTrainingSessions()).filter(sn=>{
+      if(!sn || !sn.date) return false;
+      const t = new Date(sn.date + 'T00:00:00').getTime();
+      return t >= start && t < end;
+    });
+    if(!sessions.length) return null;
+    const volume = Math.round(sessions.reduce((a, sn)=> a + (sn.totalVolume || 0), 0));
+    let bestWeek = 0;
+    for(let w = 0; w < cfg.length; w++){
+      const ws = start + w * WEEK_MS;
+      const v = Math.round(sessions.reduce((a, sn)=>{
+        const t = new Date(sn.date + 'T00:00:00').getTime();
+        return (t >= ws && t < ws + WEEK_MS) ? a + (sn.totalVolume || 0) : a;
+      }, 0));
+      if(v > bestWeek) bestWeek = v;
+    }
+    // Best ever before this block, per lift, so a record inside it is a record full stop.
+    const all = await getAllTrainingSessions();
+    const beforeBest = {};
+    all.forEach(sn=>{
+      if(!sn || !sn.date) return;
+      const t = new Date(sn.date + 'T00:00:00').getTime();
+      if(t >= start) return;
+      (sn.exercises || []).forEach(e=>{
+        if(!e || !e.name || !e.weight) return;
+        const k = exHistKey(e.name);
+        if(!beforeBest[k] || e.weight > beforeBest[k]) beforeBest[k] = e.weight;
+      });
+    });
+    const beaten = new Set();
+    sessions.forEach(sn=> (sn.exercises || []).forEach(e=>{
+      if(!e || !e.name || !e.weight) return;
+      const k = exHistKey(e.name);
+      if(beforeBest[k] && e.weight > beforeBest[k]) beaten.add(k);
+    }));
+    return { sessions: sessions.length, volume, bestWeek, records: beaten.size };
+  }catch(e){ return null; }
+}
+
 function weekReviewRow(label, text, lines, status){
   const flag = status
     ? `<span class="wr-flag ${status}" role="img" aria-label="${WR_STATUS_WORD[status]}"></span>`
@@ -20553,6 +20684,51 @@ async function renderWeekReview(){
     !r.areasTouched ? 'below'
       : r.areasAtTarget < r.areasTouched ? 'below'
       : r.stretchTotal >= r.areasTouched * r.stretchTarget * 1.25 ? 'ahead' : 'on'));
+
+  /* IDEA 4 — where this week places among all of them. Only when it places: a week that
+     ranks fourteenth is not news, and printing a rank every Sunday would bury the one that
+     matters. "Your biggest week in 9 weeks" is the same fact as a percentile and is a
+     sentence instead of a statistic. */
+  const rank = await weekVolumeRank(when.dates);
+  if(rank && rank.back >= 2){
+    rows.push(weekReviewRow('Volume',
+      `your biggest week in ${rank.back} weeks`,
+      [ `${rank.volume.toLocaleString()}kg of load logged` ],
+      'ahead'));
+  }
+
+  /* IDEA 6 — the same week of the last block, which is the only fair comparison the calendar
+     offers. Week 3 against week 3: a deload week and a peak week are not the same test, and
+     the block is the structure that says which is which. Reported, not graded — the review's
+     stated job — so a week below its counterpart carries no flag rather than a red one. */
+  const wib = await weekInBlockComparison(when.dates);
+  if(wib && wib.hadPrev){
+    const dv = wib.now.volume - wib.prev.volume;
+    const pct = wib.prev.volume > 0 ? Math.round((dv / wib.prev.volume) * 100) : null;
+    rows.push(weekReviewRow('Last block',
+      `week ${wib.weekOfBlock} of ${wib.blockWeeks}, against the same week last block`,
+      [ `${wib.now.sessions} session${wib.now.sessions === 1 ? '' : 's'} then ${wib.prev.sessions}`,
+        (wib.now.volume && wib.prev.volume)
+          ? `${wib.now.volume.toLocaleString()}kg then ${wib.prev.volume.toLocaleString()}kg`
+            + (pct === null ? '' : ` \u00b7 ${pct >= 0 ? '+' : ''}${pct}%`)
+          : null ],
+      null));
+  }
+
+  /* IDEA 19 — the block gets an ending. The app's own note above says it is "entirely
+     forward-facing"; blocks already exist and already end, and nothing has ever said so. Only
+     on the last week of one, which is the week the ending belongs to. */
+  if(wib && wib.weekOfBlock === wib.blockWeeks){
+    const closed = await closeBlockSummary(when.dates);
+    if(closed){
+      rows.push(weekReviewRow('Block closed',
+        `${closed.sessions} session${closed.sessions === 1 ? '' : 's'} over ${wib.blockWeeks} weeks`,
+        [ closed.volume ? `${closed.volume.toLocaleString()}kg of load` : null,
+          closed.bestWeek ? `best week ${closed.bestWeek.toLocaleString()}kg` : null,
+          closed.records ? `${closed.records} lift${closed.records === 1 ? '' : 's'} at a new best` : null ],
+        'on'));
+    }
+  }
 
   // A skill the progression says you are ready to move up on is the one thing here that is
   // genuinely ahead of where it was asked to be.
