@@ -238,6 +238,23 @@
     --block-yellow:#e4be3a;
     --block-purple:#c4acff;
     --block-red:#ff7055;
+    /* THE STAGE PALETTE. One hue per stage of the session, in two families: the warm-up runs
+       warm, the cool-down runs cool, and the session's own rows take the tab's lime between
+       them. Within a family the hue steps, so ROLL / HOLD / PNF are told apart at a glance
+       and still read as one kind of thing.
+       As triples, not hex: the plate is the hue at an alpha over whatever surface the row
+       sits on — the tinted field under a drill, the plain ground under a plan row — so one
+       value covers both without knowing which. (It is also what groundcheck can parse; it
+       reads rgb()/rgba() and skips color-mix()'s color(srgb ...) form.)
+       Three of the six are block hues restated as triples; three are new. Red is deliberately
+       not here — it means injury everywhere else in the app, and a red PNF reads as a warning.
+       An unmapped stage falls back to the session lime, which is safe on both grounds. */
+    --stage-raise:240,169,60;    /* amber  — new */
+    --stage-prime:228,190,58;    /* --block-yellow */
+    --stage-session:195,211,83;  /* --block-lime, and the fallback */
+    --stage-roll:111,227,224;    /* cyan   — new */
+    --stage-hold:82,216,247;     /* --block-blue */
+    --stage-pnf:169,166,255;     /* violet — new */
     /* The same five hues at 8% over the page's black. The tab colour stops being a
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
@@ -528,7 +545,7 @@
      is a plain outline. Unarmed on bone it read black-on-black: the fill is fixed near-black
      and the ink is --bg, which on bone IS near-black until this line moves it. */
   html[data-ground="bone"] :is(
-    .rating-btn.active, .evidence-badge.strong, .plan-key, .ss-tag, .drill-stage,
+    .rating-btn.active, .evidence-badge.strong, .plan-key:not([data-stage]), .ss-tag,
     .update-banner, .lift-sheet-panel, .morning-panel, .goal-row-panel,
     .rpe-scale .subj-dot.on, .rest-preset.on, .confirm-armed
   ){
@@ -1187,6 +1204,27 @@
   .plan-item.has-lead{ padding-right:var(--stage-gutter); }
   .plan-item.has-lead > .plan-key{ position:absolute; left:calc(100% - var(--stage-gutter));
     right:auto; top:50%; transform:translateY(-50%); margin-right:0; }
+
+  /* THE STAGE PALETTE, APPLIED. The plate is the stage's hue at an alpha over the row's own
+     surface, with the hue itself as the type. data-stage is what selects the hue, and it is
+     also what tells a gutter plate from an inline .plan-key — the Skill/Test leads carry it,
+     the High/Moderate/Low keys in Help and the ones inside .plan-line do not, and those stay
+     the black tag they have always been.
+     Two alphas, because the two grounds are not symmetric. On dark the hue is lighter than
+     the field, so 18% is already a visible chip and the hue reads as type on top of it. On
+     bone the hue is lighter than the ink but darker than the page, so the fill has to work
+     harder (45%) and the type goes to near-black rather than the hue. Measured: chip steps
+     1.42-1.56 dark and 1.16-1.33 bone, type 5.16-6.74 and 12.94-14.86. */
+  .drill-stage, .plan-item.has-lead > .plan-key{ --fam-rgb:var(--stage-session); }
+  [data-stage="RAISE"]{ --fam-rgb:var(--stage-raise); }
+  [data-stage="PRIME"]{ --fam-rgb:var(--stage-prime); }
+  [data-stage="ROLL"] { --fam-rgb:var(--stage-roll); }
+  [data-stage="HOLD"] { --fam-rgb:var(--stage-hold); }
+  [data-stage="PNF"]  { --fam-rgb:var(--stage-pnf); }
+  .plan-item.has-lead > .plan-key[data-stage]{
+    background:rgba(var(--fam-rgb), 0.18); color:rgb(var(--fam-rgb)); }
+  html[data-ground="bone"] :is(.drill-stage, .plan-item.has-lead > .plan-key[data-stage]){
+    background:rgba(var(--fam-rgb), 0.45); color:var(--bg); }
 
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
@@ -2887,7 +2925,7 @@
   .drill-stage{ display:inline-block; vertical-align:baseline; margin-right:9px;
     font-family:var(--mono); font-size:9.5px; font-weight:var(--fw-bold);
     letter-spacing:0.09em; text-transform:uppercase;
-    background:var(--reverse-bg); color:var(--dim); padding:4px 6px; }
+    background:rgba(var(--fam-rgb), 0.18); color:rgb(var(--fam-rgb)); padding:4px 6px; }
   .drill-stage:empty{ display:none; }
   /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
      exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
@@ -26978,7 +27016,7 @@ async function blockSummaryHtml(block){
           ? [{ key:'Keeping', text:`what ${ex.maintainingFor} is built on` }]
           : null;
         rows.push(planRow(movementName, ex.prescription || 'easy sets', skillNote,
-          { lead: '<span class="plan-key">Skill</span>' }));
+          { lead: '<span class="plan-key" data-stage="SKILL">Skill</span>' }));
         continue;
       }
       const arrow = progression.action==='add_weight' ? ' ↑' : '';
@@ -27105,14 +27143,14 @@ async function blockSummaryHtml(block){
           // which named the same session twice and buried the one line you act on. The
           // skill is what the GOAL group is; the movement is what you do about it today.
           const rows = [ planRow(main.name, mobilityDoseLabel(main), null,
-            { lead: '<span class="plan-key">Skill</span>' }) ];
+            { lead: '<span class="plan-key" data-stage="SKILL">Skill</span>' }) ];
           // The readiness test is separate work you also do today, so it keeps a row —
           // labelled, because clearing it is what moves the level.
           if(test){
             const tree = PROGRESSION_TREES.mobility[main.skill];
             const nextName = test.nextLevelLabel || (tree && tree.levels && tree.levels[main.levelIndex+1]) || test.name;
             rows.push(planRow(nextName, mobilityDoseLabel(test), null,
-              { lead: '<span class="plan-key">Test</span>' }));
+              { lead: '<span class="plan-key" data-stage="TEST">Test</span>' }));
           }
           return rows.join('');
         });
@@ -29443,7 +29481,7 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-stage">${stageLabel(it.group)}</span>`
+      + `<span class="drill-stage" data-stage="${String(it.group || '').toUpperCase()}">${stageLabel(it.group)}</span>`
       + `<span class="drill-text">${it.prose ? it.html : drillDoseSplit(tighten(dropStageWord(it.html, it.group)))}`
       + `${uiAnim('strikeThrough') ? '<span class="drill-strike"></span>' : ''}</span></button>`;
   }).join('');
