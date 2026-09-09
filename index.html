@@ -9720,7 +9720,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.440';
+const APP_VERSION = '2026.09.09.441';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9885,6 +9885,7 @@ const APP_NOTES = {
   '2026.09.09.438': 'The mark no longer tears when you swipe between tabs.',
   '2026.09.09.439': 'A streak beside the tab\u2019s name \u2014 consecutive workouts done, ended by one missed.',
   '2026.09.09.440': 'Last session\u2019s numbers sit in the logging boxes until you type over them.',
+  '2026.09.09.441': 'A lift within reach of your best says how far off it is.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -27109,6 +27110,11 @@ async function blockSummaryHtml(block){
     if(!exercises.length) return '';
     const focus = block.details.plannedFocus;
     const focusInfo = focus && SESSION_FOCUS_INFO[focus];
+    /* exerciseHistory is what the gap below reads, and until now the only thing that filled
+       it was openBlockEditor — so on Today it was an empty object and every lookup came back
+       undefined. Loaded here with the same call and the same cutoff the editor uses; it reads
+       the sessions cache, so it costs a pass over data already in memory. */
+    await loadExerciseHistory(todayStr);
     const personalSets = await getPersonalSetsByCategory();
     const adjustment = await getTodayAdjustment();
     const movementFlags = await getInjuryMovementFlags();
@@ -27216,7 +27222,41 @@ async function blockSummaryHtml(block){
           + `<button class="ex-flag-btn accept" title="Apply" aria-label="Apply this change">✓</button>`
           + `<button class="ex-flag-btn reject" title="Leave it" aria-label="Leave it as planned">✕</button></div>`
         : (decision === 'declined' ? `<div class="ex-flag-done">Flag dismissed for today</div>` : '');
-      rows.push(planRow(ex.name, `${sets}×${repsLabel} @ ${weightLabel}${arrow}`,
+      /* THE GAP, ONLY WHEN IT IS A CONTEST.
+
+         Every row could carry the distance to your best for that lift, and every row carrying
+         it would be a second number on a page this session spent a while taking numbers off.
+         Forty kilos off is not information, it is noise; two and a half off is a reason to
+         try. So it shows only inside striking distance, which on a typical day is nought or
+         one row on the page — the rarity is what makes it read as a flag rather than
+         furniture.
+
+         "Striking distance" is TWO PROGRESSION STEPS, not a percentage. The app already knows
+         what a step is for this lift — progressionIncrementFor, 2.5kg lower body and 1.25
+         upper — so the threshold is the app's own model of how fast this lift moves rather
+         than a number picked to look reasonable. Two steps is "you could be there the session
+         after next", which is close enough to be worth chasing and far enough to be true.
+
+         A percentage was tried first and does not survive contact: the progression plans AT
+         your last weight, so planned-below-best only happens when the plan has deliberately
+         backed off — a deload, an injury flag, a lever cut — and in those cases the gap is
+         usually one or two steps exactly. 5% of an 85kg squat is 4.25, which fires or does
+         not fire depending on where the lift happens to sit rather than on anything real.
+
+         Nothing when the plan already meets or beats the record: that row is not chasing
+         anything and "0 off" is a worse sentence than silence. Nothing without history, and
+         nothing on ?kg, where there is no number to be short of. */
+      let gapNote = '';
+      const planned = progression.weight != null ? progression.weight : null;
+      const hist = exerciseHistory[exHistKey(ex.name)];
+      const best = hist ? Math.max(hist.bestBefore || 0, hist.weight || 0) : 0;
+      if(planned != null && best > 0 && planned < best){
+        const gap = best - planned;
+        if(gap <= progressionIncrementFor(ex.area, focusInfo) * 2){
+          gapNote = ` · ${Math.round(gap * 10) / 10} off`;
+        }
+      }
+      rows.push(planRow(ex.name, `${sets}×${repsLabel} @ ${weightLabel}${arrow}${gapNote}`,
         [ progression.note ? { key:'Progression', text: progression.note, caps: !!progression.noteCaps } : null ],
         { lead: ssTag, trail: dropTag, rowClass: ex.supersetGroup ? 'ss-row' : '', tag }));
     }
