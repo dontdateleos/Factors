@@ -7762,50 +7762,6 @@ function eyePerchSpot(){
   const size = 40 * EYE_PERCH_SCALE;   // the header form is 40px square
   return { left: textRight - br.left + 9, top: (lr.top - br.top) + (lr.height - size)/2 };
 }
-/* THE PERCH IS MEASURED OFF THE WORD, SO IT HAS TO BE RE-MEASURED WHEN THE WORD CHANGES.
-
-   updateHeaderCollapse is the only thing that writes the perched mark's position, and it
-   returns early while headerCollapseSuspended is set — which is exactly the window a tab
-   switch runs in. So the mark kept the spot it was given for the last word while the label
-   under it changed to a new one. Measured across the five tabs, with the mark parked at
-   Today's spot: Today ends at 67 and the mark starts at 76, Body and Data at 58, Weekly at
-   76 — touching — and Settings at 94, which puts 18px of the word under the mark. The
-   masthead read "SETTIN".
-
-   eyePerchSpot already returns the right answer for whatever the label says; nothing was
-   asking it again. This does, at the one moment the answer can change. It writes past the
-   suspend flag on purpose: that flag is there to stop scroll-driven collapse fighting a tab
-   transition, and this is neither. */
-/* eyeCtx.perched is not the whole test. It is set by the SCROLL collapse, and on every tab
-   but Today the mark is parked beside the word by moveEyes('header') instead — perched
-   reads false there while the mark is visibly in the perch, at scale(0.6), with a left
-   nothing re-writes. Guarding on perched alone therefore fixed exactly one tab and left the
-   mark a step behind on the rest. eyesHome === 'header' is the state that actually means
-   "the mark is beside the tab's name"; on Today with the score in view it is 'score' and
-   the mark belongs to the wordmark, which this must not touch. */
-function repositionPerch(){
-  if(typeof eyeCtx === 'undefined') return;
-  const inPerch = eyeCtx.perched
-    || (typeof eyesHome !== 'undefined' && eyesHome === 'header');
-  if(!inPerch) return;
-  const mark = document.querySelector('.header-mark');
-  const spot = eyePerchSpot();
-  if(!mark || !spot) return;
-  mark.style.left = spot.left + 'px';
-  mark.style.top = (spot.top + (typeof eyeSagPx === 'function' ? eyeSagPx() : 0)) + 'px';
-}
-function setTabLabel(text){
-  const lbl = document.getElementById('currentTabLabel');
-  if(!lbl || lbl.textContent === text) return;
-  lbl.textContent = text;
-  // Twice: now, and after the transition has settled. A switch can arrive with the mark
-  // momentarily unperched — it unperches, the label changes, it perches again — and the
-  // write that matters is the one on the far side of that, which is why doing this only at
-  // the moment of the change left the mark a tab behind (Weekly's spot under "Settings").
-  repositionPerch();
-  requestAnimationFrame(()=>{ repositionPerch();
-    requestAnimationFrame(repositionPerch); });
-}
 /* This was debounced by 90ms — and a debounce RESETS on every scroll event, so the perch did
    not fire 90ms into the scroll, it fired 90ms after the scroll STOPPED. Scroll continuously
    and the mark stayed where it was the whole way down, then moved once you let go. Add the
@@ -8657,7 +8613,7 @@ function activateTab(name, opts){
   const backdropEl = document.getElementById('scrollBackdrop');
   backdropEl.style.backgroundColor = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
   const tabButton = document.querySelector(`.tab[data-tab="${name}"]`);
-  if(tabButton) setTabLabel(tabButton.textContent);
+  if(tabButton) document.getElementById('currentTabLabel').textContent = tabButton.textContent;
   // Ahead of the scroll it is meant to cover, not after it.
   eyeScrollMuteUntil = Date.now() + 900;
   window.scrollTo(0, 0);
@@ -9098,7 +9054,7 @@ function activateTabViaUi(t){
     tb.setAttribute('aria-selected', isActive ? 'true' : 'false');
     if(isActive) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current');
   });
-  setTabLabel(t.textContent);
+  document.getElementById('currentTabLabel').textContent = t.textContent;
   noteTabTap(t);
   transitionToTab(t.dataset.tab);
 }
@@ -9643,7 +9599,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.436';
+const APP_VERSION = '2026.09.09.437';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9802,8 +9758,9 @@ const APP_NOTES = {
   '2026.08.31.391': 'The mark beside the score is lit like the one in the wordmark \u2014 one mark, two homes.',
   '2026.08.31.392': 'The mark\u2019s eye is a machined slot in a bezel now, not a shape on a ball.',
   '2026.08.31.393': 'The mark\u2019s lids are plates that slide across the opening, not cuts in it.',
-  '2026.09.09.435': 'Settings reads as four sections, the mark stops sitting on the tab\u2019s name, and the version below is finally the one you are running.',
+  '2026.09.09.435': 'Settings reads as four sections, and the version below is finally the one you are running.',
   '2026.09.09.436': 'Every section\u2019s open-arrow sits in one column instead of wherever the row left it.',
+  '2026.09.09.437': 'The mark sits still again \u2014 back in the wordmark on every tab.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
