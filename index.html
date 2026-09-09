@@ -953,6 +953,14 @@
   .src-tag.oura{ background:var(--block-purple); }
   .src-tag.garmin{ background:var(--block-blue); }
   .src-tag.secondary{ background:var(--accent-dim); color:var(--on-light); }
+  /* THE GHOST READS AS DATA, NOT AS A HINT. Everywhere else a placeholder is an instruction
+     ("sets", "kg") and belongs at hint weight. In the three logging fields it is last
+     session's own numbers, so it sits a step up from that — quiet enough to be obviously not
+     yours, solid enough to be read as a figure you are about to beat. */
+  /* --on-light's own value at 0.42. Written out because there is no rgb triple for it and
+     the input's fill is light on BOTH grounds, so this does not follow the ground. */
+  .log-fields-row input::placeholder{ color:rgba(12,13,11,0.42);
+    font-variant-numeric:tabular-nums; opacity:1; }
   input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; min-width:0; }
   /* A time input was never in the rule above, so it kept flex-basis auto and sized itself
      to its own picker — 102px in a column of 227px fields, one box visibly short of the
@@ -9712,7 +9720,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.439';
+const APP_VERSION = '2026.09.09.440';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9876,6 +9884,7 @@ const APP_NOTES = {
   '2026.09.09.437': 'The mark sits still again \u2014 back in the wordmark on every tab.',
   '2026.09.09.438': 'The mark no longer tears when you swipe between tabs.',
   '2026.09.09.439': 'A streak beside the tab\u2019s name \u2014 consecutive workouts done, ended by one missed.',
+  '2026.09.09.440': 'Last session\u2019s numbers sit in the logging boxes until you type over them.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16614,6 +16623,9 @@ async function loadExerciseHistory(beforeDate){
                              toFailure: !!ex.toFailure, bestBefore };
     }));
 }
+/* The ghost placeholders sit a step quieter than typed ink but louder than a hint, because
+   they are last session's real numbers rather than a prompt. Scoped to the three logging
+   fields so every other placeholder in the app keeps reading as instruction. */
 function lastLoggedLine(name){
   const h = exerciseHistory[exHistKey(name)];
   if(!h) return '';
@@ -16968,6 +16980,18 @@ async function openBlockEditor(date, slot, block, opts){
       // prescription (assignPrescription ran on it) — a freshly typed manual row has none.
       // Tapping the target fills this one row from it — the shortest possible path from
       // "that is what I did" to it being written down.
+      /* THE GHOST. Last session's actual numbers, sitting in the boxes as placeholders until
+         you type over them. The row already carried a "Last ..." line above, which reports
+         what happened; this puts the same numbers where you are about to type, so the set you
+         are entering is measured against them without reading anything. Placeholders rather
+         than values on purpose — a prefilled field is a claim about what you did, and only
+         you get to make that. Per-set reps come through whole (5,5,4), because the field
+         takes that form and an average of it is a different session. */
+      const ghost = exerciseHistory[exHistKey(name)] || null;
+      const ghostReps = ghost
+        ? ((ghost.repsPerSet && ghost.repsPerSet.length) ? ghost.repsPerSet.join(',') : (ghost.reps ?? ''))
+        : '';
+      const ph = (v, fallback) => (v === 0 || v) ? String(v) : fallback;
       const targetLine = (sets!=null && repLow!=null)
         ? `<div class="ex-target-line ex-target-tap" role="button" tabindex="0" style="flex-basis:100%; font-size:var(--fs-tag); color:var(--dim); margin-top:2px;">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}<span class="ex-target-hint">tap to fill</span></div>`
         : '';
@@ -16978,16 +17002,16 @@ async function openBlockEditor(date, slot, block, opts){
         ${targetLine}
         ${lastLoggedLine(name)}
         <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
-          <input type="number" class="week-ex-sets" placeholder="sets" style="max-width:56px;" title="sets actually done">
+          <input type="number" class="week-ex-sets" placeholder="${ph(ghost && ghost.sets, 'sets')}" style="max-width:56px;" title="sets actually done">
           <span style="font-size:var(--fs-tag); color:var(--dim);">×</span>
-          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="reps" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
+          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="${ph(ghostReps, 'reps')}" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
           <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
       <!-- step="any" is what makes 62.5 a legal value. Without it the browser's implied
            step is 1, so a half-kilo is a stepMismatch: the field goes invalid and iOS
            offers a keypad with no decimal point. Everything downstream has always used
            parseFloat, so the model handled halves all along — the form was the only
            thing refusing them. -->
-          <input type="number" class="week-ex-weight" placeholder="kg" style="max-width:64px;" title="weight actually used" step="any" inputmode="decimal">
+          <input type="number" class="week-ex-weight" placeholder="${ph(ghost && ghost.weight, 'kg')}" style="max-width:64px;" title="weight actually used" step="any" inputmode="decimal">
         </div>
         <!-- BW and F were two unlabelled letters on the row you touch more than any other in
              the app, with their meanings in title attributes that a phone never shows. One
