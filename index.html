@@ -8623,7 +8623,16 @@ function activateTab(name, opts){
   const eyesFlying = name === 'insights' ? (eyesHome !== 'score') : !!eyesLeaving;
   if(name === 'insights'){ if(eyesHome !== 'score') moveEyes('score'); }
   else if(eyesLeaving) moveEyes('header', eyesFrom);
-  markTearOnSwitch();
+  /* NO TEAR ON A TAB SWITCH. It was beat two of four — page slides, mark tears, page lands,
+     titles extend — and read as the mark coming loose rather than as punctuation: a 6px
+     throw on the one element that is meant to be the fixed point of the header, played every
+     time you swipe. Traced through real touch swipes it put the mark through fifteen distinct
+     positions across an 11px range, x 123 to 134, on a switch where nothing about the mark
+     has changed. The three beats around it already carry the change.
+     The tear itself stays where it means something: the flight between the wordmark and the
+     score, the perch, and the occasional idle. Those are moments the mark is actually doing
+     something. Restore this by calling markTearOnSwitch() here again — the function is
+     untouched, and still gated by the same two settings rows. */
   bindEyeTap();
   decorateChevrons(document);
   decorateColophon();
@@ -9599,7 +9608,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.437';
+const APP_VERSION = '2026.09.09.438';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9761,6 +9770,7 @@ const APP_NOTES = {
   '2026.09.09.435': 'Settings reads as four sections, and the version below is finally the one you are running.',
   '2026.09.09.436': 'Every section\u2019s open-arrow sits in one column instead of wherever the row left it.',
   '2026.09.09.437': 'The mark sits still again \u2014 back in the wordmark on every tab.',
+  '2026.09.09.438': 'The mark no longer tears when you swipe between tabs.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
