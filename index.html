@@ -1284,6 +1284,15 @@
   b, strong{ color:var(--bg); font-weight:var(--fw-bold); }
   .group-head b, .group-head strong{ color:var(--text); }
   /* One computation of the score, and what was different about it. */
+  /* The section's answer, above its transcript. Reads as a statement rather than a row: no
+     rule under it, the key in the same plate the plan's leads use, the count quiet behind. */
+  .score-log-lead{ padding:2px 0 10px; font-family:var(--sans); font-size:var(--fs-md);
+    color:var(--bg); line-height:1.35; }
+  .score-log-lead-k{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
+    font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--ground); background:var(--bg); padding:1px 5px; margin-right:7px;
+    border-radius:3px; vertical-align:baseline; white-space:nowrap; }
+  .score-log-lead i{ font-style:normal; color:rgba(var(--ink-rgb),0.58); font-size:var(--fs-tag); }
   .score-log-row{ padding:8px 0; border-bottom:1px solid var(--hair); }
   .score-log-row:last-of-type{ border-bottom:0; }
   /* --bg is the colour of anything that matters on this ground; --dim explains it. */
@@ -5800,7 +5809,36 @@ async function renderScoreSamples(){
           : 'nothing measured changed')
       + `</div></div>`);
   }
-  el.innerHTML = rows.reverse().join('')
+  /* THE HEADLINE, ABOVE THE LIST.
+
+     The rows are a transcript: every recomputation, in order, with everything that moved on
+     each. Read top to bottom that answers "what happened all day" and never "what actually
+     moved the number", which is the question you open this section with. So the section now
+     leads with the field that changed on the most steps today, and its net across them.
+
+     Counted rather than summed. These fields are on different scales — a percentile, a gate
+     reason, a count of sessions — so "moved most" cannot mean the largest delta without
+     comparing a percentage to a word. How OFTEN a field moved is scale-free and is the thing
+     that makes it the day's mover. Ties go to the first in SCORE_FIELD_LABEL, which is
+     ordered from the score outwards. */
+  const changeCount = {};
+  for(let i = 1; i < SCORE_SAMPLES.length; i++){
+    const a = SCORE_SAMPLES[i-1], b = SCORE_SAMPLES[i];
+    for(const k of Object.keys(SCORE_FIELD_LABEL)) if(a[k] !== b[k]) changeCount[k] = (changeCount[k] || 0) + 1;
+  }
+  const movers = Object.keys(SCORE_FIELD_LABEL).filter(k => changeCount[k]);
+  let lead = '';
+  if(movers.length){
+    const top = movers.reduce((x, y) => changeCount[y] > changeCount[x] ? y : x);
+    const first = SCORE_SAMPLES[0][top], last = SCORE_SAMPLES[SCORE_SAMPLES.length - 1][top];
+    const net = first === last
+      ? `back where it started at ${first}`
+      : `${first} → ${last}`;
+    lead = `<div class="score-log-lead"><span class="score-log-lead-k">Moved most</span>`
+      + `${SCORE_FIELD_LABEL[top]}, ${net}`
+      + ` <i>on ${changeCount[top]} of ${SCORE_SAMPLES.length - 1} step${SCORE_SAMPLES.length - 1 === 1 ? '' : 's'}</i></div>`;
+  }
+  el.innerHTML = lead + rows.reverse().join('')
     + `<div class="score-note" style="margin-top:8px;">Newest first, today, kept for ${SCORE_LOG_KEEP_DAYS} days and across reloads. If the score moves and the right-hand column says <b>nothing measured changed</b>, the movement is in the render rather than the reading — which is the half of the problem this cannot see.</div>`;
 }
 
@@ -9720,7 +9758,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.441';
+const APP_VERSION = '2026.09.09.442';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9886,6 +9924,7 @@ const APP_NOTES = {
   '2026.09.09.439': 'A streak beside the tab\u2019s name \u2014 consecutive workouts done, ended by one missed.',
   '2026.09.09.440': 'Last session\u2019s numbers sit in the logging boxes until you type over them.',
   '2026.09.09.441': 'A lift within reach of your best says how far off it is.',
+  '2026.09.09.442': 'Why the score moved opens with what actually moved it.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
