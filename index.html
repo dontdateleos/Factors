@@ -1131,26 +1131,34 @@
      mono and the tracking, because a dose IS a reading — so the two lines are now the app's
      two voices, one under the other, rather than one line trying to be both.
 
-     THE RHYTHM. 9px of padding and 1.15 leading were set for a single-line row. Two lines
-     want 11 and 1.28, and the stage plate steps out of the text into a gutter of its own
-     instead of interrupting the sentence it sits in front of.
+     THE RHYTHM, AND ONLY AS MUCH OF IT AS THE ROW STILL NEEDS. 9px of padding and 1.15
+     leading were set for a single-line row, so two lines want more — but not as much more as
+     it first looked. A row that has been given a second line is already open; adding the air
+     a one-line row would have wanted pays for it twice, and 11/1.28 was doing exactly that.
+     8 and 1.22, with 2px between the name and its dose rather than 4.
 
-     WHAT IT COSTS: the warm-up, the session and the cool-down together measure 1495px on a
-     390px screen against 1068 as it was. That is 40% more, and the number that matters is
-     not that one — it is 33px, which is what this costs against dropping the dose alone. */
-  .plan-item, .drill{ padding:11px 0; line-height:1.28; min-height:0; }
+     THE 2PX IS THE LOAD-BEARING NUMBER, not a saving. What makes a name and a dose read as
+     one thing rather than two rows is that the gap inside the pair is smaller than the gap
+     between pairs: 2 inside against 8 between. At 4 and 11 the ratio was flatter and the
+     pairing was doing less work while costing more height.
+
+     WHAT IT COSTS: the warm-up, the session and the cool-down together measure 1325px on a
+     390px screen against 1068 before any of this — 24%. At 11/1.28 the same session was
+     1513, so the air alone was 188px of it. The stage plate steps out of the text into a
+     gutter of its own either way, instead of interrupting the sentence it sits in front of. */
+  .plan-item, .drill{ padding:8px 0; line-height:1.22; min-height:0; }
   .plan-item > strong, .drill-text{ font-family:var(--prose); font-size:14px;
     text-transform:none; letter-spacing:0; }
   /* 0.58, not the 0.55 this was drawn at. The dose is 11px, which is normal text and owes
      the full 4.5:1 — 0.55 pays 6.04 on the dark ground and 4.26 on bone, and bone is the one
      that decides. 0.58 pays 6.61 and 4.72, and is indistinguishable from 0.55 by eye. */
-  .plan-dose, .drill-dose{ display:block; margin-top:4px; font-family:var(--mono);
+  .plan-dose, .drill-dose{ display:block; margin-top:2px; font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-medium);
     color:rgba(var(--ink-rgb),0.58); }
   /* The plate out of the line. Positioned against the row rather than the text, so the text
      can be indented past it without taking the plate along. */
   .drill{ position:relative; }
-  .drill-stage{ position:absolute; left:0; top:13px; margin-right:0; }
+  .drill-stage{ position:absolute; left:0; top:10px; margin-right:0; }
   .drill:has(.drill-stage:not(:empty)) .drill-text{ padding-left:46px; }
 
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
@@ -2380,7 +2388,7 @@
      dose on a line of its own it is the gap BETWEEN them, and the rule would have crossed
      nothing. It goes through the name, which is the thing you ticked — the dose under it
      fades with the rest of the row. */
-  .drill-strike{ position:absolute; left:0; top:9px; height:1.5px; background:currentColor;
+  .drill-strike{ position:absolute; left:0; top:8px; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
   .drill-bar{ display:block; height:3px; background:rgba(var(--ink-rgb),0.14); margin-top:5px; }
