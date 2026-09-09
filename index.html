@@ -2379,9 +2379,16 @@
   /* Ten identical rows read as a list of ten things. Four bands read as four. The band is a
      label on the page's own colour, not another black plate — it separates the sections
      rather than joining the queue of them. */
+  /* --sp-4 above, --sp-2 below. The band was 16/8, which is --sp-3 — the scale's "inside a
+     section" — at the one place on the page that is BETWEEN sections, so four section
+     breaks read as four more rows in a list of sixteen. --sp-4 is what the scale calls
+     between-sections and this is that boundary.
+     Deliberately asymmetric, and by a lot: the band names the section BELOW it, so it holds
+     to that one and lets go of the one above. Equal padding would have made it a divider
+     floating between two sections instead of a heading on one. */
   .set-band{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:var(--track-ui); text-transform:uppercase; color:var(--bg); opacity:0.7;
-    padding:var(--sp-3) 0 var(--sp-2); }
+    padding:var(--sp-4) 0 var(--sp-2); }
   /* Settings is one dark column for the same reason Weekly is: each section carries a 16px
      bottom margin, and where the section's surface is transparent that margin shows the
      tab's colour — which reads as a band of something rather than as a gap. The bands above
