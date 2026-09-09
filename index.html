@@ -1172,19 +1172,21 @@
      text, so the text can be inset past it without taking the plate along. */
   .drill{ position:relative; }
   .drill-stage{ position:absolute; left:calc(100% - var(--stage-gutter)); right:auto;
-    top:10px; margin-right:0; }
+    top:50%; transform:translateY(-50%); margin-right:0; }
   /* The inset goes on the row, and the plate is a sibling of .drill-text rather than a child
      of it. Both follow from where 100% resolves: .drill-text is position:relative, so a plate
      inside it measures against the text column (which the inset has just narrowed) and lands
      52px short. As a child of .drill it measures against the row. It also keeps the plate out
-     of the strike-through, which is absolute inside .drill-text at width:100%. */
+     of the strike-through, which is absolute inside .drill-text at width:100%.
+     Centred on the row rather than pinned to the first line: the name and its dose are one
+     block, and a fixed top sat the plate against the name with the dose hanging below it. */
   .drill:has(.drill-stage:not(:empty)){ padding-right:var(--stage-gutter); }
   /* Skill/Test on the plan list are the same idiom on a different list, so they take the
      same gutter — otherwise two lists on the same page label themselves at opposite ends. */
   .plan-item{ position:relative; }
   .plan-item.has-lead{ padding-right:var(--stage-gutter); }
   .plan-item.has-lead > .plan-key{ position:absolute; left:calc(100% - var(--stage-gutter));
-    right:auto; top:11px; margin-right:0; }
+    right:auto; top:50%; transform:translateY(-50%); margin-right:0; }
 
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
