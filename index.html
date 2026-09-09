@@ -790,6 +790,40 @@
               scale(var(--eye-wide, 1), var(--eye-weekarc, 1));
     transition-delay:max(0ms, var(--eye-lag, 0ms)); }
   .eyes span:first-child{ transition-delay:max(0ms, calc(-1 * var(--eye-lag, 0ms))); }
+  /* Z'S OFF A SLEEPING MARK. Sized from the mark's own box so the same rule works at the
+     40px wordmark form and the 24px perch without a second set of numbers — the mark carries
+     --eye-box-w at every site it lives at. Above and to the right, outside the shell, which
+     is why .eyes is not overflow:hidden anywhere.
+     Three on one 3.6s loop, each a third behind the last, so one is always leaving as another
+     starts. They grow as they rise because a z that only fades reads as a fault. */
+  /* Clear of the shell, not on it. Starting inside the mark's own box put the first frame of
+     each z on top of the head, where a cream letter on a dark dome reads as a chip out of the
+     drawing rather than as something leaving it. */
+  .eye-zzz{ position:absolute; left:calc(var(--eye-box-w, 40px) + 1px);
+    top:calc(var(--eye-box-h, 40px) * -0.05); width:0; height:0;
+    pointer-events:none; z-index:2; }
+  /* Sized from the mark's box, at 0.4 of it. A px floor does NOT work here: the perch is a
+     transform: scale(0.6) on the mark, so everything inside it — including any minimum this
+     rule sets — is scaled with it. 0.4 gives 16px in the wordmark form and about 10px once
+     the perch has shrunk it, which is the smallest a letter survives at. */
+  .eye-zzz i{ position:absolute; left:0; top:0; display:block;
+    font-family:var(--mono); font-style:normal; font-weight:var(--fw-bold);
+    font-size:calc(var(--eye-box-w, 40px) * 0.4); line-height:1;
+    color:var(--eye-ink, var(--bg)); opacity:0;
+    animation:eyeZ 3.6s ease-out infinite; }
+  .eye-zzz i:nth-child(2){ animation-delay:1.2s; }
+  .eye-zzz i:nth-child(3){ animation-delay:2.4s; }
+  /* Drifting RIGHT with a slight rise, not straight up. The header is overflow:hidden — the
+     same clip that stopped the streak confetti being thrown out of it — and the perched mark
+     sits 4px from the top, so anything rising more than that is cut off at the moment it
+     becomes visible. Sideways is the direction with room in it at both sites. */
+  @keyframes eyeZ{
+    0%{   transform:translate(0,0) scale(0.62) rotate(-10deg); opacity:0; }
+    20%{  opacity:0.92; }
+    70%{  opacity:0.5; }
+    100%{ transform:translate(15px,-7px) scale(1.2) rotate(12deg); opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){ .eye-zzz{ display:none; } }
   @media (prefers-reduced-motion: reduce){ .eyes, .eyes span, .eyes .eye-gaze, .eyes .eye-motion{ transition:none; } }
   /* Held on the flyer for one frame while it is dressed in the form it is LEAVING, so the
      browser takes that as the current style. Without it the two writes coalesce and the
@@ -5151,7 +5185,10 @@ const EYE_ANIM = {
   widenOnPR:      { on:true, note:'A beat of surprise when a logged lift beats your best' },
   wince:          { on:true, note:'A squint when you log an injury, or a REDUCE card lands' },
   deloadFatigue:  { on:true, note:'Lids get heavier as a deload week wears on', perDay:0.05, floor:0.76 },
-  restDayFace:    { on:true, note:'Lids sit lower on a rest day', lid:0.78 },
+  /* Shut, not lowered. 0.78 was drowsy, which reads as a bad night rather than as a day
+     off — and a day off is the one day the mark has nothing to watch for. Same value as
+     idleSleep on purpose: both are the mark asleep, and both now carry the z's. */
+  restDayFace:    { on:true, note:'Eyes shut, with z\u2019s, on a rest day', lid:0.16 },
 
   // — Reacting to you.
   markForms:      { on:true, note:'The mark builds itself on the first load \u2014 the light comes up on the body, then the eye opens' },
@@ -5435,6 +5472,40 @@ const EYE_SITES = {
 function eyeFullOpen(site){ return parseFloat(EYE_SITES[site]['--eye-h']); }
 
 // Dresses an element as one site, and for the score overlays the expression on top.
+/* ---------- THE Z'S ----------
+   Two states shut the mark's eyes: a rest day, and you leaving the app open and walking off.
+   Shut eyes alone read as broken rather than asleep — the mark has no other way of being
+   still — so both now emit z's, which is the one drawing everybody reads as sleeping without
+   being told.
+
+   Attached to whichever copy of the mark is actually docked, and rebuilt rather than moved:
+   the mark flies between the wordmark and the score, and a node parented to the one it just
+   left would sit on an element about to be hidden. applyEyeForm is the call every state
+   change and every landing already goes through, so hanging this off the end of it means the
+   z's follow the mark without anything else having to know they exist.
+
+   Three of them on one loop with staggered delays, rising and fading. Behind the same
+   reduced-motion guard as the rest of the mark's ambient movement — with motion off the z's
+   go too, because a static z stuck above the eyes is a bug, not a quieter version. */
+function markIsAsleep(){
+  return (anim('idleSleep') && eyeCtx.asleep) || (anim('restDayFace') && eyeCtx.restDay);
+}
+function updateSleepZs(){
+  // The drawn mark's lids are painted, not styled, so the face has to be redrawn to shut.
+  if(typeof drawMarkCube === 'function') drawMarkCube();
+  const wanted = markIsAsleep() ? eyesDocked() : null;
+  document.querySelectorAll('.eye-zzz').forEach(z=>{ if(z.parentElement !== wanted) z.remove(); });
+  if(!wanted || wanted.querySelector('.eye-zzz')) return;
+  /* A div, not a span. `.eyes span` is the rule that DRAWS an eye capsule — width, height,
+     radius, fill — and eyePop's `querySelectorAll('.eyes span')` is how the blink code finds
+     the pair. A span here got styled as a third eyeball and would have been animated as one. */
+  const z = document.createElement('div');
+  z.className = 'eye-zzz';
+  z.setAttribute('aria-hidden', 'true');
+  z.innerHTML = '<i>z</i><i>z</i><i>z</i>';
+  wanted.appendChild(z);
+}
+
 function applyEyeForm(el, site){
   if(!el) return;
   const vars = EYE_SITES[site];
@@ -5451,6 +5522,7 @@ function applyEyeForm(el, site){
     else applyEyeState(el, eyeStateForScore(eyeScore));
   }
   else applyEyeMood(el);
+  updateSleepZs();
 }
 
 /* ---------- MOOD ----------
@@ -5518,6 +5590,7 @@ async function refreshEyeContext(){
   // isRestDayComing returns {isRest, date}, and negating an object is always false — so the
   // rest-day face has never once been worn.
   try{ eyeCtx.restDay = !!(await isRestDayComing(0)).isRest; }catch(e){ eyeCtx.restDay = false; }
+  updateSleepZs();
   await refreshEyeHistory();
   await refreshEyeTraining();
   applyEyeSag();
@@ -6659,7 +6732,11 @@ function mcPaint(m){
   for(const face of [0, 180]){
     const Q = mcProject(0, face, 0), n = P(Q([0,0,1]));
     if(n[2] <= 0.02) continue;
-    const eh = MC_EYE_H*s * mcState.blink;
+    /* Asleep shuts the DRAWN eyes as well. applyEyeMood drives --eye-h, which only the
+       capsule form reads — the solid mark is this SVG, so a rest day left the header's face
+       wide awake while the score's pair had already closed. Same lid the CSS path uses. */
+    const eh = MC_EYE_H*s * mcState.blink
+      * ((typeof markIsAsleep === 'function' && markIsAsleep()) ? EYE_ANIM.idleSleep.lid : 1);
     const ax = P(Q([1,0,0])), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]));
     const half = Math.max(0, eh/2 - ew/2);
     const gx = mcState.gx * ew * 0.85, gy = mcState.gy * s * 0.06;
@@ -7214,6 +7291,7 @@ function eyeNoteActivity(){
     eyeCtx.asleep = true;
     const el = eyesDocked();
     if(el) applyEyeForm(el, eyesHome);
+    else updateSleepZs();
   }, EYE_ANIM.idleSleep.afterMs);
 }
 ['pointerdown','keydown','scroll','touchstart'].forEach(ev=>{
@@ -9797,7 +9875,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.445';
+const APP_VERSION = '2026.09.09.446';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9967,6 +10045,7 @@ const APP_NOTES = {
   '2026.09.09.443': 'Every skill ladder at once, above the wheel \u2014 tap one to spin to it.',
   '2026.09.09.444': 'Sunday review ranks the week, compares it to the last block, and closes the block.',
   '2026.09.09.445': 'A skill says how far the top of its ladder is at the rate you are going.',
+  '2026.09.09.446': 'The mark sleeps on a rest day and when you wander off \u2014 shut eyes, and z\u2019s.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
