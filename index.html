@@ -1444,6 +1444,10 @@
      drill rows and the masthead ticks are drawn from — so this reads as more of the app
      rather than as a scoreboard bolted to it. Grid, not flex, so the three columns line up
      down the whole set however long a label or a rung name runs. */
+  /* The forecast is the panel's conclusion, not a third note in a row of them — a rule above
+     it and the rate behind, in the same quiet ink the doses use. */
+  .skg-forecast{ margin-top:7px; padding-top:6px; border-top:1px solid var(--hair); }
+  .skg-forecast i{ font-style:normal; color:rgba(var(--ink-rgb),0.58); }
   .skill-board{ display:flex; flex-direction:column; gap:1px; margin-bottom:10px; }
   /* 120px on the name, which is where the labels stop truncating for all but the two longest
      ladders. Fixed rather than auto because each lane is its own grid — auto would size every
@@ -9793,7 +9797,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.444';
+const APP_VERSION = '2026.09.09.445';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9962,6 +9966,7 @@ const APP_NOTES = {
   '2026.09.09.442': 'Why the score moved opens with what actually moved it.',
   '2026.09.09.443': 'Every skill ladder at once, above the wheel \u2014 tap one to spin to it.',
   '2026.09.09.444': 'Sunday review ranks the week, compares it to the last block, and closes the block.',
+  '2026.09.09.445': 'A skill says how far the top of its ladder is at the rate you are going.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -25012,13 +25017,76 @@ async function suggestMobilityAdvance(sg){
 // `levelIndex` and `levelCount` arrive LADDER-RELATIVE: a skill whose ladder opens with a
 // gate hands this the number counted from its first real rung, and a negative index means
 // you are still at the gate, which is a state rather than a level.
+/* HOW LONG THE REST OF THE LADDER TAKES AT THE RATE YOU ARE ACTUALLY GOING.
+
+   Idea 11. The panel below already says how many sessions this level still wants; what it
+   cannot say is when the top is, which is the thing you want to know when you pick a skill.
+
+   Built from three numbers the app already has and nothing else: rungs left, the sessions a
+   rung takes (EXERCISE_SKILL_SESSIONS_TO_ADVANCE), and how often you have actually trained
+   this skill over the last eight weeks. No curve, no assumption that you speed up. If you
+   have practised twice a week you will be told what twice a week buys.
+
+   Eight weeks because a shorter window turns one missed week into a forecast that doubles,
+   and a longer one keeps counting a rate you have already left behind.
+
+   Deliberately vague in the wording — "about", and rounded to whole weeks — because it is an
+   extrapolation and a date to the day would be a promise the app cannot keep. Nothing at all
+   when the rate is zero: "never, at this rate" is technically the answer and is not something
+   worth printing at someone.
+
+   NOT ON TODAY. A date you are racing does not belong beside work you have to do in the next
+   hour, and a forecast that visibly slips every morning demoralises rather than motivates.
+   It sits with the skill, which is where you go when you are thinking about the skill. */
+const SKILL_FORECAST_WINDOW_WEEKS = 8;
+async function skillForecast(skill, levelIndex){
+  try{
+    const tree = PROGRESSION_TREES.exercise[skill];
+    if(!tree || levelIndex == null) return null;
+    const rungsLeft = (tree.levels || []).length - 1 - levelIndex;
+    if(rungsLeft <= 0) return null;
+    const p = await getExerciseSkillProgress(skill, levelIndex);
+    /* Credit only counts against the rung you are ON. Sixteen sessions at a level that wants
+       six does not buy you ten against the next one — surplus does not carry forward, and
+       subtracting it from the whole ladder turned a twelve-week forecast into a seven-week
+       one. The rung you are on needs whatever is left of its six; every rung after it needs
+       all six. */
+    const atThis = Math.max(0, EXERCISE_SKILL_SESSIONS_TO_ADVANCE - (p.atLevel || 0));
+    const sessionsLeft = Math.max(1,
+      atThis + (rungsLeft - 1) * EXERCISE_SKILL_SESSIONS_TO_ADVANCE);
+    // Days this skill was practised inside the window, however long ago it started.
+    const cutoff = new Date(todayStr + 'T00:00:00').getTime()
+      - SKILL_FORECAST_WINDOW_WEEKS * 7 * 24 * 60 * 60 * 1000;
+    const days = new Set();
+    (await getAllTrainingSessions()).forEach(sn=>{
+      if(!sn || sn.type !== 'strength' || !sn.date) return;
+      if(new Date(sn.date + 'T00:00:00').getTime() < cutoff) return;
+      if((sn.exercises || []).some(e=>{
+        const m = skillWorkFromName(e.name || '');
+        return m && m.skill === skill;
+      })) days.add(sn.date);
+    });
+    const perWeek = days.size / SKILL_FORECAST_WINDOW_WEEKS;
+    if(!(perWeek > 0)) return null;
+    const weeks = Math.ceil(sessionsLeft / perWeek);
+    if(!isFinite(weeks) || weeks <= 0 || weeks > 260) return null;
+    return { weeks, rungsLeft, perWeek, top: (tree.levels || [])[tree.levels.length - 1] };
+  }catch(e){ return null; }
+}
+
 function skillProgressHtml(o){
   const shown = o.levelIndex + 1;
   const pct = Math.max(0, Math.round((shown / o.levelCount) * 100));
   let html = `<div class="skg-prog-head"><span>Progress</span><span>${shown < 1 ? 'not started' : 'L'+shown+'/'+o.levelCount}</span></div>`
     + `<div class="skg-bar"><div class="skg-bar-fill" style="width:${pct}%;"></div></div>`
     + `<div class="score-note" style="margin-top:4px;">${o.levelText}</div>`
-    + `<div class="score-note" style="margin-top:3px;">${o.note}</div>`;
+    + `<div class="score-note" style="margin-top:3px;">${o.note}</div>`
+    + (o.forecast
+        ? `<div class="score-note skg-forecast">${o.forecast.top} in about `
+          + `${o.forecast.weeks} week${o.forecast.weeks === 1 ? '' : 's'}`
+          + ` <i>at ${Math.round(o.forecast.perWeek * 10) / 10} sessions a week, the rate of the last `
+          + `${SKILL_FORECAST_WINDOW_WEEKS}</i></div>`
+        : '');
   if(o.subBar != null){
     // A tick where the productive band starts, so the bar shows the same three places the
     // sentence under it names rather than reading as one long way to fail.
@@ -25242,9 +25310,10 @@ async function renderExerciseProgression(){
       ? (s.progress.atLevel / EXERCISE_SKILL_SESSIONS_TO_ADVANCE) * 100
       : null;
     const gate = skillGateLevels(tree);
+    const forecast = await skillForecast(sg.skill, sg.levelIndex);
     target.innerHTML = skillProgressHtml({ skill: sg.skill, category:'exercise',
       levelIndex: sg.levelIndex - gate, levelCount: skillLadderTotal(tree), levelText: tree.levels[sg.levelIndex],
-      note: s.note, subBar, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
+      note: s.note, subBar, forecast, advanceLabel: s.action === 'advance' ? s.nextLevel : null });
     bindSkillAdvanceButtons(target, renderExerciseProgression);
   } catch(e){}
 }
