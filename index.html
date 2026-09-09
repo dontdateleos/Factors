@@ -277,6 +277,10 @@
        literal 14px in thirty-odd places, which is the whole of the difference from the
        reference — vertically the two were already within a few pixels of each other. */
     --gutter:22px;
+    /* The right-hand column the stage plates hang in. Widest plate that actually renders is
+       PRIME/RAISE at 44.8px, plus a 7px gap. MOBILITY would need 64.5 but stageLabel blanks
+       it, and MOVE too, so nothing wider than RAISE ever reaches the page. */
+    --stage-gutter:52px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   /* The document's default ink. It was --text, from when the page was cream — which meant
@@ -1157,11 +1161,30 @@
   .plan-dose, .drill-dose{ display:block; margin-top:2px; font-family:var(--mono);
     font-size:var(--fs-tag); font-weight:var(--fw-medium);
     color:rgba(var(--ink-rgb),0.58); }
-  /* The plate out of the line. Positioned against the row rather than the text, so the text
-     can be indented past it without taking the plate along. */
+  /* The plate out of the line, into a gutter on the right. Two things had to be true at
+     once: the names all start at the same x, and so do the plates. Putting the plate first
+     breaks the first (the name starts wherever the plate ends) and hanging the plate off
+     the right edge breaks the second (a five-letter plate starts further left than a
+     three-letter one). A fixed-width gutter with the plate flush to its left edge gives
+     both — one name edge at the page gutter, one plate edge at 52px in from the right.
+     52px is the widest plate that renders (PRIME/RAISE at 44.8px) plus a 7px gap; MOBILITY
+     would be 64.5 but stageLabel blanks it. Positioned against the row rather than the
+     text, so the text can be inset past it without taking the plate along. */
   .drill{ position:relative; }
-  .drill-stage{ position:absolute; left:0; top:10px; margin-right:0; }
-  .drill:has(.drill-stage:not(:empty)) .drill-text{ padding-left:46px; }
+  .drill-stage{ position:absolute; left:calc(100% - var(--stage-gutter)); right:auto;
+    top:10px; margin-right:0; }
+  /* The inset goes on the row, and the plate is a sibling of .drill-text rather than a child
+     of it. Both follow from where 100% resolves: .drill-text is position:relative, so a plate
+     inside it measures against the text column (which the inset has just narrowed) and lands
+     52px short. As a child of .drill it measures against the row. It also keeps the plate out
+     of the strike-through, which is absolute inside .drill-text at width:100%. */
+  .drill:has(.drill-stage:not(:empty)){ padding-right:var(--stage-gutter); }
+  /* Skill/Test on the plan list are the same idiom on a different list, so they take the
+     same gutter — otherwise two lists on the same page label themselves at opposite ends. */
+  .plan-item{ position:relative; }
+  .plan-item.has-lead{ padding-right:var(--stage-gutter); }
+  .plan-item.has-lead > .plan-key{ position:absolute; left:calc(100% - var(--stage-gutter));
+    right:auto; top:11px; margin-right:0; }
 
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
@@ -26871,7 +26894,7 @@ function planRow(name, dose, lines, opts){
     : '';
   // No leading arrow. One per row, repeated down the page, it marked every line as
   // going somewhere when none of them do — the rule between rows already separates them.
-  return `<div class="plan-item${opts.rowClass ? ' ' + opts.rowClass : ''}">`
+  return `<div class="plan-item${opts.lead ? ' has-lead' : ''}${opts.rowClass ? ' ' + opts.rowClass : ''}">`
     + `${opts.lead || ''}<strong>${name}</strong>${opts.trail || ''}${doseHtml}${detail}${opts.tag || ''}</div>`;
 }
 
@@ -29418,7 +29441,8 @@ function renderDrillList(host, listKey, items, estEl, estHtml, opts){
     if(it.note) return `<div class="drill-note">${it.html}</div>`;
     const k = drillKey(it.html);
     return `<button type="button" class="drill${done.has(k) ? ' on' : ''}" data-k="${k}" aria-pressed="${done.has(k)}">`
-      + `<span class="drill-text"><span class="drill-stage">${stageLabel(it.group)}</span>${it.prose ? it.html : drillDoseSplit(tighten(dropStageWord(it.html, it.group)))}`
+      + `<span class="drill-stage">${stageLabel(it.group)}</span>`
+      + `<span class="drill-text">${it.prose ? it.html : drillDoseSplit(tighten(dropStageWord(it.html, it.group)))}`
       + `${uiAnim('strikeThrough') ? '<span class="drill-strike"></span>' : ''}</span></button>`;
   }).join('');
   if(uiAnim('strikeThrough')) host.style.setProperty('--strike-ms', (UI_ANIM.strikeThrough.ms || 300) + 'ms');
