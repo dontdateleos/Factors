@@ -1120,12 +1120,17 @@
 
      THREE CHANGES, ON THREE DIFFERENT AXES, which is why they compose rather than compete.
 
-     THE TYPE. The name is a name, and it drops out of caps into the prose face. Caps at
-     0.04em are what make this app read as an instrument, and they still do — on every label,
-     every reading, every count. But a list of twenty movement names is the one place the app
-     has running text, and .320 capped these on the argument that a row read "SLEEP 7.8 H"
-     above "Dumbbell Bench Press". That argument holds for the LABEL beside a reading; it
-     does not hold for twenty of them stacked.
+     THE TYPE DOES NOT CHANGE, and two commits went past before that was settled. .424 moved
+     the name out of caps AND into --prose, which was two changes and both wrong. The face was
+     wrong by the file's own rule: the app is REPORTING what is in your plan, everything
+     reported takes --mono, and only a question or a paragraph takes the other one — a movement
+     name in the asking face reads as prose rather than as an item in a list. And the caps were
+     not the problem either. What read as busy was a ragged right edge, which is what the dose
+     moving to its own line fixes; taking the caps off as well was fixing something that was
+     not broken and cost the row its resemblance to every other reading on the page.
+
+     So the name is exactly what it was — the machine's face, capped, tracked 0.04em, the
+     treatment .320 gave it. Everything below this line is what actually changed.
 
      THE ARRANGEMENT. The dose moves under the name and goes quiet. It keeps the caps, the
      mono and the tracking, because a dose IS a reading — so the two lines are now the app's
@@ -1142,13 +1147,10 @@
      between pairs: 2 inside against 8 between. At 4 and 11 the ratio was flatter and the
      pairing was doing less work while costing more height.
 
-     WHAT IT COSTS: the warm-up, the session and the cool-down together measure 1325px on a
-     390px screen against 1068 before any of this — 24%. At 11/1.28 the same session was
-     1513, so the air alone was 188px of it. The stage plate steps out of the text into a
+     WHAT IT COSTS: the warm-up, the session and the cool-down together measure 1295px on a
+     390px screen against 1068 before any of this — 21%, and all of it is the second line. The stage plate steps out of the text into a
      gutter of its own either way, instead of interrupting the sentence it sits in front of. */
   .plan-item, .drill{ padding:8px 0; line-height:1.22; min-height:0; }
-  .plan-item > strong, .drill-text{ font-family:var(--prose); font-size:14px;
-    text-transform:none; letter-spacing:0; }
   /* 0.58, not the 0.55 this was drawn at. The dose is 11px, which is normal text and owes
      the full 4.5:1 — 0.55 pays 6.04 on the dark ground and 4.26 on bone, and bone is the one
      that decides. 0.58 pays 6.61 and 4.72, and is indistinguishable from 0.55 by eye. */
@@ -3186,14 +3188,14 @@
   .mob-check-text, .mob-check-num, .skill-prereq-state, .skill-active-row span,
   .wheel-ex-names, .mob-step-count, .plan-line,
   .plan-line.caps,
-  .plan-dose, .drill-dose,
+  .plan-item > strong, .plan-dose, .drill-text, .drill-dose,
   .ex-target-line, .ex-target-hint, .ex-tags-toggle,
   .subj-anchor, .wk-detail, .log-step-pos,
   .rl-title, .week-deload span{
     text-transform:uppercase; letter-spacing:0.04em;
   }
-  /* .plan-item > strong and .drill-text came out of that list, and .drill-dose went in to
-     replace what it was inheriting from .drill-text. See THE ROW, below. */
+  /* .drill-dose is listed in its own right rather than left to inherit from .drill-text,
+     because it is a separate line now and the day .drill-text changes it should not follow. */
 
   /* ---------- THE FIELD ----------
 
