@@ -1111,7 +1111,48 @@
      33 pitch: 1.28 gives 0.98, 1.20 gives 1.12, and 1.15 is the first that groups, at 1.21.
      So the leading is 1.15 and the padding is 9 — both derived from the 33, which is why
      the padding is not on the spacing scale. */
-  .plan-item, .drill{ padding:9px 0; line-height:1.15; min-height:33px; }
+  /* THE ROW: A NAME, THEN WHAT IT COSTS.
+     ------------------------------------------------------------------
+     Name and dose used to share a line, both capped, both tracked out — "BAND EXTERNAL
+     ROTATIONS LIGHT 8-10/SIDE" — so the right edge of a list of twenty was ragged at twenty
+     different places and the long ones wrapped into their neighbours. That raggedness is
+     what read as busy, more than the number of words did.
+
+     THREE CHANGES, ON THREE DIFFERENT AXES, which is why they compose rather than compete.
+
+     THE TYPE. The name is a name, and it drops out of caps into the prose face. Caps at
+     0.04em are what make this app read as an instrument, and they still do — on every label,
+     every reading, every count. But a list of twenty movement names is the one place the app
+     has running text, and .320 capped these on the argument that a row read "SLEEP 7.8 H"
+     above "Dumbbell Bench Press". That argument holds for the LABEL beside a reading; it
+     does not hold for twenty of them stacked.
+
+     THE ARRANGEMENT. The dose moves under the name and goes quiet. It keeps the caps, the
+     mono and the tracking, because a dose IS a reading — so the two lines are now the app's
+     two voices, one under the other, rather than one line trying to be both.
+
+     THE RHYTHM. 9px of padding and 1.15 leading were set for a single-line row. Two lines
+     want 11 and 1.28, and the stage plate steps out of the text into a gutter of its own
+     instead of interrupting the sentence it sits in front of.
+
+     WHAT IT COSTS: the warm-up, the session and the cool-down together measure 1495px on a
+     390px screen against 1068 as it was. That is 40% more, and the number that matters is
+     not that one — it is 33px, which is what this costs against dropping the dose alone. */
+  .plan-item, .drill{ padding:11px 0; line-height:1.28; min-height:0; }
+  .plan-item > strong, .drill-text{ font-family:var(--prose); font-size:14px;
+    text-transform:none; letter-spacing:0; }
+  /* 0.58, not the 0.55 this was drawn at. The dose is 11px, which is normal text and owes
+     the full 4.5:1 — 0.55 pays 6.04 on the dark ground and 4.26 on bone, and bone is the one
+     that decides. 0.58 pays 6.61 and 4.72, and is indistinguishable from 0.55 by eye. */
+  .plan-dose, .drill-dose{ display:block; margin-top:4px; font-family:var(--mono);
+    font-size:var(--fs-tag); font-weight:var(--fw-medium);
+    color:rgba(var(--ink-rgb),0.58); }
+  /* The plate out of the line. Positioned against the row rather than the text, so the text
+     can be indented past it without taking the plate along. */
+  .drill{ position:relative; }
+  .drill-stage{ position:absolute; left:0; top:13px; margin-right:0; }
+  .drill:has(.drill-stage:not(:empty)) .drill-text{ padding-left:46px; }
+
   .plan-item{ font-family:var(--sans); font-size:var(--fs-md); color:var(--bg); }
   .plan-item strong{ font-weight:var(--fw-bold); letter-spacing:-0.01em; }
   /* Emphasis inside grey prose. The explanatory text is --dim; a figure or a name inside it
@@ -2335,7 +2376,11 @@
      strike it with a pen, so ticking a drill is something you did rather than a state it
      changed into. */
   .drill-text{ position:relative; }
-  .drill-strike{ position:absolute; left:0; top:54%; height:1.5px; background:currentColor;
+  /* 9px, not 54%. Half the row was the middle of the line while a row was one line; with the
+     dose on a line of its own it is the gap BETWEEN them, and the rule would have crossed
+     nothing. It goes through the name, which is the thing you ticked — the dose under it
+     fades with the rest of the row. */
+  .drill-strike{ position:absolute; left:0; top:9px; height:1.5px; background:currentColor;
     width:0; pointer-events:none; }
   .drill.on .drill-strike{ width:100%; transition:width var(--strike-ms,300ms) cubic-bezier(.4,.9,.3,1); }
   .drill-bar{ display:block; height:3px; background:rgba(var(--ink-rgb),0.14); margin-top:5px; }
@@ -3133,12 +3178,14 @@
   .mob-check-text, .mob-check-num, .skill-prereq-state, .skill-active-row span,
   .wheel-ex-names, .mob-step-count, .plan-line,
   .plan-line.caps,
-  .plan-item > strong, .plan-dose, .drill-text,
+  .plan-dose, .drill-dose,
   .ex-target-line, .ex-target-hint, .ex-tags-toggle,
   .subj-anchor, .wk-detail, .log-step-pos,
   .rl-title, .week-deload span{
     text-transform:uppercase; letter-spacing:0.04em;
   }
+  /* .plan-item > strong and .drill-text came out of that list, and .drill-dose went in to
+     replace what it was inheriting from .drill-text. See THE ROW, below. */
 
   /* ---------- THE FIELD ----------
 
@@ -29316,7 +29363,13 @@ function tighten(text){
 
    Anchored past any trailing close tags, because an area that is flagged wraps its whole
    drill in a .flow-flag span and the dose then sits inside it rather than at the end. */
-const DRILL_DOSE_TAIL = /((?:[\u00d7x]\s*)?\d+(?:\s*[-\u2013]\s*\d+)?(?:\s*[\u00d7x]\s*\d+(?:\s*[-\u2013]\s*\d+)?)?\s*(?:s|min|m)?(?:\/(?:side|leg|arm))?)(\s*(?:<\/[a-z]+>\s*)*)$/i;
+/* AND THE CUE COMES WITH IT. .422 started marking a trailing cue with a dot — "60-90s/side ·
+   pause on tender spots" — which put prose after the dose and left this anchor with nothing at
+   the end to match. Three rows silently stopped splitting, and once the dose moved to a line of
+   its own that showed as two rows staying on one line while the rest went to two, which reads
+   as an accident rather than a rule. The cue is captured INSIDE the dose group so the two stay
+   on the same line: what the row is, then what it costs and any note about it. */
+const DRILL_DOSE_TAIL = /((?:[\u00d7x]\s*)?\d+(?:\s*[-\u2013]\s*\d+)?(?:\s*[\u00d7x]\s*\d+(?:\s*[-\u2013]\s*\d+)?)?\s*(?:s|min|m)?(?:\/(?:side|leg|arm))?(?:\s*\u00b7\s*[^<\u00b7]+)?)(\s*(?:<\/[a-z]+>\s*)*)$/i;
 function drillDoseSplit(html){
   return String(html).replace(DRILL_DOSE_TAIL,
     (m, dose, tail)=> `<span class="drill-dose">${dose}</span>${tail}`);
