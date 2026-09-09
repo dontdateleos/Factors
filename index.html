@@ -1845,16 +1845,26 @@
      item, which it does. Single-line rows, which is most of them, look the same either way. */
   .wheel-ex-line{ display:flex; gap:10px; align-items:flex-end; justify-content:space-between; }
   .wheel-ex-name{ min-width:0; }
-  /* Mono and tabular so the numbers line up down the column, dimmer than the name because
-     it is the qualifier and the movement is the thing. */
-  .wheel-ex-dose{ flex:none; font-family:var(--mono); font-size:var(--fs-tag);
-    color:rgba(var(--ink-rgb),0.5); font-variant-numeric:tabular-nums; }
   /* One workout takes the width of both columns rather than sitting in the left half with
      its names wrapping at 50%. Two keep the split — that is what the rule between them is
-     for, and am/pm side by side is the comparison you want. */
-  .week-wheel-detail > .wheel-workout-card:only-child{ grid-column:1 / -1; }
+     for, and am/pm side by side is the comparison you want.
+
+     A class rather than :only-child, which is what this was and which broke the moment the
+     add-a-second strip became a sibling: the single card stopped being an only child and
+     silently halved. Whether a card is alone is something the function drawing it knows for
+     certain; asking the DOM to work it out from who happens to be standing next to it was
+     the fragile way round, and it failed on the first thing added to that pane in months. */
+  .week-wheel-detail > .wheel-workout-card.solo{ grid-column:1 / -1; }
   .wheel-add-card{ grid-column:1 / -1; border:2px solid rgba(var(--ink-rgb),0.5); border-radius:0; padding:12px; text-align:center; font-family:var(--sans); font-size:var(--fs-sm); color:var(--bg); cursor:pointer; }
   .wheel-add-card:active{ background:rgba(var(--ink-rgb),0.12); }
+  /* The way to a second session. Full width under the day's cards and quieter than they are:
+     it is available on most days and taken on few, so it should be findable without being
+     the loudest thing in the pane. */
+  .wheel-add-slot{ grid-column:1 / -1; margin-top:12px; padding:9px;
+    border:1px dashed rgba(var(--ink-rgb),0.35); text-align:center; cursor:pointer;
+    font-family:var(--sans); font-size:var(--fs-tag); letter-spacing:0.04em;
+    text-transform:uppercase; color:rgba(var(--ink-rgb),0.6); }
+  .wheel-add-slot:active{ background:rgba(var(--ink-rgb),0.12); }
 
   #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
@@ -15049,23 +15059,12 @@ document.getElementById('clearAllWeekBtn').addEventListener('click', async (e)=>
 
 let activeWheelDayIndex = null; // set to today's index on first render each session
 
-/* THE DOSE THE PLAN ACTUALLY HOLDS, AND NOTHING INVENTED.
-   Planned strength carries sets with repLow/repHigh, planned mobility carries sets with
-   holdSeconds, and a run carries its distance in the line itself. Anything missing is left
-   off rather than filled with a dash: the plan not having decided a number yet is a
-   different thing from the number being zero. */
-function blockLineDose(e){
-  if(!e) return '';
-  const sets = Number(e.sets) > 0 ? Number(e.sets) : null;
-  if(e.holdSeconds) return sets ? `${sets}\u00d7${e.holdSeconds}s` : `${e.holdSeconds}s`;
-  // repLow/repHigh is what the generator writes; reps is what the fixed templates carry.
-  let reps = null;
-  if(e.repLow != null && e.repHigh != null) reps = e.repLow === e.repHigh ? `${e.repLow}` : `${e.repLow}-${e.repHigh}`;
-  else if(e.reps != null && e.reps !== '') reps = String(e.reps);
-  if(sets && reps) return `${sets}\u00d7${reps}`;
-  if(sets) return `${sets} sets`;
-  return reps || '';
-}
+/* NO DOSE ON THE WEEK'S CARDS. There was a blockLineDose here that turned a planned
+   exercise into "3×8-12", and every card carried a column of them. Weekly is the view where
+   you ask WHAT is on Thursday and whether the week is shaped right — the sets and the reps
+   are what you read on the day you do it, and Today prints them under every name. Two
+   sessions on one day have to share the width, and the numbers were the half of each line
+   that could go. Nothing else called that function, so it is gone rather than left unused. */
 function extractBlockLines(block){
   /* A block with no details at all. Every writer in the app sets it, so this should not
      happen -- but the whole week grid is rendered from these, and one malformed record was
@@ -15074,18 +15073,18 @@ function extractBlockLines(block){
      than a week that does not finish rendering. */
   if(!block || !block.details) return [];
   if(block.type==='strength') return (block.details.exercises||[]).filter(e=> e && e.name)
-    .map(e=>({ name:e.name, dose:blockLineDose(e) }));
+    .map(e=>({ name:e.name }));
   if(block.type==='run'){
     const d = block.details;
     const typeLabel = d.runType ? d.runType.charAt(0).toUpperCase()+d.runType.slice(1) : 'Run';
     // Long and race runs deliberately carry no auto-solved distance — they're governed
     // by weekly volume, not session length. Rendering that absence as "—km" looked like
     // a failed lookup rather than an intentional blank, so omit the distance entirely.
-    return [{ name: d.distanceKm ? `${typeLabel} \u00b7 ${d.distanceKm}km` : typeLabel, dose:'' }];
+    return [{ name: d.distanceKm ? `${typeLabel} \u00b7 ${d.distanceKm}km` : typeLabel }];
   }
   if(block.type==='mobility') return (block.details.stretches||[])
     .filter(st=> st && st.name && !st.skippedForInjury)
-    .map(st=>({ name:st.name, dose:blockLineDose(st) }));
+    .map(st=>({ name:st.name }));
   return [];
 }
 
@@ -15106,20 +15105,35 @@ function weekDayDetailHtml(date, realBlocks, isOff){
     return `<div class="wheel-add-card" data-clear-off="${date}" style="opacity:0.65;">Not training this day &middot; tap to undo</div>`;
   }
   if(!realBlocks.length){
-    return `<div class="wheel-add-card" data-add-date="${date}">+ Add workout</div>`
+    return `<div class="wheel-add-card" data-add-date="${date}" data-add-slot="am">+ Add workout</div>`
       + `<div class="wheel-add-card" data-set-off="${date}" style="opacity:0.55; border-style:dashed;">Not this day</div>`;
   }
+  /* THE SECOND SESSION HAD NOWHERE TO COME FROM. A day holds two slots, am and pm, and both
+     have always rendered — this function has mapped over every block it was handed since it
+     was written. What it did not do was offer the empty one: "+ Add workout" appeared only
+     on a day with NOTHING on it, so once a day had a morning it could never be given an
+     evening from here. The generator does not make two either unless multiSessionOk is set,
+     which the first run writes false, so in practice the second slot was unreachable.
+
+     A strip rather than a card, and only when a slot is actually free. A card would sit in
+     the grid beside the session and halve its width — the one thing the :only-child rule
+     below exists to prevent — so the day you have one workout would read worse in exchange
+     for an affordance you use rarely. */
+  const freeSlot = ['am','pm'].find(sl => !realBlocks.some(b => b.slot === sl));
+  const addStrip = freeSlot
+    ? `<div class="wheel-add-slot" data-add-date="${date}" data-add-slot="${freeSlot}">`
+      + `+ Add a second session</div>`
+    : '';
   return realBlocks.map(({slot, block}) => {
     const lines = extractBlockLines(block);
     const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
-    return `<div class="wheel-workout-card" data-edit-date="${date}" data-edit-slot="${slot}">
+    return `<div class="wheel-workout-card${realBlocks.length === 1 ? ' solo' : ''}" data-edit-date="${date}" data-edit-slot="${slot}">
         <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
         <div class="wheel-ex-names">${lines.length
-          ? lines.map(l=> `<div class="wheel-ex-line"><span class="wheel-ex-name">${l.name}</span>`
-              + (l.dose ? `<span class="wheel-ex-dose">${l.dose}</span>` : '') + `</div>`).join('')
+          ? lines.map(l=> `<div class="wheel-ex-line"><span class="wheel-ex-name">${l.name}</span></div>`).join('')
           : '<em>No details yet</em>'}</div>
       </div>`;
-  }).join('');
+  }).join('') + addStrip;
 }
 // Measured rather than counted: the cards wrap, so a line count would be wrong at exactly
 // the widths where it matters. A hidden copy of the real pane, at the real width, holding
@@ -15591,7 +15605,11 @@ async function renderWeekGrid(){
     });
   });
   detailCol.querySelectorAll('[data-add-date]').forEach(card=>{
-    card.addEventListener('click', ()=> openBlockEditor(card.dataset.addDate, 'am', null));
+    // The slot comes off the element. It used to be the literal 'am', which was harmless
+    // while the only way here was from an empty day and would have overwritten the morning
+    // the moment a second session could be added to a day that already had one.
+    card.addEventListener('click', ()=> openBlockEditor(card.dataset.addDate,
+      card.dataset.addSlot || 'am', null));
   });
   // Marking a day off clears anything already sitting on it — the point is that nothing is
   // happening, and leaving a block behind would say otherwise.
