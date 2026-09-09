@@ -298,11 +298,19 @@
      so it can hold the clearance for the fixed footer itself and close the page in black
      while it does it. */
   .app-colophon{ background:var(--ground); padding:22px 0 calc(90px + env(safe-area-inset-bottom, 0px)); }
+  /* 0.7, up from 0.62. The line passed at 0.62 — 7.43 on dark, 5.43 on bone — but passing
+     and reading are not the same thing at 12px prose on a black field the height of a
+     screen, which is what closes the page. 9.26 and 7.27, still a step under the ink around
+     it, so it is quiet without being faint. */
   .app-colophon-inner{ max-width:520px; margin:0 auto; padding:0 var(--gutter);
     font-family:var(--prose); font-size:12px; line-height:1.5; letter-spacing:0;
-    color:rgba(var(--ink-rgb),0.62); }
+    color:rgba(var(--ink-rgb),0.7); }
   .app-colophon b{ color:var(--bg); font-weight:var(--fw-bold); }
-  .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(var(--ink-rgb),0.45); }
+  /* 0.58 on both grounds now. It was 0.45, which is 4.38 on dark — under the 4.5 it needs,
+     and the one failure groundcheck has been printing at the bottom of Today. Bone had
+     already been lifted to 0.58 in the block below and dark was left where it was, so the
+     fix is to take bone's value as the base: 6.61 and 4.72, one rule instead of two. */
+  .app-colophon i{ font-family:var(--mono); font-style:normal; color:rgba(var(--ink-rgb),0.58); }
   /* touch-action:none because this is the one strip on the page where a vertical drag is
      ours — it sits past the end of the content, so there is nothing left to scroll. */
   .log-strip{ background:var(--ground); padding:22px var(--gutter) calc(90px + env(safe-area-inset-bottom, 0px));
@@ -490,8 +498,9 @@
   }
   /* Faded ink is not symmetric: the same alpha composited toward bone lands weaker than
      toward black, because luminance is not linear in the middle. Most of the twenty-three
-     alphas in the app have enough headroom to absorb that; these two did not. */
-  html[data-ground="bone"] .app-colophon i{ color:rgba(var(--ink-rgb),0.58); }
+     alphas in the app have enough headroom to absorb that; this one did not.
+     .app-colophon i used to be here too. It is not any more — its base is 0.58, the value
+     this line used to add, so bone needs nothing of its own. */
   html[data-ground="bone"] .subj-dot{ color:rgba(var(--ink-rgb),0.66); }
   /* --hue-faded-dark above is the same value written once, not twice: the pocket rule below
      needs the dark hue back and cannot get it from the bone override that replaced it. It has
@@ -1268,7 +1277,10 @@
   /* The one rounded thing in the app. Everything else is square by design, but these are
      small filled labels sitting inside a line of text rather than panels or controls, and
      at 11px a hard corner reads as a nick in the line. 3px, so it is a softened tag rather
-     than a pill. .ss-tag takes it too — it is the same idiom on the same rows. */
+     than a pill. .ss-tag takes it too — it is the same idiom on the same rows, and so does
+     .drill-stage, which had been square only because it was written before this rule was.
+     The section pills (.group-title) are already rounded at 6px — a larger box, the same
+     softness. Buttons stay square: those are controls, not labels. */
   .plan-key{ display:inline-block; font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:var(--fw-bold); letter-spacing:0.06em; text-transform:uppercase;
     color:var(--bg); background:var(--reverse-bg); padding:1px 5px; margin-right:6px;
@@ -2902,7 +2914,7 @@
   .drill-stage{ display:inline-block; vertical-align:baseline; margin-right:9px;
     font-family:var(--mono); font-size:9.5px; font-weight:var(--fw-bold);
     letter-spacing:0.09em; text-transform:uppercase;
-    background:var(--bg); color:var(--ground); padding:4px 6px; }
+    background:var(--bg); color:var(--ground); padding:4px 6px; border-radius:3px; }
   .drill-stage:empty{ display:none; }
   /* --fs-md is the scale's "primary content — exercise names, list rows", and a drill is an
      exercise name. It sat on --fs-sm, which the scale calls secondary text and captions, so
