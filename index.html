@@ -1498,9 +1498,20 @@
   .skill-lane-cells i{ display:block; width:9px; height:3px;
     background:rgba(var(--ink-rgb),0.22); }
   .skill-lane-cells i.on{ background:var(--bg); }
+  /* Rung and difficulty share the last column: the rung takes what it needs and ellipsises,
+     the tag is fixed and pinned right. On the ten ladders you have not started the rung is
+     blank, so the tag sits alone against the edge and the column reads as a difficulty
+     scale down the set. */
+  .skill-lane-end{ display:flex; align-items:center; gap:8px; min-width:0; }
   /* The rung you are on, in the quiet ink the doses use — 6.61 dark, 4.72 bone. */
-  .skill-lane-rung{ font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.58);
+  .skill-lane-rung{ flex:1; min-width:0; font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.58);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Dark ink on a block hue, which is what every section head already does — the fill does not
+     follow the ground, so one pair works on both. Measured on the four: lime 11.84, yellow
+     11.32, orange 9.55, red 7.14 against --text. */
+  .skill-lane-tier{ flex:none; font-size:9.5px; font-weight:var(--fw-bold);
+    letter-spacing:0.09em; text-transform:uppercase; color:var(--text);
+    padding:2px 5px; border-radius:3px; }
   /* The one the wheel is on, and the ones you are actually training. A left rule rather than
      a fill: the row is a line of data, and filling it would make nine of them nine cards. */
   .skill-lane.here{ box-shadow:inset 2px 0 0 var(--bg); padding-left:8px; }
@@ -9875,7 +9886,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.446';
+const APP_VERSION = '2026.09.09.447';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10046,6 +10057,7 @@ const APP_NOTES = {
   '2026.09.09.444': 'Sunday review ranks the week, compares it to the last block, and closes the block.',
   '2026.09.09.445': 'A skill says how far the top of its ladder is at the rate you are going.',
   '2026.09.09.446': 'The mark sleeps on a rest day and when you wander off \u2014 shut eyes, and z\u2019s.',
+  '2026.09.09.447': 'Skills run easiest to hardest, each with how hard it is.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14653,6 +14665,40 @@ function skillLadderTotal(tree){ return (tree ? tree.levels.length : 0) - skillG
    Ties keep declaration order, which is stable and already roughly considered. Active
    skills still come first in the order you ticked them — that is your own ordering and
    it outranks any judgement about difficulty. */
+/* Easiest to hardest, with nothing hoisted. skillPickerOrder sorts by tier and then lifts
+   the skills you are actively training to the front, which is right for the WHEEL — it should
+   open on what you are working on. It is wrong for the board, whose whole job is to show the
+   set as a ladder: two tier-4 skills sitting above a tier-1 because you happen to be training
+   them makes the ordering unreadable as difficulty. */
+function skillTierOrder(category){
+  const trees = PROGRESSION_TREES[category];
+  const keys = skillKeysFor(category).slice();
+  return keys.slice().sort((a,b)=>
+    ((trees[a] && trees[a].tier) || 9) - ((trees[b] && trees[b].tier) || 9)
+    || keys.indexOf(a) - keys.indexOf(b));
+}
+/* THE FOUR TIERS, AS A HEAT RAMP.
+
+   Every tree already carries a researched `tier` 1-4 and nothing has ever shown it. Checked
+   against the ladders themselves before surfacing it: tier 1 is the three anyone can start
+   today (push-up, pull-up, dip), 2 needs a base but no prerequisite (pistol, handstand,
+   L-sit, Nordic, bridge, pancake, overhead squat), 3 is gated or straight-arm work
+   (muscle-up, HSPU, both levers, front and middle splits), 4 is the two nobody gets by
+   accident (planche, one-arm pull-up).
+
+   Four bands, not three. Green-yellow-red covers 1-3 and would have to fold planche in with
+   front lever, which is the one distinction on the whole scale you can feel — so 3 takes
+   orange and 4 keeps red, and the ramp still reads green through red end to end.
+
+   The block hues, which are fills with dark ink on them and do not follow the ground: the
+   same pair .group-title has used on every section head since the start. */
+const SKILL_TIERS = {
+  1: { word:'Easy',   hue:'var(--block-lime)' },
+  2: { word:'Medium', hue:'var(--block-yellow)' },
+  3: { word:'Hard',   hue:'var(--block-orange)' },
+  4: { word:'Elite',  hue:'var(--block-red)' }
+};
+
 function skillPickerOrder(category){
   const st = skillPickerState[category];
   const trees = PROGRESSION_TREES[category];
@@ -14791,9 +14837,8 @@ function renderSkillBoard(category){
   const el = ids && ids.board && document.getElementById(ids.board);
   if(!el) return;
   const st = skillPickerState[category];
-  const order = skillPickerOrder(category);
-  const here = order[st.index];
-  el.innerHTML = order.map(key=>{
+  const here = skillPickerOrder(category)[st.index];
+  el.innerHTML = skillTierOrder(category).map(key=>{
     const tree = PROGRESSION_TREES[category][key];
     if(!tree) return '';
     const gate = skillGateLevels(tree);
@@ -14807,11 +14852,15 @@ function renderSkillBoard(category){
        ten times down the column, which is the exact mess this idea is supposed to avoid — an
        empty strip already says it, and says it in one glance instead of ten readings. */
     const rung = d.levelIndex == null ? '' : ((tree.levels || [])[d.levelIndex] || '');
+    const tier = SKILL_TIERS[tree.tier] || null;
+    const tag = tier
+      ? `<span class="skill-lane-tier" style="background:${tier.hue};">${tier.word}</span>`
+      : '';
     return `<button type="button" class="skill-lane${key === here ? ' here' : ''}${d.active ? ' on' : ''}"
-        data-skill-key="${key}" aria-label="${tree.label}, ${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
+        data-skill-key="${key}" aria-label="${tree.label}, ${tier ? tier.word.toLowerCase() + ', ' : ''}${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
       <span class="skill-lane-name">${tree.label}</span>
       <span class="skill-lane-cells">${cells}</span>
-      <span class="skill-lane-rung">${rung}</span></button>`;
+      <span class="skill-lane-end"><span class="skill-lane-rung">${rung}</span>${tag}</span></button>`;
   }).join('');
   if(!el.dataset.bound){
     el.dataset.bound = '1';
