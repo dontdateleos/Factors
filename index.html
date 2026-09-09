@@ -637,6 +637,35 @@
      needed somewhere to go; it is sand now, which is the same idea with a quieter voice — a
      warm off-white against a cream wordmark rather than a second saturated thing beside it. */
   .tab-label{ font-family:var(--sans); font-size:var(--fs-md); font-weight:var(--fw-bold); color:var(--sand); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:2px; }
+  /* THE STREAK, BESIDE THE TAB'S NAME.
+
+     In the sticky row because it is the one part of the header that survives the collapse —
+     everything below it scrolls away, and a streak you only see at the top of the page is a
+     streak you see once a day. Inside .tab-label rather than positioned against it, so it
+     rides the same box the word does and the mark perches past it on its own.
+
+     The number sits IN the flame rather than beside it: two objects in a row that is already
+     word, plate and mark is one too many, and the count is what the flame is for.
+
+     groundcheck reads this as low contrast and is wrong about it — it composites CSS
+     backgrounds, and the surface under these digits is an emoji glyph it cannot see. What
+     they actually sit on is the flame's own near-white core. The halo is what makes that true
+     at every point of the flicker, and the wrapper carries the readable label for anything
+     not looking at pixels. */
+  .streak-flame{ display:inline-flex; align-items:center; vertical-align:middle;
+    margin-left:9px; }
+  .streak-flame[hidden]{ display:none; }
+  .sf-stack{ position:relative; display:grid; place-items:center; line-height:0; }
+  .sf-em{ font-size:25px; line-height:1; transform-origin:50% 88%;
+    animation:sfCandle 2.4s ease-in-out infinite; }
+  /* Rocking about its own base, never scaling. A flame that stretches and squashes reads as
+     an animation running in the masthead; one that leans reads as a flame. */
+  @keyframes sfCandle{ 0%,100%{ transform:rotate(-6deg); } 50%{ transform:rotate(6deg); } }
+  .sf-n{ position:absolute; top:55%; font-family:var(--mono); font-size:10px;
+    font-weight:var(--fw-bold); letter-spacing:0; color:#2b0f00;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0 3px rgba(255,231,176,0.95), 0 0 1px rgba(255,231,176,1); }
+  @media (prefers-reduced-motion: reduce){ .sf-em{ animation:none; } }
   /* Set to match .tab-label, since it is the other thing in this corner of the black. */
   /* Scoped past `.header-brand > *`, which sets position:relative on every direct child
      to lift them over the mark. At equal specificity that rule wins on order,
@@ -3575,7 +3604,11 @@
     <div class="header-date" id="headerDate" aria-label="Today's date">
       <span class="hd-dow"></span><span class="hd-day"></span><span class="hd-mon"></span>
     </div>
-    <div id="currentTabLabel" class="tab-label">Today</div>
+    <!-- The word is its own span because the streak sits in this box with it, and the tab
+         switch used to write straight over the label's contents. Both children stay inside
+         #currentTabLabel on purpose: eyePerchSpot measures a range across the whole label,
+         so the mark perches after whatever is in here without being told the flame exists. -->
+    <div id="currentTabLabel" class="tab-label"><span id="currentTabWord">Today</span><span id="streakFlame" class="streak-flame" hidden></span></div>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: a solid, drawn face on, which is the same two capsules on the same square
          it has always been until it turns. The .eye-gaze pair stays in the DOM and stays
@@ -7204,8 +7237,79 @@ async function countLoggedStreak(){
     return n;
   }catch(e){ return 0; }
 }
+/* THE WORKOUT STREAK. Consecutive workouts done, not consecutive days logged.
+
+   countLoggedStreak above counts days with an entry, which is the streak the mark's blink
+   rate rides on and is a different thing: it measures whether you opened the app and wrote
+   something down. This measures whether you did the session. A day the plan had nothing on
+   it is not a break — there is no workout to miss. A day the plan had one and it was not
+   logged is where the run ends.
+
+   Walks backwards from today and stops at the first miss, so it reads two keys per day for
+   as long as the streak is and then nothing. The 400 is the same ceiling countLoggedStreak
+   uses: a guard against a corrupt date walking the loop forever, not a cap on the streak.
+
+   Today is exempt. A session planned for this afternoon is not missed yet, and a streak that
+   breaks at midnight and mends when you train is a streak that is wrong all morning. */
+async function countWorkoutStreak(){
+  try{
+    const byDate = {};
+    for(const s of await getAllTrainingSessions()){
+      if(!s || !s.date) continue;
+      (byDate[s.date] = byDate[s.date] || []).push(s.type || 'strength');
+    }
+    let n = 0;
+    const d = new Date(todayStr + 'T00:00:00');
+    for(let i = 0; i < 400; i++){
+      const date = d.toISOString().slice(0,10);
+      d.setDate(d.getDate() - 1);
+      // A day you marked off is not a day you missed.
+      let off = false;
+      try{ await window.storage.get(DAY_OFF_PREFIX + date); off = true; }catch(e){}
+      if(off) continue;
+      const planned = [];
+      for(const slot of ['am','pm']){
+        try{
+          const b = JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value);
+          if(b && b.type) planned.push(b.type);
+        }catch(e){}
+      }
+      if(!planned.length) continue;              // nothing was asked of you
+      const done = (byDate[date] || []).slice();
+      let missed = false;
+      for(const type of planned){
+        const at = done.indexOf(type);
+        if(at < 0){ missed = true; break; }
+        done.splice(at, 1);                      // one logged session answers one planned block
+      }
+      if(missed){
+        if(date === todayStr) continue;          // the day is not over
+        break;
+      }
+      n += planned.length;
+    }
+    return n;
+  }catch(e){ return 0; }
+}
+let workoutStreak = 0;
+/* Drawn from 2. One session is not a run of anything, and a flame that appears the first time
+   you train and vanishes the next day is worse than no flame — noteStreak already uses the
+   same floor for the same reason. */
+function renderStreakFlame(){
+  const el = document.getElementById('streakFlame');
+  if(!el) return;
+  if(!(workoutStreak >= 2)){ el.hidden = true; el.innerHTML = ''; el.removeAttribute('aria-label'); return; }
+  el.hidden = false;
+  el.setAttribute('aria-label', workoutStreak + ' workouts in a row');
+  el.innerHTML = '<span class="sf-stack" aria-hidden="true">'
+    + '<span class="sf-em">\u{1F525}</span>'
+    + '<span class="sf-n">' + workoutStreak + '</span></span>';
+}
+
 async function refreshEyeHistory(){
   loggedStreak = await countLoggedStreak();
+  workoutStreak = await countWorkoutStreak();
+  renderStreakFlame();
   eyeCtx.streak = anim('streakPerk') ? loggedStreak : 0;
   noteStreak(loggedStreak);
 }
@@ -8613,7 +8717,7 @@ function activateTab(name, opts){
   const backdropEl = document.getElementById('scrollBackdrop');
   backdropEl.style.backgroundColor = TAB_BACKDROP_COLOR[name] || TAB_BACKDROP_COLOR.insights;
   const tabButton = document.querySelector(`.tab[data-tab="${name}"]`);
-  if(tabButton) document.getElementById('currentTabLabel').textContent = tabButton.textContent;
+  if(tabButton) document.getElementById('currentTabWord').textContent = tabButton.textContent;
   // Ahead of the scroll it is meant to cover, not after it.
   eyeScrollMuteUntil = Date.now() + 900;
   window.scrollTo(0, 0);
@@ -9063,7 +9167,7 @@ function activateTabViaUi(t){
     tb.setAttribute('aria-selected', isActive ? 'true' : 'false');
     if(isActive) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current');
   });
-  document.getElementById('currentTabLabel').textContent = t.textContent;
+  document.getElementById('currentTabWord').textContent = t.textContent;
   noteTabTap(t);
   transitionToTab(t.dataset.tab);
 }
@@ -9608,7 +9712,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.438';
+const APP_VERSION = '2026.09.09.439';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -9771,6 +9875,7 @@ const APP_NOTES = {
   '2026.09.09.436': 'Every section\u2019s open-arrow sits in one column instead of wherever the row left it.',
   '2026.09.09.437': 'The mark sits still again \u2014 back in the wordmark on every tab.',
   '2026.09.09.438': 'The mark no longer tears when you swipe between tabs.',
+  '2026.09.09.439': 'A streak beside the tab\u2019s name \u2014 consecutive workouts done, ended by one missed.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
