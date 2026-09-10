@@ -75,6 +75,15 @@
     --fw-normal:400;
     --fw-medium:500;
     --fw-bold:700;
+    /* THE NATIVE CHROME HAS TO KNOW WHICH GROUND IT IS ON.
+       A date input draws its own calendar glyph and a select its own arrow, and the browser
+       picks their colour from color-scheme, not from ours. While the fields were filled white
+       that never came up — the glyph was dark on its own white box. Outlined, an unset
+       color-scheme leaves a near-black glyph on a near-black field, invisible. Declared per
+       ground rather than once: bone flips it back to light, where dark chrome is correct
+       again. It also reaches the checkboxes and the scrollbars, which is the same fix for
+       the same reason. */
+    color-scheme:dark;
     --bg:#fbfaf6;
     --panel:#ffffff;
     --line:#1c1d17;
@@ -479,6 +488,7 @@
      whole vocabulary from when the page was cream. The blocks and the faces do not move
      either: they are the thing the ground exists to carry. */
   html[data-ground="bone"]{
+    color-scheme:light;
     --ground:#fbfaf6;
     --bg:#0c0d0b;
     --ink-rgb:12,13,11; --ground-rgb:251,250,246;
@@ -548,6 +558,11 @@
     .update-banner, .lift-sheet-panel, .morning-panel, .goal-row-panel,
     .rpe-scale .subj-dot.on, .rest-preset.on, .confirm-armed
   ){
+    /* The native chrome follows the POCKET, not the page. color-scheme is declared per
+       ground, and on bone that is light — correct for the page and wrong in here, where the
+       ground is the dark one. A date field inside one of these drew its calendar glyph
+       near-black on near-black. Everything else in this block flips for the same reason. */
+    color-scheme:dark;
     --ground:#0c0d0b; --bg:#fbfaf6;
     --ink-rgb:251,250,246; --ground-rgb:12,13,11;
     --dim:#c9c7bc; --text:#0c0d0b;
@@ -895,7 +910,8 @@
   .panel.active{ display:block; }
 
   .date-row{ display:flex; align-items:center; gap:10px; margin-bottom:var(--sp-3); }
-  input[type=date]{ background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
+  /* A FIELD IS OUTLINED, NOT FILLED. See the note beside the base input rule below. */
+  input[type=date]{ background-color:transparent; border:2px solid rgba(var(--ink-rgb),0.5); color:var(--bg); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
 
   .group{ margin-bottom:var(--sp-3); background:transparent; }
   /* ---- the section band ----------------------------------------------------------
@@ -991,11 +1007,37 @@
      ("sets", "kg") and belongs at hint weight. In the three logging fields it is last
      session's own numbers, so it sits a step up from that — quiet enough to be obviously not
      yours, solid enough to be read as a figure you are about to beat. */
-  /* --on-light's own value at 0.42. Written out because there is no rgb triple for it and
-     the input's fill is light on BOTH grounds, so this does not follow the ground. */
-  .log-fields-row input::placeholder{ color:rgba(12,13,11,0.42);
+  /* It was rgba(12,13,11,0.42) — on-light's own value, written out because the input's fill
+     was light on BOTH grounds and so did not follow the ground. The fill has gone, so it
+     follows the ground now like everything else. A step up from the ordinary placeholder's
+     0.45, because this one is last session's real numbers rather than a hint. */
+  .log-fields-row input::placeholder{ color:rgba(var(--ink-rgb),0.55);
     font-variant-numeric:tabular-nums; opacity:1; }
-  input[type=number], input[type=text], textarea{ flex:1; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; min-width:0; }
+  /* A FIELD IS OUTLINED, NOT FILLED.
+
+     These were --panel (#ffffff) with a black border and black text: a light-mode control
+     dropped onto a near-black app, and the only white rectangles in it. Wherever a form had
+     three of them they were the loudest thing on the screen — louder than the primary button
+     under them, and, in the injury sheet, louder than the questions they answer.
+
+     Outlined instead, in the terms button.outline already uses: no fill, ink text, a border
+     in ink at low alpha. Nothing else about them moves — same 2px, same square corners, same
+     padding, same wordmark face for what you type.
+
+     0.5, not the button's 0.45. A border is a non-text UI component and wants 3:1; composited
+     against the ground, 0.45 measures 4.38 on dark and 3.09 on bone — over the line by six
+     hundredths, on the edge where the field's only boundary IS that line. 0.5 gives 5.16 and
+     3.62. A button can afford the thinner one because it has a filled label inside it saying
+     where it is; a field has nothing but its edge.
+
+     background-COLOR, not the background shorthand: .ui-fieldUnderline draws the focus
+     underline as a background-image, and the shorthand would wipe it out. */
+  input[type=number], input[type=text], textarea{ flex:1; background-color:transparent; border:2px solid rgba(var(--ink-rgb),0.5); color:var(--bg); font-family:var(--sans); font-size:var(--fs-control); padding:5px 9px; border-radius:0; min-width:0; }
+  /* The instruction weight. 0.45 measures 4.38 on the dark ground and 3.09 on bone, both
+     under 4.5 — which is right for a placeholder and wrong for anything else: it has to read
+     as not-yet-your-content, and WCAG exempts it precisely because it is a hint that
+     disappears the moment you type. The value you type is var(--bg), at full contrast. */
+  input::placeholder, textarea::placeholder{ color:rgba(var(--ink-rgb),0.45); opacity:1; }
   /* A time input was never in the rule above, so it kept flex-basis auto and sized itself
      to its own picker — 102px in a column of 227px fields, one box visibly short of the
      right edge. Only inside a field-row: the standalone date picker above the form is not
@@ -1008,7 +1050,7 @@
      Basis stays `auto` so a select starts at its natural width (a basis of 0 collapsed
      the Weekly split/duration pickers to "Aut…" and "1 w…"); shrink:1 is what lets a
      long option like "Low — rarely flares with load" compress instead of overflowing. */
-  select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--sans); font-size:var(--fs-control); padding:0 10px; border-radius:0; height:28px; }
+  select{ flex:1 1 auto; min-width:0; text-overflow:ellipsis; background-color:transparent; border:2px solid rgba(var(--ink-rgb),0.5); color:var(--bg); font-family:var(--sans); font-size:var(--fs-control); padding:0 10px; border-radius:0; height:28px; }
   textarea{ resize:vertical; min-height:50px; font-family:var(--sans); }
   input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--accent); }
   /* WHERE THE KEYBOARD IS.
@@ -2112,7 +2154,7 @@
   .week-wheel-detail > .wheel-workout-card + .wheel-workout-card{
     border-left:1px solid rgba(var(--ink-rgb),0.25); padding-left:var(--sp-3); }
   .wheel-workout-card:active{ background:rgba(var(--ink-rgb),0.12); }
-  select:active{ background:#f2f2f2; }
+  select:active{ background-color:rgba(var(--ink-rgb),0.12); }
   .log-entry:active, .wheel-add-card:active, .add-row:active, .goal-row:active{ background:rgba(255,255,255,0.35); }
   .wheel-workout-type{ font-family:var(--sans); font-size:var(--fs-sm); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:0.02em; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; color:var(--bg); }
   .wheel-workout-chevron{ opacity:0.5; font-size:var(--fs-lg); }
@@ -3032,7 +3074,7 @@
   #goalEditRemove{ margin-top:var(--sp-3); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
   .goal-row .field-row{ margin-bottom:8px; }
-  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--wordmark); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
+  #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background-color:transparent; border:2px solid rgba(var(--ink-rgb),0.5); color:var(--bg); font-family:var(--wordmark); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-control); padding:0 4px; }
 
 
@@ -10000,7 +10042,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.462';
+const APP_VERSION = '2026.09.10.463';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10187,6 +10229,7 @@ const APP_NOTES = {
   '2026.09.10.460': 'A skill opens on its whole ladder, not two rungs and a \u201cshow all\u201d.',
   '2026.09.10.461': 'Injuries is a heading and a button until something hurts.',
   '2026.09.10.462': 'Logging an injury asks all six things the same way instead of three and a form.',
+  '2026.09.10.463': 'Every field in the app is outlined instead of a white box.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
