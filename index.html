@@ -3074,6 +3074,16 @@
   /* Hairline rows, inverted. Bullets were glyphs on wrapped lines, so a two-line signal
      used to lose its own left edge. */
   .rec-signal{ font-family:var(--sans); font-size:var(--fs-tag); font-weight:var(--fw-medium); color:var(--dim); line-height:1.5; letter-spacing:0.015em; padding:8px 0; border-top:1px solid rgba(var(--ink-rgb),0.22); }
+  /* A link inside the sentence, not a control beside it: it reveals a setting rather than
+     doing anything to today, and a filled button on a card would out-weigh Accept and Dismiss
+     underneath it — which are the things you actually came to press. Inherits the signal's
+     own size and colour so it reads as part of the line, underlined so it reads as a way
+     through. Same call .mob-check-more makes on the skill ladders. */
+  .rec-profile-link{ width:auto; height:auto; margin:0; padding:0; border:0; border-radius:0;
+    background:transparent; font-family:inherit; font-size:inherit; font-weight:var(--fw-bold);
+    letter-spacing:inherit; text-transform:none; color:inherit;
+    text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+  .rec-signal b{ font-weight:var(--fw-bold); color:var(--bg); }
   .rec-actions{ display:flex; gap:8px; margin-top:16px; }
   .rec-actions .accept-btn{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   .rec-actions .dismiss-btn{ background:transparent; color:var(--bg); border-color:rgba(var(--ink-rgb),0.45); }  /* Flat rows matching the workout's .log-entry treatment — no boxes. The severity cue
@@ -4431,9 +4441,16 @@
       </div>
     </div>
     <div class="group form-panel">
-      <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">Goal Profile</div><span class="head-est" id="goalProfileSummary"></span><div class="group-sub">shapes every recovery threshold in here</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
+      <!-- "Goal Profile" was the wrong name twice over. It collided with GOALS, which in this
+           app already means something specific and unrelated — your strength and running
+           goals, the skill ladders on the Body tab, "Update goals" on Weekly — so it read as a
+           profile OF those. And "profile" said nothing about what it does. It is a dial on how
+           readily the app tells you to back off or add, so it is named for that.
+           The id, the storage key and the collapse key all stay: they are what a saved setting
+           is written under, and renaming a label should not silently reset anyone's choice. -->
+      <div class="group-head collapsible" data-collapse="goalprofile" style="cursor:pointer;"><div class="group-title">How hard to push</div><span class="head-est" id="goalProfileSummary"></span><div class="group-sub">where the line falls between backing off and adding</div><span class="collapse-chevron" data-collapse="goalprofile">&#9662;</span></div>
       <div class="fields collapsible-body" data-collapse="goalprofile" style="display:none;">
-        <select id="goalProfile" aria-label="Goal profile">
+        <select id="goalProfile" aria-label="How hard to push">
           <option value="perform">Perform</option>
           <option value="balanced">Balanced</option>
           <option value="longevity">Longevity</option>
@@ -9868,7 +9885,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.454';
+const APP_VERSION = '2026.09.10.455';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10047,6 +10064,7 @@ const APP_NOTES = {
   '2026.09.10.452': 'Nothing in the app is a spinning wheel any more \u2014 the code for them is gone with them.',
   '2026.09.10.453': 'The mark keeps its eyes when it sleeps \u2014 the z\u2019s say it instead.',
   '2026.09.10.454': 'Weekly says which workouts are morning and which are evening.',
+  '2026.09.10.455': 'Goal Profile is now \u201cHow hard to push\u201d, it actually changes the advice, and the card says when it did.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -10851,6 +10869,18 @@ if(appleHealthSyncOn()){
   });
 }
 
+/* The way through from the card that named it. Delegated off the document because a rec card
+   is rebuilt on every render and a listener bound to one would go with it. */
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.rec-profile-link')) return;
+  activateTab('settings');
+  setTimeout(()=>{
+    setCollapsed('goalprofile', false);
+    const el = document.getElementById('goalProfile');
+    if(el) el.closest('.group').scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'center' });
+  }, 420);
+});
+
 /* ---------- GOAL PROFILE ---------- */
 /* No loadRatioHigh any more. The acute:chronic workload ratio is the strongest consensus
    AGAINST a widely-adopted sports-science metric in the last decade, and this app was
@@ -10874,6 +10904,7 @@ const GOAL_PROFILES = {
   balanced:   { scoreLow:40, scoreHigh:70 },
   longevity:  { scoreLow:45, scoreHigh:75 }
 };
+const GOAL_PROFILE_LABELS = { perform:'Perform', balanced:'Balanced', longevity:'Longevity' };
 const profileSelect = document.getElementById('goalProfile');
 async function loadGoalProfile(){
   try{ const r = await window.storage.get('settings:goalProfile'); profileSelect.value = r.value; }
@@ -10886,8 +10917,25 @@ profileSelect.addEventListener('change', async ()=>{
 // The personal-tolerance adjustment that used to live here tuned loadRatioHigh and nothing
 // else, so it goes with the threshold. computeTrainingTolerance() itself stays — the deload
 // check and the volume readout both still use it.
+/* THE DIAL WAS IGNORED EXACTLY WHERE THE APP KNOWS YOU BEST.
+
+   scoreLow/scoreHigh only ever reached the add/reduce logic down its FALLBACK path — the one
+   taken when there is not enough logged data for systemic readiness. Once there is, that
+   logic switches to percentile rank against your own history and read three hardcoded
+   numbers: 20, 40 and 70. So the more consistently you logged, the less this setting did,
+   until its only remaining effect was the one word under the score.
+
+   The rank cut-offs are derived from the same two numbers rather than being a second set that
+   can drift away from them: the "below your usual" bar IS scoreLow, the "top third" bar IS
+   scoreHigh, and the deep "bottom fifth" bar sits 20 under scoreLow. On balanced that comes
+   out at 20 / 40 / 70 — the three constants that were already hardcoded there, which is what
+   says the derivation is the right one rather than a new invention. Perform and Longevity now
+   move those bars by the same 5 points they already moved the score bars by. */
 async function currentGoalThresholds(){
-  return GOAL_PROFILES[profileSelect.value] || GOAL_PROFILES.balanced;
+  const key = GOAL_PROFILES[profileSelect.value] ? profileSelect.value : 'balanced';
+  const p = GOAL_PROFILES[key];
+  return { ...p, key, label: GOAL_PROFILE_LABELS[key],
+           rankDeep: p.scoreLow - 20, rankLow: p.scoreLow, rankHigh: p.scoreHigh };
 }
 
 /* ---------- STRENGTH/RUNNING LEVEL ----------
@@ -12790,19 +12838,29 @@ async function buildPrescription(sr){
      have the app saying "trim today" almost every day and "room to push" almost never. */
   const p = (sr && sr.available && !sr.held) ? sr.percentile : null;
   const gated = !!(sr && sr.gateReason);
+  /* THESE THREE NUMBERS ARE A SETTING, AND THIS IS WHERE THAT MATTERS MOST.
 
-  if(gated || (p != null && p < 20)){
+     20 / 40 / 70 were written in here as literals, exactly as they were in the add/reduce
+     signal logic — and this is the card you actually SEE on a day with readiness data, so of
+     all the places the "how hard to push" dial was being ignored, this was the one that made
+     it look like it did nothing at all. Read from the same derivation the signals now use, so
+     one setting moves both and they cannot say different things about the same day.
+     Fetched here rather than passed in: this is a whole card's worth of decision and it
+     should not depend on its one caller happening to have the thresholds to hand. */
+  const goalT = await currentGoalThresholds();
+
+  if(gated || (p != null && p < goalT.rankDeep)){
     kind = 'reduce';
     title = gated ? 'Hold the plan — this is not a training-load reading' : 'Take today down';
     lines.push('Aerobic work or rest. Nothing novel, nothing maximal.');
     lines.push('Lifting: technique work only, four or more reps in reserve.');
-  } else if(p != null && p < 40){
+  } else if(p != null && p < goalT.rankLow){
     kind = 'reduce';
     title = 'Trim today rather than skip it';
     lines.push('One fewer hard set per muscle group, and drop the last accessory.');
     lines.push('Lifting: add one rep in reserve to every working set.');
     lines.push('Running: hold threshold work a little easier than planned.');
-  } else if(p != null && p >= 70){
+  } else if(p != null && p >= goalT.rankHigh){
     kind = 'add';
     title = 'Room to push today';
     lines.push('Up to one extra hard set per muscle group, if the block calls for it.');
@@ -12832,6 +12890,11 @@ async function buildPrescription(sr){
   const TITLES = { reduce:'Reduce', modify:'Modify', add:'Add' };
   return { type:'prescription_' + kind, title, signals: lines,
            confidence: sr && sr.available ? (sr.maturity > 0.7 ? 'high' : 'medium') : 'low',
+           // Whether one of the dial's own cut-offs is what put this card here. A gated day is
+           // not one of them — illness or a skinful is a safety call, the same on every
+           // setting — so it stays false there and the card does not offer to retune it.
+           profileDriven: !gated && p != null
+             && (p < goalT.rankLow || p >= goalT.rankHigh),
            // How many corroborating reasons there were picks the lever: reps first, then
            // sets, and weight only on a strong signal.
            meta:{ taxonomy: TITLES[kind], signalCount: lines.length } };
@@ -28368,6 +28431,11 @@ async function generateRecommendations(){
   const overallShown = updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult);
   renderScoreTrace(overallShown);
 
+  /* Whether any of the cut-offs this setting owns is what put a signal on the card. Only then
+     does the card say so — a card built entirely from a hard run in the last 48h and a
+     training status has nothing to do with the dial, and naming it there would be the app
+     taking credit for a reason it did not use. */
+  let profileFired = false;
   const reduceSignals = [];
   // Readiness speaks first when it is available; the older scores stay as the fallback for
   // anyone whose baseline is not built yet.
@@ -28384,12 +28452,12 @@ async function generateRecommendations(){
     // Rank for the threshold, score for the number shown — the sentence names both, and
     // mixing them was what made "Readiness 12 — bottom fifth" read as a score of twelve.
     const rank = srResult.percentile;
-    if(rank != null && rank < 20) reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`);
-    else if(rank != null && rank < 40) reduceSignals.push(`Readiness ${srResult.shown} — below your usual`);
+    if(rank != null && rank < goalT.rankDeep){ reduceSignals.push(`Readiness ${srResult.shown} — bottom fifth of your own days`); profileFired = true; }
+    else if(rank != null && rank < goalT.rankLow){ reduceSignals.push(`Readiness ${srResult.shown} — below your usual`); profileFired = true; }
     if(srResult.gateReason) reduceSignals.push(srResult.gateReason);
   } else {
-    if(targetScore!=null && targetScore < goalT.scoreLow) reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`);
-    if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow) reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`);
+    if(targetScore!=null && targetScore < goalT.scoreLow){ reduceSignals.push(`Target score ${targetScore} (below ${goalT.scoreLow})`); profileFired = true; }
+    if(adaptiveScore!=null && adaptiveScore < goalT.scoreLow){ reduceSignals.push(`Adaptive score ${adaptiveScore} (below ${goalT.scoreLow})`); profileFired = true; }
     if(capacityLabel === 'below typical') reduceSignals.push('Predicted Capacity: below typical');
   }
   // Cross-modal: a stacked hard-running window can contribute even when strength-specific
@@ -28404,14 +28472,14 @@ async function generateRecommendations(){
   if(recentHardRun) reduceSignals.push('Hard/quality run in the last 48h — contributing recovery load independent of strength-specific volume');
 
   const addSignals = [];
-  if(!scoreHidden && !(srResult && srResult.available) && targetScore!=null && targetScore > goalT.scoreHigh) addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`);
+  if(!scoreHidden && !(srResult && srResult.available) && targetScore!=null && targetScore > goalT.scoreHigh){ addSignals.push(`Target score ${targetScore} (above ${goalT.scoreHigh})`); profileFired = true; }
   if(scoreHidden){
     // nothing: an "above typical" on a blinded morning is the same leak wearing a hat
   } else if(srResult && srResult.available){
-    if(srResult.percentile != null && srResult.percentile >= 70 && !srResult.gateReason)
-      addSignals.push(`Readiness ${srResult.shown} — top third of your own days`);
+    if(srResult.percentile != null && srResult.percentile >= goalT.rankHigh && !srResult.gateReason){
+      addSignals.push(`Readiness ${srResult.shown} — top third of your own days`); profileFired = true; }
   } else {
-    if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh) addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`);
+    if(adaptiveScore!=null && adaptiveScore > goalT.scoreHigh){ addSignals.push(`Adaptive score ${adaptiveScore} (above ${goalT.scoreHigh})`); profileFired = true; }
     if(capacityLabel === 'above typical') addSignals.push('Predicted Capacity: above typical');
   }
   if(['productive','maintaining'].includes(entry.trainingStatus)) addSignals.push(`Training status: ${entry.trainingStatus}`);
@@ -28482,6 +28550,25 @@ async function generateRecommendations(){
     const metricLabel = { sleepScore:'sleep score', wakeTime:'wake time', hrv:'HRV' };
     const parts = entry.disagreements.map(d => `${metricLabel[d.metric]||d.metric} (Oura ${d.ouraValue} vs Garmin ${d.garminValue})`);
     cardQueue[0].signals.push(`Today's devices disagreed on ${parts.join(', ')} — treat today's score with a bit more caution than usual.`);
+  }
+  /* THE CARD SAYS WHOSE CUT-OFF IT WAS.
+
+     These thresholds are a setting, and until now nothing connected the two: a card told you
+     to back off and the number it crossed was one you had chosen, three tabs away, possibly
+     months ago. Named here rather than folded into every signal string, because the
+     mixed-signal branch above joins those strings into a sentence and a second copy of "on
+     Longevity" inside it would read as noise.
+
+     Appended to the FIRST card only, and only when one of the cut-offs actually fired — same
+     placement as the device-disagreement note below, which solves the same problem: a
+     caveat that belongs to the day's recommendation rather than to any one reading.
+
+     Markup is safe here and nowhere else in this array — signals are interpolated as HTML by
+     buildRecCard, and this string is pushed after the join above has already happened. */
+  if((profileFired || (rx && rx.profileDriven)) && cardQueue.length
+     && /^(reduce|add|hold|prescription_)/.test(cardQueue[0].type)){
+    cardQueue[0].signals.push(`Those cut-offs are yours \u2014 how hard to push is set to `
+      + `<b>${goalT.label}</b>. <button type="button" class="rec-profile-link">Change it</button>`);
   }
   const deloadSignal = await checkDeloadSignal();
   if(deloadSignal){
@@ -30954,8 +31041,9 @@ if(copyExportBtnEl) copyExportBtnEl.addEventListener('click', async ()=>{
 // Not every value in storage is JSON. settings:goalProfile and eyes:lastOpen are written as
 // bare strings, and the collection loops below all read with JSON.parse — so both fell through
 // a catch and were silently left out of the backup. One of them is the mark's last-opened date
-// and costs nothing; the other is the goal profile, whose own subtitle says it shapes every
-// recovery threshold in the app. Restoring onto a new phone put every threshold back to default
+// and costs nothing; the other is "how hard to push" (settings:goalProfile keeps the old key —
+// see the rename note beside the control), which sets every recovery threshold in the app —
+// the score bars and the readiness rank bars both. Restoring onto a new phone put them back to default
 // with nothing on screen to say so, and the pre-import snapshot lost it by the same route, so
 // the undo path was missing it too.
 //
