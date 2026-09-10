@@ -2002,27 +2002,46 @@
   /* No rule above it any more. That hairline separated the strip from the generate and
      deload controls it used to sit under; in its own panel the section head is the divider,
      and a second line under it would be drawing the same boundary twice. */
-  .week-gen-row{ display:flex; justify-content:flex-end; align-items:center; gap:6px;
-    flex-wrap:wrap; margin-top:var(--sp-3); }
-  /* A select's flex-basis is auto, which is the width of its longest option — "Push / Pull /
-     Legs" — so the row asked for 365px of intrinsic width and got 349 once the gutter went
-     from 14 to 22, and put Generate on a line of its own. Basis 0 lets the two of them take
-     what is left after the button instead of claiming their content width first; they are
-     already min-width:0 and ellipsised, so shrinking is what they were built to do. */
-  .week-gen-row select{ flex:1 1 0; }
-  .week-gen-split{ justify-content:space-between; }
-  /* The goals line is a readout, so it is set like one — the same 10px mono the section
-     heads use for their summaries. "Goals" names it and the summary answers it, which is the
-     whole of what the page needs to say about them when they are not being edited. min-width:0
-     so a long list ellipsises instead of pushing the button off the row. */
-  .week-goals-row{ margin-top:var(--sp-2); }
-  .week-goals-line{ display:flex; align-items:baseline; gap:8px; min-width:0; flex:1 1 auto;
-    font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
+  /* ONE LABEL COLUMN, ONE CONTROL COLUMN. 88px is what "Deload" needs at the label's 10px
+     mono; fixed rather than auto so the four controls line up down the block, which is the
+     whole of what makes this read as a settings list rather than four unrelated rows.
+     44px minimum on every row: three of the four are a tap target. */
+  .week-setup{ margin-top:var(--sp-3); }
+  .week-setup-row{ display:grid; grid-template-columns:88px 1fr auto; align-items:center;
+    gap:10px; width:100%; min-height:44px; padding:0; margin:0; border:0; border-radius:0;
+    background:transparent; text-align:left; }
+  .week-setup-row + .week-setup-row{ border-top:1px solid var(--hair); }
+  /* The same 10px mono the section heads use for their own summaries — these are labels on a
+     readout, not field names on a form, and the panel already has that voice. */
+  .week-setup-label{ font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase; color:var(--bg); }
-  /* .head-est pushes itself right with margin-left:auto and caps at 64% for a section head.
-     On this row it is one of two things sharing the line, so it sits where it falls. */
-  .week-goals-line .head-est{ margin-left:0; max-width:none; text-align:left;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The quiet column, at the 0.58 floor these readouts sit on everywhere — 6.61 dark,
+     4.72 bone. min-width:0 so a long goal list ellipsises instead of pushing the chevron off. */
+  .week-setup-val{ min-width:0; font-family:var(--mono); font-size:var(--fs-tag);
+    color:rgba(var(--ink-rgb),0.58); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .week-setup-go{ cursor:pointer; }
+  .week-setup-chev{ font-size:var(--fs-lg); color:rgba(var(--ink-rgb),0.58); }
+  .week-setup-go:active{ background:rgba(var(--ink-rgb),0.12); }
+  .week-setup-go:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
+  /* The selects sit in the control column and keep their light fill — they are inputs, and
+     that is what an input looks like in this panel. What changes is that they no longer set
+     the width of anything: sized to their own content, right-aligned in a column of their
+     own, so "Push / Pull / Legs" grows into the space the label column is not using instead
+     of pushing Generate onto a line of its own, which is what the old flex row did. */
+  /* Left, on the same axis the text values sit on, not right against the edge. Column 3 is
+     the affordance column — the chevron and the checkbox — so a select pushed into it put the
+     two rows you CHANGE on a different vertical line from the two you read, which is the
+     raggedness this layout exists to remove. Sized to content, so "Push / Pull / Legs" grows
+     rightward into space nothing else is using. */
+  .week-setup-row select{ justify-self:start; width:auto; max-width:100%;
+    font-size:var(--fs-control); padding:0 6px; }
+  .week-setup-row input[type="checkbox"]{ width:auto; flex:none; justify-self:end; }
+  /* Both actions on one line, Generate leading because it is the one you came for and Clear
+     all is its undo. Filled against outline says which is which without a colour. */
+  .week-actions{ display:flex; gap:8px; align-items:center; margin-top:var(--sp-3); }
+  .week-actions button{ flex:1 1 0; }
+  .form-panel .week-actions button.outline{ background:transparent; color:var(--bg);
+    border-color:rgba(var(--ink-rgb),0.5); }
   /* The sheet is the lift sheet's, so the panel, the head and the close button are all
      already dressed and already listed in the bone block. What it adds is room: goals are a
      form, not a list of past sets, and 76vh of a phone is not enough to edit three of them in.
@@ -2039,16 +2058,16 @@
   .skill-sheet .skill-active-row{ margin-top:0; }
   .goal-sheet .lift-sheet-panel{ max-height:88vh; }
   .goal-sheet .group.form-panel{ margin-bottom:0; }
+  /* Still the Settings toggles' row — three of them use it — it is only the week's own
+     deload that has left for the setup list above. */
   .week-deload{ display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer;
     font-family:var(--sans); font-size:var(--fs-md); }
   .week-deload input{ width:auto; flex:none; }
-  /* The badge was black on black once this moved into the panel. */
-  #deloadSuggestedBadge{ display:none; flex:none; font-family:var(--mono); font-size:var(--fs-tag);
+  /* The badge was black on black once this moved into the panel. Inline in the value column
+     now, so it needs the gap it used to get from the row's own flex. */
+  #deloadSuggestedBadge{ display:none; margin-left:7px; font-family:var(--mono); font-size:var(--fs-tag);
     font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
     background:var(--bg); color:var(--ground); padding:3px 6px; }
-  .week-gen-row select{ width:auto; font-size:var(--fs-control); padding:0 6px; }
-  .form-panel .week-gen-row button.outline{ background:transparent; color:var(--bg);
-    border-color:rgba(var(--ink-rgb),0.5); }
 
   /* Side by side, so the separator is a rule between the columns rather than under each
      card. */
@@ -3975,33 +3994,52 @@
                unfold. What is left on the page is the answer — which goals are set — and a way
                in; the setting of them is a sheet, because it is a job you do and finish rather
                than something the page has to keep showing. -->
-          <div class="week-gen-row week-gen-split week-goals-row">
-            <div class="week-goals-line">Goals<span class="head-est" id="weekGoalsSummary"></span></div>
-            <button type="button" class="small outline" id="updateGoalsBtn">Update goals</button>
-          </div>
-          <div class="week-gen-row">
-            <select id="programSplitOverride" aria-label="Training split">
-              <option value="auto">Auto split</option>
-              <option value="full_body">Full Body</option>
-              <option value="upper_lower">Upper / Lower</option>
-              <option value="ppl">Push / Pull / Legs</option>
-            </select>
-            <select id="programWeeksSelect" aria-label="How many weeks to generate">
-              <option value="1">1 week</option>
-              <option value="4">4 weeks</option>
-              <option value="8">8 weeks</option>
-            </select>
-            <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
-          </div>
-          <!-- Deload sits with the other controls that shape the week rather than below the
-               chart that reports on it: generate it, mark it, clear it, then read what came
-               out. The chart ends the panel because it is the readout, not an input. -->
-          <div class="week-gen-row week-gen-split">
-            <label class="week-deload" for="deloadWeekCheckbox">
+          <!-- WHAT BUILDS THE WEEK, AS ONE LIST AND ONE ACTION ROW.
+
+               This was three rows that shared nothing but a right edge: a readout with an
+               outline button, two filled selects with a filled button, and a checkbox with
+               another outline button. Four species of thing, three alignments, and the two
+               selects — inputs, so they take the light fill — ended up the loudest elements
+               in the panel, louder than Generate, which is the only thing here that does
+               anything.
+
+               One label column now, one control column, and the two actions together at the
+               end where actions go. Every row reads the same way: what it is on the left,
+               what it is set to on the right. -->
+          <div class="week-setup">
+            <button type="button" class="week-setup-row week-setup-go" id="updateGoalsBtn">
+              <span class="week-setup-label">Goals</span>
+              <span class="week-setup-val" id="weekGoalsSummary"></span>
+              <span class="week-setup-chev" aria-hidden="true">&rsaquo;</span>
+            </button>
+            <div class="week-setup-row">
+              <span class="week-setup-label">Split</span>
+              <select id="programSplitOverride" aria-label="Training split">
+                <option value="auto">Auto split</option>
+                <option value="full_body">Full Body</option>
+                <option value="upper_lower">Upper / Lower</option>
+                <option value="ppl">Push / Pull / Legs</option>
+              </select>
+            </div>
+            <div class="week-setup-row">
+              <span class="week-setup-label">Weeks</span>
+              <select id="programWeeksSelect" aria-label="How many weeks to generate">
+                <option value="1">1 week</option>
+                <option value="4">4 weeks</option>
+                <option value="8">8 weeks</option>
+              </select>
+            </div>
+            <!-- Deload sits with the other controls that shape the week rather than below the
+                 chart that reports on it: generate it, mark it, clear it, then read what came
+                 out. The chart ends the panel because it is the readout, not an input. -->
+            <label class="week-setup-row" for="deloadWeekCheckbox">
+              <span class="week-setup-label">Deload</span>
+              <span class="week-setup-val">~50% volume<span id="deloadSuggestedBadge">Suggested</span></span>
               <input type="checkbox" id="deloadWeekCheckbox">
-              <span>Deload week · ~50%</span>
-              <span id="deloadSuggestedBadge">Suggested</span>
             </label>
+          </div>
+          <div class="week-actions">
+            <button id="generateProgramFromGoalsBtn" class="small">Generate</button>
             <button class="small outline" id="clearAllWeekBtn">Clear all</button>
           </div>
           <div id="deloadSuggestedNote" class="score-note note-live" style="display:none;"></div>
@@ -9893,7 +9931,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.456';
+const APP_VERSION = '2026.09.10.457';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10074,6 +10112,7 @@ const APP_NOTES = {
   '2026.09.10.454': 'Weekly says which workouts are morning and which are evening.',
   '2026.09.10.455': 'Goal Profile is now \u201cHow hard to push\u201d, it actually changes the advice, and the card says when it did.',
   '2026.09.10.456': 'Goals are a list you open one at a time, and each one says how much it matters instead of being ranked.',
+  '2026.09.10.457': 'The controls under the week are one list with one action row instead of three scattered ones.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
