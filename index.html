@@ -2025,6 +2025,15 @@
      form, not a list of past sets, and 76vh of a phone is not enough to edit three of them in.
      The panel inside keeps its .form-panel bleed, which lands on the sheet's own padding —
      both are the same near-black, so the seam does not show. */
+  /* Borrowed wholesale from the goals sheet, which is the same shape: a head, a form, and
+     more of it than fits. The tier tag rides in the head beside the name, at the size the
+     lanes use, so the sheet says how hard this one is without a second row to say it. */
+  .skill-sheet .lift-sheet-panel{ max-height:88vh; }
+  .skill-sheet .lift-sheet-head .skill-lane-tier{ margin-left:8px; vertical-align:2px; }
+  .skill-sheet #skillSheetBody{ padding-bottom:4px; }
+  /* Inline, the detail sat under a board and needed the gap. In the sheet the head is the
+     separator, so the first control comes straight up to it. */
+  .skill-sheet .skill-active-row{ margin-top:0; }
   .goal-sheet .lift-sheet-panel{ max-height:88vh; }
   .goal-sheet .group.form-panel{ margin-bottom:0; }
   .week-deload{ display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer;
@@ -4175,14 +4184,6 @@
           <div id="strengthSkillPicker">
             <!-- The whole ladder set. It IS the picker: tap a lane to select that skill. -->
             <div class="skill-board" id="strengthSkillBoard"></div>
-            <label class="skill-active-row" for="strengthSkillActive">
-              <input type="checkbox" id="strengthSkillActive">
-              <span id="strengthSkillActiveLabel">Working on this</span>
-            </label>
-            <div class="mob-check" id="strengthSkillLevels"></div>
-            <div class="score-note" id="strengthSkillNote"></div>
-            <div class="score-note" id="strengthSkillNoteAside" style="display:none;"></div>
-            <div class="skg-progress" id="exerciseProgressBody"></div>
           </div>
         </div>
       </div>
@@ -4197,14 +4198,6 @@
           <div id="mobilitySkillPicker">
             <!-- The whole ladder set. It IS the picker: tap a lane to select that skill. -->
             <div class="skill-board" id="mobilitySkillBoard"></div>
-            <label class="skill-active-row" for="mobilitySkillActive">
-              <input type="checkbox" id="mobilitySkillActive">
-              <span id="mobilitySkillActiveLabel">Working on this</span>
-            </label>
-            <div class="mob-check" id="mobilitySkillLevels"></div>
-            <div class="score-note" id="mobilitySkillNote"></div>
-            <div class="score-note" id="mobilitySkillNoteAside" style="display:none;"></div>
-            <div class="skg-progress" id="mobilityProgressBody"></div>
           </div>
         </div>
       </div>
@@ -5078,6 +5071,45 @@
 
 <!-- The app opens and closes in black. Outside main so it runs the full width, with its
      text on main's own measure and left edge. -->
+<!-- ONE SHEET, BOTH SKILL LADDERS, AND OUT HERE ON PURPOSE.
+
+     .lift-sheet is position:fixed with inset:0, so where it sits in the DOM does not affect
+     how it draws — but it does decide whether it draws at all. Written beside the goals sheet
+     first, which put it inside #panel-training, and the skill sections are on the Body tab:
+     the sheet opened onto a panel that was display:none and nothing appeared. Every sheet the
+     app builds at runtime is appended to body for the same reason. -->
+<div class="lift-sheet skill-sheet" id="skillSheet" style="display:none;">
+  <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="skillSheetTitle">
+    <div class="lift-sheet-head"><span id="skillSheetTitle">Skill</span>
+      <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
+    <div class="fields" id="skillSheetBody">
+      <!-- Both ladders live here. The detail is not moved in and out — it never leaves,
+           which is the whole space saving: the section carries the board and nothing else,
+           open or closed. Only one is ever shown. -->
+      <div class="skill-detail" id="strengthSkillDetail" hidden>
+    <label class="skill-active-row" for="strengthSkillActive">
+      <input type="checkbox" id="strengthSkillActive">
+      <span id="strengthSkillActiveLabel">Working on this</span>
+    </label>
+    <div class="mob-check" id="strengthSkillLevels"></div>
+    <div class="score-note" id="strengthSkillNote"></div>
+    <div class="score-note" id="strengthSkillNoteAside" style="display:none;"></div>
+    <div class="skg-progress" id="exerciseProgressBody"></div>
+      </div>
+      <div class="skill-detail" id="mobilitySkillDetail" hidden>
+    <label class="skill-active-row" for="mobilitySkillActive">
+      <input type="checkbox" id="mobilitySkillActive">
+      <span id="mobilitySkillActiveLabel">Working on this</span>
+    </label>
+    <div class="mob-check" id="mobilitySkillLevels"></div>
+    <div class="score-note" id="mobilitySkillNote"></div>
+    <div class="score-note" id="mobilitySkillNoteAside" style="display:none;"></div>
+    <div class="skg-progress" id="mobilityProgressBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="app-colophon"><div class="app-colophon-inner"><b>dogfood</b> <i>(v.)</i> — to use the thing you built on yourself.</div></div>
 <!-- Today ends in the thing you do next rather than in a joke about the app. Same black
      block, same place; the definition still closes every other tab. -->
@@ -9896,7 +9928,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.09.448';
+const APP_VERSION = '2026.09.10.449';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10069,6 +10101,7 @@ const APP_NOTES = {
   '2026.09.09.446': 'The mark sleeps on a rest day and when you wander off \u2014 shut eyes, and z\u2019s.',
   '2026.09.09.447': 'Skills run easiest to hardest, each with how hard it is.',
   '2026.09.09.448': 'The skill sections are half the length \u2014 the board is the picker now.',
+  '2026.09.10.449': 'Tapping a skill opens it in a sheet, so the board stays the length of the board.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14883,9 +14916,46 @@ function renderSkillBoard(category){
       const at = skillPickerOrder(category).indexOf(lane.dataset.skillKey);
       if(at < 0) return;
       skillPickerState[category].index = at;
+      // A different skill starts closed again — "show all" answered a question about the one
+      // you were looking at then.
+      skillPickerState[category].showAllFor = null;
       renderSkillPicker(category);
+      openSkillSheet(category);
     });
   }
+}
+
+/* ONE SHEET, BOTH LADDERS.
+
+   The board is the picker now, and a picker whose result lands 406px below your finger — the
+   distance from the top lane to the level list, measured — is a weak control: you tap and
+   nothing visibly happens where you looked. The rungs come to the tap instead.
+
+   The detail lives in the sheet permanently rather than being moved in and out. Moving it was
+   tried first and gives the space back the moment you close: the section was 447 open and 711
+   again closed, which is not the saving this was for. It never leaves, so the section carries
+   the board and nothing else in either state, and every id and bound handler stays put.
+
+   Saving stays outside. Levels live in st.draft until "Save skill goals & assessment" writes
+   them, so a save button in here would either save one skill and drop the other you edited,
+   or need to know about a section it cannot see. Closing leaves the draft as inline editing
+   left it. */
+let skillSheet = null;
+function openSkillSheet(category){
+  if(!skillSheet) skillSheet = wireSheet('skillSheet');
+  const mine = category === 'exercise' ? 'strengthSkillDetail' : 'mobilitySkillDetail';
+  document.querySelectorAll('#skillSheetBody .skill-detail')
+    .forEach(d=>{ d.hidden = (d.id !== mine); });
+  const st = skillPickerState[category];
+  const key = skillPickerOrder(category)[st.index];
+  const tree = PROGRESSION_TREES[category][key];
+  const title = document.getElementById('skillSheetTitle');
+  if(title && tree){
+    const tier = SKILL_TIERS[tree.tier];
+    title.innerHTML = tree.label
+      + (tier ? ` <span class="skill-lane-tier" style="background:${tier.hue};">${tier.word}</span>` : '');
+  }
+  skillSheet.open();
 }
 
 function renderSkillPicker(category){
