@@ -10344,7 +10344,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.475';
+const APP_VERSION = '2026.09.10.476';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10544,6 +10544,7 @@ const APP_NOTES = {
   '2026.09.10.473': 'You can log a workout you did days ago \u2014 the popup steps back a day at a time.',
   '2026.09.10.474': 'A workout you have logged counts as being set up \u2014 Today stops asking you to build a week.',
   '2026.09.10.475': 'Start typing a lift and it offers the ones you already do, then the rest of the library.',
+  '2026.09.10.476': 'A lift you entered yourself keeps the sets and reps you gave it instead of being re-prescribed.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16749,6 +16750,40 @@ document.getElementById('deloadWeekCheckbox').addEventListener('change', async (
   }
 });
 
+/* WHAT YOU DID, WHEN NOBODY PRESCRIBED ANYTHING.
+
+   A plan exercise carries sets/repLow/repHigh, written by assignPrescription when the
+   generator built the week. A row you added yourself never goes through that, so it was
+   stored as name and tags only \u2014 and every surface that reads the plan then invented one:
+
+       ex.sets != null ? ex.sets : (personalSets[category] || defaultSetsByCategory[...])
+
+   Log Back Squat as 3 × 8,7,6 at 100 and Today came back tomorrow reading 4 × 8-12 @ 100kg.
+   The weight was yours; the shape of the set was the app’s, and it had no reason for it.
+
+   So the numbers are filled in ONLY where the plan has none. A generated prescription is a
+   decision about what to do next, not a record of what happened \u2014 overwriting 4 × 8-12 with
+   the 3 × 6 you managed on a bad day would quietly ratchet the whole block down. The
+   training: record is where what-you-did lives, and it is untouched by this either way.
+
+   Per-set reps set the range from their own spread: 8,7,6 is three sets of 6-8, which is
+   what you would write down if you were writing it down. */
+function planExerciseFrom(row, planned){
+  if(planned.sets != null && planned.repLow != null) return planned;
+  const setsEl = row.querySelector('.week-ex-sets');
+  const repsEl = row.querySelector('.week-ex-reps');
+  if(!setsEl || !repsEl) return planned;
+  const { reps, repsPerSet } = parseRepsInput(repsEl.value);
+  const sets = parseInt(setsEl.value, 10) || (repsPerSet ? repsPerSet.length : 0);
+  if(!sets || !reps) return planned;
+  if(planned.sets == null) planned.sets = sets;
+  if(planned.repLow == null){
+    planned.repLow = repsPerSet ? Math.min(...repsPerSet) : Math.round(reps);
+    planned.repHigh = repsPerSet ? Math.max(...repsPerSet) : Math.round(reps);
+  }
+  return planned;
+}
+
 async function placeBlock(date, slot, type){
   const block = { type, details: type==='strength' ? {exercises:[]} : type==='run' ? {distanceKm:null, notes:''} : {stretches:[]} };
   try{
@@ -18207,7 +18242,7 @@ async function openBlockEditor(date, slot, block){
         // Typing a different name over a planned lift IS the substitute. Remembered here
         // rather than guessed later, because this is the only moment both names exist.
         if(name && row._srcExercise && row._srcExercise.name && !src) swapsToNote.push([row._srcExercise.name, name]);
-        if(name) exercises.push({ ...(src || {}), name, area, secondaryArea, movement, exerciseId });
+        if(name) exercises.push(planExerciseFrom(row, { ...(src || {}), name, area, secondaryArea, movement, exerciseId }));
       });
       details = { exercises };
       for(const [from, to] of swapsToNote) await noteExerciseSwap(from, to);
@@ -28448,7 +28483,10 @@ async function blockSummaryHtml(block){
         repLow = Math.max(1, repLow + adjustment.delta);
         repHigh = Math.max(repLow, repHigh + adjustment.delta);
       }
-      const repsLabel = `${repLow}-${repHigh}`;
+      // A range of one is a number. This never came up while every prescription was a
+      // generated 8-12; a lift you logged as a flat 3 x 10 has repLow === repHigh, and
+      // "3 x 10-10" is not how anybody writes that down. Same test the target line uses.
+      const repsLabel = repHigh !== repLow ? `${repLow}-${repHigh}` : `${repLow}`;
       let progression = await suggestProgression(ex, focusInfo);
       // A load increase is decided purely from last session's reps, which knows nothing
       // about the state of the tissue it is about to be loaded onto. Left alone, the plan
