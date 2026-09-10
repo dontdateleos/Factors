@@ -2244,6 +2244,21 @@
      on top of each other. The gesture is still on this row — it just does not need labelling
      when there is a × beside it saying the same thing. */
   .log-sheet .lift-sheet-head{ gap:10px; }
+  /* Inside .lift-sheet-panel, which is a reverse pocket \u2014 --bg is the ink and --ground the
+     surface on BOTH grounds, so these need no per-ground rules of their own. Borders at 0.5
+     rather than 0.45: measured, 0.45 is 3.09:1 on bone, which clears the 3:1 a component
+     boundary needs by four hundredths. 0.5 is 3.62. */
+  .log-date-row{ display:flex; align-items:center; gap:6px; margin-bottom:var(--sp-3); }
+  .log-date-row button{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.06em; text-transform:uppercase; height:32px; min-height:0; padding:0 10px;
+    background:transparent; color:var(--bg); border:1px solid rgba(var(--ink-rgb),0.5);
+    border-radius:4px; flex:none; cursor:pointer; }
+  .log-date-step{ width:32px; padding:0; font-size:var(--fs-md); }
+  .log-date-words{ flex:1 1 auto !important; min-width:0; }
+  .log-date-row button:disabled{ opacity:0.3; cursor:default; }
+  .log-slot-pair{ display:flex; gap:4px; margin-left:auto; }
+  .log-slot-btn{ width:38px; padding:0 !important; }
+  .log-slot-btn.on{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   .mobility-row-info{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; font-size:var(--fs-sm); color:var(--dim); }
   .mobility-row-info.test{ align-items:flex-start; }
@@ -5304,6 +5319,21 @@
     <div class="lift-sheet-head log-grab" id="blockEditGrab">
       <span id="logSheetTitle">Log</span>
       <button type="button" class="lift-sheet-x" aria-label="Put the session away">&times;</button>
+    </div>
+    <!-- WHICH SESSION THIS IS. Until now the answer was always "today's, in whichever slot
+         the app picked", because the only routes in were Today and a week board showing
+         Monday to Sunday of this week and nothing else. Train on Saturday, sit down on
+         Monday, and that session could not be entered at all.
+         Back is unlimited. Forward stops at the end of the current week: this is the log,
+         and a plan for a fortnight out is the board's job, not this sheet's. -->
+    <div class="log-date-row" id="logDateRow">
+      <button type="button" class="log-date-step" data-step="-1" aria-label="Day before">&lsaquo;</button>
+      <button type="button" class="log-date-words" id="logDateWords" aria-label="Back to today">Today</button>
+      <button type="button" class="log-date-step" data-step="1" aria-label="Day after">&rsaquo;</button>
+      <span class="log-slot-pair">
+        <button type="button" class="log-slot-btn" data-slot="am">AM</button>
+        <button type="button" class="log-slot-btn" data-slot="pm">PM</button>
+      </span>
     </div>
     <div class="fields" id="logSheetBody"></div>
   </div>
@@ -9103,18 +9133,66 @@ async function todaysBlockAnySlot(){
   }
   return null;
 }
-async function freeSlotToday(){
+async function freeSlotOn(date){
   for(const slot of ['am','pm']){
-    try{ await window.storage.get(`weekplan:${todayStr}:${slot}`); } catch(e){ return slot; }
+    try{ await window.storage.get(`weekplan:${date}:${slot}`); } catch(e){ return slot; }
   }
   return 'am';
 }
+async function blockOn(date, slot){
+  try{ return JSON.parse((await window.storage.get(`weekplan:${date}:${slot}`)).value); }
+  catch(e){ return null; }
+}
+/* Moving the sheet to another day or another slot is re-opening it there, not editing what is
+   on screen: the panel is built from the block, the logged session and the draft for one
+   (date, slot) pair, and every one of those three changes. The draft for the day you are
+   leaving is written first, so stepping away and back finds your numbers where you left them.
+   openBlockEditor re-derives blockEditLoggedKey per pair, so a correction still corrects the
+   right session rather than the one you were looking at a moment ago. */
+async function goToLogSession(date, slot){
+  await saveLogDraftNow();
+  const s = slot || blockEditSlot;
+  await openBlockEditor(date, s, await blockOn(date, s));
+}
+function renderLogDateRow(){
+  const row = document.getElementById('logDateRow');
+  if(!row || !blockEditDate) return;
+  const words = document.getElementById('logDateWords');
+  if(words) words.textContent = logDateWords(blockEditDate);
+  row.querySelectorAll('.log-slot-btn').forEach(b=>{
+    b.classList.toggle('on', b.dataset.slot === blockEditSlot);
+    b.setAttribute('aria-pressed', String(b.dataset.slot === blockEditSlot));
+  });
+  const fwd = row.querySelector('[data-step="1"]');
+  // String compare is safe on YYYY-MM-DD and avoids building two Dates a frame.
+  if(fwd) fwd.disabled = blockEditDate >= getWeekDates()[6];
+  const back = row.querySelector('[data-step="-1"]');
+  if(back) back.disabled = false;
+}
+(function wireLogDateRow(){
+  const row = document.getElementById('logDateRow');
+  if(!row) return;
+  row.querySelectorAll('[data-step]').forEach(b=> b.addEventListener('click', ()=>{
+    if(b.disabled || !blockEditDate) return;
+    goToLogSession(shiftDateStr(blockEditDate, parseInt(b.dataset.step, 10)), blockEditSlot).catch(()=>{});
+  }));
+  row.querySelectorAll('.log-slot-btn').forEach(b=> b.addEventListener('click', ()=>{
+    if(!blockEditDate || b.dataset.slot === blockEditSlot) return;
+    goToLogSession(blockEditDate, b.dataset.slot).catch(()=>{});
+  }));
+  const words = document.getElementById('logDateWords');
+  // Ten taps back is a long way from today, and the row's own label is the way home.
+  if(words) words.addEventListener('click', ()=>{
+    if(!blockEditDate || blockEditDate === todayStr) return;
+    goToLogSession(todayStr, blockEditSlot).catch(()=>{});
+  });
+})();
 // No tab switching and no host to choose any more: the sheet is on top of whatever you were
 // looking at, which is the whole point of it being one. It also means the first-run gate stops
 // mattering here — Today being hidden is no longer a reason to route you somewhere else.
 async function openLogFromAnywhere(){
   const found = await todaysBlockAnySlot();
-  const slot = found ? found.slot : await freeSlotToday();
+  const slot = found ? found.slot : await freeSlotOn(todayStr);
   await openBlockEditor(todayStr, slot, found ? found.block : null);
 }
 // The glyph does not change — a + that turns into other things is a button you have to read
@@ -10247,7 +10325,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.472';
+const APP_VERSION = '2026.09.10.473';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10444,6 +10522,7 @@ const APP_NOTES = {
   '2026.09.10.470': 'A Log button in the masthead, on every tab \u2014 and it can start a workout that was never planned.',
   '2026.09.10.471': 'Logging is a popup now, the same shape as everything else in the app, and it opens from anywhere.',
   '2026.09.10.472': 'The masthead button is a plus.',
+  '2026.09.10.473': 'You can log a workout you did days ago \u2014 the popup steps back a day at a time.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15960,6 +16039,31 @@ function getWeekDatesForOffset(weeksAhead){
   });
 }
 const WEEK_DAY_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+/* Any date, not just one of this week's seven. WEEK_DAY_LABELS[getWeekDates().indexOf(date)]
+   was the only way the editor named a day, and indexOf returns -1 for anything outside the
+   current Monday-to-Sunday — so the header of a session logged for last Tuesday read
+   "undefined AM". That was not a cosmetic bug: it is what made the whole editor a
+   this-week-only surface, because nothing else in it cares what the date is. */
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dateFromStr(ds){
+  const [y, m, d] = String(ds).split('-').map(Number);
+  return new Date(y, m - 1, d);   // local, same as localDateStr
+}
+function shiftDateStr(ds, days){
+  const d = dateFromStr(ds); d.setDate(d.getDate() + days); return localDateStr(d);
+}
+// Monday-first, to match WEEK_DAY_LABELS.
+function dayLabelFor(ds){
+  const dow = dateFromStr(ds).getDay();
+  return WEEK_DAY_LABELS[(dow + 6) % 7];
+}
+// "Thu 10 Sep", or "Today" / "Yesterday" for the two you will be typing into most.
+function logDateWords(ds){
+  if(ds === todayStr) return 'Today';
+  if(ds === shiftDateStr(todayStr, -1)) return 'Yesterday';
+  const d = dateFromStr(ds);
+  return `${dayLabelFor(ds).charAt(0)}${dayLabelFor(ds).slice(1).toLowerCase()} ${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+}
 /* The spinner says the whole word. The three-letter form is what a row of seven columns
    needs, and the spinner is not that — it is one line at a time with the page's width to
    spend, so the abbreviation was buying space it had no use for. Kept separate rather than
@@ -17615,19 +17719,21 @@ async function openBlockEditor(date, slot, block){
   if(sheetBody && panel.parentElement !== sheetBody) sheetBody.appendChild(panel);
   ensureLogSheet().open();
   eyeNotePanelOpened(panel);
-  const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
+  const dayLabel = dayLabelFor(date);
   blockEditMinimisable = !!block;
   // What the session is called, not where it sits in the week: the bar only ever carries the
   // one you are in the middle of, so the day and slot are not the question. Its own name if
   // it has one — the same words Today's card uses — and the type if it does not.
   logBarTitle = block ? ((block.details && block.details.workoutTag) || block.type) : `${dayLabel} ${slot.toUpperCase()}`;
+  // The day and the slot are the date row's to say now, so the head carries what KIND of
+  // session this is and nothing that the row underneath it is already showing.
   const sheetTitle = document.getElementById('logSheetTitle');
-  if(sheetTitle) sheetTitle.textContent = `${dayLabel} ${slot.toUpperCase()}`
-    + (block ? ` \u00b7 ${block.type}` : '');
+  if(sheetTitle) sheetTitle.textContent = block ? block.type : 'Log';
+  renderLogDateRow();
   if(!block){
     panel.style.display = 'block';
     panel.innerHTML = `
-      <div class="log-title" style="margin-bottom:10px;">${dayLabel} ${slot.toUpperCase()} — choose a type</div>
+      <div class="log-title" style="margin-bottom:10px;">What kind of session?</div>
       <div class="session-type">
         <div class="type-btn" data-pick-type="strength">Strength</div>
         <div class="type-btn" data-pick-type="run">Run</div>
