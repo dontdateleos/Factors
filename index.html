@@ -2296,8 +2296,28 @@
      is two digits — a full-width box for "6" says the app expects a paragraph. */
   .ask-field{ padding-left:1.35em; }
   .ask-field input{ width:100%; }
-  .ask-field.narrow input{ width:auto; min-width:170px; }
-  .ask-field.tiny input{ width:96px; flex:none; }
+  .ask-field.narrow input{ width:auto; min-width:210px; }
+  .ask-field.tiny input{ width:112px; flex:none; }
+  /* TYPED AND PICKED ARE THE SAME ANSWER, SO THEY ARE SET THE SAME.
+
+     A question in this app is followed either by rows you tap or by a box you type in, and
+     until now those two were set completely differently: an answer you picked came out at
+     24px in the wordmark's own face, and an answer you typed at --fs-control, a third of the
+     size, in a box. Same question, same kind of answer, two type scales — which reads as the
+     typed one mattering less.
+
+     Everything here is lifted from .ask-a rather than re-picked, so the two cannot drift:
+     the face, the weight, 24px, the line-height and the zero tracking. Only the padding is
+     the field's own, because a box needs an inset where a row of text does not.
+
+     The placeholder takes 0.5 — the exact alpha .ask-list.answered puts on the answers you
+     did NOT choose. An empty field and an unchosen row are the same state, so they read at
+     the same weight; what you have typed is var(--bg), like the one you picked. */
+  .ask-field input, .fr-extra-row input{
+    font-family:var(--wordmark); font-weight:var(--fw-medium); font-size:24px;
+    line-height:1.3; letter-spacing:0; color:var(--bg); padding:4px 9px; }
+  .ask-field input::placeholder, .fr-extra-row input::placeholder{
+    color:rgba(var(--ink-rgb),0.5); opacity:1; }
   .ask-q:first-child{ margin-top:6px; }
   .ask-list + .ask-q{ margin-top:30px; }
   /* The spread the count turned into. Mono, small and set back: it is the app showing its
@@ -2326,7 +2346,7 @@
   .fr-extra-q{ display:block; font-family:var(--wordmark); font-weight:var(--fw-medium);
     font-size:18px; line-height:1.3; color:rgba(var(--ink-rgb),0.82); margin-bottom:9px; }
   .fr-extra-row{ display:flex; align-items:center; gap:11px; flex-wrap:wrap; }
-  .fr-extra-row input{ flex:0 0 96px; width:96px; }
+  .fr-extra-row input{ flex:0 0 118px; width:118px; }
   .fr-extra-note{ flex:1 1 150px; font-family:var(--prose); font-size:var(--fs-sm);
     letter-spacing:0; color:var(--dim); }
   #firstRunBuildBtn{ width:100%; }
@@ -10042,7 +10062,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.463';
+const APP_VERSION = '2026.09.10.464';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10230,6 +10250,7 @@ const APP_NOTES = {
   '2026.09.10.461': 'Injuries is a heading and a button until something hurts.',
   '2026.09.10.462': 'Logging an injury asks all six things the same way instead of three and a form.',
   '2026.09.10.463': 'Every field in the app is outlined instead of a white box.',
+  '2026.09.10.464': 'An answer you type is set like an answer you pick.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
