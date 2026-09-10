@@ -1444,36 +1444,10 @@
   .field-row:has(input[type="checkbox"]){ min-height:44px; align-items:center; }
   .field-row:has(input[type="checkbox"]) label{ flex:1; cursor:pointer; padding:11px 0; }
   .mobility-legend summary, details summary{ position:relative; padding:6px 0; }
-  /* Mobility assessment wheel. Vertical list of domains, five visible with opacity
-     falling off from the centre, and the 1-5 scale horizontal beneath. Replaces a nine-row
-     grid that ran 594px with 45 targets at 28px square. */
-  /* One row height, and the wheel is three of them. The drag's step distance is the same
-     number — see WHEEL_STEP_PX — so these have to move together. */
-  .mob-wheel{ --mob-row:38px; position:relative; height:calc(var(--mob-row) * 3); overflow:hidden; display:flex; flex-direction:column;
-    justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
-  .mob-wheel:active{ cursor:grabbing; }
-  /* The hue lives here, on the base rules, and every wheel in the app inherits it —
-     the two skill pickers, the assessment, and the week picker through its own copy of
-     these. It was briefly set in the on-the-ground correction block near the top of the
-     sheet instead, which does not work: these rules come later at equal specificity and
-     won on order, so the assessment wheel kept its cream while the pickers changed. */
-  .mob-wheel-item{ height:var(--mob-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--hue-faded); transition:opacity 0.18s, font-size 0.18s; cursor:pointer;
-    font-size:var(--fs-lg); padding:0 2px; }
-  .mob-wheel-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
-  .mob-wheel-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .mob-wheel-score{ font-family:var(--mono); color:var(--hue-faded); opacity:0.55; flex:none; margin-left:10px; }
-  .mob-wheel-item.focused .mob-wheel-score{ opacity:1; }
-  /* The rank disc paints its own orange ground and sets ink on it, so it opts out of the
-     alpha the rest of the column carries. */
-  .mob-wheel-score:has(.skill-rank){ opacity:1; }
-  /* Marks the selection row so it's clear which name the numbers below apply to. */
-  /* --mob-focus-row is which of the three rows currently holds the focused name. It is the
-     middle one in the body of the list, but at either end the window clamps rather than
-     reserving a blank row, so the line follows it. */
-  /* Inset by the gutter, not to the box's edges. The spinner is full-bleed so the dot band can
-     reach the page edges; the rules are not part of that — they belong to the column the words
-     are set in, and running them to the screen edge turned a marked row into a full-width bar. */
+  /* The vertical domain wheel that used to sit here is gone — see the board in
+     renderMobilityAssessment for why. The .week-day-picker on Weekly was built from a copy of
+     these rules rather than sharing them, so it is unaffected; what it does still share is the
+     dot-field spinner further down, which names both. */
   /* NINE LADDERS, ONE ROW EACH. Cells are the app's own bar — the same 3px flat mark the
      drill rows and the masthead ticks are drawn from — so this reads as more of the app
      rather than as a scoreboard bolted to it. Grid, not flex, so the three columns line up
@@ -1532,9 +1506,7 @@
      hue this app uses for injury. The cells stay ink on every tab; which two are active is
      already on the wheel below, numbered, which is where that question is asked. */
   .skill-lane:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
-  .mob-wheel-focus-line{ position:absolute; left:var(--gutter); right:var(--gutter); top:calc(var(--mob-row) * var(--mob-focus-row, 1));
-    height:var(--mob-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
-    opacity:0.45; pointer-events:none; }
+  /* Marks the selection row so it's clear which name the numbers below apply to. */
   /* The assessment is a form you fill in, so it takes the same black band every other form
      takes. The black IS the section now, which is why the rail that used to run down the
      left of the numerals is gone: it was a partial version of this, and the only piece of
@@ -1546,6 +1518,20 @@
   #injuryForm textarea{ min-height:44px; }
   .mob-stage{ margin-top:var(--sp-1); }
   .mob-check{ margin-top:var(--sp-3); }
+  /* THE ASSESSMENT'S BOARD. Same lanes as the skills, one difference: a domain's rungs open
+     underneath its own lane rather than in a sheet, so the check list is a child of the board
+     and needs the gaps the skills' copy gets from the sheet's padding. Tighter above than the
+     free-standing .mob-check, because the lane it belongs to is directly on top of it. */
+  .mob-board .mob-check{ margin:var(--sp-2) 0 var(--sp-3); }
+  /* 84px, not the skills' 120. Eleven domain names against thirteen ladder names: the longest
+     here is "Hamstrings" where theirs is "One-arm pull-up", and the 36px the skills need for
+     that is 36px this board was spending on padding while the statement beside it truncated
+     mid-word. */
+  .mob-board .skill-lane{ min-height:34px; grid-template-columns:84px auto 1fr; }
+  /* The lane a domain's rungs are hanging off keeps its name at full weight while the list is
+     open — it is the heading of what is underneath it now, not just the row you last touched. */
+  .mob-lane.here .skill-lane-name{ color:var(--bg); }
+  .mob-lane.here .skill-lane-rung{ display:none; }
   /* Rows bleed to the panel edge so a ticked one fills it. One gutter inside .fields, which is
      the only padding left between here and the panel's own edge. 46px minimum: five of
      these is the whole control, and each is its own tap target. */
@@ -2907,7 +2893,6 @@
      colour sitting between a red band and a red tab for no reason. Orange is the one warm
      mark left that is not a tab, which is exactly what a disc on a black panel wants —
      findable while scrolling, and not mistakable for a section. */
-  .mob-wheel-score .skill-rank{ color:var(--text); }
   .skill-rank{ display:inline-flex; align-items:center; justify-content:center;
     width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
     font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
@@ -3389,14 +3374,14 @@
      down". .label is a column of sentences. .summary holds a question and a label and
      cannot be split. Those stay down, with the legal document, the score notes, and the
      colophon's "dogfood (v.)", which is a dictionary entry and lowercase on purpose. */
-  .skill-level-target, .mob-wheel-name, .blc-key, .wheel-add-card, .log-title,
+  .skill-level-target, .blc-key, .wheel-add-card, .log-title,
   .more-toggle-sub, .score-log-when, .wr-key span, .wr-head strong{
     text-transform:uppercase;
   }
   /* Caps need the tracking that lowercase does not: the forms are wider and the spacing
      was fitted to an x-height these strings no longer have. .log-title is left out because
      it already carries 0.05em, set for exactly this reason when it was capped. */
-  .skill-level-target, .mob-wheel-name, .blc-key, .wheel-add-card,
+  .skill-level-target, .blc-key, .wheel-add-card,
   .more-toggle-sub, .score-log-when, .wr-key span, .wr-head strong{
     letter-spacing:0.04em;
   }
@@ -3606,7 +3591,6 @@
      day picker has no such variable because its focus never moves off the middle row, which
      with three 38px rows in a 114px window is row 1. */
   .week-day-picker{ --sel-row:var(--day-row); --sel-focus-row:1; }
-  .mob-wheel{ --sel-row:var(--mob-row); --sel-focus-row:var(--mob-focus-row, 1); }
   /* THE BAND RUNS TO THE PAGE EDGES, AND THE WORDS DO NOT MOVE.
      The bleed is on the SPINNER, not on its ::before, because the spinner is overflow:hidden
      — it has to be, it is a window over a longer list — so a pseudo-element could never have
@@ -9928,7 +9912,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.449';
+const APP_VERSION = '2026.09.10.450';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10102,6 +10086,7 @@ const APP_NOTES = {
   '2026.09.09.447': 'Skills run easiest to hardest, each with how hard it is.',
   '2026.09.09.448': 'The skill sections are half the length \u2014 the board is the picker now.',
   '2026.09.10.449': 'Tapping a skill opens it in a sheet, so the board stays the length of the board.',
+  '2026.09.10.450': 'The mobility test shows all eleven areas at once, with what you rated each one.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14978,8 +14963,8 @@ function renderSkillPicker(category){
      wheel was 114px of the strength section's 1071.
 
      bindSkillPickerDrag stays and is inert: it only acts on a pointer inside the wheel
-     element, and there is no longer one. The .mob-wheel component itself is untouched — the
-     Mobility Assessment still uses it. */
+     element, and there is no longer one. The .mob-wheel component it used has since gone too
+     — the Mobility Assessment was its last caller and that is a board now as well. */
   renderSkillBoard(category);
 
   const key = order[st.index];
@@ -15218,53 +15203,53 @@ async function renderMobilityAssessment(skipCollapse){
   const rated = MOBILITY_DOMAINS.filter(d=>mobilityDraftScores[d]!=null).length;
   const dot = d => mobilityDraftScores[d]!=null ? mobilityDraftScores[d] : '·';
 
-  // A vertical wheel of domains with the 1-5 scale horizontal beneath it. The nine-row
-  // grid this replaces was 594px — 38% of the Goals tab — with 45 targets at 28px square.
-  // Five names visible at once, opacity falling off from the centre, so it still reads as
-  // a list you're moving through rather than an isolated card.
-  // One neighbour either side rather than two. Five rows cost 190px for context you get
-  // from one — and at either end of the list the missing neighbours are reserved as blank
-  // rows, so two of them meant 76px of nothing above "Ankles".
-  // Three rows, and the window CLAMPS to the ends of the list rather than always centring
-  // the focused name. Centring meant that on the first domain the row above it was blank —
-  // 38px of nothing above "Ankles" — and the same again below the last one.
-  const WHEEL_ROWS = 3;
-  const wheelStart = Math.max(0, Math.min(idx - 1, MOBILITY_DOMAINS.length - WHEEL_ROWS));
-  const wheelFocusRow = idx - wheelStart;
-  const wheelItems = [];
-  for(let i = wheelStart; i < wheelStart + WHEEL_ROWS; i++){
-    const offset = i - idx;
-    const d = MOBILITY_DOMAINS[i];
-    const dist = Math.abs(offset);
-    if(!d){ wheelItems.push(`<div class="mob-wheel-item" style="opacity:0;" aria-hidden="true"></div>`); continue; }
-    // The falloff is a little shallower than it was on the light page. Faint light type on
-    // black loses more than faint dark type on cream does, and the neighbours are what
-    // make this read as a list rather than one isolated name.
+  /* THE WHEEL IS GONE HERE TOO, AND FOR A DIFFERENT REASON THAN ON THE SKILLS.
+
+     There it was a second selector doing a job the board already did. Here it was the ONLY
+     selector, and it showed three of eleven domains through a 114px window with a counter
+     underneath — "1 of 11 · 0 rated" — standing in for the thing a list would have shown
+     directly. You could not see which domains you had rated, which you had skipped, or what
+     you had said about any of them without spinning back through.
+
+     Eleven lanes, the same board the skills use: the domain, its five cells filled to your
+     score, and the statement you ticked. The whole test is on screen and the counter is
+     down to one number, because the board is now saying the rest of it. Tapping a lane opens
+     its rungs underneath; rating one closes it and opens the next domain you have not rated
+     yet, so a first pass still walks itself through all eleven without you reaching for
+     anything.
+
+     Inline rather than a sheet, which is the opposite of the skills call. The skills board
+     sits on a page with the whole Body tab under it, so an inline expansion pushed that
+     page around; this one is already inside a sheet of its own with nothing below it, and a
+     second sheet on top of the first would be a layer to get out of rather than a saving. */
+  const boardHtml = MOBILITY_DOMAINS.map((d, i)=>{
     const score = mobilityDraftScores[d];
-    wheelItems.push(`
-      <div class="mob-wheel-item${offset===0?' focused':''}" data-offset="${offset}"
-           style="opacity:${offset===0?1:(dist===1?0.55:0.38)};">
-        <span class="mob-wheel-name">${cap(d)}</span>
-        <span class="mob-wheel-score">${score!=null?`<span class="skill-rank">${score}</span>`:''}</span>
-      </div>`);
-  }
+    const tests = MOBILITY_DOMAIN_TESTS[d] || [];
+    const cells = tests.map((_, j)=>`<i class="${score != null && j < score ? 'on' : ''}"></i>`).join('');
+    // Blank when unrated, same as the skill lanes: an empty strip already says "not rated",
+    // and eleven repetitions of the words would say it worse.
+    const at = score != null ? (tests[score-1] || '') : '';
+    const open = i === idx;
+    const lane = `<button type="button" class="skill-lane mob-lane${open ? ' here' : ''}"
+        data-domain-at="${i}" aria-expanded="${open}"
+        aria-label="${cap(d)}, ${score != null ? 'rated ' + score + ' of ' + tests.length : 'not rated'}">
+      <span class="skill-lane-name">${cap(d)}</span>
+      <span class="skill-lane-cells">${cells}</span>
+      <span class="skill-lane-end"><span class="skill-lane-rung">${at}</span></span></button>`;
+    if(!open) return lane;
+    return lane + `<div class="mob-check">` + tests.map((text, j)=>{
+      const lvl = j + 1;
+      const done = (score || 0) >= lvl;
+      return `<div class="mob-check-row${done ? ' done' : ''}" data-level="${lvl}">`
+        + `<span class="mob-check-num">${lvl}</span>`
+        + `<span class="mob-check-text">${text}</span></div>`;
+    }).join('') + `</div>`;
+  }).join('');
 
   const stepperHtml = `
     <div class="mob-stage">
-      <div class="mob-wheel" id="mobWheel" style="--mob-focus-row:${wheelFocusRow};">
-        ${wheelItems.join('')}
-        <div class="mob-wheel-focus-line"></div>
-      </div>
-      <div class="mob-check">
-        ${(MOBILITY_DOMAIN_TESTS[domain] || []).map((text, i)=>{
-          const lvl = i + 1;
-          const done = (mobilityDraftScores[domain] || 0) >= lvl;
-          return `<div class="mob-check-row${done ? ' done' : ''}" data-level="${lvl}">`
-            + `<span class="mob-check-num">${lvl}</span>`
-            + `<span class="mob-check-text">${text}</span></div>`;
-        }).join('')}
-      </div>
-      <div class="mob-step-count">Tick the last one you can do · ${idx+1} of ${MOBILITY_DOMAINS.length} · ${rated} rated</div>
+      <div class="skill-board mob-board">${boardHtml}</div>
+      <div class="mob-step-count">Tick the last one you can do \u00b7 ${rated} of ${MOBILITY_DOMAINS.length} rated</div>
     </div>
     <div style="display:none;">
       ${MOBILITY_DOMAINS.map(d=>`<div class="mobility-domain-row" data-domain="${d}">${
@@ -15273,21 +15258,37 @@ async function renderMobilityAssessment(skipCollapse){
     </div>`;
 
   container.innerHTML = legendHtml + stepperHtml;
-  // Looked up rather than held: this wheel is part of the html above and is a new element on
-  // every render, which is why spinRipple keys its history by name instead of by node.
-  spinRipple('assessment', document.getElementById('mobWheel'), idx);
 
   const goTo = i => {
-    mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, i));
+    // -1 closes everything. Tapping the open lane again is how you put a domain away
+    // without rating it, which the wheel had no way to express — there was always exactly
+    // one domain open, whether or not you wanted one.
+    mobilityStepIndex = i < 0 ? -1 : Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, i));
     renderMobilityAssessment(true);
   };
 
+  container.querySelectorAll('.mob-lane').forEach(lane=>{
+    const at = parseInt(lane.dataset.domainAt, 10);
+    lane.addEventListener('click', ()=> goTo(at === idx ? -1 : at));
+  });
+
+  /* Open a domain near the bottom of eleven and its rungs land below the fold of the sheet:
+     you tap a name and the thing you tapped it for is off screen. 'nearest' rather than
+     'start' — it does nothing at all when the list is already visible, which is most taps,
+     and moves the minimum when it is not. skipCollapse is the re-render flag, so this only
+     runs on a render that came from a tap, never on the first paint of the sheet. */
+  if(skipCollapse){
+    const openCheck = container.querySelector('.mob-lane.here + .mob-check');
+    if(openCheck) openCheck.scrollIntoView({ block:'nearest', behavior:'smooth' });
+  }
+
   // Tap the last statement you can do; everything above it fills in, because the rungs are
   // ordered and doing the fourth means doing the first three. Tapping your current top rung
-  // again clears the domain back to "not assessed". Rating auto-advances — the point of a
-  // wheel is not reaching for a next control nine times.
+  // again clears the domain back to "not assessed".
   container.querySelectorAll('.mob-check-row').forEach(row=>{
-    row.addEventListener('click', ()=>{
+    row.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(!domain) return;
       const lvl = parseInt(row.dataset.level, 10);
       if(mobilityDraftScores[domain] === lvl){
         delete mobilityDraftScores[domain];
@@ -15298,92 +15299,29 @@ async function renderMobilityAssessment(skipCollapse){
       // Animate on the rows you actually tapped, THEN advance. It used to re-render first
       // and animate afterwards, which put the movement on the next domain's rungs — a fill
       // down to four on a domain nobody had rated yet, and a bounce on a row that was not
-      // the row that was pressed. The rating is recorded above, immediately; only the wheel
-      // moving on waits, and only for as long as the fill takes to reach its last rung.
+      // the row that was pressed. The rating is recorded above, immediately; only the move
+      // on waits, and only for as long as the fill takes to reach its last rung.
       const rows = document.getElementById('mobilityAssessmentRows');
       rungFill(rows, lvl);
       tickLevel(rows && rows.querySelector(`.mob-check-row[data-level="${lvl}"]`));
       const settle = uiAnim('rungFill') ? (lvl - 1) * UI_ANIM.rungFill.stagger + 90 : 0;
       setTimeout(()=>{
-        if(mobilityStepIndex < MOBILITY_DOMAINS.length-1) mobilityStepIndex++;
+        // THE NEXT ONE YOU HAVE NOT RATED, not the next index. On a wheel those were the
+        // same thing, because a first pass was the only way to move through it. On a board
+        // you can rate the three you came for and stop, and marching to index+1 would then
+        // open a domain you had already answered and hide the ones you had not. Wraps, so
+        // the pass finishes whichever domain you started on, and closes when nothing is
+        // left rather than parking on an eleventh you have already done.
+        const next = MOBILITY_DOMAINS
+          .map((d, i)=>({ d, i }))
+          .filter(x=> mobilityDraftScores[x.d] == null)
+          .sort((a, b)=> ((a.i - idx + MOBILITY_DOMAINS.length) % MOBILITY_DOMAINS.length)
+                       - ((b.i - idx + MOBILITY_DOMAINS.length) % MOBILITY_DOMAINS.length))[0];
+        mobilityStepIndex = next ? next.i : -1;
         renderMobilityAssessment(true);
       }, settle);
     });
   });
-
-  // Tap a neighbouring name to jump to it.
-  container.querySelectorAll('.mob-wheel-item[data-offset]').forEach(item=>{
-    const off = parseInt(item.dataset.offset, 10);
-    if(off === 0) return;
-    item.addEventListener('click', ()=>goTo(mobilityStepIndex + off));
-  });
-
-  // Drag or wheel to scroll the list, same interaction as the week navigator.
-  // Drag handling lives on the CONTAINER, not the wheel, and is bound once. Binding it to
-  // the wheel meant every re-render replaced the element the pointer was captured on, so
-  // the drag died on its first step and the index never moved past one.
-  if(!mobilityWheelBound){
-    mobilityWheelBound = true;
-    const host = document.getElementById('mobilityAssessmentRows');
-    let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-    host.addEventListener('pointerdown', e=>{
-      if(!e.target.closest('#mobWheel')) return;
-      dragging = true; startY = e.clientY; accumulated = 0;
-      startTime = e.timeStamp; moved = false;
-      // Which row the finger landed on. Capturing the pointer means the up-event no longer
-      // shares a target with the down, so no click is generated and the per-row click
-      // listener below never fires — the tap has to be resolved here instead.
-      const row = e.target.closest('.mob-wheel-item');
-      downOffset = row ? (parseInt(row.dataset.offset, 10) || 0) : 0;
-      host.setPointerCapture(e.pointerId);
-    });
-    host.addEventListener('pointermove', e=>{
-      if(!dragging) return;
-      const delta = e.clientY - startY;
-      const steps = Math.trunc((delta - accumulated) / WHEEL_STEP_PX);
-      if(steps !== 0){
-        accumulated += steps * WHEEL_STEP_PX;
-        moved = true;
-        eyeDragGaze(steps);
-        // Dragging down brings earlier items into view, like a physical wheel.
-        mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex - steps));
-        renderMobilityAssessment(true);
-      }
-    });
-    const endDrag = e => {
-      if(!dragging) return;
-      dragging = false;
-      try{ host.releasePointerCapture(e.pointerId); }catch(_){}
-      // Flick: a quick swipe travels less than one row, so a pure drag threshold ignores
-      // it entirely and the wheel feels stuck. Short + fast counts as intent to move, with
-      // the number of steps scaled by how fast — same as a physical wheel being spun.
-      if(moved) return;
-      const dy = e.clientY - startY;
-      const dt = Math.max(1, e.timeStamp - startTime);
-      const velocity = Math.abs(dy) / dt;               // px per ms
-      if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
-        if(downOffset !== 0){
-          mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + downOffset));
-          renderMobilityAssessment(true);
-        }
-        return;
-      }
-      if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
-      const steps = flickSteps(velocity);
-      const dir = dy > 0 ? -1 : 1;                       // swipe up = later domains
-      mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + dir*steps));
-      renderMobilityAssessment(true);
-    };
-    host.addEventListener('pointerup', endDrag);
-    host.addEventListener('pointercancel', endDrag);
-    host.addEventListener('wheel', e=>{
-      if(!e.target.closest('#mobWheel')) return;
-      e.preventDefault();
-      mobilityStepIndex = Math.max(0, Math.min(MOBILITY_DOMAINS.length-1, mobilityStepIndex + (e.deltaY > 0 ? 1 : -1)));
-      renderMobilityAssessment(true);
-    }, { passive:false });
-  }
-
 
   const assessedCount = MOBILITY_DOMAINS.filter(d=>scores[d]!=null).length;
   const summary = document.getElementById('mobilityAssessmentSummary');
@@ -23651,7 +23589,6 @@ let mobilityAssessmentLabel = 'Take the test';
 // thing to run, so the render is what has to be told.
 let mobilityAssessmentAutoOpen = false;
 let mobilityDraftScores = null;
-let mobilityWheelBound = false;
 
 async function getMobilityAssessment(){
   try{ const r = await window.storage.get('settings:mobilityAssessment'); return JSON.parse(r.value); }
