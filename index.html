@@ -1415,17 +1415,16 @@
   .collapse-chevron{ font-size:var(--fs-sm); color:var(--dim); transition:transform 0.15s; flex:none; margin-left:10px; }
   .group-head.collapsible:active{ opacity:0.6; }
   /* Touch targets. Measured 15 controls under the 44px guideline on Goals — the reorder
-     arrows and the maintenance checkbox were the worst, at 31px and 13px. These are used
+     arrows and the maintenance checkbox were the worst, at 31px and 13px (both are gone now;
+     goals are a board and a role question). These are used
      mid-session with imprecise taps, so the hit area is grown with padding and a
      pseudo-element rather than by inflating the visual control, which would undo the
      compactness the rest of this pass is buying. */
-  .goal-move-up, .goal-move-down{ position:relative; }
-  .goal-move-up::after, .goal-move-down::after{ content:''; position:absolute; inset:-9px -8px; }
   /* Controls stay 31px visually — that's a deliberate standard matching the tab bar, and
      raising them to 44px made the select the loudest element on its row. The TAP AREA is
      decoupled instead: expanded vertically for everything (rows have space above and
      below), and horizontally only where nothing sits alongside. 8 of the 19 under-size
-     controls sit in horizontal pairs (Prev/Next, goal reorder arrows), so a horizontal
+     controls sit in horizontal pairs (Prev/Next), so a horizontal
      expansion there would have neighbours stealing each other's taps — the same collision
      the stacked checkboxes hit. */
   button, select{ position:relative; }
@@ -1435,7 +1434,6 @@
   div:has(> select):not(.fields):not(.panel){ min-height:44px; align-items:center; }
   /* Isolated controls — full-width rows and standalone actions — can also grow sideways. */
   .fields > button::after, .field-row > select:only-of-type::after, button.primary::after{ left:-6px; right:-6px; }
-  .goal-move-up::after, .goal-move-down::after { left:0; right:0; }
 
   /* Checkboxes render at 13px, well under the 44px guideline. Expanding each one with a
      pseudo-element made adjacent checkboxes overlap and steal each other's taps, so the
@@ -2953,10 +2951,26 @@
   .skg-bar{ height:8px; background:rgba(var(--ink-rgb),0.16); margin-top:2px; }
   .skg-bar.thin{ height:5px; margin-top:6px; }
   .skg-bar-fill{ height:100%; background:var(--bg); transform-origin:left center; }
+  /* THE GOALS BOARD. Same lane as the skills, the mobility domains and the week: role, type,
+     target. Three columns rather than the skills' name-cells-rung — a goal has no rung count,
+     and 74px is what "Keeping" needs at the lane's 11px mono. */
+  .goal-board .skill-lane{ grid-template-columns:74px auto 1fr; min-height:38px; padding:9px 0 9px 8px; }
+  .goal-lane-role{ font-size:var(--fs-tag); font-weight:var(--fw-bold); text-transform:uppercase;
+    letter-spacing:0.04em; color:rgba(var(--ink-rgb),0.58); }
+  /* The one the week is built around, and nothing else marked. A second weight on "Also"
+     would make three levels of emphasis out of a list that has one thing to say. */
+  .goal-lane.role-main .goal-lane-role{ color:var(--bg); }
+  /* The way back out of a goal. A link rather than a button, the same call .mob-check-more
+     makes: it moves you between panes, it does not do anything. */
+  .goal-back{ display:block; width:auto; height:auto; margin:0 0 var(--sp-2); padding:6px 0;
+    background:transparent; border:0; border-radius:0; text-align:left; cursor:pointer;
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58); }
+  .goal-back:hover{ color:var(--bg); }
+  .goal-back:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
+  /* Quieter than Save, which is the only primary in this sheet. */
+  #goalEditRemove{ margin-top:var(--sp-3); }
   .goal-row{ border:2px solid var(--border-bold); border-radius:0; padding:var(--sp-3); margin-bottom:var(--sp-2); background:transparent; }
-  .goal-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .goal-priority-badge{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--text); letter-spacing:0.06em; font-weight:var(--fw-bold); display:flex; align-items:baseline; gap:6px; }  .goal-row-controls{ display:flex; gap:10px; align-items:center; }
-  .goal-row-controls button{ padding:2px 8px; }
   .goal-row .field-row{ margin-bottom:8px; }
   #blockEditPanel input[type=text], #blockEditPanel input[type=number]{ flex:1; min-width:80px; background:var(--panel); border:2px solid var(--border-bold); color:var(--text); font-family:var(--wordmark); font-size:var(--fs-control); padding:5px 9px; border-radius:0; }
   #blockEditPanel select{ flex:1; min-width:70px; font-size:var(--fs-control); padding:0 4px; }
@@ -3024,13 +3038,6 @@
   .goal-row-panel:first-child{ margin-top:var(--sp-3); }
   /* A goal's place in the order, as the same chip a card's type wears — in the tab's own
      blue rather than the lime, since that is the page it sits on. */
-  /* --band, not a fixed hue: the rank chip is the same kind of thing as a section's title
-     box, so it takes the colour of whatever tab it is on. It was --block-blue, which is
-     Settings' colour, sitting on the orange of the tab the goals actually live in. */
-  .rank-chip{ display:inline-flex; align-items:center; justify-content:center;
-    width:46px; height:46px; border-radius:13px; background:var(--band); color:var(--text);
-    font-family:var(--mono); font-weight:var(--fw-bold); font-size:24px; line-height:1;
-    letter-spacing:0; flex:none; }
   /* The card's type, as a filled chip. Same square the logo mark wears, so a card and the
      mark read as the same family — and a symbol on a solid ground is legible in a way a
      bare minus at display size is not. */
@@ -3047,12 +3054,9 @@
     letter-spacing:0.04em; }
   /* Chip and tag side by side rather than stacked: the number no longer needs a whole
      line to itself, and the row is shorter for it. */
-  .goal-row-panel .goal-priority-badge{ display:flex; align-items:center; gap:10px; flex:1; }
-  .goal-priority-tag{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.08em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.6); }
   .goal-row-panel .field-label{ color:var(--dim); }
   .goal-row-panel label{ color:rgba(var(--ink-rgb),0.8); }
   .goal-row-panel .remove-row{ color:var(--bg); }
-  .goal-row-panel .goal-row-controls button{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
   /* Target exercise, weight and date come off the box: saved without one, a strength goal
      is benchmarked from what you have actually been lifting. The inputs stay in the DOM,
      hidden, so a target already set is carried rather than blanked on the next save, and
@@ -4037,11 +4041,45 @@
         <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
       <div class="group form-panel" id="weekGoalsGroup">
         <div class="fields">
-          <div class="score-note">Up to 3, in the order you actually mean them — the week is built from these.</div>
-
-          <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
-          <div id="goalListRows"></div>
-          <div class="add-row" id="addGoalRow">+ add goal</div>
+          <!-- TWO PANES, ONE SHEET. The list is lanes; opening one swaps this pane for the
+               goal's own fields and a back control. Not a second .lift-sheet stacked over the
+               first: that is a layer to escape rather than a saving, which is the same call
+               the mobility test made when its rungs stayed inline. -->
+          <div class="goal-pane" id="goalListPane">
+            <div class="score-note">Up to 3. One of them leads &mdash; the week is built around that one.</div>
+            <div class="score-note">Leave a target blank and we'll set one from what you've actually been lifting.</div>
+            <div id="goalListRows"></div>
+            <div class="add-row" id="addGoalRow">+ add goal</div>
+          </div>
+          <div class="goal-pane" id="goalEditPane" hidden>
+            <button type="button" class="goal-back" id="goalEditBack">&lsaquo; All goals</button>
+            <div class="goal-row goal-row-panel" id="goalEditRow">
+              <div class="field-row"><span class="field-label">Type</span>
+                <select class="goal-type">
+                  <option value="strength">Strength</option>
+                  <option value="hypertrophy">Hypertrophy / muscle gain</option>
+                  <option value="running">Running performance</option>
+                </select>
+              </div>
+              <div class="field-row" data-goal-field="exercise"><span class="field-label">Target exercise</span><input type="text" class="goal-target-exercise" placeholder="e.g. Back Squat"></div>
+              <div class="field-row" data-goal-field="weight"><span class="field-label">Target weight (kg)</span><input type="number" class="goal-target-weight" placeholder="or leave blank" step="any" inputmode="decimal"></div>
+              <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance" placeholder="or leave blank"></div>
+              <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time" placeholder="or leave blank"></div>
+              <div class="field-row" data-goal-field="date"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
+              <!-- THE ROLE, WHERE THE ARROWS WERE. Three rows of a form used to be reordered
+                   with per-row up/down buttons to express what the generator reads as two
+                   bits: which domain leads, and whether the other is only being held. Asked
+                   directly instead, in the same ask-list the first run and the running setup
+                   use. "Maintenance only" was a separate checkbox saying half of this; it is
+                   the third answer here now. -->
+              <p class="ask-q">How much does this one matter?</p>
+              <div class="ask-list" id="goalRoleAsk" role="radiogroup" aria-label="How much does this one matter?">
+                <button type="button" class="ask-a" role="radio" aria-checked="false" data-role="main">The main thing &mdash; build the week round it</button>
+                <button type="button" class="ask-a" role="radio" aria-checked="false" data-role="also">Also training it</button>
+                <button type="button" class="ask-a" role="radio" aria-checked="false" data-role="maintenance">Just keeping it &mdash; don&rsquo;t let it compete</button>
+              </div>
+              <button type="button" class="small outline goal-remove" id="goalEditRemove">Remove this goal</button>
+            </div>
 
       <!-- Moved under the running goal row by loadCurrentGoals, and hidden when there
            isn't one — it is that goal's own setup, not a section of its own. -->
@@ -4074,6 +4112,7 @@
           <div id="runStartResult" class="score-note note-live"></div>
         </div>
       </div>
+          </div>
 
       <button class="primary" id="saveGoalsBtn" style="margin-top:16px;">Save goals</button>
       <div id="saveGoalsResult" class="score-note note-live" style="margin-top:8px;"></div>
@@ -8272,24 +8311,6 @@ function uiPlay(el, frames, opts){
   catch(e){ return null; }
 }
 
-/* 1 — FLIP. Read where the rows are, let the caller move them, then animate each from where
-   it was to where it now is. Without this a reorder is a teleport, and which row moved is
-   left for you to work out. */
-function flipRows(container, selector, mutate){
-  const rows = [...container.querySelectorAll(selector)];
-  const before = new Map(rows.map(r => [r, r.getBoundingClientRect().top]));
-  mutate();
-  if(!uiAnim('flipReorder')) return;
-  rows.forEach(r=>{
-    const was = before.get(r);
-    if(was == null || !r.isConnected) return;
-    const dy = was - r.getBoundingClientRect().top;
-    if(Math.abs(dy) < 1) return;
-    uiPlay(r, [{ transform:`translateY(${dy}px)` }, { transform:'translateY(0)' }],
-      { duration: UI_ANIM.flipReorder.ms });
-  });
-}
-
 /* 2 — The chip does what its glyph says, once, as the card arrives: plus opens out, minus
    closes in, the arrow drops, equals settles flat, plus-minus rocks. */
 const CHIP_MOTION = {
@@ -8306,19 +8327,6 @@ function playChipMotion(card){
   const type = [...card.classList].find(c => CHIP_MOTION[c]);
   if(!type) return;
   uiPlay(chip, CHIP_MOTION[type], { duration: UI_ANIM.chipActsOut.ms, easing:'cubic-bezier(0.34,1.3,0.5,1)' });
-}
-
-/* 3 — A rank that changed turns over. Only the ones that actually moved: re-rendering the
-   badges touches all three, and animating a number that did not change is noise. */
-function flipRankChip(chip, from, to){
-  if(!uiAnim('rankFlip') || from === to || from == null) return;
-  const up = Number(to) < Number(from);   // promoted, so the new number arrives from below
-  uiPlay(chip, [
-    { transform:`translateY(0) rotateX(0deg)`, opacity:1 },
-    { transform:`translateY(${up ? 8 : -8}px) rotateX(${up ? -70 : 70}deg)`, opacity:0, offset:0.45 },
-    { transform:`translateY(${up ? -8 : 8}px) rotateX(${up ? 70 : -70}deg)`, opacity:0, offset:0.55 },
-    { transform:'translateY(0) rotateX(0deg)', opacity:1 }
-  ], { duration: UI_ANIM.rankFlip.ms, easing:'ease-in-out' });
 }
 
 /* 4 — Accept and dismiss both removed the card, which made them feel like the same button.
@@ -9885,7 +9893,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.455';
+const APP_VERSION = '2026.09.10.456';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10065,6 +10073,7 @@ const APP_NOTES = {
   '2026.09.10.453': 'The mark keeps its eyes when it sleeps \u2014 the z\u2019s say it instead.',
   '2026.09.10.454': 'Weekly says which workouts are morning and which are evening.',
   '2026.09.10.455': 'Goal Profile is now \u201cHow hard to push\u201d, it actually changes the advice, and the card says when it did.',
+  '2026.09.10.456': 'Goals are a list you open one at a time, and each one says how much it matters instead of being ranked.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14350,17 +14359,6 @@ const SESSION_FOCUS_INFO = {
 /* ---------- UNIFIED SESSION FLOW (Daily view: warm-up → main workout → stretching → cool-down) ---------- */
 
 
-function updateGoalPriorityBadges(){
-  document.querySelectorAll('#goalListRows .goal-row .goal-priority-badge').forEach((badge,i)=>{
-    const was = badge.querySelector('.rank-chip')?.textContent;
-    badge.innerHTML = `<span class="rank-chip">${i+1}</span>`
-      + (i===0 ? '<span class="goal-priority-tag">Top priority</span>' : '');
-    flipRankChip(badge.querySelector('.rank-chip'), was, String(i+1));
-  });
-  const rows = document.querySelectorAll('#goalListRows .goal-row');
-  document.getElementById('addGoalRow').style.display = rows.length >= 3 ? 'none' : 'block';
-}
-
 const GOAL_TYPE_FIELDS = {
   strength: ['exercise','weight'],
   hypertrophy: ['exercise','weight'],
@@ -14374,73 +14372,198 @@ function updateGoalFieldVisibility(row){
     fieldRow.style.display = relevant.includes(fieldRow.dataset.goalField) ? 'flex' : 'none';
   });
 }
-function addGoalRow(goal){
-  goal = goal || {};
-  const container = document.getElementById('goalListRows');
-  if(container.querySelectorAll('.goal-row').length >= 3) return;
-  const row = document.createElement('div');
-  row.className = 'goal-row goal-row-panel';
-  row.innerHTML = `
-    <div class="goal-row-head">
-      <span class="goal-priority-badge"></span>
-      <div class="goal-row-controls">
-        <button class="small goal-move-up">↑</button>
-        <button class="small goal-move-down">↓</button>
-        <span class="remove-row">×</span>
-      </div>
-    </div>
-    <div class="field-row"><span class="field-label">Type</span>
-      <select class="goal-type">
-        <option value="strength">Strength</option>
-        <option value="hypertrophy">Hypertrophy / muscle gain</option>
-        <option value="running">Running performance</option>
-      </select>
-    </div>
-    <div class="field-row" data-goal-field="exercise"><span class="field-label">Target exercise</span><input type="text" class="goal-target-exercise" placeholder="e.g. Back Squat"></div>
-    <div class="field-row" data-goal-field="weight"><span class="field-label">Target weight (kg)</span><input type="number" class="goal-target-weight" placeholder="or leave blank" step="any" inputmode="decimal"></div>
-    <div class="field-row" data-goal-field="distance"><span class="field-label">Target distance (km)</span><input type="number" step="0.1" class="goal-target-distance" placeholder="or leave blank"></div>
-    <div class="field-row" data-goal-field="time"><span class="field-label">Target time (min)</span><input type="number" step="0.1" class="goal-target-time" placeholder="or leave blank"></div>
-    <div class="field-row" data-goal-field="date"><span class="field-label">Target date</span><input type="date" class="goal-target-date"></div>
-    <div class="field-row"><label style="font-size:var(--fs-sm); display:flex; align-items:center; gap:8px;"><input type="checkbox" class="goal-maintenance" style="width:auto; flex:none;">Maintenance only — don't let this compete for priority against higher goals</label></div>`;
+/* GOALS ARE A LIST WITH ROLES, NOT A LIST YOU PUT IN ORDER.
 
-  row.querySelector('.goal-type').value = goal.type || 'strength';
-  row.querySelector('.goal-target-exercise').value = goal.targetExercise || '';
-  row.querySelector('.goal-target-weight').value = goal.targetWeight ?? '';
-  row.querySelector('.goal-target-distance').value = goal.targetDistance ?? '';
-  row.querySelector('.goal-target-time').value = goal.targetTime ?? '';
-  row.querySelector('.goal-target-date').value = goal.targetDate || '';
-  row.querySelector('.goal-maintenance').checked = !!goal.isMaintenance;
-  updateGoalFieldVisibility(row);
-  // Switching a row to or from running has to move the running setup with it, or it stays
-  // under a goal that is no longer the running one.
-  row.querySelector('.goal-type').addEventListener('change', ()=>{
-    updateGoalFieldVisibility(row);
-    attachRunStartToRunningGoal();
-  });
+   What the generator actually reads out of the old ordering is two bits. determineHybridPlan
+   compares goalList.indexOf(liftGoal) against goalList.indexOf(runGoal) — which DOMAIN leads,
+   lift or run — and then reads isMaintenance off the secondary. Three rows of open form, each
+   with its own up/down buttons, across 1,919px of scroll, to say two things.
 
-  row.querySelector('.remove-row').addEventListener('click', ()=>{
-    removeRowAnimated(row, ()=>{ updateGoalPriorityBadges(); attachRunStartToRunningGoal(); });
-  });
-  // previousElementSibling/nextElementSibling would land on the running setup panel now
-  // that it sits between rows, so a reorder could insert a goal on the wrong side of it or
-  // do nothing at all. Step over anything that is not a goal row, then put the panel back
-  // under whichever row is the running one afterwards.
-  const prevGoalRow = el => { let n = el.previousElementSibling; while(n && !n.classList.contains('goal-row')) n = n.previousElementSibling; return n; };
-  const nextGoalRow = el => { let n = el.nextElementSibling; while(n && !n.classList.contains('goal-row')) n = n.nextElementSibling; return n; };
-  const moveGoal = dir => flipRows(container, '.goal-row', ()=>{
-    if(dir < 0){ const prev = prevGoalRow(row); if(prev) container.insertBefore(row, prev); }
-    else { const next = nextGoalRow(row); if(next) container.insertBefore(next, row); }
-    updateGoalPriorityBadges();
-    attachRunStartToRunningGoal();
-  });
-  row.querySelector('.goal-move-up').addEventListener('click', ()=>moveGoal(-1));
-  row.querySelector('.goal-move-down').addEventListener('click', ()=>moveGoal(1));
+   Worse, the two controls overlapped: a goal marked "maintenance only — don't let this compete
+   for priority" still had a rank, and that rank meant nothing. So the checkbox is gone and
+   rank is gone, and both are one question with three answers: main, also, maintenance.
 
-  container.appendChild(row);
-  updateGoalPriorityBadges();
-  attachRunStartToRunningGoal();
+   THE STORED SHAPE DOES NOT CHANGE. Every consumer still reads an ordered `list` and an
+   isMaintenance flag — determineHybridPlan, the mobility branch, goals.list[0] in five other
+   places. The role is the interface; the sorted array is the contract, and goalDraftList()
+   is the one place that turns one into the other. */
+const GOAL_ROLES = ['main', 'also', 'maintenance'];
+const GOAL_ROLE_LABEL = { main:'Main', also:'Also', maintenance:'Keeping' };
+let goalDraft = [];
+let goalEditIndex = null;
+
+/* Existing records have no role. Derived rather than defaulted, so a saved set comes back
+   meaning exactly what it meant before: whatever sat at index 0 was the top priority, and
+   anything flagged maintenance was already out of the running for it. */
+function goalRoleOf(goal, index){
+  if(GOAL_ROLES.includes(goal.role)) return goal.role;
+  if(goal.isMaintenance) return 'maintenance';
+  return index === 0 ? 'main' : 'also';
 }
-document.getElementById('addGoalRow').addEventListener('click', ()=>addGoalRow());
+function goalDraftSorted(){
+  const rank = { main:0, also:1, maintenance:2 };
+  return goalDraft.map((g, i)=>({ g, i })).sort((a, b)=>{
+    const d = rank[a.g.role] - rank[b.g.role];
+    return d !== 0 ? d : a.i - b.i;   // stable, so same-role goals keep the order you added them
+  }).map(x=>x.g);
+}
+/* The array the rest of the app reads. isMaintenance is written from the role rather than
+   kept alongside it — two fields that can disagree about the same thing is what this change
+   is removing, not something to preserve in the record. */
+function goalDraftList(){
+  return goalDraftSorted().map(g=>({ ...g, isMaintenance: g.role === 'maintenance' }));
+}
+/* Exactly one main, and a main whenever there is anything to be one. Promoting demotes the
+   incumbent rather than refusing: you picked the new one, so it is the answer. */
+function setGoalRole(index, role){
+  if(!goalDraft[index]) return;
+  if(role === 'main') goalDraft.forEach((g, i)=>{ if(i !== index && g.role === 'main') g.role = 'also'; });
+  goalDraft[index].role = role;
+  normaliseGoalRoles();
+}
+function normaliseGoalRoles(){
+  if(goalDraft.some(g=>g.role === 'main')) return;
+  const first = goalDraft.find(g=>g.role !== 'maintenance');
+  if(first) first.role = 'main';
+}
+
+/* One line per goal, the same lane the skills, the mobility domains and the week are drawn
+   with. Role, type, and whatever target it carries. */
+function goalLaneText(g){
+  if(g.type === 'running'){
+    const bits = [g.targetDistance ? g.targetDistance + 'km' : '', g.targetTime ? g.targetTime + ' min' : ''];
+    return bits.filter(Boolean).join(' in ');
+  }
+  return [g.targetExercise, g.targetWeight ? g.targetWeight + 'kg' : ''].filter(Boolean).join(' ');
+}
+function renderGoalBoard(){
+  const host = document.getElementById('goalListRows');
+  if(!host) return;
+  normaliseGoalRoles();
+  const sorted = goalDraftSorted();
+  host.className = 'skill-board goal-board';
+  host.innerHTML = sorted.map(g=>{
+    const at = goalDraft.indexOf(g);
+    const target = goalLaneText(g);
+    // The short form, which is exactly what GOAL_TYPE_SHORT exists for — "Hypertrophy /
+    // muscle gain" takes the whole lane and leaves the target column nothing. The full label
+    // is on the Type control inside the goal, which is where you are choosing between them.
+    const label = GOAL_TYPE_SHORT[g.type] || GOAL_TYPE_LABELS[g.type] || g.type;
+    return `<button type="button" class="skill-lane goal-lane role-${g.role}" data-goal-at="${at}"
+        aria-label="${GOAL_TYPE_LABELS[g.type] || g.type}, ${GOAL_ROLE_LABEL[g.role].toLowerCase()}${target ? ', ' + target : ', no target set'}">
+      <span class="goal-lane-role">${GOAL_ROLE_LABEL[g.role]}</span>
+      <span class="skill-lane-name">${label}</span>
+      <span class="skill-lane-end"><span class="skill-lane-rung">${target}</span></span></button>`;
+  }).join('');
+  const add = document.getElementById('addGoalRow');
+  if(add) add.style.display = goalDraft.length >= 3 ? 'none' : 'block';
+  paintGoalSummary(goalDraftList());
+}
+
+/* Reads the draft into the one form, rather than every goal having a form of its own. Same
+   call the skill sheet makes: one detail that never leaves, with what it shows swapped. */
+function openGoalEditor(index){
+  const g = goalDraft[index];
+  if(!g) return;
+  goalEditIndex = index;
+  const row = document.getElementById('goalEditRow');
+  row.querySelector('.goal-type').value = g.type || 'strength';
+  row.querySelector('.goal-target-exercise').value = g.targetExercise || '';
+  row.querySelector('.goal-target-weight').value = g.targetWeight ?? '';
+  row.querySelector('.goal-target-distance').value = g.targetDistance ?? '';
+  row.querySelector('.goal-target-time').value = g.targetTime ?? '';
+  row.querySelector('.goal-target-date').value = g.targetDate || '';
+  updateGoalFieldVisibility(row);
+  paintGoalRoleAsk(g.role);
+  document.getElementById('goalEditRemove').style.display = goalDraft.length > 1 ? '' : 'none';
+  attachRunStartToRunningGoal();
+  showGoalPane('edit');
+}
+function paintGoalRoleAsk(role){
+  // .answered on the list plus aria-checked on the chosen one — the convention the first-run
+  // thread and the running setup already use, so this reads as the same kind of question.
+  const list = document.getElementById('goalRoleAsk');
+  if(list) list.classList.add('answered');
+  document.querySelectorAll('#goalRoleAsk .ask-a').forEach(b=>{
+    b.setAttribute('aria-checked', b.dataset.role === role ? 'true' : 'false');
+  });
+}
+function showGoalPane(which){
+  const list = document.getElementById('goalListPane');
+  const edit = document.getElementById('goalEditPane');
+  if(!list || !edit) return;
+  list.hidden = which === 'edit';
+  edit.hidden = which !== 'edit';
+  if(which !== 'edit') goalEditIndex = null;
+  // Back to the top of the sheet either way: the pane you came from was scrolled to wherever
+  // you left it, and arriving halfway down a form is disorienting.
+  const panel = document.querySelector('#goalSheet .lift-sheet-panel');
+  if(panel) panel.scrollTop = 0;
+}
+/* Every field writes straight into the draft, so leaving the pane by any route — back, the
+   sheet's ×, Escape — keeps what you typed. There is no per-goal save to forget to press;
+   Save goals at the bottom of the list is still the only write to storage. */
+function commitGoalEdit(){
+  const g = goalDraft[goalEditIndex];
+  if(!g) return;
+  const row = document.getElementById('goalEditRow');
+  g.type = row.querySelector('.goal-type').value;
+  g.targetExercise = row.querySelector('.goal-target-exercise').value.trim();
+  g.targetWeight = parseFloat(row.querySelector('.goal-target-weight').value) || null;
+  g.targetDistance = parseFloat(row.querySelector('.goal-target-distance').value) || null;
+  g.targetTime = parseFloat(row.querySelector('.goal-target-time').value) || null;
+  g.targetDate = row.querySelector('.goal-target-date').value || null;
+}
+function addGoalRow(goal){
+  if(goalDraft.length >= 3) return;
+  const g = goal ? { ...goal } : { type:'strength' };
+  g.role = goalRoleOf(g, goalDraft.length);
+  goalDraft.push(g);
+  normaliseGoalRoles();
+  renderGoalBoard();
+  return goalDraft.length - 1;
+}
+
+(function wireGoalEditor(){
+  const rows = document.getElementById('goalListRows');
+  if(rows) rows.addEventListener('click', e=>{
+    const lane = e.target.closest('.goal-lane');
+    if(lane) openGoalEditor(parseInt(lane.dataset.goalAt, 10));
+  });
+  const add = document.getElementById('addGoalRow');
+  if(add) add.addEventListener('click', ()=>{
+    const at = addGoalRow();
+    if(at != null) openGoalEditor(at);
+  });
+  const back = document.getElementById('goalEditBack');
+  if(back) back.addEventListener('click', ()=>{ commitGoalEdit(); renderGoalBoard(); showGoalPane('list'); });
+  const row = document.getElementById('goalEditRow');
+  if(row){
+    row.addEventListener('input', commitGoalEdit);
+    row.addEventListener('change', ()=>{
+      commitGoalEdit();
+      updateGoalFieldVisibility(row);
+      attachRunStartToRunningGoal();
+    });
+  }
+  const ask = document.getElementById('goalRoleAsk');
+  if(ask) ask.addEventListener('click', e=>{
+    const b = e.target.closest('.ask-a');
+    if(!b || goalEditIndex == null) return;
+    setGoalRole(goalEditIndex, b.dataset.role);
+    paintGoalRoleAsk(goalDraft[goalEditIndex].role);
+    renderGoalBoard();
+  });
+  const rm = document.getElementById('goalEditRemove');
+  if(rm) rm.addEventListener('click', ()=>{
+    if(goalEditIndex == null || goalDraft.length <= 1) return;
+    goalDraft.splice(goalEditIndex, 1);
+    goalEditIndex = null;
+    normaliseGoalRoles();
+    renderGoalBoard();
+    showGoalPane('list');
+  });
+})();
 
 /* ---------- TRAINING SETUP ---------- */
 const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -21034,16 +21157,14 @@ async function advanceSkillLevel(skill, category){
 // is no running goal, where before it asked a runner's question of someone who does not run.
 function attachRunStartToRunningGoal(){
   const panel = document.getElementById('runStartPanel');
-  const rows = document.getElementById('goalListRows');
-  if(!panel || !rows) return;
-  const runRow = Array.from(rows.querySelectorAll('.goal-row'))
-    .find(r => { const sel = r.querySelector('.goal-type'); return sel && sel.value === 'running'; });
-  if(!runRow){
-    panel.style.display = 'none';
-    return;
-  }
-  panel.style.display = '';
-  runRow.insertAdjacentElement('afterend', panel);
+  const row = document.getElementById('goalEditRow');
+  if(!panel || !row) return;
+  // It lives in the edit pane now and shows only while the goal open in it is the running
+  // one. It used to be moved under whichever ROW was running, which was the same idea when
+  // every goal was a row on one long page; with one form at a time there is nothing to move
+  // it between, only a question of whether this goal is the one it belongs to.
+  const sel = row.querySelector('.goal-type');
+  panel.style.display = (sel && sel.value === 'running') ? '' : 'none';
 }
 
 /* The line beside Generate is now the only thing on the page that says what the goals are —
@@ -21060,21 +21181,18 @@ function paintGoalSummary(list){
 
 async function loadCurrentGoals(){
   const goals = await getCurrentGoals(todayStr);
-  // Park the running panel outside the container first. It lives among the goal rows now,
-  // and clearing them with innerHTML destroyed it — this runs on both the Weekly and the
-  // Body tab, so the panel survived exactly one visit and then never came back until
-  // a reload. attachRunStartToRunningGoal puts it back where it belongs a few lines down.
-  const runPanel = document.getElementById('runStartPanel');
-  const goalsHost = document.getElementById('weekGoalsGroup');
-  if(runPanel && goalsHost) goalsHost.appendChild(runPanel);
-  document.getElementById('goalListRows').innerHTML = '';
+  // The panel no longer lives among the rows, so it no longer needs rescuing from an
+  // innerHTML that used to destroy it — it sits in the edit pane and is only shown or hidden.
+  goalDraft = [];
   if(goals && goals.list && goals.list.length){
-    goals.list.forEach(g=>addGoalRow(g));
+    goals.list.forEach((g, i)=>{ goalDraft.push({ ...g, role: goalRoleOf(g, i) }); });
   } else {
-    addGoalRow(); // start with one empty row
+    goalDraft.push({ type:'strength', role:'main' });   // start with one
   }
+  normaliseGoalRoles();
+  renderGoalBoard();
+  showGoalPane('list');
   attachRunStartToRunningGoal();
-  paintGoalSummary(goals && goals.list);
   // Both skill categories are pickers now — nothing is rendered as an editable row.
   // Scores are pulled once here rather than inside the render: renderSkillPicker runs on
   // every wheel tick and every drag frame, and reading storage there would make the note
@@ -21163,19 +21281,14 @@ function buildGoalTimeline(startValue, startDate, endValue, endDate){
 async function saveGoalsFromForm(resultElId){
   const result = document.getElementById(resultElId);
   const list = [];
-  for(const row of document.querySelectorAll('#goalListRows .goal-row')){
-    const g = {
-      type: row.querySelector('.goal-type').value,
-      detail: '',
-      targetExercise: row.querySelector('.goal-target-exercise').value.trim(),
-      targetWeight: parseFloat(row.querySelector('.goal-target-weight').value) || null,
-      targetDistance: parseFloat(row.querySelector('.goal-target-distance').value) || null,
-      targetTime: parseFloat(row.querySelector('.goal-target-time').value) || null,
-      targetDate: row.querySelector('.goal-target-date').value || null,
-      isMaintenance: row.querySelector('.goal-maintenance').checked
-    };
-    // Every visible row is a deliberate slot — no "is this really intentional" guessing
-    // needed anymore; the user can always remove a row via the × button if unwanted.
+  // Whatever is open in the editor is in the draft before this runs — every field writes
+  // through on input — but saving straight from the edit pane would otherwise drop the last
+  // keystroke, which is not typed anywhere the blur would catch.
+  if(goalEditIndex != null) commitGoalEdit();
+  // Sorted by role, which is what makes this array mean the same thing it meant when it was
+  // ordered by hand: index 0 is the goal the week is built around.
+  for(const g of goalDraftList()){
+    g.detail = '';
 
     // Auto-benchmark: if this is a general strength/hypertrophy/running goal with no
     // specific target set, benchmark their actual recent level and auto-apply a reachable
@@ -21205,7 +21318,14 @@ async function saveGoalsFromForm(resultElId){
       }
     }
     list.push(g);
+    // The auto-benchmarked target goes back onto the draft too. Without this the board keeps
+    // showing a blank target after a save that filled one in, and the next save re-runs the
+    // benchmark against a goal that already has one.
+    const src = goalDraft.find(d=> d.role === g.role && d.type === g.type);
+    if(src) Object.assign(src, { targetExercise:g.targetExercise, targetWeight:g.targetWeight,
+      targetDistance:g.targetDistance, targetTime:g.targetTime, targetDate:g.targetDate });
   }
+  renderGoalBoard();
   // Reported back, because the caller on Weekly closes the sheet on a save that wrote and
   // has to leave it open on one that did not.
   if(list.length===0){ showToast('Add detail for at least one goal', true); return false; }
