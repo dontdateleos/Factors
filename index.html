@@ -2636,6 +2636,17 @@
   /* Once one is chosen the other four step back — the answer should read as an answer, not
      as five options with one of them ticked. */
   .subj-faces.picked .subj-face:not(.on){ opacity:0.38; }
+  /* The foot of Today. A rule above it because it is not part of the cooldown that ends the
+     page, and the quiet ink because it is the one thing here you hope not to need. Left on
+     the gutter like everything else on the tab; full-width as a target, since the words are
+     short and a 44px row of mostly-empty tap area beats a tight one. */
+  .today-foot{ margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
+  .today-foot-link{ display:block; width:100%; height:auto; margin:0; padding:11px 0;
+    background:transparent; border:0; border-radius:0; text-align:left; cursor:pointer;
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
+    letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58); }
+  .today-foot-link:hover{ color:var(--bg); }
+  .today-foot-link:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:16px var(--gutter); background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -4062,6 +4073,26 @@
     <div class="log" style="margin-top:16px; display:none;">
       <div class="log-title">Recommendation history</div>
       <div id="recHistory"></div>
+    </div>
+
+    <!-- WHERE YOU ARE WHEN SOMETHING TWINGES.
+
+         Logging an injury lived only on the Body tab, which is where the RECORD belongs —
+         the list, the severity curves, "what led to this" — but not where the event happens.
+         You tweak something mid-session, and mid-session you are here. It matters more than
+         a tap saved: addInjury re-runs generateWarmup, so the warm-up on this very page
+         re-targets the area the moment you log it.
+
+         A line, not a section. Today is three numbered bands, each a thing to do today, and
+         a fourth called "Injuries" would be a section-sized answer to "nothing is wrong" —
+         exactly what .461 just took off the Body tab. So it is one row at the foot, under
+         everything you came here to do, and it costs 40px of a 2,153px page.
+
+         The Body tab keeps its own button. This is a second way in, not a move: take the
+         button off that head and the section is a title and a sub-line with no way to act
+         on it, and the list, the update and the resolve all live behind it. -->
+    <div class="today-foot">
+      <button type="button" class="today-foot-link" id="todayLogInjuryBtn">Something hurt? Log it</button>
     </div>
 
   </div>
@@ -10062,7 +10093,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.464';
+const APP_VERSION = '2026.09.10.465';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10251,6 +10282,7 @@ const APP_NOTES = {
   '2026.09.10.462': 'Logging an injury asks all six things the same way instead of three and a form.',
   '2026.09.10.463': 'Every field in the app is outlined instead of a white box.',
   '2026.09.10.464': 'An answer you type is set like an answer you pick.',
+  '2026.09.10.465': 'You can log an injury from Today, where you are when something twinges.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -21586,13 +21618,18 @@ wireSheet('mobilityAssessmentSheet', ()=> setMobilityAssessmentOpen(false));
 /* Logging an injury. The list stays on the tab; the form comes to you. */
 const injurySheet = wireSheet('injurySheet');
 const logInjuryBtn = document.getElementById('logInjuryBtn');
-if(logInjuryBtn) logInjuryBtn.addEventListener('click', ()=>{
+/* Two buttons, one sheet, one handler. The Body tab's head button and the row at the foot of
+   Today open exactly the same thing — a second entry point, not a second implementation. */
+const openInjurySheet = ()=>{
   // Today, unless you say otherwise: an onset date is a thing you correct, not a thing you
   // fill in, and an empty date field fails stampableDate rather than defaulting.
   const d = document.getElementById('injuryDate');
   if(d && !d.value) d.value = todayStr;
   injurySheet.open();
-});
+};
+if(logInjuryBtn) logInjuryBtn.addEventListener('click', openInjurySheet);
+const todayLogInjuryBtn = document.getElementById('todayLogInjuryBtn');
+if(todayLogInjuryBtn) todayLogInjuryBtn.addEventListener('click', openInjurySheet);
 document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
 // Adaptation Engine (backlog §4 — "one of the most important changes"). Classifies each
