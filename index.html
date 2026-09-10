@@ -10353,7 +10353,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.478';
+const APP_VERSION = '2026.09.10.479';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10556,6 +10556,7 @@ const APP_NOTES = {
   '2026.09.10.476': 'A lift you entered yourself keeps the sets and reps you gave it instead of being re-prescribed.',
   '2026.09.10.477': 'The weight box takes a set at a time \u2014 60,80,100 for a ramp, or a drop set, or a back-off.',
   '2026.09.10.478': 'The plus sits in the middle of the masthead beside the mark, and tucks into the corner as you scroll.',
+  '2026.09.10.479': 'The plus keeps clear of the wordmark and the date on a narrow phone.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11504,20 +11505,57 @@ function updateHeaderCollapse(){
      together rather than one sliding past the other.
 
      Measured off the brand rather than assumed at 390, because the header is fluid. */
+  const fontSize = lerp(46, 0, progress);
+  /* TWO POSITIONS, NOT ONE, for the same reason the mark has two.
+
+     In the corner it read as a corner utility \u2014 a settings cog, something you press once a
+     month. It is the only control in the masthead and the most-pressed write in the app, so
+     open it sits in the middle of the header at 34px, nine pixels off the mark, the two of
+     them the pair in the centre of the lockup. The gap it moves into is real: the wordmark’s
+     ink stops around x135 and the date begins at x295, and nothing has ever been between them.
+
+     Collapsed it cannot stay there \u2014 the tab scale takes x120-270 of the 32px row \u2014 so it
+     travels to the right of that row and shrinks to 25, arriving where it used to live. Same
+     journey the mark makes in the other direction, on the same progress, so the two move
+     together rather than one sliding past the other.
+
+     Measured off the brand rather than assumed at 390, because the header is fluid. */
   const logBtnEl = document.getElementById('headerLogBtn');
   if(logBtnEl && brandEl){
-    const brandW = brandEl.getBoundingClientRect().width;
+    const brandRect = brandEl.getBoundingClientRect();
+    const brandW = brandRect.width;
     const gutterPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter')) || 22;
-    const size = lerp(42, 25, progress);
-    // Centred on the mark's 40px box at its own top of 57, so the two share a centre line.
-    const left = lerp((brandW - 42) / 2, brandW - gutterPx - 25, progress);
+    /* Centred, but never on top of anything. The wordmark does not reflow — the type is a
+       fixed 46px and the page around it changes — so at 320 the middle of the brand is x139
+       while the ink runs to about x135, and the disc sat on the O of FOOD. Two walls, both
+       measured rather than assumed:
+
+         floor    the ink's right edge, plus the mark's 40px when the mark is actually THERE.
+                  It perches up to the label row whenever the score is off screen, and
+                  reserving its slot while it is away is what pushed the disc into the date.
+         ceiling  the date block's left edge. The date fades to nothing as the header
+                  collapses, so its claim on the space is released on the same progress.
+
+       Both scale with the type, so both stop mattering as the wordmark goes to zero and the
+       disc is free to travel to the corner. Where the walls leave less than 42px — which is
+       320 with the mark down — it takes what there is rather than overlapping either. */
+    const markRoom = (typeof eyeCtx !== 'undefined' && eyeCtx.perched) ? 12 : 52;
+    const floorL = logoOriginX + (logoTextWidth + markRoom) * (fontSize / 46);
+    const dateEl2 = document.getElementById('headerDate');
+    const dateLeft = dateEl2 ? (dateEl2.getBoundingClientRect().left - brandRect.left) : brandW;
+    const ceilR = dateLeft + (brandW - dateLeft) * progress;
+    const room = Math.max(0, ceilR - 10 - floorL);
+    const size = lerp(Math.max(25, Math.min(42, room)), 25, progress);
+    const left = Math.min(
+      Math.max(floorL, lerp((brandW - size) / 2, brandW - gutterPx - 25, progress)),
+      Math.max(floorL, ceilR - 10 - size));
     logBtnEl.style.left = left.toFixed(1) + 'px';
-    logBtnEl.style.top = lerp(56, 3, progress).toFixed(1) + 'px';
+    // Top follows the size so the disc keeps the mark's own centre line at y77.
+    logBtnEl.style.top = lerp(77 - size / 2, 3, progress).toFixed(1) + 'px';
     logBtnEl.style.width = size.toFixed(1) + 'px';
     logBtnEl.style.height = size.toFixed(1) + 'px';
-    logBtnEl.style.fontSize = lerp(27, 17, progress).toFixed(1) + 'px';
+    logBtnEl.style.fontSize = (size * 0.64).toFixed(1) + 'px';
   }
-  const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
   h1.style.marginBottom = lerp(14, 0, progress) + 'px';
