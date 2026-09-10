@@ -2248,6 +2248,14 @@
   /* Standing on its own rather than inside a stepped thread, a question needs its own air
      above and below — the thread got that from .fr-step's margin. */
   .ask-q{ margin:26px 0 14px; }
+  /* An answer you type rather than pick. It sits where an .ask-list would, indented to the
+     same 1.35em the arrows reserve, so a typed answer lines up with a chosen one down the
+     sheet. Widths by what the answer is: a body part is words, a date is a date, a severity
+     is two digits — a full-width box for "6" says the app expects a paragraph. */
+  .ask-field{ padding-left:1.35em; }
+  .ask-field input{ width:100%; }
+  .ask-field.narrow input{ width:auto; min-width:170px; }
+  .ask-field.tiny input{ width:96px; flex:none; }
   .ask-q:first-child{ margin-top:6px; }
   .ask-list + .ask-q{ margin-top:30px; }
   /* The spread the count turned into. Mono, small and set back: it is the app showing its
@@ -4337,9 +4345,24 @@
              wanted to be answers rather than a dropdown; the question carries the frame now,
              so each one says only the part that differs. -->
         <div class="fields" id="injuryForm">
-        <div class="field-row"><span class="field-label">Body part</span><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
-        <div class="field-row"><span class="field-label">Onset date</span><input type="date" id="injuryDate"></div>
-        <div class="field-row"><span class="field-label">Severity (1-10)</span><input type="number" min="1" max="10" id="injurySeverity"></div>
+        <!-- ASKED, LIKE THE THREE BELOW THEM.
+             These were mono labels in a 112px column beside a light-filled box, sitting on top
+             of three questions set in 24px wordmark — a form stapled to a thread, and the
+             boxes were the loudest thing on a sheet whose questions are the point. The label
+             column could not hold them either: "Severity (1-10)" wrapped to two lines at 390.
+
+             The CONTROLS do not change and the ids are untouched — a body part is free text, an
+             onset is a date and a severity is a number out of ten, and none of those is a short
+             list that could be answered with .ask-a rows. What changes is that each one is
+             introduced the way the app introduces everything else it wants from you. -->
+        <p class="ask-q">Where does it hurt?</p>
+        <div class="ask-field"><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
+
+        <p class="ask-q">When did it start?</p>
+        <div class="ask-field narrow"><input type="date" id="injuryDate"></div>
+
+        <p class="ask-q">How bad is it, one to ten?</p>
+        <div class="ask-field tiny"><input type="number" min="1" max="10" id="injurySeverity" inputmode="numeric"></div>
 
         <p class="ask-q">What kind of injury is it?</p>
         <div class="ask-list answered" id="injuryType" role="radiogroup" aria-label="What kind of injury is it?">
@@ -9977,7 +10000,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.461';
+const APP_VERSION = '2026.09.10.462';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10163,6 +10186,7 @@ const APP_NOTES = {
   '2026.09.10.459': 'Every progression strip starts and ends in the same place, whatever the ladder\u2019s length.',
   '2026.09.10.460': 'A skill opens on its whole ladder, not two rungs and a \u201cshow all\u201d.',
   '2026.09.10.461': 'Injuries is a heading and a button until something hurts.',
+  '2026.09.10.462': 'Logging an injury asks all six things the same way instead of three and a form.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
