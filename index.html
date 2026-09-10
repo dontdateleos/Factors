@@ -754,8 +754,9 @@
     padding:var(--sp-4) var(--gutter); }
   .rest-word{ font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.045em;
     line-height:0.9; text-transform:uppercase; color:var(--bg); -webkit-text-stroke:0.6px var(--bg); }
+  /* 0.56 is 4.41:1 on bone \u2014 nine hundredths under the bar, at 10px. 0.58 is 4.72. */
   .rest-note{ font-family:var(--mono); font-size:10px; letter-spacing:0.02em; line-height:1.4;
-    color:rgba(var(--ink-rgb),0.56); margin-top:8px; }
+    color:rgba(var(--ink-rgb),0.58); margin-top:8px; }
   /* The day number is the one part you read at a glance, so it carries the weight; the
      words either side of it stay quiet enough not to compete with the logo. */
   /* Measured, so mono — the same rule the readout, the strip figures and the version line
@@ -2259,6 +2260,21 @@
   .log-slot-pair{ display:flex; gap:4px; margin-left:auto; }
   .log-slot-btn{ width:38px; padding:0 !important; }
   .log-slot-btn.on{ background:var(--bg); color:var(--ground); border-color:var(--bg); }
+  /* Sits in the row, under the name it is completing, rather than floating over the panel:
+     one lift is on screen at a time, so there is nothing below to cover and nothing to
+     position against. Capped at 6 and scrollable so it never pushes Save off the sheet. */
+  .ex-suggest{ flex-basis:100%; margin:2px 0 4px; max-height:186px; overflow-y:auto;
+    border:1px solid rgba(var(--ink-rgb),0.5); border-radius:4px; }
+  .ex-suggest-hit{ display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    width:100%; text-align:left; padding:7px 10px; min-height:0; height:auto;
+    background:transparent; color:var(--bg); border:0;
+    border-top:1px solid rgba(var(--ink-rgb),0.18);
+    font-family:var(--sans); font-size:var(--fs-sm); text-transform:none;
+    letter-spacing:0; font-weight:var(--fw-medium); cursor:pointer; }
+  .ex-suggest-hit:first-child{ border-top:0; }
+  .ex-suggest-hit:active{ background:rgba(var(--ink-rgb),0.12); opacity:1; }
+  .ex-suggest-sub{ flex:none; font-family:var(--mono); font-size:var(--fs-tag);
+    text-transform:uppercase; letter-spacing:0.06em; color:rgba(var(--ink-rgb),0.6); }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   .mobility-row-info{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; font-size:var(--fs-sm); color:var(--dim); }
   .mobility-row-info.test{ align-items:flex-start; }
@@ -2651,7 +2667,9 @@
   /* Nothing recorded yet: an outline where the answer will sit, so the slot reads as waiting
      rather than as filled with a neutral rating. */
   #todayFaceDock.asking{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(var(--ink-rgb),0.32); }
-  #todayFaceDock.asking .dock-word{ color:rgba(var(--ink-rgb),0.45); }
+  /* 0.45 measured 4.38:1 on the dark ground and 3.09:1 on bone, both under the 4.5 this
+     needs as text. It reads as quietly at 0.58 (6.61 / 4.72) and is legible on both. */
+  #todayFaceDock.asking .dock-word{ color:rgba(var(--ink-rgb),0.58); }
   /* THE BOX IS 22; THE FINGER GETS 44.
      Same trick .subj-face uses a few hundred lines down, and the same one the wordmark's mark
      uses: the hit area is pushed back out past the box on every side, so a chip small enough
@@ -9394,6 +9412,7 @@ function activateDataSubView(view){
     // Rebuilt on the way in rather than cached for the session: log a workout, come back,
     // and the lift you just did should be in the list with its count already up.
     exSearchIndex = null;
+    exSuggestIndex = null;
     renderExerciseSearch();
     renderBlockHistory();
     if(document.getElementById('prevWorkoutsDate').value) renderPrevWorkoutsForDate();
@@ -10325,7 +10344,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.474';
+const APP_VERSION = '2026.09.10.475';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10524,6 +10543,7 @@ const APP_NOTES = {
   '2026.09.10.472': 'The masthead button is a plus.',
   '2026.09.10.473': 'You can log a workout you did days ago \u2014 the popup steps back a day at a time.',
   '2026.09.10.474': 'A workout you have logged counts as being set up \u2014 Today stops asking you to build a week.',
+  '2026.09.10.475': 'Start typing a lift and it offers the ones you already do, then the rest of the library.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -17570,6 +17590,92 @@ async function renderExerciseSearch(){
     `<div class="log-entry ex-search-hit" role="button" tabindex="0" data-ex="${r.key}" data-name="${r.name.replace(/"/g, '&quot;')}">`
     + `<span>${r.name}</span><span>${r.sessions} session${r.sessions === 1 ? '' : 's'}</span></div>`).join('');
 }
+/* TYPING A LIFT'S NAME EXACTLY WAS THE ONLY WAY TO GET ITS TAGS.
+
+   The name box is free text, and guessTagsFromLibrary reads area, secondary area, movement
+   and exerciseId off it by longest-alias substring match. Get the words right and the row is
+   tagged, evidence-badged, volume-counted and deduped against the rest of the week; get them
+   slightly wrong and you have made a second exercise that shares nothing with the first,
+   including its history. Nothing on screen said which had happened until the evidence badge
+   appeared on blur, and only for library entries.
+
+   Two sources, in this order:
+     what YOU have logged   ranked by how often, because the lift you are about to type is
+                            overwhelmingly one you have typed before
+     the library            everything else, so the 131 rows are reachable without knowing
+                            the exact wording, and their aliases are searched too
+
+   Deduped by exHistKey, which is the key the rest of the app identifies a lift by, so a lift
+   you have logged shows once, as YOUR spelling of it, with your session count. */
+let exSuggestIndex = null;
+async function buildExSuggestIndex(){
+  if(!exSearchIndex) exSearchIndex = await buildExerciseIndex();
+  const rows = exSearchIndex.map(r=>({
+    key:r.key, name:r.name, haystack:r.haystack,
+    sub:`${r.sessions} session${r.sessions === 1 ? '' : 's'}` }));
+  const seen = new Set(rows.map(r=> r.key));
+  for(const id in EXERCISE_LIBRARY){
+    const ex = EXERCISE_LIBRARY[id];
+    const key = exHistKey(ex.name);
+    if(!key || seen.has(key)) continue;
+    seen.add(key);
+    rows.push({ key, name: ex.name, sub: BODY_AREAS[ex.area] || '',
+                haystack: (key + ' ' + (ex.aliases || []).join(' ')).toLowerCase() });
+  }
+  return rows;
+}
+const EX_SUGGEST_MAX = 6;
+function closeExSuggest(){
+  document.querySelectorAll('.ex-suggest').forEach(el=> el.remove());
+}
+async function renderExSuggest(input){
+  const row = input.closest('.edit-row');
+  if(!row) return;
+  const q = input.value.trim().toLowerCase();
+  // Nothing typed yet is not a prompt to list the whole library at you.
+  if(!q){ closeExSuggest(); return; }
+  if(!exSuggestIndex) exSuggestIndex = await buildExSuggestIndex();
+  // Still the field it was called for? An await sat between the keystroke and here.
+  if(document.activeElement !== input) return;
+  const hits = exSuggestIndex.filter(r=> r.haystack.includes(q)).slice(0, EX_SUGGEST_MAX);
+  closeExSuggest();
+  // An exact hit is not a suggestion, it is what you already typed.
+  if(!hits.length || (hits.length === 1 && hits[0].key === exHistKey(input.value))) return;
+  const box = document.createElement('div');
+  box.className = 'ex-suggest';
+  box.innerHTML = hits.map(r=>
+    `<button type="button" class="ex-suggest-hit" data-name="${r.name.replace(/"/g, '&quot;')}">`
+    + `<span>${r.name}</span><span class="ex-suggest-sub">${r.sub}</span></button>`).join('');
+  input.insertAdjacentElement('afterend', box);
+}
+(function wireExSuggest(){
+  const body = document.getElementById('logSheetBody');
+  if(!body) return;
+  body.addEventListener('input', e=>{
+    if(e.target.classList.contains('week-ex-name')) renderExSuggest(e.target).catch(()=>{});
+  });
+  // pointerdown, not click: the input blurs first on a tap and blur tears the list down.
+  body.addEventListener('pointerdown', e=>{
+    const hit = e.target.closest('.ex-suggest-hit');
+    if(!hit) return;
+    e.preventDefault();
+    const box = hit.closest('.ex-suggest');
+    const input = box && box.previousElementSibling;
+    if(input && input.classList.contains('week-ex-name')){
+      input.value = hit.dataset.name;
+      input.dispatchEvent(new Event('input', { bubbles:true }));
+      input.dispatchEvent(new Event('change', { bubbles:true }));
+      input.dispatchEvent(new Event('blur'));
+    }
+    closeExSuggest();
+  });
+  body.addEventListener('focusout', e=>{
+    if(!e.target.classList.contains('week-ex-name')) return;
+    // After the pointerdown above has had its turn.
+    setTimeout(closeExSuggest, 120);
+  });
+})();
+
 (function wireExerciseSearch(){
   const input = document.getElementById('exSearchInput');
   const out = document.getElementById('exSearchResults');
@@ -18254,6 +18360,8 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         if(!result) throw new Error('log failed');
         blockEditLoggedKey = key;
         blockEditLoggedTs = session.timestamp;
+        // The lift you just logged should be in the picker the next time you type it.
+        exSearchIndex = null; exSuggestIndex = null;
         // Said differently for an edit, because "logged" a second time is exactly the thing
         // that used to happen and exactly the thing you would want to know had not.
         showToast(wasEdit ? 'Session updated' : 'Saved & logged');
