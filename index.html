@@ -1063,6 +1063,23 @@
      was light on BOTH grounds and so did not follow the ground. The fill has gone, so it
      follows the ground now like everything else. A step up from the ordinary placeholder's
      0.45, because this one is last session's real numbers rather than a hint. */
+  /* The three were fixed max-widths chosen when each held one number: 56 / 76 / 64. Reps
+     have taken 12,10,7 for a while and weight now takes 100,100,90, so the weight box was
+     showing "100,100,9" \u2014 the value was right and the field was lying about it. They share
+     the row proportionally instead, so the two that hold lists get the space and all three
+     shrink together on a narrow phone rather than one of them clipping. */
+  /* min-width:0 on the ROW as well as on the boxes. It is itself a flex item (flex-basis:100%
+     inside .edit-row) and a flex item does not shrink below its content unless told to \u2014 so
+     with the boxes' max-widths gone it grew to 631 inside a 346 parent and simply overflowed
+     the sheet. Measured before the fix, at both 390 and 320. */
+  /* Scoped under #blockEditPanel because that is what these have to beat:
+     `#blockEditPanel input[type=text], #blockEditPanel input[type=number]` sets flex:1 and
+     min-width:80px on all three, and an id selector beats two classes. Unscoped, the boxes
+     came out equal at 102.9 each and the weight still clipped at 320. */
+  #blockEditPanel .log-fields-row{ min-width:0; }
+  #blockEditPanel .log-fields-row .week-ex-sets{ flex:0 1 46px; min-width:0; }
+  #blockEditPanel .log-fields-row .week-ex-reps{ flex:1 1 96px; min-width:0; }
+  #blockEditPanel .log-fields-row .week-ex-weight{ flex:1.2 1 110px; min-width:0; }
   .log-fields-row input::placeholder{ color:rgba(var(--ink-rgb),0.55);
     font-variant-numeric:tabular-nums; opacity:1; }
   /* A FIELD IS OUTLINED, NOT FILLED.
@@ -2282,6 +2299,14 @@
     letter-spacing:0; font-weight:var(--fw-medium); cursor:pointer; }
   .ex-suggest-hit:first-child{ border-top:0; }
   .ex-suggest-hit:active{ background:rgba(var(--ink-rgb),0.12); opacity:1; }
+  /* The two boxes take comma lists and pair off against each other position by position,
+     and nothing said so. Typing 5,5,4 @ 100,100,90 is three different sets, but until the
+     app shows it back the only way to know it understood is to save and go looking. */
+  .set-breakdown{ flex-basis:100%; margin-top:3px; font-family:var(--mono);
+    font-size:var(--fs-tag); letter-spacing:0.04em;
+    color:rgba(var(--ink-rgb),0.62); font-variant-numeric:tabular-nums; }
+  .set-breakdown[hidden]{ display:none; }
+  .sb-total{ opacity:0.75; }
   .ex-suggest-sub{ flex:none; font-family:var(--mono); font-size:var(--fs-tag);
     text-transform:uppercase; letter-spacing:0.06em; color:rgba(var(--ink-rgb),0.6); }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
@@ -10353,7 +10378,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.479';
+const APP_VERSION = '2026.09.10.480';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10557,6 +10582,8 @@ const APP_NOTES = {
   '2026.09.10.477': 'The weight box takes a set at a time \u2014 60,80,100 for a ramp, or a drop set, or a back-off.',
   '2026.09.10.478': 'The plus sits in the middle of the masthead beside the mark, and tucks into the corner as you scroll.',
   '2026.09.10.479': 'The plus keeps clear of the wordmark and the date on a narrow phone.',
+  '2026.09.10.480': 'Different reps and weights per set: the row says back what it read, set by set.',
+  '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11491,20 +11518,6 @@ function updateHeaderCollapse(){
     brandEl.style.paddingTop = lerp(18, 8, progress).toFixed(2) + 'px';
     brandEl.style.paddingBottom = lerp(12, 6, progress).toFixed(2) + 'px';
   }
-  /* TWO POSITIONS, NOT ONE, for the same reason the mark has two.
-
-     In the corner it read as a corner utility \u2014 a settings cog, something you press once a
-     month. It is the only control in the masthead and the most-pressed write in the app, so
-     open it sits in the middle of the header at 34px, nine pixels off the mark, the two of
-     them the pair in the centre of the lockup. The gap it moves into is real: the wordmark’s
-     ink stops around x135 and the date begins at x295, and nothing has ever been between them.
-
-     Collapsed it cannot stay there \u2014 the tab scale takes x120-270 of the 32px row \u2014 so it
-     travels to the right of that row and shrinks to 25, arriving where it used to live. Same
-     journey the mark makes in the other direction, on the same progress, so the two move
-     together rather than one sliding past the other.
-
-     Measured off the brand rather than assumed at 390, because the header is fluid. */
   const fontSize = lerp(46, 0, progress);
   /* TWO POSITIONS, NOT ONE, for the same reason the mark has two.
 
@@ -17292,6 +17305,7 @@ function fillLogAsPlanned(){
     if(w && !w.value) noWeight++;
     else if(r.dataset.weightWhy) started++;
   });
+  rows.forEach(refreshSetBreakdown);
   if(!filled){ showToast('Already filled in'); return; }
   blockEditDirty = true;
   try{ markLoggingStarted(blockEditDate); } catch(e){}
@@ -17491,6 +17505,8 @@ function wireBlockEditorClose(panel){
     // editing the plan, not doing the session.
     if(e.target && e.target.matches && e.target.matches('.week-ex-sets, .week-ex-reps, .week-ex-weight, #weekRunActualDuration')){
       markLoggingStarted(blockEditDate);
+      const row = e.target.closest('.edit-row');
+      if(row) refreshSetBreakdown(row);
     }
   }));
 }
@@ -17733,6 +17749,50 @@ async function buildExSuggestIndex(){
   }
   return rows;
 }
+/* PAIRED OFF, SET BY SET, IN THE APP’S OWN WORDS.
+
+   Reps and weight are two comma lists that line up by position, and the only way to find out
+   whether the app read them the way you meant was to save and go looking at what it stored.
+   This says it back while you type: 5,5,4 @ 100,100,90 is "5@100 · 5@100 · 4@90 — 1,360kg".
+
+   It is the same arithmetic pairedVolume does at save, deliberately \u2014 if the two ever
+   disagreed the line would be a lie, and the line is the only place the carry rule is
+   visible: type four reps against three weights and the fourth set shows the third weight,
+   which is the behaviour, stated rather than buried.
+
+   Shown only when something actually varies. On a flat 3 x 10 @ 60 it says nothing, because
+   the boxes already do. */
+function setBreakdownHtml(row){
+  const repsEl = row.querySelector('.week-ex-reps');
+  const wtEl = row.querySelector('.week-ex-weight');
+  if(!repsEl || !wtEl) return '';
+  const R = parseRepsInput(repsEl.value);
+  const W = parseWeightInput(wtEl.value);
+  if(!R.repsPerSet && !W.weightPerSet) return '';
+  const n = Math.max(R.repsPerSet ? R.repsPerSet.length : 0, W.weightPerSet ? W.weightPerSet.length : 0);
+  const at = (arr, single, i)=> arr ? arr[Math.min(i, arr.length - 1)] : single;
+  const parts = [];
+  for(let i = 0; i < n; i++){
+    const r = at(R.repsPerSet, R.reps, i);
+    const w = at(W.weightPerSet, W.weight, i);
+    if(!r) continue;
+    parts.push(w ? `${r}@${w}` : `${r}`);
+  }
+  if(!parts.length) return '';
+  const setsEl = row.querySelector('.week-ex-sets');
+  const sets = (parseInt(setsEl && setsEl.value, 10) || 0) || n;
+  const vol = pairedVolume(R.repsPerSet, R.reps, sets, W.weightPerSet, W.weight);
+  const total = vol ? ` <span class="sb-total">\u2014 ${Math.round(vol).toLocaleString()}kg</span>` : '';
+  return parts.join(' \u00b7 ') + total;
+}
+function refreshSetBreakdown(row){
+  const out = row && row.querySelector('.set-breakdown');
+  if(!out) return;
+  const html = setBreakdownHtml(row);
+  out.innerHTML = html;
+  out.hidden = !html;
+}
+
 const EX_SUGGEST_MAX = 6;
 function closeExSuggest(){
   document.querySelectorAll('.ex-suggest').forEach(el=> el.remove());
@@ -18089,17 +18149,18 @@ async function openBlockEditor(date, slot, block){
         ${targetLine}
         ${lastLoggedLine(name)}
         <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
-          <input type="number" class="week-ex-sets" placeholder="${ph(ghost && ghost.sets, 'sets')}" style="max-width:56px;" title="sets actually done">
+          <input type="number" class="week-ex-sets" placeholder="${ph(ghost && ghost.sets, 'sets')}" title="sets actually done">
           <span style="font-size:var(--fs-tag); color:var(--dim);">×</span>
-          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="${ph(ghostReps, 'reps')}" style="max-width:76px;" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
+          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="${ph(ghostReps, 'reps')}" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
           <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
       <!-- step="any" is what makes 62.5 a legal value. Without it the browser's implied
            step is 1, so a half-kilo is a stepMismatch: the field goes invalid and iOS
            offers a keypad with no decimal point. Everything downstream has always used
            parseFloat, so the model handled halves all along — the form was the only
            thing refusing them. -->
-          <input type="text" class="week-ex-weight" placeholder="${ph(ghostWeight, 'kg')}" style="max-width:64px;" title="weight actually used \u2014 one number for every set (100), or per-set for a ramp or a drop set (60,80,100)" inputmode="decimal">
+          <input type="text" class="week-ex-weight" placeholder="${ph(ghostWeight, 'kg')}" title="weight actually used \u2014 one number for every set (100), or per-set for a ramp or a drop set (60,80,100)" inputmode="decimal">
         </div>
+        <div class="set-breakdown" hidden></div>
         <!-- BW and F were two unlabelled letters on the row you touch more than any other in
              the app, with their meanings in title attributes that a phone never shows. One
              lift is on screen at a time now, so there is room to say the words. -->
@@ -18261,6 +18322,9 @@ async function openBlockEditor(date, slot, block){
     }
   }
   applyLogDraft(panel, await loadLogDraft(date, slot));
+  // A session read back from history or from a draft arrives without a keystroke, so the
+  // delegated input handler never fires for it.
+  panel.querySelectorAll('#weekExerciseRows .edit-row').forEach(refreshSetBreakdown);
   // Open on the first lift with nothing entered — coming back to a session should put you
   // where the work is, not at the top of a list you have already been through.
   if(block.type === 'strength'){
