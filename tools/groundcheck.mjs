@@ -91,6 +91,11 @@ const applyStates = `(()=>{
     if(/show all/i.test(b.textContent || '')){ b.click(); n++; }
   });
   document.querySelectorAll('.mob-check-row:not(.done):not(.prereq)').forEach(r=>{ r.classList.add('done'); n++; });
+  // Weekly is behind a pill on Training and the walk only ever saw Daily, so the week board,
+  // its lanes and the day sheet were never measured on either ground. Clicked here, which is
+  // the pass that runs before the second MEASURE.
+  const weekly = document.querySelector('#trainingViewPills [data-view="weekly"]');
+  if(weekly && !weekly.classList.contains('active')){ weekly.click(); n++; }
   const btn = document.getElementById('clearAllWeekBtn') || document.getElementById('clearAllDataBtn');
   if(btn && typeof confirmInPlace === 'function' && btn.dataset.arming !== '1'){
     confirmInPlace(btn, { mode:'tap', label:'Tap again to confirm' }); n++;

@@ -683,7 +683,7 @@
      uppercase at that length is unreadable. That would be paying for the look with the
      content, which is the one trade this app has never made. */
   .tab, .tab-label, .group-title, .group-sub, .field-label, .score-label, .head-est,
-  button, .type-btn, .rating-btn, .week-day-name, .wheel-workout-type, .log-entry,
+  button, .type-btn, .rating-btn, .wheel-workout-type, .log-entry,
   .empty-state span, .rec-title, .rest-word, .src-tag, .evidence-badge, .conf-name,
   .conf-stage, .goal-priority-btn, .add-row, h2, h3{
     text-transform:uppercase; letter-spacing:var(--track-ui);
@@ -1936,32 +1936,45 @@
   .injury-actions{ display:flex; gap:8px; margin-top:10px; }
 
 
-  /* A day picker, built the same way as the mobility one on the Body tab: three rows,
-     the middle one focused, drag or tap to move. It replaces an arc of rotated labels
-     drawn twice — once black over the page and once cream inside a clipping panel — whose
-     boundary had to be solved from glyph metrics on every frame. That was a lot of
-     machinery to pick a day with, and every layout change had to be re-solved against it. */
-  /* Same shape as the mobility assessment it borrows the picker from: the picker runs the
-     full width at the top of the black, and what you picked sits underneath it. */
-  .week-wheel-stage{ display:block; }
-  /* The wheel takes the tab's own hue, faded — see --hue-faded, which every wheel in the
-     app now reads. The unfocused rows keep their inline opacity, so the hierarchy is
-     unchanged. */
-  .week-day-picker{ --day-row:38px; position:relative;
-    height:calc(var(--day-row) * 3); overflow:hidden; display:flex; flex-direction:column;
-    justify-content:center; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
-  .week-day-picker:active{ cursor:grabbing; }
-  .week-day-item{ height:var(--day-row); display:flex; align-items:center; justify-content:space-between;
-    font-family:var(--sans); color:var(--hue-faded); transition:opacity 0.18s, font-size 0.18s;
-    cursor:pointer; font-size:var(--fs-lg); padding:0 2px; -webkit-tap-highlight-color:transparent; }
-  .week-day-item.focused{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-0.02em; cursor:default; }
-  .week-day-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
-  .week-day-mark{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--hue-faded); opacity:0.55;
-    flex:none; margin-left:8px; }
-  .week-day-item.focused .week-day-mark{ opacity:1; }
-  .week-day-focus-line{ position:absolute; left:var(--gutter); right:var(--gutter); top:50%; transform:translateY(-50%);
-    height:var(--day-row); border-top:1px solid var(--hue-faded); border-bottom:1px solid var(--hue-faded);
-    opacity:0.45; pointer-events:none; }
+  /* THE WEEK BOARD. Seven lanes, the same component the skill ladders and the mobility
+     domains are drawn with — the day, then what is planned on it. The three-row day picker
+     that stood here is gone; see renderWeekBoard for why a wheel was the wrong control for a
+     list that is always exactly seven long.
+
+     Two columns rather than the skills' three: a week has no rung count to sit in the middle,
+     and 96px is what "WEDNESDAY" needs at the lane's 11px mono. align-items:start because a
+     day can hold two sessions and they stack, so the day name lines up with the first of them
+     rather than floating between the pair. */
+  /* The 8px left padding is on EVERY lane, not just the marked one. .skill-lane.here adds it
+     to make room for its own rule, which is right on a board where one row of thirteen is
+     selected and wrong on one where all seven are always visible: the day you last opened
+     would sit 8px in from the other six and read as a wobble rather than a mark. Paid once by
+     all of them, and .here draws its rule into space that is already there. */
+  .week-lane{ grid-template-columns:96px 1fr; align-items:start; padding:9px 0 9px 8px; }
+  .week-lane .skill-lane-name{ padding-top:1px; }
+  .wk-sessions{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  /* Type then detail, the type carrying the weight because it is what you scan the column
+     for. Both ellipsise: two sessions share this width with nothing, and "Push / Pull /
+     Legs" against a 5km easy run is the case that overruns. */
+  .wk-sess{ display:flex; gap:7px; min-width:0; font-size:var(--fs-tag);
+    color:rgba(var(--ink-rgb),0.58); overflow:hidden; }
+  .wk-sess b{ flex:none; font-weight:var(--fw-bold); text-transform:uppercase;
+    letter-spacing:0.04em; color:var(--bg); }
+  .wk-sess-detail{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* A day you marked off, rather than one the generator has not filled. Italic and nothing
+     else: 0.58 is the floor these quiet columns sit on (6.61 dark, 4.72 bone) and the 0.75
+     opacity this had first took it to an effective 0.435 — 4.38 and 3.09, under on both
+     grounds. The slant is the whole distinction it needs. */
+  .wk-off{ font-style:italic; }
+  /* Today, on a board where every day is visible at once. The wheel could put today in the
+     focused row and be done; a board has to say which of the seven it is.
+     --hue-faded, NOT --band. The band is a FILL everywhere else in the app — a section head
+     pill with dark ink on it — and it is the same hue on both grounds because a fill does not
+     have to follow the ground. As text it does: #e4be3a on bone is 1.67:1, unreadable.
+     --hue-faded is the app's answer to exactly this, the tab's hue on the dark ground and
+     plain ink on the bone one, which is what every wheel in here used to read. On bone that
+     leaves the bullet after the name doing the marking, which is what it is for. */
+  .week-lane.today .skill-lane-name{ color:var(--hue-faded); }
   /* The day's workouts, one either side of the page. Two is the most a day can hold — the
      plan has an am slot and a pm slot — so they sit as a pair rather than a stack, and a
      day with one leaves the other half empty rather than stretching to fill it. */
@@ -3978,10 +3991,13 @@
       <div class="group form-panel week-panel">
         <div class="group-head"><div class="group-title">Week</div><span class="head-est" id="weekBlockPos"></span><div class="group-sub">tap a day, tap a workout, change it</div></div>
         <div class="fields">
-          <div class="week-wheel-stage" id="weekWheelStage">
-            <div class="week-day-picker" id="weekDayPicker"></div>
-            <div class="week-wheel-detail" id="weekWheelDetail"></div>
-          </div>
+          <!-- SEVEN DAYS, NOT ONE. The picker that used to sit here showed three days
+               through a 114px window, and the detail pane under it reserved the height of
+               the week's BUSIEST day on every day — so a Thursday with nothing on it was a
+               keyhole onto one name over 173px of held-open nothing. A week is seven items,
+               always seven, and seeing the shape of it is the whole reason to open this
+               view. The board says what is on every day; a tap opens the day. -->
+          <div class="skill-board week-board" id="weekBoard"></div>
           <!-- What builds the week, then the shape it built. Generate used to sit under the
                chart, which put the control after its own output — you read the block, then
                scrolled past it to find the thing that makes one. -->
@@ -4139,14 +4155,15 @@
           <button type="button" class="head-action" id="shareWeekBtn">Share the shape</button><span class="collapse-chevron collapsed" data-collapse="weekreview">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="weekreview" id="weekReviewBody" style="display:none;"></div>
       </div>
-      <!-- Every session of the week with its reasoning underneath it: worth having, not
-           worth reading every time you open the tab. It opens on a tap and stays a heading
-           the rest of the time. -->
+      <!-- What the last generate had to say about itself. The list of every session that
+           used to sit under it has gone: it answered "what is on this week, where", which is
+           now the board at the top of the tab, and a second copy of the week folded into a
+           drawer three sections down was the same duplication the wheel-plus-board was. What
+           is left is the "why" the heading names. -->
       <div class="group form-panel" id="whyWeekGroup">
         <div class="group-head collapsible" data-collapse="whyweek" style="cursor:pointer;"><div class="group-title">Why this week</div><span class="collapse-chevron collapsed" data-collapse="whyweek">&#9662;</span></div>
         <div class="fields collapsible-body" data-collapse="whyweek" style="display:none;">
           <div id="generateProgramResult" class="score-note note-live"></div>
-          <div id="weekSessionList"></div>
         </div>
       </div>
     </div>
@@ -5062,6 +5079,21 @@
      first, which put it inside #panel-training, and the skill sections are on the Body tab:
      the sheet opened onto a panel that was display:none and nothing appeared. Every sheet the
      app builds at runtime is appended to body for the same reason. -->
+<!-- A day's workouts, off the board. Same reasoning as the skill sheet: the board is what
+     you read, and what you do to a day is a job you open, finish and close. Out here rather
+     than inside #panel-training because .lift-sheet is fixed and inset:0 — written into the
+     panel it would be hidden along with the panel, which is how the skill sheet shipped
+     invisible the first time. -->
+<div class="lift-sheet week-day-sheet" id="weekDaySheet" style="display:none;">
+  <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="weekDaySheetTitle">
+    <div class="lift-sheet-head"><span id="weekDaySheetTitle">Day</span>
+      <button type="button" class="lift-sheet-x" aria-label="Close">&times;</button></div>
+    <div class="fields">
+      <div class="week-wheel-detail" id="weekWheelDetail"></div>
+    </div>
+  </div>
+</div>
+
 <div class="lift-sheet skill-sheet" id="skillSheet" style="display:none;">
   <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="skillSheetTitle">
     <div class="lift-sheet-head"><span id="skillSheetTitle">Skill</span>
@@ -5250,7 +5282,7 @@ const EYE_ANIM = {
   busyEverywhere: { on:true, note:'The scan shows for anything slow, not just Generate' },
   toastEyes:      { on:true, note:'The toast leads with the pair, nodding or shaking, instead of a tick or a cross' },
   dragGaze:       { on:true, note:'The gaze leans the way you are dragging any of the wheels', px:5 },
-  glanceAtDay:    { on:true, note:'Looks at the day you land on in the week picker' },
+  glanceAtDay:    { on:true, note:'Looks at each day as a generated week lands on the board' },
   attentionOnCard:{ on:true, note:'A brief look straight at you when a recommendation lands' },
   doubleTake:     { on:true, note:'A double blink when today jumps a long way from the last score it saw', delta:18 },
   streakPerk:     { on:true, note:'Blinks livelier once you have a run of logged days going', days:4, factor:0.72 },
@@ -8366,13 +8398,13 @@ const FIRST_LIGHT_KEY = 'firstLightSeen';
 function firstLight(picker){
   if(!picker || !uiAnim('firstLight')) return;
   try{ if(localStorage.getItem(FIRST_LIGHT_KEY) === '1') return; } catch(e){ return; }
-  const days = [...picker.querySelectorAll('.week-day-item')];
-  // Nothing to announce until there is a week to announce — an empty grid is not a plan.
-  if(!days.some(d => (d.querySelector('.week-day-mark') || {}).textContent)) return;
+  const days = [...picker.querySelectorAll('.week-lane')];
+  // Nothing to announce until there is a week to announce — an empty board is not a plan.
+  if(!days.some(d => d.querySelector('.wk-sess'))) return;
   try{ localStorage.setItem(FIRST_LIGHT_KEY, '1'); } catch(e){}
   days.forEach((d, i)=>{
     uiPlay(d, [{ opacity:0, transform:'translateY(6px)' },
-               { opacity: d.style.opacity || 1, transform:'translateY(0)' }],
+               { opacity:1, transform:'translateY(0)' }],
       { duration: UI_ANIM.firstLight.ms, delay: i * UI_ANIM.firstLight.stagger, fill:'backwards' });
   });
 }
@@ -8958,7 +8990,7 @@ function activateTrainingSubView(view){
   document.querySelectorAll('#trainingViewPills .type-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('weeklyTrainingView').style.display = view==='weekly' ? 'block' : 'none';
   if(view==='weekly'){
-    withEyesBusy(Promise.resolve(renderWeekGrid()), document.getElementById('weekDayPicker'));
+    withEyesBusy(Promise.resolve(renderWeekGrid()), document.getElementById('weekBoard'));
     // On the way in, like the recovery log — it reads planned blocks and logged sessions
     // live, and both change while the tab is open.
     renderWeekReview().catch(()=>{});
@@ -9206,7 +9238,7 @@ applyA11yFieldLabels(document);
    of card appeared on it, carrying data-set-off and data-clear-off instead. */
 const A11Y_INTERACTIVE_SELECTOR = '.type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, '
   + '.goal-priority-btn, .flow-header, .group-head.collapsible, .mob-check-row[data-level], '
-  + '.mob-wheel-item[data-offset], .week-day-item[data-offset], .wheel-add-card';
+  + '.wheel-add-card';
 function applyA11yToInteractiveDivs(root){
   root.querySelectorAll(A11Y_INTERACTIVE_SELECTOR).forEach(el=>{
     if(el.tagName==='BUTTON' || el.hasAttribute('role') || el.getAttribute('aria-hidden') === 'true') return;
@@ -9912,7 +9944,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.450';
+const APP_VERSION = '2026.09.10.451';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10087,6 +10119,7 @@ const APP_NOTES = {
   '2026.09.09.448': 'The skill sections are half the length \u2014 the board is the picker now.',
   '2026.09.10.449': 'Tapping a skill opens it in a sheet, so the board stays the length of the board.',
   '2026.09.10.450': 'The mobility test shows all eleven areas at once, with what you rated each one.',
+  '2026.09.10.451': 'Weekly shows the whole week at once instead of one day through a window.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15575,7 +15608,7 @@ let activeWheelDayIndex = null; // set to today's index on first render each ses
 function extractBlockLines(block){
   /* A block with no details at all. Every writer in the app sets it, so this should not
      happen -- but the whole week grid is rendered from these, and one malformed record was
-     enough to throw out of here, up through weekDayDetailHtml and weekDetailTallest, and
+     enough to throw out of here, up through weekDayDetailHtml and out of
      leave renderWeekGrid half-drawn. A card with no names under it is a far better failure
      than a week that does not finish rendering. */
   if(!block || !block.details) return [];
@@ -15642,143 +15675,88 @@ function weekDayDetailHtml(date, realBlocks, isOff){
       </div>`;
   }).join('') + addStrip;
 }
-// Measured rather than counted: the cards wrap, so a line count would be wrong at exactly
-// the widths where it matters. A hidden copy of the real pane, at the real width, holding
-// each day's real markup in turn.
-function weekDetailTallest(dayBlocks, detailCol){
-  const width = detailCol.getBoundingClientRect().width;
-  if(!width) return 0;
-  const probe = document.createElement('div');
-  probe.className = detailCol.className;
-  probe.style.cssText = `position:absolute; visibility:hidden; pointer-events:none; width:${width}px; min-height:0;`;
-  detailCol.parentElement.appendChild(probe);
-  let tallest = 0;
-  (dayBlocks || []).forEach(({date, blocks})=>{
-    probe.innerHTML = weekDayDetailHtml(date, blocks.filter(b=>b.block));
-    tallest = Math.max(tallest, probe.getBoundingClientRect().height);
-  });
-  probe.remove();
-  return Math.ceil(tallest);
+
+/* What the plan actually records for a session, in one line. Lifted out of
+   renderWeekSessionList, which said exactly this in a collapsed drawer further down the tab
+   while the picker above it was showing one day at a time — the board says it where the week
+   is, so the drawer's copy is gone. No reconstructed reasoning: only what is stored. */
+function weekBlockDetailText(block){
+  const d = (block && block.details) || {};
+  if(!block) return '';
+  // full_body, upper_lower, push — stored as keys, read as words. The same underscore swap
+  // the session symbol falls back to.
+  if(block.type === 'strength') return String(d.workoutTag || d.plannedFocus || '').replace(/_/g, ' ');
+  if(block.type === 'run') return [d.runType, d.distanceKm ? d.distanceKm + 'km' : ''].filter(Boolean).join(' ');
+  return (d.stretches || []).length ? (d.stretches.length + ' stretches') : '';
 }
 
-const WEEK_PICKER_VISIBLE = 1;   // days shown either side of the focused one
-function renderWeekDayPicker(dayBlocks){
-  const picker = document.getElementById('weekDayPicker');
-  if(!picker) return;
+/* SEVEN LANES, THE SAME BOARD THE SKILLS AND THE MOBILITY TEST USE.
+
+   The wheel this replaces was the right control for a long list you move through and the
+   wrong one for a week: seven is not a long list, it never changes length, and "what is on
+   this week" is a question about all seven at once. It answered it three days at a time, and
+   the answer for the other four was a single letter in the margin of the two neighbours you
+   could see.
+
+   Every day is on screen with what is planned on it. Today is marked. A tap opens the day. */
+function renderWeekBoard(dayBlocks){
+  const board = document.getElementById('weekBoard');
+  if(!board) return;
   const dates = getWeekDates();
-  const rows = [];
-  for(let offset = -WEEK_PICKER_VISIBLE; offset <= WEEK_PICKER_VISIBLE; offset++){
-    const i = activeWheelDayIndex + offset;
-    if(i < 0 || i >= dates.length){
-      rows.push(`<div class="week-day-item" style="opacity:0;" aria-hidden="true"></div>`);
-      continue;
-    }
-    // The marker says what is on that day without opening it — the same job the arc's
-    // size-and-fade did, but readable rather than inferred.
-    const blocks = (dayBlocks && dayBlocks[i] ? dayBlocks[i].blocks : []).filter(b=>b.block);
-    const mark = blocks.map(b=>b.block.type.charAt(0).toUpperCase()).join('');
-    rows.push(`
-      <div class="week-day-item${offset===0?' focused':''}" data-offset="${offset}"
-           style="opacity:${offset===0?1:0.45};">
-        <span class="week-day-name">${WEEK_DAY_FULL[i]}${dates[i]===todayStr?' •':''}</span>
-        <span class="week-day-mark">${mark}</span>
-      </div>`);
-  }
-  picker.innerHTML = rows.join('') + `<div class="week-day-focus-line"></div>`;
-  spinRipple('weekday', picker, activeWheelDayIndex);
-  firstLight(picker);
+  board.innerHTML = dates.map((date, i)=>{
+    const day = (dayBlocks && dayBlocks[i]) || { blocks:[], off:false };
+    const blocks = (day.blocks || []).filter(b=>b.block);
+    const here = i === activeWheelDayIndex;
+    const sessions = blocks.map(({block})=>{
+      const detail = weekBlockDetailText(block);
+      return `<span class="wk-sess"><b>${block.type}</b>`
+        + (detail ? `<span class="wk-sess-detail">${detail}</span>` : '') + `</span>`;
+    }).join('');
+    /* An empty day draws blank, the same call the skill lanes and the domain lanes make:
+       nothing planned is already legible as an empty row, and the words would be printed
+       four times down a light week. A day you have MARKED off is different — that is a
+       decision you took, and it says so. */
+    const body = day.off
+      ? `<span class="wk-sess wk-off">not training</span>`
+      : sessions;
+    const said = day.off ? 'not training'
+      : blocks.length ? blocks.map(b=>b.block.type).join(' and ') : 'nothing planned';
+    return `<button type="button" class="skill-lane week-lane${here ? ' here' : ''}${date === todayStr ? ' today' : ''}"
+        data-day-at="${i}" aria-label="${WEEK_DAY_FULL[i]}${date === todayStr ? ', today' : ''}, ${said}">
+      <span class="skill-lane-name">${WEEK_DAY_FULL[i]}${date === todayStr ? ' \u2022' : ''}</span>
+      <span class="wk-sessions">${body}</span></button>`;
+  }).join('');
+  firstLight(board);
   const pos = document.getElementById('weekBlockPos');
   // The heading already says "Week", so this is just the position within the block.
   if(pos) pos.textContent = wheelBlockPos ? `${wheelBlockPos.weekInBlock} of ${wheelBlockPos.length}` : '';
+  if(!board.dataset.bound){
+    board.dataset.bound = '1';
+    board.addEventListener('click', e=>{
+      const lane = e.target.closest('.week-lane');
+      if(!lane) return;
+      activeWheelDayIndex = parseInt(lane.dataset.dayAt, 10) || 0;
+      renderWeekGrid();
+      openWeekDaySheet();
+    });
+  }
 }
 
-// Drag to move through the days. Bound once to the stage rather than to the picker,
-// because the picker's contents are replaced on every step and a listener on a removed
-// element takes the gesture with it.
-(function setupWeekPickerDrag(){
-  const stage = document.getElementById('weekWheelStage');
-  if(!stage) return;
-  let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-  const clamp = i => Math.max(0, Math.min(getWeekDates().length-1, i));
-  stage.addEventListener('pointerdown', e=>{
-    if(!e.target.closest('#weekDayPicker')) return;
-    dragging = true; startY = e.clientY; accumulated = 0;
-    startTime = e.timeStamp; moved = false;
-    // Which row the finger went down on, so a tap on a neighbour can select it. Capturing
-    // the pointer means the up-event no longer shares a target with the down, so no click
-    // is generated and a listener on the row would never fire.
-    const row = e.target.closest('.week-day-item');
-    downOffset = row ? (parseInt(row.dataset.offset, 10) || 0) : 0;
-    stage.setPointerCapture(e.pointerId);
-  });
-  stage.addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    const steps = Math.trunc((e.clientY - startY - accumulated) / WHEEL_STEP_PX);
-    if(steps === 0) return;
-    accumulated += steps * WHEEL_STEP_PX;
-    moved = true;
-    eyeDragGaze(steps);
-    // Dragging down brings earlier days into view, like a physical wheel.
-    activeWheelDayIndex = clamp(activeWheelDayIndex - steps);
-    renderWeekGrid();
-    if(anim('glanceAtDay')) eyeGlanceAtEl(document.querySelector('.week-day-item.focused'), 4);
-  });
-  const endDrag = e => {
-    if(!dragging) return;
-    dragging = false;
-    try{ stage.releasePointerCapture(e.pointerId); }catch(_){}
-    if(moved) return;
-    const dy = e.clientY - startY;
-    const dt = Math.max(1, e.timeStamp - startTime);
-    const velocity = Math.abs(dy) / dt;
-    // Barely moved: it was a tap. Select whichever row it landed on.
-    if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
-      if(downOffset !== 0){
-        activeWheelDayIndex = clamp(activeWheelDayIndex + downOffset);
-        renderWeekGrid();
-      }
-      return;
-    }
-    // A quick flick travels less than a row, so a pure distance threshold ignores it and
-    // the picker feels stuck. Short and fast counts as intent to move.
-    if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
-    const steps = flickSteps(velocity);
-    activeWheelDayIndex = clamp(activeWheelDayIndex + (dy > 0 ? -steps : steps));
-    renderWeekGrid();
-  };
-  stage.addEventListener('pointerup', endDrag);
-  stage.addEventListener('pointercancel', endDrag);
-})();
-
-/* #4 — THE WEEK, DAY BY DAY. "Why this week" carried one paragraph about the generate that
-   produced it and nothing about the week itself, so the only way to see what was planned where
-   was to spin the wheel through seven days. This lists what is actually stored: the day, the
-   slot, the type, and the tag or run type it carries. Only what the plan records — no
-   reconstructed reasoning, because a plausible-sounding reason the generator did not actually
-   use would be worse than no reason at all. */
-async function renderWeekSessionList(){
-  const host = document.getElementById('weekSessionList');
-  if(!host) return;
+/* The day, off the board. Opened on a tap and closed the moment you pick a workout out of
+   it: the block editor is a panel further down this same tab, so leaving the sheet up would
+   put the editor behind its own overlay. The sheet is how you choose what to edit, not
+   where you edit it. */
+let weekDaySheet = null;
+function openWeekDaySheet(){
+  if(!weekDaySheet) weekDaySheet = wireSheet('weekDaySheet');
+  const title = document.getElementById('weekDaySheetTitle');
   const dates = getWeekDates();
-  const lines = [];
-  for(let i = 0; i < dates.length; i++){
-    for(const slot of ['am','pm']){
-      let block;
-      try{ block = JSON.parse((await window.storage.get(`weekplan:${dates[i]}:${slot}`)).value); } catch(e){ continue; }
-      const d = block.details || {};
-      const detail = block.type === 'strength' ? (d.workoutTag || d.plannedFocus || '')
-                   : block.type === 'run' ? [d.runType, d.distanceKm ? d.distanceKm + 'km' : ''].filter(Boolean).join(' ')
-                   : (d.stretches || []).length ? (d.stretches.length + ' stretches') : '';
-      lines.push(`<div class="wk-line${dates[i] === todayStr ? ' now' : ''}">
-        <span class="wk-day">${WEEK_DAY_LABELS[i]}</span>
-        <span class="wk-slot">${slot}</span>
-        <span class="wk-type">${block.type}</span>
-        <span class="wk-detail">${detail}</span></div>`);
-    }
-  }
-  host.innerHTML = lines.length
-    ? `<div class="score-note" style="margin:10px 0 5px;">What is planned, where</div>${lines.join('')}`
-    : '';
+  if(title) title.textContent = WEEK_DAY_FULL[activeWheelDayIndex]
+    + (dates[activeWheelDayIndex] === todayStr ? ' \u00b7 today' : '');
+  weekDaySheet.open();
+}
+function closeWeekDaySheet(){
+  if(weekDaySheet) weekDaySheet.close();
 }
 
 /* ============ THE BLOCK CHART — ONE CHART, NOT TWO ============
@@ -16037,9 +16015,8 @@ async function renderWeekGrid(){
     if(u && u.unit) weekLoadUnit = u.unit;
   } catch(e){}
   renderBlockLoadChart();
-  renderWeekSessionList();
-  const wheelStageEl = document.getElementById('weekWheelStage');
-  if(wheelStageEl) wheelStageEl.style.display = '';
+  const boardEl = document.getElementById('weekBoard');
+  if(boardEl) boardEl.style.display = '';
   const detailCol = document.getElementById('weekWheelDetail');
   const dates = getWeekDates();
   if(activeWheelDayIndex==null) activeWheelDayIndex = Math.max(0, dates.indexOf(todayStr));
@@ -16072,6 +16049,8 @@ async function renderWeekGrid(){
   // Fetch both slots for every day up front — needed for both the wheel's own state
   // (doesn't affect positioning, but kept alongside for a single source of truth) and
   // the detail pane for whichever day is active.
+  // Every day's off-flag as well as its blocks now: the board draws all seven, so the one
+  // isDayOff the detail pane used to need has become seven.
   const dayBlocks = [];
   for(const date of dates){
     const blocks = [];
@@ -16081,10 +16060,10 @@ async function renderWeekGrid(){
         blocks.push({ slot, block: JSON.parse(r.value) });
       } catch(e){}
     }
-    dayBlocks.push({ date, blocks });
+    dayBlocks.push({ date, blocks, off: await isDayOff(date) });
   }
 
-  renderWeekDayPicker(dayBlocks);
+  renderWeekBoard(dayBlocks);
 
   // Detail pane: up to two workout cards for the active day, or an add-workout
   // affordance if the day is empty — tapping either reuses the existing editor
@@ -16092,12 +16071,12 @@ async function renderWeekGrid(){
   const activeDate = dates[activeWheelDayIndex];
   const activeDayData = dayBlocks[activeWheelDayIndex];
   const realBlocks = activeDayData.blocks.filter(b => b.block);
-  const detailHtml = weekDayDetailHtml(activeDate, realBlocks, await isDayOff(activeDate));
-  // Every day is measured, not just this one, and the pane holds the tallest. Otherwise
-  // scrolling from a two-lift day to an eight-lift one moved everything below the panel
-  // down the page under your thumb, which made the load bars and the buttons a moving
-  // target while you were still choosing a day.
-  detailCol.style.minHeight = weekDetailTallest(dayBlocks, detailCol) + 'px';
+  const detailHtml = weekDayDetailHtml(activeDate, realBlocks, activeDayData.off);
+  /* The tallest-day reservation is gone with the pane that needed it. It existed because the
+     detail sat on the page under the picker, so a light day next to a heavy one moved the
+     load bars and the buttons below it under your thumb while you were still choosing. In a
+     sheet there is nothing below it to move, and holding a two-lift day open at an eight-lift
+     day's height would just be blank space you have to scroll past. */
   // Only when the pane is actually showing something else — the wheel re-renders on every
   // move, and fading a pane into itself is a flicker, not a transition.
   const detailChanged = detailHtml !== weekDetailLastHtml;
@@ -16108,6 +16087,9 @@ async function renderWeekGrid(){
     card.addEventListener('click', ()=>{
       const { editDate, editSlot } = card.dataset;
       const match = realBlocks.find(b=>b.slot===editSlot);
+      // The editor is a panel further down this same tab, so the sheet has to come down
+      // first or the thing you just asked for opens behind its own overlay.
+      closeWeekDaySheet();
       openBlockEditor(editDate, editSlot, match ? match.block : null);
     });
   });
@@ -16115,8 +16097,10 @@ async function renderWeekGrid(){
     // The slot comes off the element. It used to be the literal 'am', which was harmless
     // while the only way here was from an empty day and would have overwritten the morning
     // the moment a second session could be added to a day that already had one.
-    card.addEventListener('click', ()=> openBlockEditor(card.dataset.addDate,
-      card.dataset.addSlot || 'am', null));
+    card.addEventListener('click', ()=>{
+      closeWeekDaySheet();
+      openBlockEditor(card.dataset.addDate, card.dataset.addSlot || 'am', null);
+    });
   });
   // Marking a day off clears anything already sitting on it — the point is that nothing is
   // happening, and leaving a block behind would say otherwise.
@@ -16126,6 +16110,7 @@ async function renderWeekGrid(){
       for(const slot of ['am','pm']){ try{ await window.storage.delete(`weekplan:${d}:${slot}`); } catch(e){} }
       try{ await window.storage.delete(`planned_session:${d}`); } catch(e){}
       await setDayOff(d, true);
+      closeWeekDaySheet();
       showToast('Nothing will be planned for that day');
       weekDetailLastHtml = '';
       renderWeekGrid();
@@ -16134,6 +16119,7 @@ async function renderWeekGrid(){
   detailCol.querySelectorAll('[data-clear-off]').forEach(card=>{
     card.addEventListener('click', async ()=>{
       await setDayOff(card.dataset.clearOff, false);
+      closeWeekDaySheet();
       showToast('That day is available again');
       weekDetailLastHtml = '';
       renderWeekGrid();
@@ -16170,7 +16156,7 @@ async function dealPlanThroughWeek(newDates){
     for(const i of stops){
       activeWheelDayIndex = i;
       await renderWeekGrid();
-      if(anim('glanceAtDay')) eyeGlanceAtEl(document.querySelector('.week-day-item.focused'), 4);
+      if(anim('glanceAtDay')) eyeGlanceAtEl(document.querySelector(`.week-lane[data-day-at="${i}"]`), 4);
       await new Promise(r=>setTimeout(r, UI_ANIM.planDeal.ms));
     }
   } finally { planDealRunning = false; }
@@ -16413,11 +16399,26 @@ function updateLogBar(){
   if(clock) clock.style.display = restTimerId ? '' : 'none';
 }
 let logBarTitle = 'Session';
+/* WHO HIDES THE WEEK BOARD, AND WHO PUTS IT BACK.
+
+   openBlockEditor hid the picker so the editor could stand in front of it, and closeBlockEditor
+   put it back through renderWeekGrid. minimiseBlockEditor did neither — it hides the panel and
+   hands the session to the log bar — so minimising a workout from Weekly left the tab with no
+   week on it at all until you switched tabs and came back. That predates the board; the wheel
+   stage did exactly the same thing. One function now, called from all three, so the board's
+   state is a function of whether the editor is up rather than of which exit you took. */
+function setWeekBoardBehindEditor(hidden){
+  // Not on Today: the editor is hosted there and there is no board to stand in front of.
+  if(blockEditHosted) return;
+  const board = document.getElementById('weekBoard');
+  if(board) board.style.display = hidden ? 'none' : '';
+}
 function minimiseBlockEditor(){
   const panel = document.getElementById('blockEditPanel');
   if(!panel || panel.style.display === 'none') return;
   panel.style.display = 'none';
   logMinimised = true;
+  setWeekBoardBehindEditor(false);
   updateLogBar();
   // Today keeps its own offer to open the session and it has to agree with the bar: leaving
   // it reading "log this workout" while a half-typed one is sitting on the bar gives you two
@@ -16436,10 +16437,12 @@ function expandBlockEditor(){
   if(host && !host.classList.contains('active')){
     const name = host.id.replace('panel-', '');
     activateTab(name);
-    setTimeout(()=>{ panel.style.display = 'block'; panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' }); }, 500);
+    setTimeout(()=>{ panel.style.display = 'block'; setWeekBoardBehindEditor(true);
+      panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' }); }, 500);
     return;
   }
   panel.style.display = 'block';
+  setWeekBoardBehindEditor(true);
   panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
 }
 (function wireLogBar(){
@@ -17173,8 +17176,7 @@ async function openBlockEditor(date, slot, block, opts){
   // Only hide the day picker when the editor is standing in front of it. On Today there is
   // no picker to hide, and hiding Weekly's from here would leave that tab missing a control
   // you never went to.
-  const wheelStage = blockEditHosted ? null : document.getElementById('weekWheelStage');
-  if(wheelStage) wheelStage.style.display = 'none';
+  setWeekBoardBehindEditor(true);
   let fieldsHtml = '';
   if(block.type === 'strength'){
     fieldsHtml = `<div class="log-step" id="logStep">
