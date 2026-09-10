@@ -5202,10 +5202,12 @@ const EYE_ANIM = {
   widenOnPR:      { on:true, note:'A beat of surprise when a logged lift beats your best' },
   wince:          { on:true, note:'A squint when you log an injury, or a REDUCE card lands' },
   deloadFatigue:  { on:true, note:'Lids get heavier as a deload week wears on', perDay:0.05, floor:0.76 },
-  /* Shut, not lowered. 0.78 was drowsy, which reads as a bad night rather than as a day
-     off — and a day off is the one day the mark has nothing to watch for. Same value as
-     idleSleep on purpose: both are the mark asleep, and both now carry the z's. */
-  restDayFace:    { on:true, note:'Eyes shut, with z\u2019s, on a rest day', lid:0.16 },
+  /* THE Z'S, AND NOT THE LIDS. This carried lid:0.16 for a while — shut rather than lowered,
+     on the reasoning that a day off is the one day the mark has nothing to watch for. At that
+     depth the eye is shorter than it is wide and its own radius rounds it off, so what you
+     actually got was two small circles rather than a face asleep. The mark sleeps by floating
+     z's now; its eyes keep the shape they have everywhere else. */
+  restDayFace:    { on:true, note:'Z\u2019s float up from the mark on a rest day' },
 
   // — Reacting to you.
   markForms:      { on:true, note:'The mark builds itself on the first load \u2014 the light comes up on the body, then the eye opens' },
@@ -5225,7 +5227,8 @@ const EYE_ANIM = {
   dizzySpin:      { on:true, note:'Spins if you hammer the tabs', taps:5, withinMs:2600 },
 
   // — Second batch.
-  idleSleep:      { on:true, note:'Nods off if you leave the app open and untouched, and wakes on your next touch', afterMs:150000, lid:0.16 },
+  // No lid here either, and for the same reason as restDayFace above — the z's do the saying.
+  idleSleep:      { on:true, note:'Nods off if you leave the app open and untouched, and wakes on your next touch', afterMs:150000 },
   plateIsHome:    { on:true, note:'Off Today, tapping the plate takes you back to it' },
   busyEverywhere: { on:true, note:'The scan shows for anything slow, not just Generate' },
   toastEyes:      { on:true, note:'The toast leads with the pair, nodding or shaking, instead of a tick or a cross' },
@@ -5489,10 +5492,11 @@ function eyeFullOpen(site){ return parseFloat(EYE_SITES[site]['--eye-h']); }
 
 // Dresses an element as one site, and for the score overlays the expression on top.
 /* ---------- THE Z'S ----------
-   Two states shut the mark's eyes: a rest day, and you leaving the app open and walking off.
-   Shut eyes alone read as broken rather than asleep — the mark has no other way of being
-   still — so both now emit z's, which is the one drawing everybody reads as sleeping without
-   being told.
+   Two states put the mark to sleep: a rest day, and you leaving the app open and walking off.
+   The z's are the whole of how it says so. They arrived alongside shut lids and outlived them
+   — the lids collapsed the eyes into two dots, so what is left is the drawing everybody reads
+   as sleeping without being told, over a face that still has the shape it has everywhere
+   else. See restDayFace in EYE_ANIM.
 
    Attached to whichever copy of the mark is actually docked, and rebuilt rather than moved:
    the mark flies between the wordmark and the score, and a node parented to the one it just
@@ -5507,7 +5511,9 @@ function markIsAsleep(){
   return (anim('idleSleep') && eyeCtx.asleep) || (anim('restDayFace') && eyeCtx.restDay);
 }
 function updateSleepZs(){
-  // The drawn mark's lids are painted, not styled, so the face has to be redrawn to shut.
+  // The drawn mark is redrawn on the way through. It no longer changes with sleep, but this
+  // runs off applyEyeForm — every landing and state change — so it is where the face gets
+  // repainted after a flight, and taking it out would leave a stale one behind.
   if(typeof drawMarkCube === 'function') drawMarkCube();
   const wanted = markIsAsleep() ? eyesDocked() : null;
   document.querySelectorAll('.eye-zzz').forEach(z=>{ if(z.parentElement !== wanted) z.remove(); });
@@ -5556,10 +5562,11 @@ function eyeIsNight(){
 }
 function eyeLidScale(){
   let k = 1;
-  // Actually asleep is the one that IS allowed past half: you are not there to read it.
-  if(anim('idleSleep') && eyeCtx.asleep) k = Math.min(k, EYE_ANIM.idleSleep.lid);
+  /* The two sleep states used to come through here at 0.16 and they no longer do — see
+     restDayFace in EYE_ANIM. What is left are the MOODS, and none of them crosses into round:
+     the eye is 15px wide against a 32px tallest state, so 0.72 is 23px and still visibly a
+     capsule. These are hints, not halvings, which is the whole reason they sit where they do. */
   if(anim('sleepAtNight') && eyeIsNight()) k = Math.min(k, EYE_ANIM.sleepAtNight.lid);
-  if(anim('restDayFace') && eyeCtx.restDay) k = Math.min(k, EYE_ANIM.restDayFace.lid);
   if(anim('sessionHeaviness') && eyeCtx.trainedMin >= EYE_ANIM.sessionHeaviness.afterMin){
     k = Math.min(k, EYE_ANIM.sessionHeaviness.lid);
   }
@@ -6748,11 +6755,13 @@ function mcPaint(m){
   for(const face of [0, 180]){
     const Q = mcProject(0, face, 0), n = P(Q([0,0,1]));
     if(n[2] <= 0.02) continue;
-    /* Asleep shuts the DRAWN eyes as well. applyEyeMood drives --eye-h, which only the
-       capsule form reads — the solid mark is this SVG, so a rest day left the header's face
-       wide awake while the score's pair had already closed. Same lid the CSS path uses. */
-    const eh = MC_EYE_H*s * mcState.blink
-      * ((typeof markIsAsleep === 'function' && markIsAsleep()) ? EYE_ANIM.idleSleep.lid : 1);
+    /* THE EYES KEEP THEIR SHAPE. .446 shut the drawn eyes when the mark was asleep, and the
+       geometry below turns a short eye into a bad one: the eye is a LINE with a round cap, so
+       once eh drops under ew the `half` on the next line clamps to 0 and what is left is a
+       zero-length line — a dot. Two beady circles where the capsules were, on every tab,
+       whenever the app had been left alone for two and a half minutes. The z's say it is
+       asleep; they do not need the face deformed to help. */
+    const eh = MC_EYE_H*s * mcState.blink;
     const ax = P(Q([1,0,0])), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]));
     const half = Math.max(0, eh/2 - ew/2);
     const gx = mcState.gx * ew * 0.85, gy = mcState.gy * s * 0.06;
@@ -7684,6 +7693,21 @@ const EYE_NO_PREVIEW = {
   peek:'Now and then, on its own'
 };
 
+/* The sleep rows preview the thing they actually do, which is now only the z's.
+   Hung on eyePreviewTarget, not routed through updateSleepZs: that one docks the z's on
+   eyesDocked() — the real mark, wherever it currently is — so borrowing it would have set the
+   header dozing every time you tapped the row to see what the setting meant. Same markup and
+   the same .eye-zzz rule, put on the row's own little pair instead. */
+function eyeSleepPreview(){
+  const host = eyePreviewTarget;
+  if(!host || host.querySelector('.eye-zzz')) return;
+  const z = document.createElement('div');
+  z.className = 'eye-zzz';
+  z.setAttribute('aria-hidden', 'true');
+  z.innerHTML = '<i>z</i><i>z</i><i>z</i>';
+  host.appendChild(z);
+  setTimeout(()=>z.remove(), 2600);
+}
 // What each row does when you tap it. Anything not named here falls back to a blink.
 function eyePreviewAction(key){
   const el = eyePreviewTarget;
@@ -7694,8 +7718,11 @@ function eyePreviewAction(key){
         { transform:'rotate(-4deg) scale(1)' }], 2400, { easing:'ease-in-out' });
     case 'lookAround':      return eyeGaze(4, 0, 280, 900);
     case 'saccade':         return eyeGaze(2, 0, 70, 170);
-    case 'sleepAtNight': case 'restDayFace': case 'deloadFatigue': case 'idleSleep':
-      return eyeLidPulse(Math.max(3, Math.round(full * (EYE_ANIM[key].lid || 0.5))), 300, 1300);
+    case 'sleepAtNight': case 'deloadFatigue':
+      return eyeLidPulse(Math.max(3, Math.round(full * EYE_ANIM[key].lid)), 300, 1300);
+    // These two are the z's now, so the preview is the z's. Forced on for a beat and taken
+    // down again, rather than pulsing a lid that no longer moves.
+    case 'restDayFace': case 'idleSleep':      return eyeSleepPreview();
     case 'wakeOnScore':     return eyeLidPulse(2, 90, 500);
     case 'widenOnPR':       return eyeWiden();
     case 'wince':           return eyeWince();
@@ -9835,7 +9862,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.452';
+const APP_VERSION = '2026.09.10.453';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10012,6 +10039,7 @@ const APP_NOTES = {
   '2026.09.10.450': 'The mobility test shows all eleven areas at once, with what you rated each one.',
   '2026.09.10.451': 'Weekly shows the whole week at once instead of one day through a window.',
   '2026.09.10.452': 'Nothing in the app is a spinning wheel any more \u2014 the code for them is gone with them.',
+  '2026.09.10.453': 'The mark keeps its eyes when it sleeps \u2014 the z\u2019s say it instead.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
