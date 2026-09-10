@@ -2650,7 +2650,21 @@
      is made of — so the button arrived sitting in a strip of the section above it. The
      padding .fields would have given it is on this instead. */
   .today-foot{ margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
-  .today-foot button{ width:100%; }
+  /* RED, BECAUSE RED IS WHAT INJURY MEANS HERE — the Injuries section's own band is
+     --block-red, and this button is the way into it from a page whose every other accent is
+     lime. On the foot of a long page it is also the one thing that has to be findable
+     without being read.
+
+     --ink-bad, NOT --block-red. The section's hue is a FILL: 7.14 on the dark ground and
+     2.61 on bone, under even the 3:1 a border needs, because a fill never has to survive as
+     a line on the ground behind it. Exactly the trap --band set on the week board in .451.
+     --ink-bad is the red that follows the ground — 5.91 dark, 4.99 bone — and is already the
+     app's red-as-text everywhere it appears.
+
+     The border only. "Clear all data" is the one other red outline button in here and it
+     reddens its LABEL as well, because that one is destructive; this one is a thing you log,
+     not a thing you lose, and it should not wear the same coat. */
+  .today-foot button{ width:100%; border-color:var(--ink-bad); }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:16px var(--gutter); background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -10102,7 +10116,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.466';
+const APP_VERSION = '2026.09.10.467';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10293,6 +10307,7 @@ const APP_NOTES = {
   '2026.09.10.464': 'An answer you type is set like an answer you pick.',
   '2026.09.10.465': 'You can log an injury from Today, where you are when something twinges.',
   '2026.09.10.466': 'The Log an injury button on Today is a real button, and it actually opens the sheet.',
+  '2026.09.10.467': 'Log an injury wears the app\u2019s injury red on Today.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
