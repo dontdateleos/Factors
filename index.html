@@ -691,11 +691,16 @@
      equal specificity and later in the sheet, so the bare class loses and the button drops
      back into flow as a row of its own — which is exactly what it did the first time. */
   .header-brand .header-log{ position:absolute; right:var(--gutter); top:9px; z-index:3;
-    width:auto; height:25px; min-height:0; margin:0; flex:none;
+    height:25px; min-height:0; margin:0; flex:none;
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase;
     background:var(--bg); color:var(--ground); border:1px solid var(--bg); border-radius:4px;
-    padding:5px 11px; line-height:1; cursor:pointer; }
+    padding:0; line-height:1; cursor:pointer;
+    /* Square, because it holds a plus. The word it used to hold could say Log, Resume or
+       Edit; a glyph cannot, and it does not need to — the bottom bar carries a session
+       that is in flight and says what it is, which is the half the header was repeating. */
+    width:27px; font-size:19px; font-weight:var(--fw-medium); letter-spacing:0;
+    padding-bottom:2px; }
   /* The visual is 25px because the collapsed row is 32. The TARGET is the whole height of
      that row and a good deal wider than the word: the ::after is clipped by the header’s own
      overflow:hidden, which means the hit box grows to the header and stops, so there is no
@@ -3889,7 +3894,7 @@
          #currentTabLabel on purpose: eyePerchSpot measures a range across the whole label,
          so the mark perches after whatever is in here without being told the flame exists. -->
     <div id="currentTabLabel" class="tab-label"><span id="currentTabWord">Today</span><span id="streakFlame" class="streak-flame" hidden></span></div>
-    <button type="button" class="header-log" id="headerLogBtn" aria-label="Log a workout">Log</button>
+    <button type="button" class="header-log" id="headerLogBtn" aria-label="Log a workout">+</button>
     <h1><div class="logo-line"><span style="margin-right:-0.01em;">D</span><span style="margin-right:-0.03em;">o</span><span>g</span></div><div class="logo-line"><span style="margin-right:-0.04em;">f</span><span style="margin-right:0.005em;">o</span><span style="margin-right:-0.025em;">o</span><span>d</span></div></h1>
     <!-- The mark: a solid, drawn face on, which is the same two capsules on the same square
          it has always been until it turns. The .eye-gaze pair stays in the DOM and stays
@@ -9112,16 +9117,14 @@ async function openLogFromAnywhere(){
   const slot = found ? found.slot : await freeSlotToday();
   await openBlockEditor(todayStr, slot, found ? found.block : null);
 }
-// Same three offers the strip makes, in one word each. A day already in the book says Edit,
-// because going back into a saved session corrects it rather than logging it twice.
+// The glyph does not change — a + that turns into other things is a button you have to read
+// before you can press it. What it opens does change, so the accessible name follows it.
 async function refreshHeaderLogBtn(){
   const btn = document.getElementById('headerLogBtn');
   if(!btn) return;
   let logged = false, started = false;
   try{ logged = !!(await findLoggedSession(todayStr, null, todaySessionType)); } catch(e){}
   try{ started = !!(await loggingStartedAt(todayStr)); } catch(e){}
-  const word = logged ? 'Edit' : started ? 'Resume' : 'Log';
-  if(btn.textContent !== word) btn.textContent = word;
   btn.setAttribute('aria-label', logged ? 'Edit today' + '\u2019' + 's session'
                                 : started ? 'Resume logging' : 'Log a workout');
 }
@@ -10244,7 +10247,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.471';
+const APP_VERSION = '2026.09.10.472';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10440,6 +10443,7 @@ const APP_NOTES = {
   '2026.09.10.469': 'The exercise list holds one entry per exercise \u2014 six lifts that had been entered twice are one entry each now.',
   '2026.09.10.470': 'A Log button in the masthead, on every tab \u2014 and it can start a workout that was never planned.',
   '2026.09.10.471': 'Logging is a popup now, the same shape as everything else in the app, and it opens from anywhere.',
+  '2026.09.10.472': 'The masthead button is a plus.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
