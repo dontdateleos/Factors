@@ -690,17 +690,26 @@
      .header-date is: `.header-brand > *` sets position:relative on every direct child at
      equal specificity and later in the sheet, so the bare class loses and the button drops
      back into flow as a row of its own — which is exactly what it did the first time. */
-  .header-brand .header-log{ position:absolute; right:var(--gutter); top:9px; z-index:3;
-    height:25px; min-height:0; margin:0; flex:none;
+  /* left/top/width/height/font-size are all written by updateHeaderCollapse: this has two
+     positions, not one. Open, it is in the middle of the masthead beside the mark; collapsed,
+     it is 25px in the right of the row that survives. Only the things that do not move live
+     here. */
+  .header-brand .header-log{ position:absolute; top:9px; z-index:3;
+    min-height:0; margin:0; flex:none;
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase;
-    background:var(--bg); color:var(--ground); border:1px solid var(--bg); border-radius:4px;
+    background:var(--bg); color:var(--ground); border:1px solid var(--bg);
+    /* Round, and the reason is the company it keeps. Square and cream at 42px in the middle
+       of the masthead it read as a stray letterform \u2014 the same weight and the same colour as
+       the wordmark’s own glyphs, sitting in the gap between them and the date. The mark
+       beside it is a dark round form with cream in it; this is a cream round form with dark
+       in it, and the two read as a pair rather than as type and a sticker. */
+    border-radius:50%;
     padding:0; line-height:1; cursor:pointer;
     /* Square, because it holds a plus. The word it used to hold could say Log, Resume or
        Edit; a glyph cannot, and it does not need to — the bottom bar carries a session
        that is in flight and says what it is, which is the half the header was repeating. */
-    width:27px; font-size:19px; font-weight:var(--fw-medium); letter-spacing:0;
-    padding-bottom:2px; }
+    font-weight:var(--fw-medium); letter-spacing:0; padding-bottom:2px; }
   /* The visual is 25px because the collapsed row is 32. The TARGET is the whole height of
      that row and a good deal wider than the word: the ::after is clipped by the header’s own
      overflow:hidden, which means the hit box grows to the header and stops, so there is no
@@ -10344,7 +10353,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.477';
+const APP_VERSION = '2026.09.10.478';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10546,6 +10555,7 @@ const APP_NOTES = {
   '2026.09.10.475': 'Start typing a lift and it offers the ones you already do, then the rest of the library.',
   '2026.09.10.476': 'A lift you entered yourself keeps the sets and reps you gave it instead of being re-prescribed.',
   '2026.09.10.477': 'The weight box takes a set at a time \u2014 60,80,100 for a ramp, or a drop set, or a back-off.',
+  '2026.09.10.478': 'The plus sits in the middle of the masthead beside the mark, and tucks into the corner as you scroll.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -11480,15 +11490,33 @@ function updateHeaderCollapse(){
     brandEl.style.paddingTop = lerp(18, 8, progress).toFixed(2) + 'px';
     brandEl.style.paddingBottom = lerp(12, 6, progress).toFixed(2) + 'px';
   }
-  // The log button rides the label's row, which moves with the padding above. Lerped from
-  // the same progress rather than read off the label's box every frame: this already does
-  // three getBoundingClientRect calls per scroll frame and the numbers here are fixed
-  // Expanded it sits 4px clear of the date below it rather than dead-centre on the label,
-  // because the corner has to read as two objects: the date box starts at y38 and a button
-  // centred on the label row (13 -> 38) touched it exactly. Collapsed the date is at opacity
-  // 0 and the corner is the button’s alone, so 3 puts it in the middle of the 32px row.
+  /* TWO POSITIONS, NOT ONE, for the same reason the mark has two.
+
+     In the corner it read as a corner utility \u2014 a settings cog, something you press once a
+     month. It is the only control in the masthead and the most-pressed write in the app, so
+     open it sits in the middle of the header at 34px, nine pixels off the mark, the two of
+     them the pair in the centre of the lockup. The gap it moves into is real: the wordmark’s
+     ink stops around x135 and the date begins at x295, and nothing has ever been between them.
+
+     Collapsed it cannot stay there \u2014 the tab scale takes x120-270 of the 32px row \u2014 so it
+     travels to the right of that row and shrinks to 25, arriving where it used to live. Same
+     journey the mark makes in the other direction, on the same progress, so the two move
+     together rather than one sliding past the other.
+
+     Measured off the brand rather than assumed at 390, because the header is fluid. */
   const logBtnEl = document.getElementById('headerLogBtn');
-  if(logBtnEl) logBtnEl.style.top = lerp(9, 3, progress).toFixed(1) + 'px';
+  if(logBtnEl && brandEl){
+    const brandW = brandEl.getBoundingClientRect().width;
+    const gutterPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter')) || 22;
+    const size = lerp(42, 25, progress);
+    // Centred on the mark's 40px box at its own top of 57, so the two share a centre line.
+    const left = lerp((brandW - 42) / 2, brandW - gutterPx - 25, progress);
+    logBtnEl.style.left = left.toFixed(1) + 'px';
+    logBtnEl.style.top = lerp(56, 3, progress).toFixed(1) + 'px';
+    logBtnEl.style.width = size.toFixed(1) + 'px';
+    logBtnEl.style.height = size.toFixed(1) + 'px';
+    logBtnEl.style.fontSize = lerp(27, 17, progress).toFixed(1) + 'px';
+  }
   const fontSize = lerp(46, 0, progress);
 
   h1.style.fontSize = fontSize + 'px';
