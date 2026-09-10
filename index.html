@@ -1177,6 +1177,7 @@
   .status{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim); text-align:center; margin-top:8px; min-height:14px; letter-spacing:0.015em; font-weight:var(--fw-medium); }
 
   .log{ margin-top:var(--sp-4); }
+  .injury-list-section{ margin-top:var(--sp-3); }
   .log-title{ font-family:var(--sans); font-size:var(--fs-tag);  letter-spacing:0.05em; color:var(--dim); margin-bottom:8px; -webkit-text-stroke:0.15px currentColor; }
   /* The injury list and the form's own title sit outside .fields, which is the thing that
      carries the gutter — so both bled to the screen edge while every line around them was
@@ -4284,21 +4285,23 @@
          only ever split because the form arrived later — which left the tab reading as two
          numbered bands for one idea, and put a submit button between what is sore and the
          means of saying so. -->
+    <!-- THE HEAD IS THE SECTION UNTIL SOMETHING HURTS.
+
+         With nothing logged this ran 335px: a two-line explainer, three rows saying what each
+         irritability level does to the plan, a note about the warm-up, and a full-width
+         button — a section-sized answer to "nothing is wrong". The Mobility Assessment two
+         sections down does the same job in 62: a title, a line saying where you stand, and the
+         way in beside it. This is the same shape now, and the list appears under it when there
+         is one.
+
+         The explainer went with it, into the sheet, under the question it explains. "High
+         swaps the movement out" is what you need while CHOOSING how easily it flares — not
+         standing on a tab you open to read what is sore. -->
     <div class="group form-panel">
-      <div class="group-head"><div class="group-title">Injuries</div></div>
-      <div class="fields">
-        <!-- Says what the two fields actually do, which the previous wording did not. It read
-             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
-             load it", which put severity in charge of the session. It never was: past the
-             threshold that keeps an injury on the board, the strength plan branches purely on
-             irritability, and a 9 you called low-irritability produced a week identical to no
-             injury at all. Severity's real job is duration — measured on the model itself, a
-             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
-        <div class="score-note">Log what hurts, 1&ndash;10. Severity sets how long it lasts; irritability sets what changes today.</div>
-        <div class="plan-item"><span class="plan-key">High</span><strong>swaps the movement out</strong></div>
-        <div class="plan-item"><span class="plan-key">Moderate</span><strong>drops a set</strong></div>
-        <div class="plan-item"><span class="plan-key">Low</span><strong>leaves the plan alone</strong></div>
-        <div class="score-note">The warm-up targets the area either way.</div>
+      <div class="group-head">
+        <div class="group-title">Injuries</div>
+        <div class="group-sub" id="injurySummary">nothing logged &mdash; the plan runs as written</div>
+        <button type="button" class="head-action" id="logInjuryBtn">Log an injury</button>
       </div>
       <!-- The list belongs to the section that promises it. It used to render at the bottom
            of "Log new injury", below the submit button and outside any numbered band, so the
@@ -4306,15 +4309,12 @@
            sat under the form for adding one. Hidden entirely when nothing is logged: an empty
            state saying "no injuries, enjoy it" is a section-sized way of reporting that a
            section is empty. -->
-      <div class="log gutter-inset" id="injuryListSection" style="display:none;">
+      <!-- .log's 40px top margin was set for a list arriving under a form. Here the head IS
+           the divider — it names the section and its sub-line already says what is in the
+           list — so 40px of empty tint between the two is a boundary drawn twice. -->
+      <div class="log gutter-inset injury-list-section" id="injuryListSection" style="display:none;">
         <div class="log-title">Active &amp; recent injuries</div>
         <div id="injuryList"></div>
-      </div>
-      <!-- What the section SHOWS is what is sore. Adding one is a job you do and finish, so
-           it is a sheet off a button rather than a seven-field form sitting open under the
-           list for the rest of the time — on a tab you mostly open to read the list. -->
-      <div class="fields">
-        <button type="button" class="outline" id="logInjuryBtn">Log an injury</button>
       </div>
     </div>
 
@@ -4364,6 +4364,20 @@
           <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="moderate">With heavier load</button>
           <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="high">Easily &mdash; best not loaded directly</button>
         </div>
+        <!-- What each answer above actually does, said where you are picking between them.
+             This stood on the tab as a reference block; here it is the consequence of the
+             control it sits under.
+             The wording is the one that survived a correction worth keeping: it used to read
+             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
+             load it", which put SEVERITY in charge of the session. It never was. Past the
+             threshold that keeps an injury on the board the strength plan branches purely on
+             irritability, and a 9 you called low-irritability produced a week identical to no
+             injury at all. Severity's real job is duration — measured on the model itself, a
+             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
+        <div class="plan-item"><span class="plan-key">High</span><strong>swaps the movement out</strong></div>
+        <div class="plan-item"><span class="plan-key">Moderate</span><strong>drops a set</strong></div>
+        <div class="plan-item"><span class="plan-key">Low</span><strong>leaves the plan alone</strong></div>
+        <div class="score-note">The warm-up targets the area either way. Severity sets how long it lasts; irritability sets what changes today.</div>
 
         <button class="primary" id="addInjuryBtn">Add injury</button>
         </div>
@@ -9963,7 +9977,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.460';
+const APP_VERSION = '2026.09.10.461';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10148,6 +10162,7 @@ const APP_NOTES = {
   '2026.09.10.458': 'The skills you are training are marked by weight and a filled tag, not an orange disc.',
   '2026.09.10.459': 'Every progression strip starts and ends in the same place, whatever the ladder\u2019s length.',
   '2026.09.10.460': 'A skill opens on its whole ladder, not two rungs and a \u201cshow all\u201d.',
+  '2026.09.10.461': 'Injuries is a heading and a button until something hurts.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -18312,11 +18327,20 @@ async function refreshInjuries(){
   const list = document.getElementById('injuryList');
   const section = document.getElementById('injuryListSection');
   const show = on => { if(section) section.style.display = on ? '' : 'none'; };
+  /* The head carries the section now, so it has to say where you stand — the same job the
+     Mobility Assessment's own sub-line does. Names the parts rather than counting them: "2
+     logged" is a number you then have to open the section to understand, and the whole point
+     of a head that stands alone is that it answers without being opened. */
+  const setSummary = txt => {
+    const el = document.getElementById('injurySummary');
+    if(el) el.textContent = txt;
+  };
   list.innerHTML = '<div class="skeleton tall"></div><div class="skeleton short"></div>';
   try{
     const res = await window.storage.list('injury:');
     if(!res||!res.keys||res.keys.length===0){
       list.innerHTML='';
+      setSummary('nothing logged \u2014 the plan runs as written');
       show(false);
       return;
     }
@@ -18328,6 +18352,15 @@ async function refreshInjuries(){
       injuries.push(JSON.parse(r.value));
     }
     injuries.sort((a,b)=> new Date(b.date)-new Date(a.date));
+    /* The live ones, named, with the resolved ones counted behind them. A part that is still
+       sore is what changes today's session; one that has healed is history, and history does
+       not need to be spelled out on a head. */
+    const live = injuries.filter(x=>!x.resolved);
+    const healed = injuries.length - live.length;
+    const tail = healed ? `${live.length ? ' \u00b7 ' : ''}${healed} healed` : '';
+    setSummary(live.length
+      ? live.map(x=>(x.part || 'unnamed').toLowerCase()).join(', ') + tail
+      : (tail.replace(/^ \u00b7 /, '') || 'nothing logged \u2014 the plan runs as written'));
     for(const inj of injuries){
       const sev = inj.resolved ? 0 : severityNow(inj.initialSeverity, inj.date, inj.halfLife);
       const sevClass = sev < 3 ? 'low' : sev < 6 ? 'mid' : 'high';
