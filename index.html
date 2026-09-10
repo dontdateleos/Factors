@@ -10116,7 +10116,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.467';
+const APP_VERSION = '2026.09.10.468';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10308,6 +10308,7 @@ const APP_NOTES = {
   '2026.09.10.465': 'You can log an injury from Today, where you are when something twinges.',
   '2026.09.10.466': 'The Log an injury button on Today is a real button, and it actually opens the sheet.',
   '2026.09.10.467': 'Log an injury wears the app\u2019s injury red on Today.',
+  '2026.09.10.468': 'A session can no longer give you the same lift twice under two names.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -22510,6 +22511,44 @@ const CATEGORY_VALUE = { secondary_strength: 0.4, calisthenics: 0.3, isolation: 
 // Same principle as everywhere else: need selects (which areas are short of their
 // landmark), time caps (the existing trim loop). Areas already at target contribute
 // nothing, so this cannot pad — a fully-covered week adds no accessories at all.
+/* TWO ENTRIES, ONE LIFT.
+
+   usedNames stops the same exercise being picked twice in a week, and it compares NAMES —
+   so "Hip Thrust" and "Barbell Hip Thrust" both got through and landed in the same session.
+   They are one movement filed twice: hip_thrust under `hips` and hip_thrust_glute under
+   `glutes`, and the accessory picker fills gaps BY AREA, so each was the best answer to a
+   different gap.
+
+   It is not one bad row. Seven pairs in the 137-entry library share an alias, and every one
+   of them is the same lift entered twice — pistol/single-leg squat, leg curl/lying leg curl,
+   pull-up/chin-up, hip abduction/cable hip abduction, reverse fly/rear delt fly, the two
+   overhead extensions, and the hip thrusts. In each case the second entry was given an alias
+   that already belonged to the first, which is the library saying, in its own data, that
+   these are two names for one thing.
+
+   So the fix reads that data rather than adding a field to maintain: an exercise's identity
+   is its name and its aliases, normalised, and a movement counts as used if ANY of those is
+   already spoken for.
+
+   The keys go into usedNames itself rather than a second set threaded through four
+   signatures. Safe because a normalised key is lower case with single spaces and a display
+   name never is — checked across the whole library: zero display names equal any key, so the
+   plain usedNames.has(ex.name) tests elsewhere behave exactly as before. */
+function exerciseIdentityKeys(ex){
+  const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return [norm(ex && ex.name), ...(((ex && ex.aliases) || []).map(norm))].filter(Boolean);
+}
+function movementAlreadyUsed(ex, usedNames){
+  if(!usedNames) return false;
+  if(usedNames.has(ex.name)) return true;
+  return exerciseIdentityKeys(ex).some(k => usedNames.has(k));
+}
+function markMovementUsed(ex, usedNames){
+  if(!usedNames || !ex) return;
+  if(ex.name) usedNames.add(ex.name);
+  exerciseIdentityKeys(ex).forEach(k => usedNames.add(k));
+}
+
 function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalType, usedNames, injuryMovementFlags, maxPicks, emphasisAreas, blockPhase, bodyweightOnly, weekRotationIndex, directPicksByArea, blocksCompleted, blockProgressionFactor }){
   weekRotationIndex = weekRotationIndex || 0;
   directPicksByArea = directPicksByArea || {};
@@ -22647,7 +22686,7 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
       .filter(([id,ex])=> ex.area === g.area)
       .filter(([id,ex])=> !ACCESSORY_EXCLUDED_CATEGORIES.includes(ex.category))
       .filter(([id,ex])=> !bodyweightOnly || isBodyweightExercise(ex))
-      .filter(([id,ex])=> !usedNames.has(ex.name))
+      .filter(([id,ex])=> !movementAlreadyUsed(ex, usedNames))
       // Long muscle length is the actionable lever from the ROM literature. Strey et al.
       // (2026 meta-analysis) found training at long muscle lengths produced significantly
       // greater hypertrophy than short-length work, while lengthened partials came out
@@ -22696,6 +22735,9 @@ function selectVolumeGapAccessories({ tag, weekSetsByArea, daysRemaining, goalTy
       }
     }
     if(!safe) continue;
+    // The name AND the movement's other names, so its twin cannot be picked for a
+    // different area gap later in the week.
+    markMovementUsed(chosen.ex, usedNames);
     usedNames.add(safe.name);
     // Count against the primary area only: an exercise whose secondary is biceps is not
     // direct biceps work, which is the whole point of the floor.
@@ -27033,7 +27075,13 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
     // gap selector was previously counting a hardcoded `sets || 3` assumption, so its
     // MEV/MAV arithmetic was steering by a number the generator had invented.
     exercises.forEach(e=> assignPrescription(e, plannedFocus, personalSets));
-    exercises.forEach(e=>{ creditSets(e, e.sets); if(e.name) weekUsedExerciseNames.add(e.name); });
+    // The main lifts seed the week's used set. Their identity keys go in with them, or an
+    // accessory can still pick the same movement under its other name — which is exactly how
+    // Hip Thrust and Barbell Hip Thrust ended up in one session.
+    exercises.forEach(e=>{ creditSets(e, e.sets);
+      if(e.name) weekUsedExerciseNames.add(e.name);
+      const lib = e.exerciseId && EXERCISE_LIBRARY[e.exerciseId];
+      markMovementUsed(lib || e, weekUsedExerciseNames); });
     dayStates.push({ i, date, tag, exercises, plannedFocus, focusNote, compArea });
   }
 
@@ -27074,6 +27122,7 @@ async function generateStrengthProgram(sessionsPerWeek, splitType, includeBullet
         state.exercises.push(p);
         creditSets(p, p.sets);
         weekUsedExerciseNames.add(p.name);
+        markMovementUsed(EXERCISE_LIBRARY[p.exerciseId] || p, weekUsedExerciseNames);
         picksSoFar[d]++;
         anyPickedThisRound = true;
       }
