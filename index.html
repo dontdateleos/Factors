@@ -2229,7 +2229,16 @@
     text-transform:uppercase; color:rgba(var(--ink-rgb),0.6); }
   .wheel-add-slot:active{ background:rgba(var(--ink-rgb),0.12); }
 
-  #blockEditPanel{ border:2px solid var(--border-bold); border-radius:0; padding:16px; background:transparent; margin-top:16px; }
+  /* The border, the padding and the top margin were what made a panel sitting in a tab read
+     as its own object. Inside the sheet the sheet IS the object, and a second frame drawn
+     just inside the first is the thing that makes a popup look like a page in a box. */
+  #blockEditPanel{ border:0; border-radius:0; padding:0; background:transparent; margin-top:0; }
+  .log-sheet .lift-sheet-panel{ max-height:88vh; }
+  /* Title and ×, which is what every other sheet’ head is. It carried the swipe handle’s
+     "swipe or hold to put away" for one build: at 390 that ran under the × and the two drew
+     on top of each other. The gesture is still on this row — it just does not need labelling
+     when there is a × beside it saying the same thing. */
+  .log-sheet .lift-sheet-head{ gap:10px; }
   #blockEditPanel .edit-row{ display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
   .mobility-row-info{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; font-size:var(--fs-sm); color:var(--dim); }
   .mobility-row-info.test{ align-items:flex-start; }
@@ -4099,10 +4108,6 @@
 
     <div id="todayWorkoutArea">
       <div id="todayWorkoutSummary"></div>
-      <!-- Where the editor sits when logging is opened from here. It is the same element,
-           moved: a second copy would be a second set of handlers and a second thing to keep
-           in step with the first. -->
-      <div id="todayEditHost"></div>
     </div>
 
     <div id="mobilitySection" style="display:none; margin-top:14px;">
@@ -5274,6 +5279,31 @@
      same tab, and broken the moment .465 put a second button on Today: the sheet's own
      display went to '', its panel was hidden with the tab it was sitting in, and nothing
      appeared. Same trap the skill sheet hit in .449 and the week day sheet in .451. -->
+<!-- THE LOG SHEET. Logging was a panel that got MOVED between two hosts — #blockEditHome on
+     Weekly, #todayEditHost on Today — which meant the way in decided where it appeared, what
+     had to be hidden behind it, and which tab Close handed you back to. Three behaviours to
+     keep in step, and a whole class of bug where the editor opened into a host that was not
+     on screen.
+
+     It is a sheet now, like every other popup in the app: fixed, inset:0, at the top level of
+     the document. The panel still moves — same element, same handlers, same half-typed state
+     — but it only ever moves HERE, from wherever it was, and the sheet is visible from any
+     tab because it is not inside one. setWeekBoardBehindEditor is gone with it: nothing is
+     behind the editor to hide any more.
+
+     The head is the grab handle as well as the title, so the swipe-or-hold that used to live
+     on a row inside the panel survives, and the × does the same thing it does — put the
+     session away with its draft intact, rather than throw it out. -->
+<div class="lift-sheet log-sheet" id="logSheet" style="display:none;">
+  <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="logSheetTitle">
+    <div class="lift-sheet-head log-grab" id="blockEditGrab">
+      <span id="logSheetTitle">Log</span>
+      <button type="button" class="lift-sheet-x" aria-label="Put the session away">&times;</button>
+    </div>
+    <div class="fields" id="logSheetBody"></div>
+  </div>
+</div>
+
 <div class="lift-sheet" id="injurySheet" style="display:none;">
   <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Log an injury">
     <div class="lift-sheet-head"><span>Log an injury</span>
@@ -9034,16 +9064,10 @@ async function refreshLogStripWord(){
    direction counts, and so does a tap: it sits below the last of the content, so there is
    nothing else a drag there could have meant, and requiring one particular direction on a
    surface with no room left to scroll is a way of being wrong half the time. */
-async function startTodayLogging(){
-  const found = await getTodaysBlockAndSlotForType(todaySessionType);
-  if(!found){ showToast('Nothing planned to log today'); return; }
-  // Logging no longer costs you the tab you were on. The panel is moved here rather than the
-  // page being moved to it, so the whole session — open, type, rest, save — happens without
-  // Today ever going away underneath you.
-  await openBlockEditor(todayStr, found.slot, found.block, { host: document.getElementById('todayEditHost') });
-  const panel = document.getElementById('blockEditPanel');
-  if(panel) panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
-}
+// Today's strip, Today's "Log this workout" button and the masthead + are one route now.
+// It used to refuse when nothing was planned; there is no reason for the offer on Today to be
+// narrower than the one in the header, and the empty case opens the same type picker.
+async function startTodayLogging(){ await openLogFromAnywhere(); }
 /* THE BUTTON HAS TO BE ABLE TO MAKE ONE.
 
    startTodayLogging above is the affordance that already existed, and this is the line that
@@ -9080,16 +9104,13 @@ async function freeSlotToday(){
   }
   return 'am';
 }
+// No tab switching and no host to choose any more: the sheet is on top of whatever you were
+// looking at, which is the whole point of it being one. It also means the first-run gate stops
+// mattering here — Today being hidden is no longer a reason to route you somewhere else.
 async function openLogFromAnywhere(){
   const found = await todaysBlockAnySlot();
-  const home = todayIsSetUp;
-  if(home) activateTab('insights');
-  else { activateTab('training'); activateTrainingSubView('weekly'); }
-  const opts = home ? { host: document.getElementById('todayEditHost') } : undefined;
   const slot = found ? found.slot : await freeSlotToday();
-  await openBlockEditor(todayStr, slot, found ? found.block : null, opts);
-  const panel = document.getElementById('blockEditPanel');
-  if(panel) panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
+  await openBlockEditor(todayStr, slot, found ? found.block : null);
 }
 // Same three offers the strip makes, in one word each. A day already in the book says Edit,
 // because going back into a saved session corrects it rather than logging it twice.
@@ -10223,7 +10244,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.470';
+const APP_VERSION = '2026.09.10.471';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10418,6 +10439,7 @@ const APP_NOTES = {
   '2026.09.10.468': 'A session can no longer give you the same lift twice under two names.',
   '2026.09.10.469': 'The exercise list holds one entry per exercise \u2014 six lifts that had been entered twice are one entry each now.',
   '2026.09.10.470': 'A Log button in the masthead, on every tab \u2014 and it can start a workout that was never planned.',
+  '2026.09.10.471': 'Logging is a popup now, the same shape as everything else in the app, and it opens from anywhere.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16598,10 +16620,7 @@ document.getElementById('deloadWeekCheckbox').addEventListener('change', async (
   }
 });
 
-// opts rides through because openBlockEditor MOVES the panel into its host rather than
-// copying it: re-opening without the host would leave blockEditHosted false while the panel
-// is still sitting inside Today, and close would then hand you back to the wrong place.
-async function placeBlock(date, slot, type, opts){
+async function placeBlock(date, slot, type){
   const block = { type, details: type==='strength' ? {exercises:[]} : type==='run' ? {distanceKm:null, notes:''} : {stretches:[]} };
   try{
     const result = await window.storage.set(`weekplan:${date}:${slot}`, JSON.stringify(block));
@@ -16615,7 +16634,7 @@ async function placeBlock(date, slot, type, opts){
   // visit to Today, and the masthead button — which reads todayIsSetUp to decide where the
   // editor can be seen — kept sending a set-up user to Weekly until they went and looked.
   await applyTodayStage();
-  openBlockEditor(date, slot, block, opts);
+  openBlockEditor(date, slot, block);
 }
 
 /* The editor is also the logging screen, and it had no way out. Delete or Save were the only
@@ -16625,10 +16644,30 @@ async function placeBlock(date, slot, type, opts){
    Close puts both back, and if it was reached from Today's "Log this workout" it hands you
    back to Today — in and out by the same door you came through. */
 let blockEditDirty = false;
-let blockEditReturnTab = null;
 let blockEditDate = null;
-let blockEditHosted = false;   // true while the panel is living on Today rather than Weekly
 let blockEditSlot = 'am';
+/* One sheet, wired once. Its close routes back through the same two functions the grab
+   gesture and the Minimise button use, so the ×, the backdrop, Escape, the swipe and the
+   button are five ways of doing one thing rather than five behaviours to keep in step.
+   logSheetClosing guards the recursion: those two functions close the sheet themselves. */
+let logSheet = null;
+let logSheetClosing = false;
+function ensureLogSheet(){
+  if(!logSheet) logSheet = wireSheet('logSheet', ()=>{
+    if(logSheetClosing) return;
+    saveLogDraftNow().catch(()=>{}).then(()=>{
+      // A live session is put AWAY, not thrown out: the numbers go to the draft, the bar
+      // picks it up, and Today keeps its marker. Only a type picker has nothing to keep.
+      if(blockEditMinimisable) minimiseBlockEditor();
+      else closeBlockEditor({ keepDraft:true });
+    });
+  });
+  return logSheet;
+}
+function closeLogSheet(){
+  logSheetClosing = true;
+  try{ ensureLogSheet().close(); } finally { logSheetClosing = false; }
+}
 let blockEditMinimisable = false;  // a session can be put on the bar; a type picker cannot
 function closeBlockEditor(opts){
   const keepDraft = !!(opts && opts.keepDraft);
@@ -16640,13 +16679,13 @@ function closeBlockEditor(opts){
   updateLogBar();
   panel.style.display = 'none';
   panel.innerHTML = '';
-  // Home again, so Weekly's own editing still finds it where it expects to.
+  closeLogSheet();
+  // Home again. Nothing renders it there any more, but leaving the element parked inside a
+  // sheet that is display:none would put every future querySelector for it inside a hidden
+  // subtree, and offsetHeight questions about it would answer 0.
   const home = document.getElementById('blockEditHome');
   if(home && panel.parentElement !== home) home.appendChild(panel);
-  blockEditHosted = false;
   blockEditDirty = false;
-  const back = blockEditReturnTab;
-  blockEditReturnTab = null;
   // Putting it away leaves the claim standing; finishing or discarding takes it down.
   if(blockEditDate && !keepDraft){
     clearLoggingStarted(blockEditDate);
@@ -16657,7 +16696,6 @@ function closeBlockEditor(opts){
   // when the editor goes away, or closing leaves no visible trace that anything is unfinished.
   renderTodayWorkoutSummary();
   updateFooterVisibility();
-  if(back) activateTab(back);
 }
 /* Half-entered is not the same as not started, and nothing on screen said so: you could type
    four lifts in, get called away, come back to Today and see the same untouched card. The
@@ -16840,18 +16878,12 @@ let logBarTitle = 'Session';
    week on it at all until you switched tabs and came back. That predates the board; the wheel
    stage did exactly the same thing. One function now, called from all three, so the board's
    state is a function of whether the editor is up rather than of which exit you took. */
-function setWeekBoardBehindEditor(hidden){
-  // Not on Today: the editor is hosted there and there is no board to stand in front of.
-  if(blockEditHosted) return;
-  const board = document.getElementById('weekBoard');
-  if(board) board.style.display = hidden ? 'none' : '';
-}
 function minimiseBlockEditor(){
   const panel = document.getElementById('blockEditPanel');
   if(!panel || panel.style.display === 'none') return;
   panel.style.display = 'none';
+  closeLogSheet();
   logMinimised = true;
-  setWeekBoardBehindEditor(false);
   updateLogBar();
   // Today keeps its own offer to open the session and it has to agree with the bar: leaving
   // it reading "log this workout" while a half-typed one is sitting on the bar gives you two
@@ -16864,20 +16896,15 @@ function expandBlockEditor(){
   if(!panel || !logMinimised) return;
   logMinimised = false;
   updateLogBar();
-  // The panel lives inside whichever tab it was opened from; going back to it means going
-  // back there, or you expand something you cannot see.
-  const host = panel.closest('.panel');
-  if(host && !host.classList.contains('active')){
-    const name = host.id.replace('panel-', '');
-    activateTab(name);
-    setTimeout(()=>{ panel.style.display = 'block'; setWeekBoardBehindEditor(true);
-      panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' }); }, 500);
-    return;
-  }
+  // It used to have to work out which tab the panel was living in, switch to it, and wait
+  // 500ms for the slide before showing anything. A sheet is not inside a tab, so coming back
+  // to the session is coming back to the session.
+  const body = document.getElementById('logSheetBody');
+  if(body && panel.parentElement !== body) body.appendChild(panel);
   panel.style.display = 'block';
-  setWeekBoardBehindEditor(true);
-  panel.scrollIntoView({ behavior: eyeMotionOff() ? 'auto' : 'smooth', block:'start' });
+  ensureLogSheet().open();
 }
+wireBlockEditorGrab();
 (function wireLogBar(){
   const open = document.getElementById('logBarOpen');
   const drop = document.getElementById('logBarDrop');
@@ -17175,8 +17202,10 @@ async function saveLogDraftNow(){
    scrolled is a far worse failure than not having the gesture at all. */
 const LOG_GRAB_PX = 40;        // far enough to be a decision
 const LOG_GRAB_HOLD_MS = 420;  // long enough not to be a tap
-function wireBlockEditorGrab(panel){
-  const grab = panel.querySelector('#blockEditGrab');
+// Wired once at startup rather than per open: the handle is the sheet's own head now, and it
+// is not rebuilt when the panel's innerHTML is.
+function wireBlockEditorGrab(){
+  const grab = document.getElementById('blockEditGrab');
   if(!grab) return;
   let y0 = null, x0 = null, held = null, spent = false;
   const go = async ()=>{
@@ -17568,18 +17597,19 @@ async function wireRunLogging(date, block){
     + `</div>`;
 }
 
-async function openBlockEditor(date, slot, block, opts){
+async function openBlockEditor(date, slot, block){
   const panel = document.getElementById('blockEditPanel');
   // However you got back in — the bar, Today's marker, the day wheel — the bar's job is done.
   logMinimised = false;
   updateLogBar();
   blockEditDirty = false;
-  blockEditReturnTab = null;
   blockEditDate = date;
   blockEditSlot = slot;
-  // Moved, not copied. Its handlers, its id and its half-typed state all travel with it.
-  blockEditHosted = !!(opts && opts.host);
-  if(blockEditHosted && panel.parentElement !== opts.host) opts.host.appendChild(panel);
+  // Moved, not copied. Its handlers, its id and its half-typed state all travel with it — and
+  // now there is only one place it moves to, so no caller has to know where the editor lives.
+  const sheetBody = document.getElementById('logSheetBody');
+  if(sheetBody && panel.parentElement !== sheetBody) sheetBody.appendChild(panel);
+  ensureLogSheet().open();
   eyeNotePanelOpened(panel);
   const dayLabel = WEEK_DAY_LABELS[getWeekDates().indexOf(date)];
   blockEditMinimisable = !!block;
@@ -17587,6 +17617,9 @@ async function openBlockEditor(date, slot, block, opts){
   // one you are in the middle of, so the day and slot are not the question. Its own name if
   // it has one — the same words Today's card uses — and the type if it does not.
   logBarTitle = block ? ((block.details && block.details.workoutTag) || block.type) : `${dayLabel} ${slot.toUpperCase()}`;
+  const sheetTitle = document.getElementById('logSheetTitle');
+  if(sheetTitle) sheetTitle.textContent = `${dayLabel} ${slot.toUpperCase()}`
+    + (block ? ` \u00b7 ${block.type}` : '');
   if(!block){
     panel.style.display = 'block';
     panel.innerHTML = `
@@ -17600,16 +17633,12 @@ async function openBlockEditor(date, slot, block, opts){
         <button id="closeWeekBlockBtn" class="small outline">Close</button>
       </div>`;
     panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
-      btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType, opts));
+      btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
     });
     wireBlockEditorClose(panel);
     return;
   }
   panel.style.display = 'block';
-  // Only hide the day picker when the editor is standing in front of it. On Today there is
-  // no picker to hide, and hiding Weekly's from here would leave that tab missing a control
-  // you never went to.
-  setWeekBoardBehindEditor(true);
   let fieldsHtml = '';
   if(block.type === 'strength'){
     fieldsHtml = `<div class="log-step" id="logStep">
@@ -17649,7 +17678,6 @@ async function openBlockEditor(date, slot, block, opts){
     mobility: 'The sets/hold values above are used for logging too — tap Log Session to save what you actually did to your training history.'
   };
   panel.innerHTML = `
-    <div class="score-note log-grab" id="blockEditGrab" style="margin-bottom:12px;">${dayLabel} ${slot.toUpperCase()} — ${block.type}<span class="log-grab-hint">swipe or hold to minimise</span></div>
     ${fieldsHtml}
     <div class="score-note" style="margin-top:8px;">${logNoteByType[block.type]}</div>
     <!-- Session RPE. Foster's session-RPE is the only load currency validated across
@@ -17916,7 +17944,6 @@ async function openBlockEditor(date, slot, block, opts){
     setTimeout(()=> scrollToLogExercise(firstBlank < 0 ? 0 : firstBlank), 260);
   }
   wireBlockEditorClose(panel);
-  wireBlockEditorGrab(panel);
   wireRestTimer(panel);
   wireSessionRpe(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async (e)=>{
