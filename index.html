@@ -10344,7 +10344,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.476';
+const APP_VERSION = '2026.09.10.477';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10545,6 +10545,7 @@ const APP_NOTES = {
   '2026.09.10.474': 'A workout you have logged counts as being set up \u2014 Today stops asking you to build a week.',
   '2026.09.10.475': 'Start typing a lift and it offers the ones you already do, then the rest of the library.',
   '2026.09.10.476': 'A lift you entered yourself keeps the sets and reps you gave it instead of being re-prescribed.',
+  '2026.09.10.477': 'The weight box takes a set at a time \u2014 60,80,100 for a ramp, or a drop set, or a back-off.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -16925,7 +16926,10 @@ function applyLoggedSession(session){
     if(setEl && ex.sets) setEl.value = ex.sets;
     if(repEl) repEl.value = (Array.isArray(ex.repsPerSet) && ex.repsPerSet.length)
       ? ex.repsPerSet.join(',') : (ex.reps || '');
-    if(wEl && ex.weight) wEl.value = ex.weight;
+    if(wEl && (ex.weight || (ex.weightPerSet && ex.weightPerSet.length))){
+      wEl.value = (Array.isArray(ex.weightPerSet) && ex.weightPerSet.length)
+        ? ex.weightPerSet.join(',') : ex.weight;
+    }
     const fail = row.querySelector('.week-ex-fail');
     if(fail) fail.classList.toggle('on', !!ex.toFailure);
   });
@@ -17544,6 +17548,7 @@ async function loadExerciseHistory(beforeDate){
       const bestBefore = prev ? Math.max(prev.bestBefore || 0, prev.weight || 0) : 0;
       exerciseHistory[k] = { date: sn.date, sets: ex.sets, reps: ex.reps,
                              repsPerSet: ex.repsPerSet, weight: ex.weight,
+                             weightPerSet: ex.weightPerSet,
                              toFailure: !!ex.toFailure, bestBefore };
     }));
 }
@@ -17557,7 +17562,10 @@ function lastLoggedLine(name){
   // and an average of them is neither.
   const reps = (h.repsPerSet && h.repsPerSet.length) ? h.repsPerSet.join(',')
              : (h.sets ? `${h.sets}\u00d7${h.reps}` : h.reps);
-  const load = h.weight ? `${h.weight}kg \u00b7 ` : '';
+  // A ramp reads as the ramp. bestBefore and the PR plate still compare the top set, which
+  // is what h.weight is.
+  const load = (h.weightPerSet && h.weightPerSet.length) ? `${h.weightPerSet.join(',')}kg \u00b7 `
+             : h.weight ? `${h.weight}kg \u00b7 ` : '';
   // A PR only if that session beat everything before it — "heaviest ever" and "most recent"
   // are the same number most of the time, and marking the second as the first would make the
   // plate meaningless within a week.
@@ -18001,6 +18009,9 @@ async function openBlockEditor(date, slot, block){
       const ghostReps = ghost
         ? ((ghost.repsPerSet && ghost.repsPerSet.length) ? ghost.repsPerSet.join(',') : (ghost.reps ?? ''))
         : '';
+      const ghostWeight = ghost
+        ? ((ghost.weightPerSet && ghost.weightPerSet.length) ? ghost.weightPerSet.join(',') : (ghost.weight ?? ''))
+        : '';
       const ph = (v, fallback) => (v === 0 || v) ? String(v) : fallback;
       const targetLine = (sets!=null && repLow!=null)
         ? `<div class="ex-target-line ex-target-tap" role="button" tabindex="0" style="flex-basis:100%; font-size:var(--fs-tag); color:var(--dim); margin-top:2px;">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}<span class="ex-target-hint">tap to fill</span></div>`
@@ -18021,7 +18032,7 @@ async function openBlockEditor(date, slot, block){
            offers a keypad with no decimal point. Everything downstream has always used
            parseFloat, so the model handled halves all along — the form was the only
            thing refusing them. -->
-          <input type="number" class="week-ex-weight" placeholder="${ph(ghost && ghost.weight, 'kg')}" style="max-width:64px;" title="weight actually used" step="any" inputmode="decimal">
+          <input type="text" class="week-ex-weight" placeholder="${ph(ghostWeight, 'kg')}" style="max-width:64px;" title="weight actually used \u2014 one number for every set (100), or per-set for a ramp or a drop set (60,80,100)" inputmode="decimal">
         </div>
         <!-- BW and F were two unlabelled letters on the row you touch more than any other in
              the app, with their meanings in title attributes that a phone never shows. One
@@ -18320,11 +18331,12 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         const { reps, repsPerSet } = parseRepsInput(repsRaw);
         const setsRaw = row.querySelector('.week-ex-sets').value;
         const weightRaw = row.querySelector('.week-ex-weight').value;
+        const { weight, weightPerSet } = parseWeightInput(weightRaw);
         const setsEntered = parseFloat(setsRaw) || 0;
         // Per-set entry implies the set count, so it doesn't need typing twice — but an
         // explicitly entered sets value still wins if the two disagree.
-        const sets = setsEntered || (repsPerSet ? repsPerSet.length : 0);
-        const weight = parseFloat(weightRaw) || 0;
+        const sets = setsEntered || (repsPerSet ? repsPerSet.length : 0)
+                                 || (weightPerSet ? weightPerSet.length : 0);
         // A row with a name but nothing else typed (the common case — every generated
         // day starts with named, unfilled rows) must NOT count as "performed." Checking
         // exercises.length caught only "zero named rows," which is nearly never true and
@@ -18332,7 +18344,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         if(setsRaw.trim() || repsRaw.trim() || weightRaw.trim()) anyPerformanceEntered = true;
         // With per-set reps the true rep total is known, so volume uses it rather than
         // sets × average, which rounds away the drop-off.
-        const volume = repsPerSet ? repsPerSet.reduce((a,b)=>a+b,0)*weight : sets*reps*weight;
+        const volume = pairedVolume(repsPerSet, reps, sets, weightPerSet, weight);
         const effort = estimateEffortFromDropoff(repsPerSet);
         const primaryVolume = secondaryArea ? volume*VOLUME_SPLIT.primary : volume;
         const secondaryVolume = secondaryArea ? volume*VOLUME_SPLIT.secondary : 0;
@@ -18340,7 +18352,7 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         // from the AMRAP result instead of treating it as a normal set (which would read
         // as a large rep surplus and double-increment the load).
         const toFailure = !!row.querySelector('.week-ex-fail')?.classList.contains('on');
-        exercises.push({ name, sets, reps, repsPerSet, effort, weight, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId, toFailure, wasReintroSet: _isReintroWeekLog });
+        exercises.push({ name, sets, reps, repsPerSet, effort, weight, weightPerSet, area, secondaryArea, movement, volume, primaryVolume, secondaryVolume, exerciseId, toFailure, wasReintroSet: _isReintroWeekLog });
         totalVolume += volume;
       });
       if(!anyPerformanceEntered){
@@ -31335,6 +31347,47 @@ function parseRepsInput(raw){
   if(parts.length === 0) return { reps: 0, repsPerSet: null };
   if(parts.length === 1) return { reps: parts[0], repsPerSet: null };
   return { reps: Math.round((parts.reduce((a,b)=>a+b,0)/parts.length)*10)/10, repsPerSet: parts };
+}
+
+/* THE SAME FIELD, THE SAME COMMA. Reps have taken 12,10,7 since they were per-set; weight
+   was one number for the whole exercise, so a ramp, a back-off set and a drop set could not
+   be written down at all \u2014 you logged the top set and lost the rest, or logged an average
+   that never happened. 100,100,90 is three sets, and it pairs off against the reps beside it.
+
+   `weight` stays the single number the rest of the app reads, and it is the HEAVIEST of them:
+   e1RM, the PR plate and best-before all mean the top set, and the mean of a ramp is not a
+   load anybody lifted. The array rides alongside for volume and for showing you back what
+   you did.
+
+   Kept deliberately liberal about separators, same as parseRepsInput, because the thing being
+   typed is "100 100 90" as often as "100,100,90" and neither is ambiguous. */
+function parseWeightInput(raw){
+  const text = String(raw == null ? '' : raw).trim();
+  if(!text) return { weight: 0, weightPerSet: null };
+  const parts = text.split(/[,\s/]+/).map(x=> parseFloat(x)).filter(n=> !isNaN(n) && n > 0);
+  if(parts.length === 0) return { weight: 0, weightPerSet: null };
+  if(parts.length === 1) return { weight: parts[0], weightPerSet: null };
+  return { weight: Math.max(...parts), weightPerSet: parts };
+}
+/* Volume is the sum of every set done at the load it was done at. With one weight it was
+   totalReps × weight, which is the same arithmetic when the load never moves; a ramp is where
+   the two part company, and reading a 60/80/100 triple as three sets at 100 overstates it by
+   about half. Where the two arrays disagree in length the shorter one governs and the last
+   value of the other is carried \u2014 typing three weights and two reps is a half-finished row,
+   not a reason to lose the numbers that are there. */
+function pairedVolume(repsPerSet, reps, sets, weightPerSet, weight){
+  if(weightPerSet && repsPerSet){
+    const n = Math.max(repsPerSet.length, weightPerSet.length);
+    let v = 0;
+    for(let i = 0; i < n; i++){
+      v += (repsPerSet[Math.min(i, repsPerSet.length - 1)] || 0)
+         * (weightPerSet[Math.min(i, weightPerSet.length - 1)] || 0);
+    }
+    return v;
+  }
+  if(weightPerSet) return weightPerSet.reduce((a, w)=> a + w * (reps || 0), 0);
+  if(repsPerSet) return repsPerSet.reduce((a, b)=> a + b, 0) * weight;
+  return sets * reps * weight;
 }
 
 // Objective proximity-to-failure proxy from rep drop-off across sets at a fixed weight,
