@@ -1480,16 +1480,6 @@
      the tag is fixed and pinned right. On the ten ladders you have not started the rung is
      blank, so the tag sits alone against the edge and the column reads as a difficulty
      scale down the set. */
-  /* The way back to the full ladder. A link, not a button: it reveals reference material
-     rather than doing anything, and a filled control here would out-weigh the rungs above
-     it — which are the thing you came to tap. */
-  .mob-check-more{ display:block; width:100%; height:auto; margin-top:6px; padding:7px 0;
-    background:transparent; border:0; border-top:1px solid var(--hair); border-radius:0;
-    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58);
-    text-align:left; cursor:pointer; }
-  .mob-check-more:hover{ color:var(--bg); }
-  .mob-check-more:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
   .skill-lane-end{ display:flex; align-items:center; gap:8px; min-width:0; }
   /* The rung you are on, in the quiet ink the doses use — 6.61 dark, 4.72 bone. */
   .skill-lane-rung{ flex:1; min-width:0; font-size:var(--fs-tag); color:rgba(var(--ink-rgb),0.58);
@@ -3021,8 +3011,8 @@
   /* The one the week is built around, and nothing else marked. A second weight on "Also"
      would make three levels of emphasis out of a list that has one thing to say. */
   .goal-lane.role-main .goal-lane-role{ color:var(--bg); }
-  /* The way back out of a goal. A link rather than a button, the same call .mob-check-more
-     makes: it moves you between panes, it does not do anything. */
+  /* The way back out of a goal. A link rather than a button: it moves you between panes, it
+     does not do anything. */
   .goal-back{ display:block; width:auto; height:auto; margin:0 0 var(--sp-2); padding:6px 0;
     background:transparent; border:0; border-radius:0; text-align:left; cursor:pointer;
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
@@ -3143,7 +3133,7 @@
      doing anything to today, and a filled button on a card would out-weigh Accept and Dismiss
      underneath it — which are the things you actually came to press. Inherits the signal's
      own size and colour so it reads as part of the line, underlined so it reads as a way
-     through. Same call .mob-check-more makes on the skill ladders. */
+     through. */
   .rec-profile-link{ width:auto; height:auto; margin:0; padding:0; border:0; border-radius:0;
     background:transparent; font-family:inherit; font-size:inherit; font-weight:var(--fw-bold);
     letter-spacing:inherit; text-transform:none; color:inherit;
@@ -9973,7 +9963,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.459';
+const APP_VERSION = '2026.09.10.460';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10157,6 +10147,7 @@ const APP_NOTES = {
   '2026.09.10.457': 'The controls under the week are one list with one action row instead of three scattered ones.',
   '2026.09.10.458': 'The skills you are training are marked by weight and a filled tag, not an orange disc.',
   '2026.09.10.459': 'Every progression strip starts and ends in the same place, whatever the ladder\u2019s length.',
+  '2026.09.10.460': 'A skill opens on its whole ladder, not two rungs and a \u201cshow all\u201d.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15125,9 +15116,6 @@ function renderSkillBoard(category){
       const at = skillPickerOrder(category).indexOf(lane.dataset.skillKey);
       if(at < 0) return;
       skillPickerState[category].index = at;
-      // A different skill starts closed again — "show all" answered a question about the one
-      // you were looking at then.
-      skillPickerState[category].showAllFor = null;
       renderSkillPicker(category);
       openSkillSheet(category);
     });
@@ -15222,28 +15210,18 @@ function renderSkillPicker(category){
     const t2 = PROGRESSION_TREES[category][n.skill];
     return t2 ? t2.label : n.skill;
   }).join(', ');
-  /* ONLY WHERE YOU ARE AND WHAT IS NEXT, UNLESS YOU ASK FOR THE REST.
+  /* THE WHOLE LADDER, EVERY TIME.
 
-     Nine rungs, each with its own target line, is 414px — the largest single thing in this
-     section and more than the board and the old wheel put together. It is also more than the
-     question needs: you tick the hardest level you can do, so what you want on screen is the
-     rung you are on and the one above it. The rest is reference.
+     This used to open on the rung you are on and the one above it, with the rest behind a
+     "show all N levels" toggle. That was the right call when the level list sat INLINE under
+     the board: nine rungs each with a target line is 414px, and it was the largest single
+     thing in a section that was already 1,071.
 
-     Gates always show. They are the entry condition, there are never more than a couple, and
-     a ladder you cannot start yet is exactly the case where the reason has to be visible.
-
-     The expansion is per skill, not sticky: pick another skill and it closes again, because
-     "show all" was an answer to a question about the skill you were looking at then. */
-  const showAll = st.showAllFor === key;
-  const shownIdx = i => {
-    if(i < gateCount) return true;
-    if(showAll) return true;
-    if(d.levelIndex == null) return i === gateCount;
-    return i === d.levelIndex || i === d.levelIndex + 1;
-  };
-  const hiddenCount = tree.levels.filter((_, i)=> !shownIdx(i)).length;
+     It is a sheet now (.449), with nothing under it to push down and its own scroll. The
+     reason to hide seven of nine rungs went with the page they were pushing around, and what
+     is left is a ladder you can only read half of — on the one screen whose entire job is to
+     show you a ladder. */
   levels.innerHTML = tree.levels.map((name, i)=>{
-    if(!shownIdx(i)) return '';
     const det = tree.levelDetails && tree.levelDetails[i];
     const target = det && det.holdOrRepTarget ? ` <span class="skill-level-target">${det.holdOrRepTarget}</span>` : '';
     if(i < gateCount){
@@ -15266,13 +15244,7 @@ function renderSkillPicker(category){
       <span class="mob-check-num">${i+1-gateCount}</span>
       <span class="mob-check-text">${name}${target}</span>
     </div>`;
-  }).join('')
-    /* Drawn when something is hidden OR when it is open — hiddenCount is 0 once everything
-       is showing, so keying only off that removed the one control that closes it again. */
-    + ((hiddenCount || showAll)
-        ? `<button type="button" class="mob-check-more" data-more="1">`
-          + `${showAll ? 'Show less' : 'Show all ' + skillLadderTotal(tree) + ' levels'}</button>`
-        : '');
+  }).join('');
 
   if(category === 'exercise') renderExerciseProgression(); else renderMobilityProgression();
   /* One line grew four middot-joined clauses by accretion — instruction, count, sourcing,
@@ -15291,11 +15263,6 @@ function renderSkillPicker(category){
   }
   paintSkillSummary(category);
 
-  const moreBtn = levels.querySelector('.mob-check-more');
-  if(moreBtn) moreBtn.addEventListener('click', ()=>{
-    st.showAllFor = (st.showAllFor === key) ? null : key;
-    renderSkillPicker(category);
-  });
   levels.querySelectorAll('.mob-check-row').forEach(row=>{
     row.addEventListener('click', ()=>{
       const lvl = parseInt(row.dataset.level, 10);
