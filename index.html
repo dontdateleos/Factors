@@ -1474,8 +1474,6 @@
      the tag is fixed and pinned right. On the ten ladders you have not started the rung is
      blank, so the tag sits alone against the edge and the column reads as a difficulty
      scale down the set. */
-  /* The rank the wheel used to carry, now on the lane it belongs to. */
-  .skill-lane-name .skill-rank{ margin-right:5px; }
   /* The way back to the full ladder. A link, not a button: it reveals reference material
      rather than doing anything, and a filled control here would out-weigh the rungs above
      it — which are the thing you came to tap. */
@@ -1495,7 +1493,38 @@
      11.32, orange 9.55, red 7.14 against --text. */
   .skill-lane-tier{ flex:none; font-size:9.5px; font-weight:var(--fw-bold);
     letter-spacing:0.09em; text-transform:uppercase; color:var(--text);
-    padding:2px 5px; border-radius:3px; }
+    background:var(--tier-hue); padding:2px 5px; border-radius:3px; }
+
+  /* WHAT YOU ARE TRAINING, SAID TWICE AND WITH NOTHING ADDED.
+
+     The orange disc these replace was wrong three ways at once. It painted --block-orange,
+     which is the HARD tag's own hue, so an active EASY skill wore an orange badge beside a
+     green tag and the board had two orange things meaning unrelated things. It was the only
+     circle in an app of squares. And it sat inside .skill-lane-name, so the two names you
+     care about most started 24px right of the other eleven — the name column stopped being a
+     column, which is the whole of what makes thirteen rows read as a board.
+
+     Nothing is added in its place. The two marks are the weight of the name and the fill of a
+     tag that was already on every lane:
+
+     1 — the names you are not training step back to 0.58, the same floor every quiet column
+     in this app sits on (6.61 on the dark ground, 4.72 on bone). NOT the 0.45 the idea was
+     first drawn at: that measures 4.38 and 3.09, so eleven of the thirteen names would have
+     shipped under the 4.5 line. The cells step back with the name, or an untrained skill with
+     progress on it would read louder than the trained one above it.
+
+     2 — the difficulty tag is filled when you are training the skill and outlined when you
+     are not. It costs no space, it was already there saying one thing, and it leaves the four
+     block hues meaning difficulty and nothing else. */
+  .skill-goal-board .skill-lane:not(.on) .skill-lane-name{ color:rgba(var(--ink-rgb),0.58); }
+  .skill-goal-board .skill-lane:not(.on) .skill-lane-cells i{ background:rgba(var(--ink-rgb),0.16); }
+  .skill-goal-board .skill-lane:not(.on) .skill-lane-cells i.on{ background:rgba(var(--ink-rgb),0.58); }
+  .skill-goal-board .skill-lane:not(.on) .skill-lane-tier{ background:transparent;
+    color:rgba(var(--ink-rgb),0.58); box-shadow:inset 0 0 0 1px rgba(var(--ink-rgb),0.35); }
+  /* The rung name has left the lane, so the last column holds the tag alone and it goes to
+     the edge. The name gets the width back — "Nordic Hamstring Curl" was truncating at 120. */
+  .skill-goal-board .skill-lane{ grid-template-columns:150px auto 1fr; }
+  .skill-goal-board .skill-lane-end{ justify-content:flex-end; }
   /* The one the wheel is on, and the ones you are actually training. A left rule rather than
      a fill: the row is a line of data, and filling it would make nine of them nine cards. */
   .skill-lane.here{ box-shadow:inset 2px 0 0 var(--bg); padding-left:8px; }
@@ -2929,10 +2958,6 @@
      colour sitting between a red band and a red tab for no reason. Orange is the one warm
      mark left that is not a tab, which is exactly what a disc on a black panel wants —
      findable while scrolling, and not mistakable for a section. */
-  .skill-rank{ display:inline-flex; align-items:center; justify-content:center;
-    width:1.55em; height:1.55em; border-radius:50%; font-family:var(--mono);
-    font-size:var(--fs-md); font-weight:var(--fw-bold); line-height:1;
-    background:var(--block-orange); color:var(--text); }
   /* The three light-ground wheel rules that used to sit here are gone, not overridden. They
      dated from when these pickers were drawn on a light surface and they set dark ink —
      rgba(12,13,11,0.5) for the score. They sit later in the sheet than the dark-ground
@@ -9931,7 +9956,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.457';
+const APP_VERSION = '2026.09.10.458';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10113,6 +10138,7 @@ const APP_NOTES = {
   '2026.09.10.455': 'Goal Profile is now \u201cHow hard to push\u201d, it actually changes the advice, and the card says when it did.',
   '2026.09.10.456': 'Goals are a list you open one at a time, and each one says how much it matters instead of being ranked.',
   '2026.09.10.457': 'The controls under the week are one list with one action row instead of three scattered ones.',
+  '2026.09.10.458': 'The skills you are training are marked by weight and a filled tag, not an orange disc.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15033,6 +15059,9 @@ function renderSkillBoard(category){
   const ids = SKILL_PICKERS[category];
   const el = ids && ids.board && document.getElementById(ids.board);
   if(!el) return;
+  // Scopes the training marks below to these two boards. The week, the goals and the mobility
+  // domains are drawn from the same lane and none of them has a "you are working on this".
+  el.classList.add('skill-goal-board');
   const st = skillPickerState[category];
   const picked = skillPickerOrder(category);
   const here = picked[st.index];
@@ -15049,17 +15078,26 @@ function renderSkillBoard(category){
     /* Blank, not "not started". Ten trees you have never touched printed the same two words
        ten times down the column, which is the exact mess this idea is supposed to avoid — an
        empty strip already says it, and says it in one glance instead of ten readings. */
+    /* THE RUNG NAME IS GONE FROM THE LANE. The cells beside it already say how far up the
+       ladder you are, and the rung's own words — "Bodyweight squat mastery" — were a second,
+       longer answer to the same question, in the column with the least room for one. It is
+       still there in full inside the sheet, next to the rungs above and below it, which is
+       where a name rather than a count is what you want. Kept in the aria-label: a screen
+       reader has no cells to read. */
     const rung = d.levelIndex == null ? '' : ((tree.levels || [])[d.levelIndex] || '');
     const tier = SKILL_TIERS[tree.tier] || null;
+    /* The hue as a custom property, not as a background. Which skills you are TRAINING is now
+       said by the tag being filled or outlined, and an inline background cannot be overridden
+       by the rule that draws the outline — so the value goes in a variable and the rule
+       decides what to do with it. */
     const tag = tier
-      ? `<span class="skill-lane-tier" style="background:${tier.hue};">${tier.word}</span>`
+      ? `<span class="skill-lane-tier" style="--tier-hue:${tier.hue};">${tier.word}</span>`
       : '';
     return `<button type="button" class="skill-lane${key === here ? ' here' : ''}${d.active ? ' on' : ''}"
-        data-skill-key="${key}" aria-label="${tree.label}, ${tier ? tier.word.toLowerCase() + ', ' : ''}${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
-      <span class="skill-lane-name">${d.active
-        ? `<span class="skill-rank">${picked.indexOf(key) + 1}</span>` : ''}${tree.label}</span>
+        data-skill-key="${key}" aria-label="${tree.label}, ${d.active ? 'training, ' : ''}${tier ? tier.word.toLowerCase() + ', ' : ''}${done} of ${rungs}${rung ? ' — ' + rung : ', not started'}">
+      <span class="skill-lane-name">${tree.label}</span>
       <span class="skill-lane-cells">${cells}</span>
-      <span class="skill-lane-end"><span class="skill-lane-rung">${rung}</span>${tag}</span></button>`;
+      <span class="skill-lane-end">${tag}</span></button>`;
   }).join('');
   if(!el.dataset.bound){
     el.dataset.bound = '1';
@@ -15106,7 +15144,7 @@ function openSkillSheet(category){
   if(title && tree){
     const tier = SKILL_TIERS[tree.tier];
     title.innerHTML = tree.label
-      + (tier ? ` <span class="skill-lane-tier" style="background:${tier.hue};">${tier.word}</span>` : '');
+      + (tier ? ` <span class="skill-lane-tier" style="--tier-hue:${tier.hue};">${tier.word}</span>` : '');
   }
   skillSheet.open();
 }
