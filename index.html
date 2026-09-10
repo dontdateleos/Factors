@@ -1445,9 +1445,9 @@
   .field-row:has(input[type="checkbox"]) label{ flex:1; cursor:pointer; padding:11px 0; }
   .mobility-legend summary, details summary{ position:relative; padding:6px 0; }
   /* The vertical domain wheel that used to sit here is gone — see the board in
-     renderMobilityAssessment for why. The .week-day-picker on Weekly was built from a copy of
-     these rules rather than sharing them, so it is unaffected; what it does still share is the
-     dot-field spinner further down, which names both. */
+     renderMobilityAssessment for why. Weekly's day picker was built from a copy of these
+     rules rather than sharing them, and it has since gone the same way — see renderWeekBoard.
+     Nothing in the app spins any more; the only wave left is the dot field's own. */
   /* NINE LADDERS, ONE ROW EACH. Cells are the app's own bar — the same 3px flat mark the
      drill rows and the masthead ticks are drawn from — so this reads as more of the app
      rather than as a scoreboard bolted to it. Grid, not flex, so the three columns line up
@@ -3507,11 +3507,10 @@
     position:relative;
     z-index:0;
   }
-  /* The two spinners take the field as well, and take it differently — see the rule under
-     the mask below. Listed here rather than given the .dot-field class so that fieldDrift
-     leaves them alone: the ripple animates a three-layer mask-position, and a spinner's mask
-     is one layer, so the drift would slide the selection band off its row. */
-  .dot-field::before, .week-day-picker::before, .mob-wheel::before{
+  /* The two spinners used to share this rule and override the mask below it, so that the
+     wave became a solid band on their focused row. Both are boards now and neither has a
+     focused row to band, so what is left is the field's own wave. */
+  .dot-field::before{
     content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
     background-image:var(--dot-tile);
     background-size:168px 4px;
@@ -3596,57 +3595,6 @@
      the wave needs about 16px of clearance at each end and a row is 38, so cutting a 38px
      band on it would leave almost nothing solid in the middle. The spinner already has two
      straight edges drawn across it; this lands on them. */
-  /* THE BAND FOLLOWS THE FOCUS ROW, WHICH IS NOT ALWAYS THE MIDDLE ONE.
-     centre was the obvious answer and the wrong one: --mob-focus-row says which of the three
-     rows a skill wheel is currently focusing, and it is not fixed — the assessment's wheel
-     was drawing its band under CALVES while ANKLES was the row in focus. The band is placed
-     from the same number the focus RULES are placed from, so the two cannot come apart. The
-     day picker has no such variable because its focus never moves off the middle row, which
-     with three 38px rows in a 114px window is row 1. */
-  .week-day-picker{ --sel-row:var(--day-row); --sel-focus-row:1; }
-  /* THE BAND RUNS TO THE PAGE EDGES, AND THE WORDS DO NOT MOVE.
-     The bleed is on the SPINNER, not on its ::before, because the spinner is overflow:hidden
-     — it has to be, it is a window over a longer list — so a pseudo-element could never have
-     escaped it. Widened by one gutter each side and given the gutter straight back as padding:
-     the box reaches the edges, inset:0 fills it, and every row sits exactly where it sat.
-     The RULES do not go with it. They are inset back by the same gutter — see the focus-line
-     rules — because they belong to the column the words are set in, and run to the screen edge
-     they stopped reading as a marked row and started reading as a full-width bar. The dots
-     are the thing that spans the page; the lines still frame the column. */
-  .week-day-picker, .mob-wheel{ z-index:0;
-    margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter));
-    padding-left:var(--gutter); padding-right:var(--gutter); }
-  .week-day-picker::before, .mob-wheel::before{
-    -webkit-mask-image:linear-gradient(#000,#000);
-            mask-image:linear-gradient(#000,#000);
-    -webkit-mask-size:100% var(--sel-row);
-            mask-size:100% var(--sel-row);
-    -webkit-mask-position:left calc(var(--sel-row) * var(--sel-focus-row));
-            mask-position:left calc(var(--sel-row) * var(--sel-focus-row));
-    -webkit-mask-repeat:no-repeat;
-            mask-repeat:no-repeat;
-  }
-
-  /* THE SPINNER RIPPLES TOO, BUT ONLY THE DOTS.
-     Its own keyframes rather than the field's, and this is the whole reason it was left out of
-     fieldDrift in the first place: the field's ripple moves background-position AND a
-     three-layer mask-position together, so the ribbon's cut edges stay in phase with the rows
-     inside them. A spinner's mask is one layer and it is not decoration — it is what puts the
-     band on the focused row — so handing it those three values would have walked the band off
-     the row it marks. Here the mask is untouched and only the tile inside it travels.
-
-     Same 84px over 21 whole cells as everywhere else, so a spinner and the chart above it
-     ripple at one rate and land together. */
-  @keyframes spinDriftL{ from{ background-position:84px 0; } to{ background-position:0px 0; } }
-  @keyframes spinDriftR{ from{ background-position:-84px 0; } to{ background-position:0px 0; } }
-  .week-day-picker.drift-l::before, .mob-wheel.drift-l::before{
-    animation:spinDriftL var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
-  .week-day-picker.drift-r::before, .mob-wheel.drift-r::before{
-    animation:spinDriftR var(--field-drift-ms, 900ms) steps(21, end) var(--field-drift-delay, 0ms) both; }
-  @media (prefers-reduced-motion: reduce){
-    .week-day-picker.drift-l::before, .mob-wheel.drift-l::before,
-    .week-day-picker.drift-r::before, .mob-wheel.drift-r::before{ animation:none; } }
-
   /* IT WAITS FOR THE CARD TO LAND. The first cut started it with the deal and put 95% of the
      travel inside the first 440ms — which is precisely when the whole card is flying across
      the screen at a multiple of that speed, so none of it could be seen. Measured, not
@@ -5281,7 +5229,6 @@ const EYE_ANIM = {
   plateIsHome:    { on:true, note:'Off Today, tapping the plate takes you back to it' },
   busyEverywhere: { on:true, note:'The scan shows for anything slow, not just Generate' },
   toastEyes:      { on:true, note:'The toast leads with the pair, nodding or shaking, instead of a tick or a cross' },
-  dragGaze:       { on:true, note:'The gaze leans the way you are dragging any of the wheels', px:5 },
   glanceAtDay:    { on:true, note:'Looks at each day as a generated week lands on the board' },
   attentionOnCard:{ on:true, note:'A brief look straight at you when a recommendation lands' },
   doubleTake:     { on:true, note:'A double blink when today jumps a long way from the last score it saw', delta:18 },
@@ -7581,18 +7528,7 @@ function eyeDoubleTake(score){
   });
 }
 
-/* ---------- WATCHING THE INTERFACE ----------
-   Every wheel in the app is the same gesture, so they all call the same thing: the gaze
-   leans the way the finger is going and lets go a beat after it stops. */
-let eyeDragTimer = null;
-function eyeDragGaze(dy){
-  if(!anim('dragGaze')) return;
-  const px = EYE_ANIM.dragGaze.px;
-  eyeGaze(0, Math.max(-px, Math.min(px, dy * 0.35)), 120);
-  clearTimeout(eyeDragTimer);
-  eyeDragTimer = setTimeout(()=>eyeGaze(0, 0, 320), 320);
-}
-
+/* ---------- WATCHING THE INTERFACE ---------- */
 // A brief look straight at you when a card lands, then it lets go. Sustained attention
 // would hold the lids open over the score band indefinitely, and the band is the job.
 function eyeAttendTo(el){
@@ -7771,7 +7707,6 @@ function eyePreviewAction(key){
     case 'nodOnSave':       return eyeNod();
     case 'busyEverywhere':  { const done = eyesBusy(); setTimeout(done, 1600); return; }
     case 'dizzySpin':       return eyeSpin();
-    case 'dragGaze':        return eyeGaze(0, -4, 120, 500);
     case 'attentionOnCard': return eyeLidPulse(full, 160, 900);
     case 'doubleTake':      return blinkOnce(el, ()=>blinkOnce(el, ()=>eyePop()));
     case 'flinch':          return eyeGesture([{transform:'translateX(0) scale(1)'},
@@ -8257,10 +8192,7 @@ const UI_ANIM = {
                   ms:400, stagger:80, max:8 },
   facesRollIn:  { on:true, note:'The five faces roll in as balls when the question is put to you', ms:560, stagger:62 },
   firstRunThread:{ on:true, note:'The setup questions arrive one at a time, each as the last is answered', ms:340 },
-  fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900,
-                  // A spin is direct manipulation and answers immediately, so its ripple is
-                  // quicker than the one that has to wait for a page to fly in and land.
-                  spinMs:520 },
+  fieldDrift:   { on:true, note:'A dot field ripples half a wave through, in the direction you swiped, once its page has landed', ms:900 },
 };
 window.UI_ANIM = UI_ANIM;
 /* Content that lands as part of a tab switch arrives inside a card that is already moving.
@@ -8463,7 +8395,7 @@ function fieldDrift(name){
   const delay = Math.max(0, uiArriving() - 90).toFixed(0) + 'ms';
   // The spinners are not .dot-field — see the tile rule for why — but they carry the same
   // texture and ripple on the same beat, off keyframes of their own that leave their mask be.
-  panel.querySelectorAll('.dot-field, .week-day-picker, .mob-wheel').forEach(f=>{
+  panel.querySelectorAll('.dot-field').forEach(f=>{
     f.classList.remove('drift-l', 'drift-r');
     void f.offsetWidth;
     f.style.setProperty('--field-drift-ms', UI_ANIM.fieldDrift.ms + 'ms');
@@ -8472,48 +8404,7 @@ function fieldDrift(name){
   });
 }
 
-/* THE BAND RE-SETTLES WHEN THE SELECTION MOVES.
-   Arriving on a page ripples every field on it; this is the other moment a spinner's band
-   has — you turned the wheel and something new is under it. Same texture, same travel, off
-   the same keyframes.
 
-   DEBOUNCED, because a drag is not one move. pointermove fires a step every WHEEL_STEP_PX and
-   re-renders each time, so spinning through four days would have restarted the animation four
-   times — and a restart on steps() timing is a jump back to 84px, so a fast drag would have
-   read as the dots stuttering backwards. It waits for the wheel to stop and plays once, and
-   the direction comes from where the burst STARTED rather than from its last step, so a spin
-   through three days travels the way the whole spin went.
-
-   Keyed by name rather than held on the element: the assessment's wheel is rebuilt by
-   innerHTML on every render, so anything stored on the node itself would be gone by the time
-   the next step asked what the last index was.
-
-   It stands down during a tab arrival. fieldDrift owns that window, and the wheel's first
-   render on a page it has just landed on is not a spin. */
-const spinLastIndex = new Map();
-const spinBurstFrom = new Map();
-const spinTimers = new Map();
-const SPIN_SETTLE_MS = 90;
-function spinRipple(key, wheel, index){
-  if(!wheel || index == null || !uiAnim('fieldDrift')) return;
-  const prev = spinLastIndex.get(key);
-  spinLastIndex.set(key, index);
-  if(prev == null || prev === index) return;   // first paint of this wheel, or a plain re-render
-  if(uiArriving()) return;
-  if(!spinBurstFrom.has(key)) spinBurstFrom.set(key, prev);
-  clearTimeout(spinTimers.get(key));
-  spinTimers.set(key, setTimeout(()=>{
-    const from = spinBurstFrom.get(key);
-    spinBurstFrom.delete(key);
-    const live = document.getElementById(wheel.id) || wheel;
-    if(!live.isConnected) return;
-    live.classList.remove('drift-l', 'drift-r');
-    void live.offsetWidth;
-    live.style.setProperty('--field-drift-ms', UI_ANIM.fieldDrift.spinMs + 'ms');
-    live.style.setProperty('--field-drift-delay', '0ms');
-    live.classList.add(index > from ? 'drift-l' : 'drift-r');
-  }, SPIN_SETTLE_MS));
-}
 
 function pillExtendSoon(){
   requestAnimationFrame(()=> pillExtend(document));
@@ -9944,7 +9835,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.451';
+const APP_VERSION = '2026.09.10.452';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10120,6 +10011,7 @@ const APP_NOTES = {
   '2026.09.10.449': 'Tapping a skill opens it in a sheet, so the board stays the length of the board.',
   '2026.09.10.450': 'The mobility test shows all eleven areas at once, with what you rated each one.',
   '2026.09.10.451': 'Weekly shows the whole week at once instead of one day through a window.',
+  '2026.09.10.452': 'Nothing in the app is a spinning wheel any more \u2014 the code for them is gone with them.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -14454,23 +14346,6 @@ document.getElementById('addGoalRow').addEventListener('click', ()=>addGoalRow()
 
 /* ---------- TRAINING SETUP ---------- */
 const WEEKDAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-/* One drag policy, for all three wheels. The skill picker, the mobility domain stepper and
-   the week day wheel each declared their own WHEEL_STEP_PX, WHEEL_FLICK_MIN_PX and WHEEL_FLICK_MIN_VELOCITY,
-   and each re-typed the same step curve — four numbers and a rule, three times over, with a
-   CSS comment nearby saying "the drag's step distance is the same number, so these have to
-   move together" while pointing at a constant that existed in three places. Nothing had
-   diverged yet. Everything about the arrangement was waiting to.
-   The row height is the step distance by design: a wheel row is 38px in CSS (--mob-row,
-   --day-row) and a drag of one row moves one item, so the two are the same measurement seen
-   from either side. */
-const WHEEL_STEP_PX = 38;            // sustained finger travel per item — one row height
-const WHEEL_FLICK_MIN_PX = 8;        // below this it is a tap, not a swipe
-const WHEEL_FLICK_MIN_VELOCITY = 0.25;   // px/ms — separates a flick from a slow short drag
-// How far one flick carries. Faster throws travel further, capped at three so a hard flick
-// still lands somewhere you meant rather than at the end of the list.
-function flickSteps(velocity){
-  return velocity > 1.2 ? 3 : (velocity > 0.7 ? 2 : 1);
-}
 (function initAvailableDaysCheckboxes(){
   const container = document.getElementById('availableDaysCheckboxes');
   WEEKDAY_NAMES.forEach(day=>{
@@ -14995,9 +14870,10 @@ function renderSkillPicker(category){
      selectors for one job is what was making this section long. Measured open at 390: the
      wheel was 114px of the strength section's 1071.
 
-     bindSkillPickerDrag stays and is inert: it only acts on a pointer inside the wheel
-     element, and there is no longer one. The .mob-wheel component it used has since gone too
-     — the Mobility Assessment was its last caller and that is a board now as well. */
+     bindSkillPickerDrag was left behind and inert, guarding on a pointer inside a wheel
+     element that no longer existed. It has gone too, along with the .mob-wheel component and
+     the one drag policy all three shared — the assessment was that component's last caller
+     and it is a board now as well. */
   renderSkillBoard(category);
 
   const key = order[st.index];
@@ -15134,60 +15010,11 @@ function renderSkillPicker(category){
       st.index = skillPickerOrder(category).indexOf(k);
       renderSkillPicker(category);
     });
-    bindSkillPickerDrag(category);
   }
 }
 
 // Same gesture as the week picker and the assessment wheel, bound to the section rather
 // than the wheel so a re-render cannot take the drag with it.
-function bindSkillPickerDrag(category){
-  const st = skillPickerState[category];
-  const host = document.getElementById(SKILL_PICKERS[category].host);
-  if(!host) return;
-  let dragging = false, startY = 0, accumulated = 0, startTime = 0, moved = false, downOffset = 0;
-  const clamp = i => Math.max(0, Math.min(skillKeysFor(category).length-1, i));
-  host.addEventListener('pointerdown', e=>{
-    if(!e.target.closest('#' + SKILL_PICKERS[category].wheel)) return;
-    dragging = true; startY = e.clientY; accumulated = 0;
-    startTime = e.timeStamp; moved = false;
-    // Which row the finger landed on, so a tap on a neighbour selects it: capturing the
-    // pointer means the up-event no longer shares a target with the down, so the browser
-    // generates no click and a listener on the row would never fire.
-    const row = e.target.closest('.mob-wheel-item');
-    downOffset = row ? (parseInt(row.dataset.offset, 10) || 0) : 0;
-    host.setPointerCapture(e.pointerId);
-  });
-  host.addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    const steps = Math.trunc((e.clientY - startY - accumulated) / WHEEL_STEP_PX);
-    if(steps === 0) return;
-    accumulated += steps * WHEEL_STEP_PX;
-    moved = true;
-    eyeDragGaze(steps);
-    st.index = clamp(st.index - steps);
-    renderSkillPicker(category);
-  });
-  const endDrag = e => {
-    if(!dragging) return;
-    dragging = false;
-    try{ host.releasePointerCapture(e.pointerId); }catch(_){}
-    if(moved) return;
-    const dy = e.clientY - startY, dt = Math.max(1, e.timeStamp - startTime);
-    const velocity = Math.abs(dy)/dt;
-    if(Math.abs(dy) < WHEEL_FLICK_MIN_PX){
-      if(downOffset !== 0){ st.index = clamp(st.index + downOffset); renderSkillPicker(category); }
-      return;
-    }
-    if(velocity < WHEEL_FLICK_MIN_VELOCITY) return;
-    const steps = flickSteps(velocity);
-    st.index = clamp(st.index + (dy > 0 ? -steps : steps));
-    renderSkillPicker(category);
-  };
-  host.addEventListener('pointerup', endDrag);
-  host.addEventListener('pointercancel', endDrag);
-}
-
-// What the save writes for one picker.
 function skillPickerGoals(category){
   const st = skillPickerState[category];
   const out = [];
