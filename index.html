@@ -1960,6 +1960,20 @@
     color:rgba(var(--ink-rgb),0.58); overflow:hidden; }
   .wk-sess b{ flex:none; font-weight:var(--fw-bold); text-transform:uppercase;
     letter-spacing:0.04em; color:var(--bg); }
+  /* Which half of the day. A fixed 20px so the types line up down the column whether a day
+     has one session or two — that column of aligned words is what makes seven rows read as a
+     board. NOT the old .wk-line's opacity:0.45: that sat on its own colour, and stacked on
+     .wk-sess's 0.58 it would come out at an effective 0.26. It takes the same 0.58 the detail
+     does and lets the type, which is full ink, carry the emphasis on its own. */
+  .wk-slot{ flex:0 0 20px; font-style:normal; text-transform:uppercase;
+    letter-spacing:0.04em; color:rgba(var(--ink-rgb),0.58); }
+  /* On the sheet's cards the head is full ink, so the slot steps back from it rather than
+     from the quiet column it steps back from on the board. The head is space-between, which
+     with a third item pushed the slot hard left and stranded the type in the middle of the
+     card — the chevron takes the auto margin instead, so "AM STRENGTH" stays one label. */
+  .wheel-workout-type .wk-slot{ flex:none; margin-right:7px; }
+  .wheel-workout-type{ justify-content:flex-start; }
+  .wheel-workout-chevron{ margin-left:auto; }
   .wk-sess-detail{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* A day you marked off, rather than one the generator has not filled. Italic and nothing
      else: 0.58 is the floor these quiet columns sit on (6.61 dark, 4.72 bone) and the 0.75
@@ -1983,14 +1997,6 @@
   .week-wheel-detail:empty{ display:none; }
   /* Sits under the day it builds, inside the same black. The selects keep their light fill
      — they are inputs, and .form-panel already gives its buttons a light one. */
-  .wk-line{ display:flex; gap:8px; align-items:baseline; font-family:var(--mono);
-    font-size:var(--fs-tag); letter-spacing:0.04em; padding:3px 0; border-bottom:1px solid var(--hair); }
-  .wk-line:last-child{ border-bottom:none; }
-  .wk-line.now .wk-day{ font-weight:var(--fw-bold); }
-  .wk-day{ text-transform:uppercase; flex:0 0 34px; }
-  .wk-slot{ text-transform:uppercase; opacity:0.45; flex:0 0 24px; }
-  .wk-type{ text-transform:uppercase; flex:0 0 74px; }
-  .wk-detail{ opacity:0.6; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sev-trace{ display:flex; align-items:flex-end; gap:3px; height:14px; margin-top:5px; }
   .sev-trace i{ display:block; width:9px; background:var(--dim); opacity:0.45; }
   .sev-trace i:last-child{ opacity:1; }
@@ -3430,7 +3436,7 @@
   .plan-line.caps,
   .plan-item > strong, .plan-dose, .drill-text, .drill-dose,
   .ex-target-line, .ex-target-hint, .ex-tags-toggle,
-  .subj-anchor, .wk-detail, .log-step-pos,
+  .subj-anchor, .log-step-pos,
   .rl-title, .week-deload span{
     text-transform:uppercase; letter-spacing:0.04em;
   }
@@ -9862,7 +9868,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.453';
+const APP_VERSION = '2026.09.10.454';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10040,6 +10046,7 @@ const APP_NOTES = {
   '2026.09.10.451': 'Weekly shows the whole week at once instead of one day through a window.',
   '2026.09.10.452': 'Nothing in the app is a spinning wheel any more \u2014 the code for them is gone with them.',
   '2026.09.10.453': 'The mark keeps its eyes when it sleeps \u2014 the z\u2019s say it instead.',
+  '2026.09.10.454': 'Weekly says which workouts are morning and which are evening.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -15522,8 +15529,11 @@ function weekDayDetailHtml(date, realBlocks, isOff){
   return realBlocks.map(({slot, block}) => {
     const lines = extractBlockLines(block);
     const typeLabel = block.type.charAt(0).toUpperCase()+block.type.slice(1);
+    // Two cards side by side with nothing to say which is the morning one and which is the
+    // evening one is the same gap the board had. The slot leads the head, in the quiet ink,
+    // so the type is still what you read first.
     return `<div class="wheel-workout-card${realBlocks.length === 1 ? ' solo' : ''}" data-edit-date="${date}" data-edit-slot="${slot}">
-        <div class="wheel-workout-type">${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
+        <div class="wheel-workout-type"><i class="wk-slot">${slot}</i>${typeLabel}<span class="wheel-workout-chevron">\u203a</span></div>
         <div class="wheel-ex-names">${lines.length
           ? lines.map(l=> `<div class="wheel-ex-line"><span class="wheel-ex-name">${l.name}</span></div>`).join('')
           : '<em>No details yet</em>'}</div>
@@ -15562,9 +15572,16 @@ function renderWeekBoard(dayBlocks){
     const day = (dayBlocks && dayBlocks[i]) || { blocks:[], off:false };
     const blocks = (day.blocks || []).filter(b=>b.block);
     const here = i === activeWheelDayIndex;
-    const sessions = blocks.map(({block})=>{
+    /* AM / PM ON EVERY SESSION, NOT JUST THE DOUBLED DAYS. A day holds two slots and which
+       one a workout sits in is the difference between a workout before work and one after it.
+       The only place that ever said so was the week list under "Why this week", which .451
+       deleted as a duplicate of this board — correctly, except that this board was not
+       carrying the one column that list had and it did not. Shown on single-session days too:
+       it is the same question there, and a marker that appears only sometimes reads as a flag
+       on the day rather than as a column you can run your eye down. */
+    const sessions = blocks.map(({slot, block})=>{
       const detail = weekBlockDetailText(block);
-      return `<span class="wk-sess"><b>${block.type}</b>`
+      return `<span class="wk-sess"><i class="wk-slot">${slot}</i><b>${block.type}</b>`
         + (detail ? `<span class="wk-sess-detail">${detail}</span>` : '') + `</span>`;
     }).join('');
     /* An empty day draws blank, the same call the skill lanes and the domain lanes make:
@@ -15575,7 +15592,8 @@ function renderWeekBoard(dayBlocks){
       ? `<span class="wk-sess wk-off">not training</span>`
       : sessions;
     const said = day.off ? 'not training'
-      : blocks.length ? blocks.map(b=>b.block.type).join(' and ') : 'nothing planned';
+      : blocks.length ? blocks.map(b=>`${b.slot === 'am' ? 'morning' : 'evening'} ${b.block.type}`).join(', ')
+      : 'nothing planned';
     return `<button type="button" class="skill-lane week-lane${here ? ' here' : ''}${date === todayStr ? ' today' : ''}"
         data-day-at="${i}" aria-label="${WEEK_DAY_FULL[i]}${date === todayStr ? ', today' : ''}, ${said}">
       <span class="skill-lane-name">${WEEK_DAY_FULL[i]}${date === todayStr ? ' \u2022' : ''}</span>
