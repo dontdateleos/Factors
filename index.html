@@ -2636,17 +2636,21 @@
   /* Once one is chosen the other four step back — the answer should read as an answer, not
      as five options with one of them ticked. */
   .subj-faces.picked .subj-face:not(.on){ opacity:0.38; }
-  /* The foot of Today. A rule above it because it is not part of the cooldown that ends the
-     page, and the quiet ink because it is the one thing here you hope not to need. Left on
-     the gutter like everything else on the tab; full-width as a target, since the words are
-     short and a 44px row of mostly-empty tap area beats a tight one. */
+  /* The foot of Today. The button is the plain outline one — the same control, the same
+     words, as the Body tab's own way in, because it opens the same sheet and there is no
+     reason for one page's version to be a different species from the other's.
+     It shipped for one version as a bare text link on the reasoning that the foot of a page
+     wants something quiet. Quiet went too far: with no border and no fill it read as a
+     caption on the colophon below it rather than as something you press.
+     The rule above stays. The cooldown ends in a full-bleed coloured band, and a button
+     butted straight onto that reads as part of it.
+
+     NOT wrapped in .fields, which is what a button normally sits in around here: .fields
+     paints var(--field), the tab's own tint, and on Today that is the lime the cooldown band
+     is made of — so the button arrived sitting in a strip of the section above it. The
+     padding .fields would have given it is on this instead. */
   .today-foot{ margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
-  .today-foot-link{ display:block; width:100%; height:auto; margin:0; padding:11px 0;
-    background:transparent; border:0; border-radius:0; text-align:left; cursor:pointer;
-    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
-    letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58); }
-  .today-foot-link:hover{ color:var(--bg); }
-  .today-foot-link:focus-visible{ outline:2px solid var(--bg); outline-offset:-2px; }
+  .today-foot button{ width:100%; }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:16px var(--gutter); background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -4092,7 +4096,7 @@
          button off that head and the section is a title and a sub-line with no way to act
          on it, and the list, the update and the resolve all live behind it. -->
     <div class="today-foot">
-      <button type="button" class="today-foot-link" id="todayLogInjuryBtn">Something hurt? Log it</button>
+      <button type="button" class="outline" id="todayLogInjuryBtn">Log an injury</button>
     </div>
 
   </div>
@@ -4416,87 +4420,6 @@
       <div class="log gutter-inset injury-list-section" id="injuryListSection" style="display:none;">
         <div class="log-title">Active &amp; recent injuries</div>
         <div id="injuryList"></div>
-      </div>
-    </div>
-
-    <div class="lift-sheet" id="injurySheet" style="display:none;">
-      <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Log an injury">
-        <div class="lift-sheet-head"><span>Log an injury</span>
-          <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
-        <!-- THE THREE THAT ARE QUESTIONS, AND THE THREE THAT ARE NOT.
-             Six fields, and they are not one kind of thing. A body part is free text, an
-             onset is a date and a severity is a number out of ten — none of those is a short
-             list and none of them can be asked, so they stay a form and they go first, where
-             they read as the facts you are filing. The other three are the app asking you
-             about yourself from a short list, and the answers shape what it will let you
-             train, which is the test.
-
-             They were interleaved with the form rows before, and could not be asked in place
-             without a question landing between a date box and a number box. Split rather
-             than mixed. The irritability options were already whole sentences crammed into
-             <option> — "Low — rarely flares with load" — which is the clearest sign these
-             wanted to be answers rather than a dropdown; the question carries the frame now,
-             so each one says only the part that differs. -->
-        <div class="fields" id="injuryForm">
-        <!-- ASKED, LIKE THE THREE BELOW THEM.
-             These were mono labels in a 112px column beside a light-filled box, sitting on top
-             of three questions set in 24px wordmark — a form stapled to a thread, and the
-             boxes were the loudest thing on a sheet whose questions are the point. The label
-             column could not hold them either: "Severity (1-10)" wrapped to two lines at 390.
-
-             The CONTROLS do not change and the ids are untouched — a body part is free text, an
-             onset is a date and a severity is a number out of ten, and none of those is a short
-             list that could be answered with .ask-a rows. What changes is that each one is
-             introduced the way the app introduces everything else it wants from you. -->
-        <p class="ask-q">Where does it hurt?</p>
-        <div class="ask-field"><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
-
-        <p class="ask-q">When did it start?</p>
-        <div class="ask-field narrow"><input type="date" id="injuryDate"></div>
-
-        <p class="ask-q">How bad is it, one to ten?</p>
-        <div class="ask-field tiny"><input type="number" min="1" max="10" id="injurySeverity" inputmode="numeric"></div>
-
-        <p class="ask-q">What kind of injury is it?</p>
-        <div class="ask-list answered" id="injuryType" role="radiogroup" aria-label="What kind of injury is it?">
-          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="general">General</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="tendinopathy">Tendinopathy</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="sprain_strain">Sprain or strain</button>
-        </div>
-
-        <p class="ask-q">Which movement hurts?</p>
-        <div class="ask-list answered" id="injuryMovement" role="radiogroup" aria-label="Which movement hurts?">
-          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="">Nothing in particular</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="squat">Squatting</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="hinge">Hinging &mdash; deadlifts, RDLs</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="push">Pressing</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="pull">Pulling &mdash; rows, pull-ups</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="isolation">Only single-joint work</button>
-        </div>
-
-        <p class="ask-q">How easily does it flare up?</p>
-        <div class="ask-list answered" id="injuryIrritability" role="radiogroup" aria-label="How easily does it flare up?">
-          <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="low">Rarely, under load</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="moderate">With heavier load</button>
-          <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="high">Easily &mdash; best not loaded directly</button>
-        </div>
-        <!-- What each answer above actually does, said where you are picking between them.
-             This stood on the tab as a reference block; here it is the consequence of the
-             control it sits under.
-             The wording is the one that survived a correction worth keeping: it used to read
-             "log what hurts, 1-10 ... while it's active the generator eases the sessions that
-             load it", which put SEVERITY in charge of the session. It never was. Past the
-             threshold that keeps an injury on the board the strength plan branches purely on
-             irritability, and a 9 you called low-irritability produced a week identical to no
-             injury at all. Severity's real job is duration — measured on the model itself, a
-             general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
-        <div class="plan-item"><span class="plan-key">High</span><strong>swaps the movement out</strong></div>
-        <div class="plan-item"><span class="plan-key">Moderate</span><strong>drops a set</strong></div>
-        <div class="plan-item"><span class="plan-key">Low</span><strong>leaves the plan alone</strong></div>
-        <div class="score-note">The warm-up targets the area either way. Severity sets how long it lasts; irritability sets what changes today.</div>
-
-        <button class="primary" id="addInjuryBtn">Add injury</button>
-        </div>
       </div>
     </div>
 
@@ -5294,6 +5217,92 @@
      than inside #panel-training because .lift-sheet is fixed and inset:0 — written into the
      panel it would be hidden along with the panel, which is how the skill sheet shipped
      invisible the first time. -->
+<!-- OUT OF THE PANEL, LIKE THE OTHER TWO. .lift-sheet is fixed and inset:0, and this one
+     lived inside #panel-injuries — fine while the only way in was the Injuries head on that
+     same tab, and broken the moment .465 put a second button on Today: the sheet's own
+     display went to '', its panel was hidden with the tab it was sitting in, and nothing
+     appeared. Same trap the skill sheet hit in .449 and the week day sheet in .451. -->
+<div class="lift-sheet" id="injurySheet" style="display:none;">
+  <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-label="Log an injury">
+    <div class="lift-sheet-head"><span>Log an injury</span>
+      <button type="button" class="lift-sheet-x" aria-label="Close">×</button></div>
+    <!-- THE THREE THAT ARE QUESTIONS, AND THE THREE THAT ARE NOT.
+         Six fields, and they are not one kind of thing. A body part is free text, an
+         onset is a date and a severity is a number out of ten — none of those is a short
+         list and none of them can be asked, so they stay a form and they go first, where
+         they read as the facts you are filing. The other three are the app asking you
+         about yourself from a short list, and the answers shape what it will let you
+         train, which is the test.
+
+         They were interleaved with the form rows before, and could not be asked in place
+         without a question landing between a date box and a number box. Split rather
+         than mixed. The irritability options were already whole sentences crammed into
+         <option> — "Low — rarely flares with load" — which is the clearest sign these
+         wanted to be answers rather than a dropdown; the question carries the frame now,
+         so each one says only the part that differs. -->
+    <div class="fields" id="injuryForm">
+    <!-- ASKED, LIKE THE THREE BELOW THEM.
+         These were mono labels in a 112px column beside a light-filled box, sitting on top
+         of three questions set in 24px wordmark — a form stapled to a thread, and the
+         boxes were the loudest thing on a sheet whose questions are the point. The label
+         column could not hold them either: "Severity (1-10)" wrapped to two lines at 390.
+
+         The CONTROLS do not change and the ids are untouched — a body part is free text, an
+         onset is a date and a severity is a number out of ten, and none of those is a short
+         list that could be answered with .ask-a rows. What changes is that each one is
+         introduced the way the app introduces everything else it wants from you. -->
+    <p class="ask-q">Where does it hurt?</p>
+    <div class="ask-field"><input type="text" id="injuryPart" placeholder="e.g. left calf"></div>
+
+    <p class="ask-q">When did it start?</p>
+    <div class="ask-field narrow"><input type="date" id="injuryDate"></div>
+
+    <p class="ask-q">How bad is it, one to ten?</p>
+    <div class="ask-field tiny"><input type="number" min="1" max="10" id="injurySeverity" inputmode="numeric"></div>
+
+    <p class="ask-q">What kind of injury is it?</p>
+    <div class="ask-list answered" id="injuryType" role="radiogroup" aria-label="What kind of injury is it?">
+      <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="general">General</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="tendinopathy">Tendinopathy</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="sprain_strain">Sprain or strain</button>
+    </div>
+
+    <p class="ask-q">Which movement hurts?</p>
+    <div class="ask-list answered" id="injuryMovement" role="radiogroup" aria-label="Which movement hurts?">
+      <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="">Nothing in particular</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="squat">Squatting</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="hinge">Hinging &mdash; deadlifts, RDLs</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="push">Pressing</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="pull">Pulling &mdash; rows, pull-ups</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="isolation">Only single-joint work</button>
+    </div>
+
+    <p class="ask-q">How easily does it flare up?</p>
+    <div class="ask-list answered" id="injuryIrritability" role="radiogroup" aria-label="How easily does it flare up?">
+      <button type="button" class="ask-a" role="radio" aria-checked="true" data-v="low">Rarely, under load</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="moderate">With heavier load</button>
+      <button type="button" class="ask-a" role="radio" aria-checked="false" data-v="high">Easily &mdash; best not loaded directly</button>
+    </div>
+    <!-- What each answer above actually does, said where you are picking between them.
+         This stood on the tab as a reference block; here it is the consequence of the
+         control it sits under.
+         The wording is the one that survived a correction worth keeping: it used to read
+         "log what hurts, 1-10 ... while it's active the generator eases the sessions that
+         load it", which put SEVERITY in charge of the session. It never was. Past the
+         threshold that keeps an injury on the board the strength plan branches purely on
+         irritability, and a 9 you called low-irritability produced a week identical to no
+         injury at all. Severity's real job is duration — measured on the model itself, a
+         general 7 stays active 17 days, a 4 six, a tendinopathy 7 thirty-one. -->
+    <div class="plan-item"><span class="plan-key">High</span><strong>swaps the movement out</strong></div>
+    <div class="plan-item"><span class="plan-key">Moderate</span><strong>drops a set</strong></div>
+    <div class="plan-item"><span class="plan-key">Low</span><strong>leaves the plan alone</strong></div>
+    <div class="score-note">The warm-up targets the area either way. Severity sets how long it lasts; irritability sets what changes today.</div>
+
+    <button class="primary" id="addInjuryBtn">Add injury</button>
+    </div>
+  </div>
+</div>
+
 <div class="lift-sheet week-day-sheet" id="weekDaySheet" style="display:none;">
   <div class="lift-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="weekDaySheetTitle">
     <div class="lift-sheet-head"><span id="weekDaySheetTitle">Day</span>
@@ -10093,7 +10102,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.465';
+const APP_VERSION = '2026.09.10.466';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10283,6 +10292,7 @@ const APP_NOTES = {
   '2026.09.10.463': 'Every field in the app is outlined instead of a white box.',
   '2026.09.10.464': 'An answer you type is set like an answer you pick.',
   '2026.09.10.465': 'You can log an injury from Today, where you are when something twinges.',
+  '2026.09.10.466': 'The Log an injury button on Today is a real button, and it actually opens the sheet.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
