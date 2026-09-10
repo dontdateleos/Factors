@@ -10325,7 +10325,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.473';
+const APP_VERSION = '2026.09.10.474';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10523,6 +10523,7 @@ const APP_NOTES = {
   '2026.09.10.471': 'Logging is a popup now, the same shape as everything else in the app, and it opens from anywhere.',
   '2026.09.10.472': 'The masthead button is a plus.',
   '2026.09.10.473': 'You can log a workout you did days ago \u2014 the popup steps back a day at a time.',
+  '2026.09.10.474': 'A workout you have logged counts as being set up \u2014 Today stops asking you to build a week.',
 };
 
 /* Registration is optional in the sense that it degrades quietly — but it was optional in
@@ -25163,6 +25164,18 @@ async function hasAnyPlannedSession(){
   try{ const res = await window.storage.list('weekplan:'); return !!(res && res.keys && res.keys.length); }
   catch(e){ return false; }
 }
+/* A workout you have already done is at least as good an answer to "is this set up" as a
+   workout somebody plans to do, and the gate did not ask. It reads weekplan: and the
+   goals/days pair, both of which are things the GENERATOR needs, so six weeks of hand-logged
+   sessions left Today showing "What do you want to get better at?" and every section of the
+   panel hidden behind it. Measured before this: seeded six weeks of training: keys, opened
+   Today, got the first-run thread.
+   It matters most for data that arrives rather than data that is typed \u2014 an import, a
+   restore, a device you have just signed into \u2014 where nothing ever calls placeBlock. */
+async function hasAnyLoggedSession(){
+  try{ const res = await window.storage.list('training:'); return !!(res && res.keys && res.keys.length); }
+  catch(e){ return false; }
+}
 async function hasAnyRecoveryEntry(){
   try{ const res = await window.storage.list('entry:'); return !!(res && res.keys && res.keys.length); }
   catch(e){ return false; }
@@ -25176,6 +25189,7 @@ async function applyTodayStage(){
   const panel = document.getElementById('panel-insights');
   if(!fr || !panel) return;
   const ready = (await hasAnyPlannedSession())
+             || (await hasAnyLoggedSession())
              || ((await hasTrainingDays()) && (await hasAnyGoal()));
   todayIsSetUp = ready;
   updateFooterVisibility();
