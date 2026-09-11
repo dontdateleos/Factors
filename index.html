@@ -686,17 +686,22 @@
   #logFab{ display:none; }
   body.tab-insights #logFab{
     display:flex; position:fixed; z-index:55;
-    left:calc(50% - 30px);
+    left:calc(50% - 20px);
     /* --fab-lift is the log bar's height while a session is put away, written by
        updateLogBar. Without it the disc sat over the bar's top 12px \u2014 measured. */
     bottom:calc(24px + var(--fab-lift, 0px) + env(safe-area-inset-bottom, 0px));
-    width:60px; height:60px; min-height:0; margin:0; flex:none;
-    border-radius:50%; padding:0 0 3px; line-height:1;
-    font-family:var(--mono); font-size:34px; font-weight:var(--fw-medium); letter-spacing:0;
-    background:var(--bg); color:var(--ground); border:1px solid var(--bg);
-    box-shadow:0 0 0 5px var(--ground); cursor:pointer; }
+    /* 40, which is the mark's box. The two are the same object in two places now, so they
+       are the same size in both. */
+    width:40px; height:40px; min-height:0; margin:0; flex:none;
+    border-radius:50%; padding:0 0 2px; line-height:1;
+    font-family:var(--mono); font-size:24px; font-weight:var(--fw-medium); letter-spacing:0;
+    background:var(--bg); color:var(--ground); border:0; box-shadow:none; cursor:pointer; }
+  /* THE BOX IS 40; THE FINGER GETS 48. Same trick the mark uses, and for the same reason:
+     the disc's size is now a statement about the mark rather than about a thumb, so the hit
+     area is expanded on its own instead of by growing the drawing. */
+  #logFab::after{ content:''; position:absolute; inset:-4px; border-radius:50%; }
   #logFab:active{ opacity:0.72; }
-  #logFab:focus-visible{ outline:2px solid var(--bg); outline-offset:8px; }
+  #logFab:focus-visible{ outline:2px solid var(--bg); outline-offset:6px; }
 
   .streak-flame{ display:inline-flex; align-items:center; vertical-align:middle;
     margin-left:9px; }
@@ -10369,7 +10374,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.481';
+const APP_VERSION = '2026.09.10.482';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10575,6 +10580,7 @@ const APP_NOTES = {
   '2026.09.10.479': 'The plus keeps clear of the wordmark and the date on a narrow phone.',
   '2026.09.10.480': 'Different reps and weights per set: the row says back what it read, set by set.',
   '2026.09.10.481': 'The log button is a disc at the bottom of Today, where your thumb already is.',
+  '2026.09.10.482': 'The log button is the size of the mark, and sits on the page without a ring around it.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
