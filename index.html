@@ -686,15 +686,17 @@
   #logFab{ display:none; }
   body.tab-insights #logFab{
     display:flex; position:fixed; z-index:55;
-    left:calc(50% - 20px);
+    left:calc(50% - 28px);
     /* --fab-lift is the log bar's height while a session is put away, written by
        updateLogBar. Without it the disc sat over the bar's top 12px \u2014 measured. */
     bottom:calc(24px + var(--fab-lift, 0px) + env(safe-area-inset-bottom, 0px));
-    /* 40, which is the mark's box. The two are the same object in two places now, so they
-       are the same size in both. */
-    width:40px; height:40px; min-height:0; margin:0; flex:none;
-    border-radius:50%; padding:0 0 2px; line-height:1;
-    font-family:var(--mono); font-size:24px; font-weight:var(--fw-medium); letter-spacing:0;
+    /* 56. It was 40 to match the mark's box, and 40 is right for a logo sitting in a lockup
+       and wrong for the one button in the app you press with chalk on your hands: it read as
+       a full stop dropped in the paragraph. The relationship to the mark is kept where it
+       actually matters \u2014 in flight, below \u2014 rather than in the resting size. */
+    width:56px; height:56px; min-height:0; margin:0; flex:none;
+    border-radius:50%; padding:0 0 3px; line-height:1;
+    font-family:var(--mono); font-size:33px; font-weight:var(--fw-medium); letter-spacing:0;
     background:var(--bg); color:var(--ground); border:0; box-shadow:none; cursor:pointer;
     transition:background-color 200ms cubic-bezier(0.2,0.7,0.2,1); }
   /* The flight is a transition on an inline transform, not a WAAPI animation with fill:both.
@@ -718,16 +720,19 @@
     transition:opacity 200ms cubic-bezier(0.2,0.7,0.2,1); }
   #logFab .fab-plus{ position:relative; opacity:1;
     transition:opacity 200ms cubic-bezier(0.2,0.7,0.2,1); }
-  #logFab.is-mark{ background-color:transparent; }
+  /* THE MARK DOES NOT GROW ON THE WAY DOWN.
+
+     mcPaint sizes the drawing off the host's own width, so at 56 the sphere would be drawn
+     at 56 and the mark would swell by two fifths as it fell \u2014 which reads as the thing
+     getting closer rather than as the thing arriving. --mc-scale multiplies the drawing
+     inside a box that does not move, so 40/56 keeps the sphere at exactly the size it was on
+     the band, and what changes on landing is the cream disc inflating out from under it. */
+  #logFab.is-mark{ background-color:transparent; --mc-scale:0.7143; }
   #logFab.is-mark .fab-sphere{ opacity:1; }
   #logFab.is-mark .fab-plus{ opacity:0; }
   /* Away is not the same as absent: display:none would make it unmeasurable, and the drop
      needs its resting box to fly to. */
   body.tab-insights #logFab.is-away{ opacity:0; pointer-events:none; }
-  /* THE BOX IS 40; THE FINGER GETS 48. Same trick the mark uses, and for the same reason:
-     the disc's size is now a statement about the mark rather than about a thumb, so the hit
-     area is expanded on its own instead of by growing the drawing. */
-  #logFab::after{ content:''; position:absolute; inset:-4px; border-radius:50%; }
   #logFab:active{ opacity:0.72; }
   #logFab:focus-visible{ outline:2px solid var(--bg); outline-offset:6px; }
 
@@ -10542,7 +10547,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.485';
+const APP_VERSION = '2026.09.10.486';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10752,6 +10757,7 @@ const APP_NOTES = {
   '2026.09.10.483': 'On Today the mark no longer hides in the masthead \u2014 it falls to the bottom of the page and opens as the log button.',
   '2026.09.10.484': 'The mark flies to the mark, one at a time \u2014 the drop lands where it should now.',
   '2026.09.10.485': 'The black mark stays out of the masthead on Today, however you got there.',
+  '2026.09.10.486': 'The log button is a proper size \u2014 and the mark stays mark-sized on the way down to it.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
