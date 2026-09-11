@@ -727,7 +727,13 @@
      getting closer rather than as the thing arriving. --mc-scale multiplies the drawing
      inside a box that does not move, so 40/56 keeps the sphere at exactly the size it was on
      the band, and what changes on landing is the cream disc inflating out from under it. */
-  #logFab.is-mark{ background-color:transparent; --mc-scale:0.7143; }
+  /* Scoped under body.tab-insights to match the rule it has to beat. The base is
+     `body.tab-insights #logFab` \u2014 one id, one class, one type \u2014 and a bare
+     `#logFab.is-mark` is one id and one class, so it LOST, and background:var(--bg) stood.
+     It went unnoticed while the box was 40 and the sphere filled it exactly: the cream was
+     there, hidden underneath. .486 made the box 56 with the drawing still 40, and eight
+     pixels of it came out all the way round as a plate the mark flew on. */
+  body.tab-insights #logFab.is-mark{ background-color:transparent; --mc-scale:0.7143; }
   #logFab.is-mark .fab-sphere{ opacity:1; }
   #logFab.is-mark .fab-plus{ opacity:0; }
   /* Away is not the same as absent: display:none would make it unmeasurable, and the drop
@@ -10547,7 +10553,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.486';
+const APP_VERSION = '2026.09.10.487';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10758,6 +10764,7 @@ const APP_NOTES = {
   '2026.09.10.484': 'The mark flies to the mark, one at a time \u2014 the drop lands where it should now.',
   '2026.09.10.485': 'The black mark stays out of the masthead on Today, however you got there.',
   '2026.09.10.486': 'The log button is a proper size \u2014 and the mark stays mark-sized on the way down to it.',
+  '2026.09.10.487': 'The mark flies on nothing again \u2014 the cream plate behind it is gone.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
