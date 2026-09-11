@@ -695,7 +695,26 @@
     width:40px; height:40px; min-height:0; margin:0; flex:none;
     border-radius:50%; padding:0 0 2px; line-height:1;
     font-family:var(--mono); font-size:24px; font-weight:var(--fw-medium); letter-spacing:0;
-    background:var(--bg); color:var(--ground); border:0; box-shadow:none; cursor:pointer; }
+    background:var(--bg); color:var(--ground); border:0; box-shadow:none; cursor:pointer;
+    transition:background-color 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+  /* THE DISC IS THE MARK, MID-FLIGHT.
+
+     Not a picture of it \u2014 fabMarkCube is a real mount in mcMounts, so mcPaint draws the same
+     sphere at the same rotation as the one in the wordmark and the one on the band. While
+     .is-mark is on, the box is transparent and the sphere shows; taking the class off fades
+     the cream disc up under a plus. One element, two appearances, so the thing that lands at
+     the bottom is the thing that left the score. */
+  #logFab .fab-sphere{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    opacity:0; pointer-events:none; overflow:visible;
+    transition:opacity 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+  #logFab .fab-plus{ position:relative; opacity:1;
+    transition:opacity 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+  #logFab.is-mark{ background-color:transparent; }
+  #logFab.is-mark .fab-sphere{ opacity:1; }
+  #logFab.is-mark .fab-plus{ opacity:0; }
+  /* Away is not the same as absent: display:none would make it unmeasurable, and the drop
+     needs its resting box to fly to. */
+  body.tab-insights #logFab.is-away{ opacity:0; pointer-events:none; }
   /* THE BOX IS 40; THE FINGER GETS 48. Same trick the mark uses, and for the same reason:
      the disc's size is now a statement about the mark rather than about a thumb, so the hit
      area is expanded on its own instead of by growing the drawing. */
@@ -5514,7 +5533,7 @@
      bar below this, on every tab, with its own name and rest clock. All this does is START
      one, and that is something you do from Today. A disc floating over Data's charts or
      Settings' forms would be cost without benefit. -->
-<button type="button" class="log-fab" id="logFab" aria-label="Log a workout">+</button>
+<button type="button" class="log-fab is-away" id="logFab" aria-label="Log a workout"><svg class="mark-cube fab-sphere" id="fabMarkCube" aria-hidden="true"></svg><span class="fab-plus">+</span></button>
 
 <div class="log-bar" id="logBar" style="display:none;">
   <button type="button" class="log-bar-open" id="logBarOpen">
@@ -7129,6 +7148,12 @@ function mcMounts(){
     out.push({ host:header, id:'mcClipH',
                svg:document.getElementById('headerMarkCube'),
                shell:'var(--mark-shell)', ink:'var(--mark-ink)', lit:'var(--mark-lit)' });
+  /* The disc at the bottom of Today, while it is wearing the mark. Same tokens as the
+     header's, because it IS the header's on the way down. */
+  const fab = document.getElementById('logFab');
+  if(fab && fab.classList.contains('is-mark'))
+    out.push({ host:fab, id:'mcClipF', svg:document.getElementById('fabMarkCube'),
+               shell:'var(--mark-shell)', ink:'var(--mark-ink)', lit:'var(--mark-lit)' });
   const dock = document.getElementById('todayFaceDock');
   const dsvg = dock && dock.style.display !== 'none' && document.getElementById('dockMarkCube');
   if(dsvg) out.push(dock.classList.contains('asking')
@@ -8464,11 +8489,103 @@ function updateEyePerch(){
   }
 
   const r = score.getBoundingClientRect();
-  // The header the mark is perching into has collapsed to nothing by the time this fires,
-  // and its own geometry is written from the wordmark's size — which is zero. Move it to
-  // the perch first, so the landing has somewhere real to be.
   updateHeaderCollapse();
-  moveEyes(want ? 'header' : 'score', want ? { x:r.left, y:r.top, offscreen:false } : null, true);
+  /* TODAY'S MARK DOES NOT PERCH ANY MORE. IT DROPS.
+
+     It used to fly up into the collapsed masthead and sit beside the word TODAY, which is
+     where every other tab keeps it. That was the right answer while the mark had nowhere
+     else to be. It has somewhere else to be now: the log disc at the foot of this page is
+     the same circle at the same size, so instead of hiding in the header the mark falls to
+     it and opens as a plus.
+
+     Only on Today. Every other tab still perches into the wordmark, because on those the
+     mark IS the wordmark's and there is no disc.
+
+     The chip goes hidden rather than staying put: the score is behind the sticky header when
+     this fires, so you cannot see it go, and leaving it there would mean two marks the
+     moment you scrolled back up mid-flight. */
+  const chip = todayChipEl();
+  if(chip) chip.style.visibility = want ? 'hidden' : '';
+  eyesHome = 'score';
+  dropMarkToDisc(want, r);
+}
+/* THE DROP.
+
+   One element the whole way: the disc wears the real sphere (fabMarkCube is a mount, so
+   mcPaint has drawn it at the same rotation as the one it left) and swaps to the cream plus
+   as it lands. It flies from wherever the score chip is \u2014 measured, not assumed, because
+   the band moves with the layout \u2014 to its own resting box.
+
+   The morph is deliberately late. Swapping at the halfway point reads as two objects passing
+   each other; held to the last third it reads as one thing arriving and opening. */
+/* WHERE THE DISC STANDS WHEN NOTHING IS FLYING.
+
+   The drop is the only thing that brings it down, so anything that stops the drop happening
+   has to leave the disc standing on its own or Today loses its log button entirely. Three
+   cases, all of them real:
+
+     no chip on the band   a day with no score yet, or the face picker open. There is no mark
+                           to drop, so the disc is simply there.
+     nothing to scroll     a rest day short enough that the score never goes behind the
+                           header. updateEyePerch would never fire and the button would never
+                           arrive.
+     stayVisible off       the perch is a setting, and with it off updateEyePerch returns at
+                           its first line.
+
+   Otherwise the disc follows the perch state: away while the mark is up on the band, down
+   once the mark has fallen. */
+function syncLogDisc(){
+  const disc = document.getElementById('logFab');
+  const today = document.getElementById('panel-insights');
+  if(!disc || !today || !today.classList.contains('active')) return;
+  if(markDropAnim) return;                       // a flight owns the classes while it runs
+  const scrollable = document.documentElement.scrollHeight > window.innerHeight + 24;
+  const canDrop = !!todayChipEl() && scrollable && anim('stayVisible');
+  disc.classList.remove('is-mark');
+  disc.classList.toggle('is-away', canDrop && !eyeCtx.perched);
+}
+let markDropAnim = null, markDropTimer = null;
+const MARK_DROP_MORPH = 0.62;   // of the flight, before the plus starts coming up
+function dropMarkToDisc(down, fromRect){
+  const disc = document.getElementById('logFab');
+  if(!disc) return;
+  clearTimeout(markDropTimer);
+  if(markDropAnim){ try{ markDropAnim.cancel(); }catch(e){} markDropAnim = null; }
+
+  // Measured with the disc laid out and un-faded, or the resting box is the wrong one.
+  disc.classList.remove('is-away');
+  const home = disc.getBoundingClientRect();
+  const dx = (fromRect.left + fromRect.width / 2) - (home.left + home.width / 2);
+  const dy = (fromRect.top + fromRect.height / 2) - (home.top + home.height / 2);
+
+  const settle = ()=>{
+    disc.style.transform = '';
+    disc.classList.toggle('is-mark', !down);
+    disc.classList.toggle('is-away', !down);
+    drawMarkCube();
+  };
+  if(eyeMotionOff() || !anim('stayVisible')){ settle(); return; }
+
+  disc.classList.add('is-mark');
+  drawMarkCube();                      // paint the sphere before it is on screen
+  if(down) disc.classList.remove('is-away');
+  const from = down ? `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)` : 'translate(0,0)';
+  const to   = down ? 'translate(0,0)' : `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
+  markDropAnim = disc.animate([{ transform:from }, { transform:to }],
+    { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.2,0.9,0.3,1)', fill:'both' });
+  if(down){
+    // opens as a plus over the last third of the fall
+    markDropTimer = setTimeout(()=>{ disc.classList.remove('is-mark'); },
+      EYE_FLIGHT_MS * MARK_DROP_MORPH);
+    markDropAnim.finished.then(()=>{ disc.style.transform = ''; markDropAnim = null; }).catch(()=>{});
+  } else {
+    // going back up it is a mark the whole way, and gone once it is home
+    markDropAnim.finished.then(()=>{
+      disc.classList.add('is-away');
+      disc.style.transform = '';
+      markDropAnim = null;
+    }).catch(()=>{});
+  }
 }
 // Beside the tab's name, on the one row the collapsed header still has. Measured off the
 // text itself rather than the block, which is full width and would put the mark off-screen.
@@ -10374,7 +10491,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.482';
+const APP_VERSION = '2026.09.10.483';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10581,6 +10698,7 @@ const APP_NOTES = {
   '2026.09.10.480': 'Different reps and weights per set: the row says back what it read, set by set.',
   '2026.09.10.481': 'The log button is a disc at the bottom of Today, where your thumb already is.',
   '2026.09.10.482': 'The log button is the size of the mark, and sits on the page without a ring around it.',
+  '2026.09.10.483': 'On Today the mark no longer hides in the masthead \u2014 it falls to the bottom of the page and opens as the log button.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -25454,6 +25572,7 @@ async function applyTodayStage(){
   // A score, its trace and its block position are all readings of data. Until one morning
   // has been logged there is no reading to report, and three pieces of chrome saying so is
   // worse than saying nothing — the first score means more arriving into an empty space.
+  syncLogDisc();
   const seen = await hasAnyRecoveryEntry();
   const gauge = panel.querySelector('.gauge-wrap');
   const trace = document.getElementById('scoreTrace');
