@@ -7090,6 +7090,24 @@ const MC_LIT_R = 1.534, MC_LIT_DY = 0.922, MC_RAD = Math.PI / 180;
    They are much smaller and much closer together than the pair the cube wore — that pair was
    0.15 wide, 0.45 tall and 0.25 apart. */
 const MC_EYE_W = 0.099, MC_EYE_H = 0.176, MC_EYE_GAP = 0.082;
+/* THE RIM, AS FRACTIONS OF THE DIAMETER.
+   Weight was 0.037 — a hairline that held the silhouette and said nothing else. At 0.06 it
+   is 2.4px on a 40px mark and 1.4px on the 24px perch: still a rim rather than a second
+   shape (past about 0.10 it stops reading as an edge on a sphere), and now thick enough that
+   moving it off centre reads as weight shifting to one side instead of the thin side falling
+   off the sphere altogether.
+
+   THROW is how far it goes, and it goes OPPOSITE the gaze — the eyes travel left, the ring
+   settles right, so the ring reads as sitting behind the sphere rather than painted on it.
+   The two axes are not equal: the vertical is about 0.59 of the horizontal, which is the
+   ratio that stops the effect turning into the mark nodding its own outline.
+
+   These are twice the fractions the artifact's Parallax used, because gx and gy here only
+   ever reach ±0.5 — the idle loop aims at (random*2-1)*0.5 and EASES toward it, where the
+   artifact's demo loop swept the full ±1. At the app's real range this puts the ring 1.12px
+   off centre at 40px against the eyes' own 1.68px, and 0.67px at the 24px perch. Read them
+   as the ceiling, not as what is usually on screen. */
+const MC_RIM_W = 0.06, MC_RIM_THROW_X = 0.056, MC_RIM_THROW_Y = 0.033;
 const mcState = { rx:0, ry:0, rz:0, gx:0, gy:0, aimGx:0, aimGy:0, gazeAt:0,
                   blink:1, blinkAt:0, raf:null, born:0, step:null, queue:[], nextAt:0,
                   sx:1, sy:1, ty:0, body:null, bodyAt:0 };
@@ -7231,13 +7249,21 @@ function mcPaint(m){
        that is 8px clear of the sphere, which reads as a halo rather than an outline.
 
        Struck OUTSIDE the fill (r + t/2) so it adds an edge instead of eating into the
-       silhouette. The svg is sized s*1.08, which leaves s*0.04 of margin \u2014 1.6px at 40,
-       enough for this \u2014 and .mark-cube is overflow:visible either way.
+       silhouette. At 0.06 plus a full throw it reaches 0.588s from the centre where the svg's
+       box is 0.54s \u2014 it overhangs the box by 2px at 40 and the 40px HOST by 3.5px, and
+       paints anyway because .mark-cube is overflow:visible. Growing the box instead would
+       drag DOCK_DRAW and the chip's whole placement beside the numeral with it, for 2px of
+       margin nothing is contending for.
 
        Not in the line branch above: that IS an outline already, and ringing it would draw
        the same circle twice. */
-    const rim = Math.max(0.75, s * 0.037);
-    out += `<circle cx="${c}" cy="${c}" r="${(h + rim/2).toFixed(2)}" fill="none"`
+    const rim = Math.max(0.75, s * MC_RIM_W);
+    /* OFF REGISTER, AGAINST THE GAZE. Written from mcState in the same pass that positions
+       the eyes, so there is nothing to keep in step and no second thing to animate — the
+       mark already repaints on every gaze change and every blink. */
+    const rox = -mcState.gx * s * MC_RIM_THROW_X, roy = -mcState.gy * s * MC_RIM_THROW_Y;
+    out += `<circle cx="${(c + rox).toFixed(2)}" cy="${(c + roy).toFixed(2)}"`
+         + ` r="${(h + rim/2).toFixed(2)}" fill="none"`
          + ` style="stroke:${m.rim || 'var(--mark-ink)'}" stroke-width="${rim.toFixed(2)}"/>`;
   }
   /* Eyes on the front AND the back, so a half turn lands on a face rather than on nothing.
@@ -10570,7 +10596,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.488';
+const APP_VERSION = '2026.09.11.489';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10783,6 +10809,7 @@ const APP_NOTES = {
   '2026.09.10.486': 'The log button is a proper size \u2014 and the mark stays mark-sized on the way down to it.',
   '2026.09.10.487': 'The mark flies on nothing again \u2014 the cream plate behind it is gone.',
   '2026.09.10.488': 'The mark carries a hairline, everywhere it is drawn.',
+  '2026.09.11.489': 'The mark\u2019s edge has weight, and sits off register against wherever it is looking.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
