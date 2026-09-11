@@ -696,7 +696,16 @@
     border-radius:50%; padding:0 0 2px; line-height:1;
     font-family:var(--mono); font-size:24px; font-weight:var(--fw-medium); letter-spacing:0;
     background:var(--bg); color:var(--ground); border:0; box-shadow:none; cursor:pointer;
-    transition:background-color 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+    transition:background-color 200ms cubic-bezier(0.2,0.7,0.2,1); }
+  /* The flight is a transition on an inline transform, not a WAAPI animation with fill:both.
+     fill:both leaves its final transform applied to the element for ever, and the next flight
+     measures the disc’s resting box THROUGH it \u2014 so every trip after the first one
+     computed its distance from a box that was not where the disc actually rests. An inline
+     transform is the truth, and clearing it clears it. --drop-ms is written from
+     EYE_FLIGHT_MS so the two cannot drift. */
+  body.tab-insights #logFab.is-flying{
+    transition:transform var(--drop-ms,640ms) cubic-bezier(0.2,0.9,0.3,1),
+               background-color 200ms cubic-bezier(0.2,0.7,0.2,1); }
   /* THE DISC IS THE MARK, MID-FLIGHT.
 
      Not a picture of it \u2014 fabMarkCube is a real mount in mcMounts, so mcPaint draws the same
@@ -706,9 +715,9 @@
      the bottom is the thing that left the score. */
   #logFab .fab-sphere{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     opacity:0; pointer-events:none; overflow:visible;
-    transition:opacity 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+    transition:opacity 200ms cubic-bezier(0.2,0.7,0.2,1); }
   #logFab .fab-plus{ position:relative; opacity:1;
-    transition:opacity 200ms var(--ease-eye, cubic-bezier(0.2,0.7,0.2,1)); }
+    transition:opacity 200ms cubic-bezier(0.2,0.7,0.2,1); }
   #logFab.is-mark{ background-color:transparent; }
   #logFab.is-mark .fab-sphere{ opacity:1; }
   #logFab.is-mark .fab-plus{ opacity:0; }
@@ -8504,10 +8513,8 @@ function updateEyePerch(){
      The chip goes hidden rather than staying put: the score is behind the sticky header when
      this fires, so you cannot see it go, and leaving it there would mean two marks the
      moment you scrolled back up mid-flight. */
-  const chip = todayChipEl();
-  if(chip) chip.style.visibility = want ? 'hidden' : '';
   eyesHome = 'score';
-  dropMarkToDisc(want, r);
+  dropMarkToDisc(want);
 }
 /* THE DROP.
 
@@ -8538,55 +8545,86 @@ function syncLogDisc(){
   const disc = document.getElementById('logFab');
   const today = document.getElementById('panel-insights');
   if(!disc || !today || !today.classList.contains('active')) return;
-  if(markDropAnim) return;                       // a flight owns the classes while it runs
+  if(markDropEnd) return;                        // a flight owns the classes while it runs
   const scrollable = document.documentElement.scrollHeight > window.innerHeight + 24;
   const canDrop = !!todayChipEl() && scrollable && anim('stayVisible');
   disc.classList.remove('is-mark');
   disc.classList.toggle('is-away', canDrop && !eyeCtx.perched);
 }
-let markDropAnim = null, markDropTimer = null;
+let markDropTimer = null, markDropEnd = null, markDropGen = 0;
 const MARK_DROP_MORPH = 0.62;   // of the flight, before the plus starts coming up
-function dropMarkToDisc(down, fromRect){
-  const disc = document.getElementById('logFab');
-  if(!disc) return;
-  clearTimeout(markDropTimer);
-  if(markDropAnim){ try{ markDropAnim.cancel(); }catch(e){} markDropAnim = null; }
 
-  // Measured with the disc laid out and un-faded, or the resting box is the wrong one.
-  disc.classList.remove('is-away');
-  const home = disc.getBoundingClientRect();
-  const dx = (fromRect.left + fromRect.width / 2) - (home.left + home.width / 2);
-  const dy = (fromRect.top + fromRect.height / 2) - (home.top + home.height / 2);
+/* THE OTHER END OF THE FLIGHT IS THE CHIP, NOT #scoreEyes.
+
+   updateEyePerch measures #scoreEyes to decide WHETHER the mark should go, and that is the
+   right element for the question: it is the anchor inside the score stack and it is what the
+   threshold has always been read off. It is the wrong element to fly to. It is hidden
+   \u2014 land() sets visibility:hidden on it \u2014 and it sits in the gauge, while the mark you can
+   actually see is #todayFaceDock down on the band. Measured at the top of Today: the score
+   anchor is at y48 and the chip at y227. The first build flew to y48, which is a spot with
+   nothing in it, and then vanished.
+
+   The chip is hidden and restored HERE rather than by the caller, and on the way up it is
+   restored when the disc lands rather than when it sets off. Restoring it at the start meant
+   the chip was sitting on the band for the whole 640ms while the sphere was still flying up
+   to it: two marks on screen, which is exactly what it looked like. */
+function dropMarkToDisc(down){
+  const disc = document.getElementById('logFab');
+  const chip = todayChipEl();
+  if(!disc) return;
+  const gen = ++markDropGen;
+  clearTimeout(markDropTimer);
+  if(markDropEnd){ disc.removeEventListener('transitionend', markDropEnd); markDropEnd = null; }
 
   const settle = ()=>{
+    disc.classList.remove('is-flying', 'is-mark');
     disc.style.transform = '';
-    disc.classList.toggle('is-mark', !down);
     disc.classList.toggle('is-away', !down);
+    if(chip) chip.style.visibility = down ? 'hidden' : '';
     drawMarkCube();
   };
-  if(eyeMotionOff() || !anim('stayVisible')){ settle(); return; }
+  if(eyeMotionOff() || !anim('stayVisible') || !chip){ settle(); return; }
 
+  // Measured with nothing transformed and nothing faded, or the resting box is the wrong box.
+  disc.classList.remove('is-flying', 'is-away');
+  disc.style.transform = '';
+  const home = disc.getBoundingClientRect();
+  const away = chip.getBoundingClientRect();
+  const dx = (away.left + away.width / 2) - (home.left + home.width / 2);
+  const dy = (away.top + away.height / 2) - (home.top + home.height / 2);
+  const off = `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
+
+  disc.style.setProperty('--drop-ms', EYE_FLIGHT_MS + 'ms');
   disc.classList.add('is-mark');
   drawMarkCube();                      // paint the sphere before it is on screen
-  if(down) disc.classList.remove('is-away');
-  const from = down ? `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)` : 'translate(0,0)';
-  const to   = down ? 'translate(0,0)' : `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
-  markDropAnim = disc.animate([{ transform:from }, { transform:to }],
-    { duration: EYE_FLIGHT_MS, easing:'cubic-bezier(0.2,0.9,0.3,1)', fill:'both' });
+  chip.style.visibility = 'hidden';    // one mark from the first frame, either direction
+  disc.style.transform = down ? off : '';
+  void disc.offsetWidth;               // commit the start frame before the transition exists
+  disc.classList.add('is-flying');
+  disc.style.transform = down ? '' : off;
+
   if(down){
-    // opens as a plus over the last third of the fall
-    markDropTimer = setTimeout(()=>{ disc.classList.remove('is-mark'); },
-      EYE_FLIGHT_MS * MARK_DROP_MORPH);
-    markDropAnim.finished.then(()=>{ disc.style.transform = ''; markDropAnim = null; }).catch(()=>{});
-  } else {
-    // going back up it is a mark the whole way, and gone once it is home
-    markDropAnim.finished.then(()=>{
-      disc.classList.add('is-away');
-      disc.style.transform = '';
-      markDropAnim = null;
-    }).catch(()=>{});
+    markDropTimer = setTimeout(()=>{
+      if(gen === markDropGen) disc.classList.remove('is-mark');
+    }, EYE_FLIGHT_MS * MARK_DROP_MORPH);
   }
+  const land = ()=>{
+    if(gen !== markDropGen) return;
+    disc.removeEventListener('transitionend', markDropEnd);
+    markDropEnd = null;
+    clearTimeout(markDropTimer);
+    disc.classList.remove('is-flying');   // before the transform is cleared, or it animates back
+    disc.style.transform = '';
+    if(down){ disc.classList.remove('is-mark'); }
+    else { disc.classList.add('is-away'); if(chip) chip.style.visibility = ''; }
+  };
+  markDropEnd = e=>{ if(e.target === disc && e.propertyName === 'transform') land(); };
+  disc.addEventListener('transitionend', markDropEnd);
+  // transitionend does not fire for a transition that never started (a display change, a
+  // tab switch mid-flight), and a mark stuck in transit is worse than one that arrives late.
+  markDropTimer = setTimeout(land, EYE_FLIGHT_MS + 120);
 }
+
 // Beside the tab's name, on the one row the collapsed header still has. Measured off the
 // text itself rather than the block, which is full width and would put the mark off-screen.
 /* 0.6 of the 40px header form is 24, which is the mark's floor and the reason it is not 0.5.
@@ -10491,7 +10529,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.483';
+const APP_VERSION = '2026.09.10.484';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10699,6 +10737,7 @@ const APP_NOTES = {
   '2026.09.10.481': 'The log button is a disc at the bottom of Today, where your thumb already is.',
   '2026.09.10.482': 'The log button is the size of the mark, and sits on the page without a ring around it.',
   '2026.09.10.483': 'On Today the mark no longer hides in the masthead \u2014 it falls to the bottom of the page and opens as the log button.',
+  '2026.09.10.484': 'The mark flies to the mark, one at a time \u2014 the drop lands where it should now.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
