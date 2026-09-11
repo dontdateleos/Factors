@@ -7403,18 +7403,31 @@ function settleEyes(){
   // The chip is where the mark lives on Today, so no chip means no home down here and the
   // mark stays in the wordmark. Scrolled up behind the header is the same answer.
   const chip = todayChipEl();
+  /* eyeCtx.perched used to mean one thing on Today: the mark is up in the masthead because
+     the score has gone behind it. It means the opposite now \u2014 the mark has fallen to the
+     disc at the foot of the page \u2014 and this function was still reading it the old way, so
+     every time it ran with the disc down it put the black mark back in the wordmark. Scroll
+     up after that and it was still there, beside the chip: two marks.
+
+     Dropped and docked are both "not in the header" as far as the masthead is concerned.
+     They differ only in which of the two things down the page is holding it. */
+  const dropped = today.classList.contains('active') && eyeCtx.perched;
   const onToday = today.classList.contains('active') && !eyeCtx.perched
                   && todayIsSetUp && todayScoreShown && (!!chip || facePickerOpen());
-  eyesHome = onToday ? 'score' : 'header';
+  const awayFromHeader = onToday || dropped;
+  eyesHome = awayFromHeader ? 'score' : 'header';
   applyEyeForm(header, 'header');
   // Never again. The perch is measured against and it anchors the trace load; it is not a
   // place the mark sits.
   score.style.visibility = 'hidden';
-  header.style.visibility = onToday ? 'hidden' : 'visible';
+  header.style.visibility = awayFromHeader ? 'hidden' : 'visible';
   eyeAnswerDocked = onToday;
-  if(chip){ chip.style.visibility = ''; chip.classList.remove('landing'); }
+  // The chip stays hidden while the disc has the mark, or restoring it here is the same two
+  // marks by another route.
+  if(chip){ chip.style.visibility = dropped ? 'hidden' : ''; chip.classList.remove('landing'); }
   startEyeIdle();
   startMarkCube();
+  if(dropped) return;                       // the disc has it; nothing here to breathe
   if(onToday){ if(chipEyes()) scheduleChipIdle(); }
   else scheduleIdle();
 }
@@ -10529,7 +10542,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.10.484';
+const APP_VERSION = '2026.09.10.485';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10738,6 +10751,7 @@ const APP_NOTES = {
   '2026.09.10.482': 'The log button is the size of the mark, and sits on the page without a ring around it.',
   '2026.09.10.483': 'On Today the mark no longer hides in the masthead \u2014 it falls to the bottom of the page and opens as the log button.',
   '2026.09.10.484': 'The mark flies to the mark, one at a time \u2014 the drop lands where it should now.',
+  '2026.09.10.485': 'The black mark stays out of the masthead on Today, however you got there.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
