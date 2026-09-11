@@ -7002,8 +7002,9 @@ function moveEyes(dest, from, snap){
   }
 
   /* Hidden NOW rather than when the tear starts. Everything below waits for the header to
-     finish settling, and the panel paints the band inside that wait: measured, the chip was
-     on screen whole from 50ms and did not tear until 176. */
+     finish settling, and the panel paints the band inside that wait — measured, the chip
+     was on screen whole from 50ms, well before the gesture that is supposed to bring it
+     there had run at all. */
   const arriving = dest === 'score' ? chip : header;
   eyeTripPending = true;
   arriving.style.visibility = 'hidden';
@@ -7012,32 +7013,41 @@ function moveEyes(dest, from, snap){
     // Bail if another tab switch overtook this one while we were waiting.
     if(eyesHome !== dest){ eyeTripPending = false; return; }
 
-    const away = dest === 'score' ? header : chip;
     const back = arriving;
     const px = EYE_ANIM.tearOnFlight.px;
 
-    away.style.visibility = 'visible';
-    back.style.visibility = 'hidden';
+    /* THE MASTHEAD IS NOT A STAGE FOR A TRIP THAT ENDS ON TODAY.
+
+       This used to open by showing the black header mark, tearing it there for markCutAt()
+       — 176ms — and only then cutting to the chip. Every arrival on Today therefore put the
+       wordmark's mark in the masthead for a fifth of a second, which is the exact thing .483
+       took out of this page: come back to Today from any other tab and the coloured chip you
+       left was replaced by a black mark up in the header before it reappeared. Reproducible
+       on .488 as well, so it is not the rim's doing — measured at 140-150ms of a visible
+       header mark on Today, four times out of four tab returns.
+
+       It read as a gesture in the code and as a glitch on screen, because the staging half
+       of the tear only ever ran in ONE direction. Leaving Today is a cut (dest === 'header'
+       returns above), so `away` here was always the header and `back` always the chip: the
+       branch existed solely to light the masthead on the way in.
+
+       So the arrival is now the whole gesture. The chip comes up on the first frame and
+       tears there, which is the half that was ever worth watching — it says the mark got
+       here — and the masthead is never lit on this page at all. The mark is still never on
+       neither: `back` is shown in the same statement that hides `away`. */
+    header.style.visibility = 'hidden';
+    back.style.visibility = 'visible';
 
     // Booked before anything below runs, so a throw in here cannot strand the mark.
-    eyeFlightTimer = setTimeout(land, markCutAt() + markTearMs());
+    eyeFlightTimer = setTimeout(land, markTearMs());
 
-    playGlitch(away, 'markGlitch', px + 2, MARK_BLEED);
-
+    playGlitch(back, 'markGlitch', px, MARK_BLEED);
+    /* The settle rides over the tail of the arriving tear rather than queueing behind it:
+       they write different properties, so the square is still breaking up while it is
+       already coming down. */
     setTimeout(()=>{
-      if(eyesHome !== dest) return;
-      // The cut. Both on one frame, so the mark is never on neither.
-      away.style.visibility = 'hidden';
-      back.style.visibility = 'visible';
-      playGlitch(back, 'markGlitch', px, MARK_BLEED);
-      /* The settle rides over the tail of the arriving tear rather than queueing behind it:
-         they write different properties, so the square is still breaking up while it is
-         already coming down. Only on the way here -- the wordmark end has its own pop as the
-         plate closes, and two arrivals playing over each other is one too many. */
-      if(dest === 'score') setTimeout(()=>{
-        if(eyesHome === dest) settleSquash(back);
-      }, MARK_SETTLE_AT);
-    }, markCutAt());
+      if(eyesHome === dest) settleSquash(back);
+    }, MARK_SETTLE_AT);
   });
 }
 
@@ -10596,7 +10606,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.11.489';
+const APP_VERSION = '2026.09.11.490';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10810,6 +10820,7 @@ const APP_NOTES = {
   '2026.09.10.487': 'The mark flies on nothing again \u2014 the cream plate behind it is gone.',
   '2026.09.10.488': 'The mark carries a hairline, everywhere it is drawn.',
   '2026.09.11.489': 'The mark\u2019s edge has weight, and sits off register against wherever it is looking.',
+  '2026.09.11.490': 'Coming back to Today no longer flashes the black mark in the masthead before the coloured one returns.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
