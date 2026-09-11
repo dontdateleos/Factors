@@ -1727,6 +1727,21 @@
   /* The score itself is the disclosure now, so the label carries the chevron. */
   .score-num.score-waiting{ opacity:0.35; }
   .score-label-row{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px; }
+  /* WHILE THE FIVE ARE OPEN, THE NOTE COMES OFF THE CENTRE LINE.
+
+     The column of faces is absolutely positioned against the band's right gutter, and this
+     note is centred under the number — so the two meet in the middle-right of the band. At
+     16px balls the column stopped just short and the overlap was 5px of chevron, which
+     nobody had noticed. At 26 it runs 49px under the note at 320, and the note is a BUTTON:
+     role, tabindex, aria-expanded, a chevron that turns. A ball sitting on a control is not
+     a crowding problem.
+
+     Un-centring it is the cheapest thing that works. .gauge-wrap centres its children with
+     align-items, so one align-self takes this row to the gutter and leaves the number, the
+     dial and everything else exactly where they are — 65px of daylight at 390 and 9 at 320,
+     with the note still on one line and the five still carrying their words. It re-centres
+     the moment you answer, because the column is gone by then. */
+  .today-open:has(#todayFaceRow[data-asking="1"]) .gauge-wrap .score-label-row{ align-self:flex-start; }
   .score-label-row .score-label{ margin-top:0; }
   .score-label-row .conf-chevron{ transition:transform 0.15s; }
   .score-label-row[aria-expanded="true"] .conf-chevron{ transform:rotate(180deg); }
@@ -2629,6 +2644,15 @@
      needs, because every row under it now says a word. */
   #todayFaceRow .subj-faces{ flex-direction:column; gap:3px; }
   #todayFaceRow[data-asking="1"] .trace-cap{ font-size:8.5px; letter-spacing:0.02em; }
+  /* Balls with no words beside them: the column is 26 wide and the question does not fit in
+     it. Let it out of the clip and run left over empty field, right-aligned so it still ends
+     on the column's own edge. Safe here in a way it is not on the trace: the width this row
+     is laid out at is written INLINE by layoutBandColumn, so an overflowing caption cannot
+     become the column the way it once did under #scoreTrace. */
+  /* The column keeps the caption's width and the balls hang at the right of it, which is
+     the only edge that has to clear anything. */
+  #todayFaceRow.faces-bare .subj-faces{ align-items:flex-end; }
+  #todayFaceRow.faces-bare .trace-cap{ white-space:nowrap; }
   #todayFaceRow .subj-face{ height:15px; flex:none; justify-content:flex-start;
     padding-left:4px; gap:5px; border-width:1px; }
   /* Scaled on the drawing rather than by changing FACE_SCALE, which the morning sheet and the
@@ -3162,17 +3186,32 @@
      Tapping the chip beside the score reopens the five to change an answer you already gave.
      That is a control, not the app asking — so it keeps the mono, and the balls stand on each
      other in a column with the word beside each, which is the scale itself made into an
-     object. gap:0 is the point: they touch, so it reads as a stack rather than a list. */
-  #todayFaceRow:not(.face-row-flow) .subj-faces{ gap:0; }
-  #todayFaceRow:not(.face-row-flow) .subj-face{ --ball:16px; height:16px; gap:7px;
+     object.
+
+     26, NOT 16. This was 16px on a 16px pitch with the target pinned to the drawing, and the
+     comment that used to sit here said the quiet part out loud: under the 24 this app holds
+     to everywhere else, and the price of a column that fits beside the number. It was the
+     wrong price. Two things were being bought with it — a short column, and five balls small
+     enough that the five eye shapes read as very nearly one shape, which is the whole scale
+     made illegible to save 58 pixels.
+
+     26 is the base --ball the rest of the app already uses, so the picker stops being a third
+     size next to the morning sheet's 30 and the default 26. 2px apart rather than touching:
+     at 16 they were a stack, at 26 they are five objects and the hairline of ground between
+     them is what says so. Pitch 28, target 28x28, column 138 — the band grows 58px and
+     everything under it on Today moves down by that. */
+  #todayFaceRow:not(.face-row-flow) .subj-faces{ gap:2px; }
+  #todayFaceRow:not(.face-row-flow) .subj-face{ --ball:26px; height:26px; gap:9px;
     border:0; box-shadow:none; background:transparent; padding-left:0; }
-  #todayFaceRow:not(.face-row-flow) .subj-face .eyes{ transform:scale(0.42); }
+  /* The drawing is 0.415 of the ball at every size the app draws it — 30/0.78 and 16/0.42
+     both land there — so 26 asks for 0.68 and the mark stays the same mark. */
+  #todayFaceRow:not(.face-row-flow) .subj-face .eyes{ transform:scale(0.68); }
   #todayFaceRow:not(.face-row-flow) .subj-faces.picked .subj-face:not(.on) .face-ball{ opacity:0.4; }
-  /* Stacked with no gap, the rows are their own neighbours, so the expanded target the base
-     class paints would take taps from the ball above it. 16px is under the 24 this app holds
-     to and is the price of a column that fits beside the number; sideways it is free, so the
-     target keeps the full width of the row. */
-  #todayFaceRow:not(.face-row-flow) .subj-face::after{ top:0; bottom:0; }
+  /* The rows are their own neighbours, so the expanded target the base class paints would
+     take taps from the ball above it. 1px each way is the half-gap and no further: 28x28 of
+     target on a 26px drawing, clear of the 24 this app holds to, with nothing overlapping.
+     Sideways it is free, so the target keeps the full width of the row. */
+  #todayFaceRow:not(.face-row-flow) .subj-face::after{ top:-1px; bottom:-1px; }
   /* The sheet is a --reverse-bg pocket, so the chart's own hairlines and tick text are read
      against the dark set the pocket declares rather than the page behind it. Nothing to set
      here but the room: drawTrendChart takes its colours from tokens that already follow. */
@@ -10606,7 +10645,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.11.490';
+const APP_VERSION = '2026.09.11.491';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10821,6 +10860,7 @@ const APP_NOTES = {
   '2026.09.10.488': 'The mark carries a hairline, everywhere it is drawn.',
   '2026.09.11.489': 'The mark\u2019s edge has weight, and sits off register against wherever it is looking.',
   '2026.09.11.490': 'Coming back to Today no longer flashes the black mark in the masthead before the coloured one returns.',
+  '2026.09.11.491': 'The five faces you rate the day with are big enough to hit \u2014 and big enough to tell apart.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -12873,6 +12913,10 @@ function paintTodayFaces(){
    middle is empty space between the eyes and the label. Both are laid out here so the two
    can never drift apart, and so the faces still land when the trace has nothing to draw. */
 const FACE_TRACE_GAP = 9;
+/* How close the score's note may come to the column before the column gives up its words.
+   6 rather than 9: at 390 the note ends 285 and the column starts 294, so a larger figure
+   would drop the labels on the width they fit perfectly well at. */
+const FACE_NOTE_GAP = 6;
 let dockRelayout = null, lastDockEdge = null;
 function layoutBandColumn(traceShown){
   const row = document.getElementById('todayFaceRow');
@@ -12881,12 +12925,14 @@ function layoutBandColumn(traceShown){
   const band = document.querySelector('.today-open');
   const num = document.getElementById('overallScoreOut');
   if(!row || !band || !num) return;
-  const hideAll = ()=>{ row.style.display = 'none'; if(dock) dock.style.display = 'none'; };
+  const hideAll = ()=>{ row.style.display = 'none'; if(dock) dock.style.display = 'none';
+                        band.style.minHeight = ''; };
   // Before the first morning is logged the gauge is taken away and the band collapses. The
   // trace and the chip go with it — they are readings — but the row has been rehomed to
   // #todayFaceIntro by applyTodayStage and is laid out by the page, not by this. Measuring
   // it against a number that is not on screen is what used to take it away with them.
-  if(row.classList.contains('face-row-flow')){ if(dock) dock.style.display = 'none'; return; }
+  if(row.classList.contains('face-row-flow')){ if(dock) dock.style.display = 'none';
+    band.style.minHeight = ''; return; }   // rehomed into the page; the band reserves nothing
   const gauge = band.querySelector('.gauge-wrap');
   if(gauge && gauge.style.display === 'none'){ hideAll(); return; }
   const bandRect = band.getBoundingClientRect(), numRect = num.getBoundingClientRect();
@@ -12954,6 +13000,79 @@ function layoutBandColumn(traceShown){
   const top = Math.round(numRect.top - bandRect.top + (numRect.height - groupH) / 2);
   if(asking) row.style.top = top + 'px';
   if(traceH) host.style.top = (top + faceH + (faceH ? FACE_TRACE_GAP : 0)) + 'px';
+
+  /* THE BAND HAS TO MAKE ROOM FOR IT.
+
+     The column is position:absolute, so it cannot push the band open the way flow content
+     would. At 16px balls that never showed: five of them plus the trace measured shorter
+     than the gauge the band was already sized for, so the column fitted inside a height it
+     had no part in setting. At 26 the column alone is 138 against a 164 band, and centring a
+     138 group on a 54px numeral puts its bottom 8px past the band's edge — which sliced the
+     last ball, "raring", clean in half.
+
+     So reserve what the group actually measures. Not a constant: the group is the faces plus
+     the trace plus the gap, any of which can be absent, and the top is centred on a numeral
+     that moves with its own digit count. min-height rather than height, and cleared the
+     moment the row is not asking, so an answered band goes back to being sized by its gauge.
+
+     It converges rather than loops: growing the band adds height BELOW the numeral, so
+     numRect.top - bandRect.top does not move, so `top` comes out the same on the next pass. */
+  if(asking){
+    const pad = parseFloat(getComputedStyle(band).paddingBottom) || 0;
+    band.style.minHeight = Math.max(0, Math.round(top + groupH + pad)) + 'px';
+  } else {
+    band.style.minHeight = '';
+  }
+
+  /* AND THE WORDS GO WHEN THERE IS NOT ROOM FOR THEM.
+
+     The column is centred on the numeral, so at 138 it hangs 42px below it — which is where
+     the score's own note sits, and that note is a BUTTON: tap target, chevron, aria-expanded.
+     At 390 the note ends 9px clear of the column and nothing happens. At 320 it ends 26px
+     inside it, and the "good" ball was sitting on top of the chevron. At 80 tall the column
+     stopped above the note and none of this was reachable.
+
+     So: measure the two, and when they would meet, give up the WORDS rather than the balls.
+     The column narrows to the balls alone — 26 wide instead of 74 — which at 320 puts it 22px
+     clear. What is lost is the five labels; what is kept is five tappable 28px targets in the
+     scale's own colours, in order, each still carrying its word to a screen reader. The chip
+     beside the score already drops its word by the same rule when the digits crowd it.
+
+     Measured on the top row's own rect rather than computed from the gap and the font: the
+     note's width depends on what it says today and on a font that may not have loaded. */
+  if(asking){
+    const lab = band.querySelector('.score-label-row');
+    const words = row.querySelectorAll('.face-word');
+    let showWords = true;
+    if(lab && words.length){
+      const lr = lab.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      const ball = row.querySelector('.face-ball');
+      const ballW = ball ? ball.getBoundingClientRect().width : 0;
+      // Only the rows the note actually reaches matter; a note above or below it is not in the way.
+      if(lr.bottom > rr.top && lr.top < rr.bottom && lr.right > rr.left - FACE_NOTE_GAP){
+        showWords = false;
+        /* Wide enough for the QUESTION, not just the balls. The caption sits at the top of
+           the column and the note it is dodging is 100px further down the band, so the two
+           can never meet however wide this gets — where five 26px balls hanging at the
+           right of that width absolutely can clear it. Narrowing to the balls alone was
+           what turned "How are you?" into "HOW...". */
+        const cap = row.querySelector('.trace-cap');
+        const need = Math.max(ballW, cap ? cap.scrollWidth : 0);
+        if(need) row.style.width = Math.ceil(need) + 'px';
+      }
+    }
+    words.forEach(w=>{ w.style.display = showWords ? '' : 'none'; });
+    /* The caption is clipped to the column's width on purpose — a caption wider than the
+       marks under it used to BECOME the column and drag the trace out from under the chip.
+       At 26px of column that turns "How are you?" into "HOW...", which is the one line here
+       that has to be readable. So when the words go, the caption is let out of the clip and
+       hangs to the left over empty field instead; it still cannot widen the column, because
+       the width is set inline above and the caption is absolutely positioned out of flow. */
+    row.classList.toggle('faces-bare', !showWords);
+  } else {
+    row.querySelectorAll('.face-word').forEach(w=>{ w.style.display = ''; });
+    row.classList.remove('faces-bare');
+  }
 
   // The digits are still rolling when this runs, so the edge measured above belongs to a
   // counter mid-count. Another pass once it has landed — and it has to go through
