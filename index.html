@@ -2819,8 +2819,10 @@
      days the app decided to ask — which is a quiz however politely it is worded. Here it is
      simply present: the first thing on the page you open every morning, one tap, saved on
      the tap. Nothing asks, and nothing is hidden on the days it does not ask.
-     Colour is the second axis, because five faces alone are five shades of the same idea and
-     the differences between EYE_STATES 2, 3 and 4 are a few pixels of eyelid.
+     Colour is the second axis. It used to be the ONLY one that worked, because the five eye
+     states differed by a few pixels of eyelid and nothing else; they are five different
+     silhouettes now — see the note above EYE_STATES — so the shape and the colour say the
+     same thing twice, which is what the row needed and did not have.
 
      IT IS ITS OWN SCALE NOW. It used to be built from colours the app already owned, and the
      note here said so approvingly — --bad, --block-orange, --block-yellow, --accent, with
@@ -6222,12 +6224,31 @@ function anim(k){
    This table is not only the five buttons. eyeStateForScore picks from it by score band, so
    it is also the mark's own face on the score, and eyeStateAt interpolates it for the 1-10
    session trace. */
+/* FIVE SHAPES, NOT FIVE HEIGHTS. These used to run 3 · 7 · 14 · 26 · 31 pixels of eyelid
+   and nothing else moved much: at the scale the row is actually drawn — FACE_SCALE 0.38 on a
+   45px chip — that landed as 1.1 · 2.7 · 5.3 · 9.9 · 11.8 on screen, so the top two steps
+   differed by under two pixels and the bottom two by one and a half. Measured, not guessed.
+   Five ratings that look like one rating at five brightnesses.
+
+   The eye has more vocabulary than height and none of it was being spent. Each span is a box
+   with an independent TOP and BOTTOM radius, a diagonal cut into its lower edge, its own
+   rotation, and a height factor for the second eye — so the five can be five silhouettes:
+
+     1 wrecked  a flat-topped sliver with a round bottom, tilted hard, gaze down — a droop
+     2 rough    half-lidded, heavy diagonal lower lid, still tilted
+     3 ok       a plain level capsule, no tilt, no cut — the shrug
+     4 good     tall and round, open, level
+     5 raring   SHORTER than good and much wider, top radius large and bottom flat — a dome,
+                which is the closed happy arc, and the one shape here you can name at 5px
+
+   The fifth being shorter than the fourth is the point rather than a mistake: it is what
+   makes the top of the scale a different SHAPE instead of two more pixels of the same one. */
 const EYE_STATES = [
-  { h:'3px',  w:'19px', g:'6px',  r:'1.5px', rb:'1.5px', bl:'0%',  rot:'-22deg', gy:0.34, h2f:0.70, rot2d:'10deg' },
-  { h:'7px',  w:'18px', g:'8px',  r:'2px',   rb:'1.5px', bl:'56%', rot:'-18deg', gy:0.22, h2f:0.72, rot2d:'7deg'  },
-  { h:'14px', w:'16px', g:'11px', r:'2.5px', rb:'2.5px', bl:'0%',  rot:'0deg',   gy:0.06, h2f:0.86, rot2d:'3deg'  },
-  { h:'26px', w:'13px', g:'12px', r:'6.5px', rb:'6.5px', bl:'6%',  rot:'-2deg',  gy:0     },
-  { h:'31px', w:'19px', g:'13px', r:'9.5px', rb:'9.5px', bl:'0%',  rot:'0deg',   gy:-0.06 }
+  { h:'5px',  w:'20px', g:'6px',  r:'0px',   rb:'2.5px', bl:'0%',  rot:'-24deg', gy:0.34, h2f:0.68, rot2d:'12deg' },
+  { h:'11px', w:'18px', g:'8px',  r:'1.5px', rb:'5.5px', bl:'52%', rot:'-15deg', gy:0.20, h2f:0.74, rot2d:'8deg'  },
+  { h:'17px', w:'15px', g:'11px', r:'3px',   rb:'3px',   bl:'0%',  rot:'0deg',   gy:0.04, h2f:0.92, rot2d:'2deg'  },
+  { h:'28px', w:'13px', g:'12px', r:'6.5px', rb:'6.5px', bl:'0%',  rot:'0deg',   gy:-0.02 },
+  { h:'13px', w:'22px', g:'11px', r:'11px',  rb:'0px',   bl:'0%',  rot:'0deg',   gy:-0.10 }
 ];
 /* Anywhere between them, for a scale with more than five steps on it. Every numeric property
    is carried across, so a ten-point row gets ten faces that are all genuinely different
@@ -11002,7 +11023,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.502';
+const APP_VERSION = '2026.09.12.503';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11228,6 +11249,7 @@ const APP_NOTES = {
   '2026.09.12.500': 'Section headers go back to the band and box they had before.',
   '2026.09.12.501': 'The five faces take their colours from the new palette, and get their light-to-dark order back.',
   '2026.09.12.502': 'The masthead carries a tint of the tab you are on.',
+  '2026.09.12.503': 'The five faces you pick from are five expressions, not five heights of the same one.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
