@@ -254,28 +254,6 @@
     --block-yellow:#e4be3a;
     --block-purple:#c4acff;
     --block-red:#ff7055;
-    /* THE FILL FAMILY, AND WHY IT IS NOT THE ONE ABOVE.
-       The block colours are ink as often as they are fill — a chart line, a small mark, a
-       word on the dark ground — which is why they are pale. #52d8f7 reads on black; the
-       blue below does not, and would be a line you cannot see. These six are the other
-       half of that job: flat colour WITH AREA, a whole band or plate, carrying type on top
-       of it rather than beside it. Nothing here is ever a line or a word on the ground.
-
-       Each fill is written with its own ink, because the answer is not the same for all
-       six: black on lime and amber, cream on blue, violet and red. As a pair, so a fill
-       cannot be used without the ink that belongs to it.
-
-       WHAT EACH ONE IS FOR. lime: where you are — held, live, now. blue: work not yet
-       done. amber: a number you beat. violet: the data you are shown rather than the work
-       you do. red: injury, and nothing else — it is the one colour in this app that
-       already meant something and it keeps meaning it. bone: a fact that cannot change,
-       a date or a count, which is why it flips on the bone ground rather than vanishing. */
-    --fill-lime:#c3d353;   --on-lime:#0c0d0b;
-    --fill-blue:#2b6ce8;   --on-blue:#fbfaf6;
-    --fill-amber:#f2b705;  --on-amber:#0c0d0b;
-    --fill-violet:#7b5cd6; --on-violet:#fbfaf6;
-    --fill-red:#e8391a;    --on-red:#0c0d0b;
-    --fill-bone:#fbfaf6;   --on-bone:#0c0d0b;
     /* The same five hues at 8% over the page's black. The tab colour stops being a
        highlighter the content sits ON TOP of and becomes a field it sits IN — which is what
        lets the section bands below carry the colour at full strength without two saturated
@@ -489,15 +467,11 @@
      rounded. Change a block and all three have to be recomputed together.
      Literal hex rather than color-mix(): this ships to an iOS home screen, and a wheel that
      silently loses its colour on an older WebKit is not worth the tidier stylesheet. */
-  /* The band is a FILL now rather than a pale hue, so each tab carries its ink with it.
-     Today keeps lime because lime is already where-you-are. Training takes the blue
-     because the session is the work. Injuries keeps red. Data takes the violet. Settings
-     is the exception and says why at #panel-settings below. */
-  body.tab-insights{ --band:var(--fill-lime); --band-ink:var(--on-lime); --field:var(--field-lime); --hue-faded-dark:#dce59c; --hue-faded:var(--hue-faded-dark); }
-  body.tab-training{ --band:var(--fill-blue); --band-ink:var(--on-blue); --field:var(--field-blue); --hue-faded-dark:#eed98f; --hue-faded:var(--hue-faded-dark); }
-  body.tab-injuries{ --band:var(--fill-red); --band-ink:var(--on-red); --field:var(--field-red); --hue-faded-dark:#fdae9d; --hue-faded:var(--hue-faded-dark); }
-  body.tab-data{ --band:var(--fill-violet); --band-ink:var(--on-violet); --field:var(--field-purple); --hue-faded-dark:#ddcffb; --hue-faded:var(--hue-faded-dark); }
-  body.tab-settings{ --band:var(--fill-amber); --band-ink:var(--on-amber); --field:var(--field-yellow); --hue-faded-dark:#9ee7f7; --hue-faded:var(--hue-faded-dark); }
+  body.tab-insights{ --band:var(--block-lime); --field:var(--field-lime); --hue-faded-dark:#dce59c; --hue-faded:var(--hue-faded-dark); }
+  body.tab-training{ --band:var(--block-yellow); --field:var(--field-yellow); --hue-faded-dark:#eed98f; --hue-faded:var(--hue-faded-dark); }
+  body.tab-injuries{ --band:var(--block-red); --field:var(--field-red); --hue-faded-dark:#fdae9d; --hue-faded:var(--hue-faded-dark); }
+  body.tab-data{ --band:var(--block-purple); --field:var(--field-purple); --hue-faded-dark:#ddcffb; --hue-faded:var(--hue-faded-dark); }
+  body.tab-settings{ --band:var(--block-blue); --field:var(--field-blue); --hue-faded-dark:#9ee7f7; --hue-faded:var(--hue-faded-dark); }
 
   /* THE GROUND, and the only place it is decided.
      Everything below is derived, not picked. --ground and --bg swap; --ink-rgb and
@@ -532,10 +506,6 @@
     --field-red:#fbefe9;
     --field-purple:#f4f0f7;
     --field-blue:#e2f5f6;
-    /* The one fill that cannot be the same on both grounds: a bone plate on a bone page is
-       not a plate. It inverts, and takes its ink with it. The other five are saturated
-       enough to hold on either ground unchanged. */
-    --fill-bone:#0c0d0b;   --on-bone:#fbfaf6;
     --dot-tile:var(--dot-tile-dark-ink);
     --ink-bad:#cb3318;
     --ink-warn:#956104;
@@ -1030,53 +1000,28 @@
   /* No space-between: with a long title the estimate wraps to its own line and the spare
      space went between the counter and the box, pushing the box into the middle of the
      band. The estimate's own margin-left:auto is what holds it to the right edge. */
-  /* THE PLATE. The band was the tab's hue in a rounded box around the title, on the
-     ground; it is now the whole band in the fill, with the number on a plate of its own.
-     What changed and why:
-       - the FIELD is the band. The note below about a screen of one hue still holds, and
-         it is why Settings is exempted rather than why nobody gets it: a tab whose sections
-         are three real stages of a session is the case this is for, and a tab of nine
-         one-line rows is the case it is not.
-       - the COUNTER is a plate. 01 was 10px of dim mono at the left edge; it is the first
-         thing in the reading order and was the quietest thing in the band. It gets the
-         bone fill and the app's display face, 26px square, so the sequence is legible as
-         a sequence from across the room.
-       - the TITLE loses its box. It was a box because the band was not coloured; with the
-         fill behind it a second fill around the words is one surface too many. */
-  .group-head{ display:flex; flex-wrap:wrap; align-items:center;
-    row-gap:4px; column-gap:10px; padding:9px var(--gutter);
-    background:var(--band); color:var(--band-ink);
-    border-bottom:0; border-top:0;
+  .group-head{ display:flex; flex-wrap:wrap; align-items:baseline;
+    row-gap:4px; column-gap:10px; padding:var(--sp-2) var(--gutter) calc(var(--sp-2) + 1px);
+    background:var(--ground); color:var(--bg);
+    border-bottom:0; border-top:1px solid var(--hair);
     margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter)); }
   .group-head::before{ counter-increment:section;
     content:counter(section, decimal-leading-zero);
-    background:var(--fill-bone); color:var(--on-bone);
-    font-family:var(--wordmark); font-size:15px; font-weight:var(--fw-bold);
-    letter-spacing:-0.02em; line-height:1;
-    width:26px; height:26px; flex:none;
-    display:flex; align-items:center; justify-content:center; }
+    font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-normal);
+    letter-spacing:0.06em; color:var(--dim); flex:none; }
   /* The colour is a box around the title, not the whole band. A band that is entirely the
      tab's hue turns a tab of one-line sections — Settings has nine — into a screen of that
      hue with a little text on it; the box says the same thing with a fraction of the area.
      flex:0 1 auto so it hugs its text and still shrinks when the title is long. */
-  .group-title{ flex:0 1 auto; min-width:0; padding:0; border-radius:0;
-    background:transparent; color:inherit;
+  .group-title{ flex:0 1 auto; min-width:0; padding:3px 9px; border-radius:6px;
+    background:var(--band); color:var(--text);
     font-size:var(--fs-xl); font-weight:var(--fw-bold); letter-spacing:-0.03em;
-    text-transform:uppercase; -webkit-text-stroke:0; }
+    text-transform:uppercase; -webkit-text-stroke:0.4px var(--text); }
   /* Not on Settings. The count runs straight through all four bands, so "The small print"
      opens at 14 — one list of sixteen, said at the same moment the bands say four groups.
      Today keeps its numbers: 01/02/03 there are the order you do the session in, which is
      a real sequence rather than a tally of rows. */
-  /* ...and for the same reason Settings keeps the band it had: no fill, no plate, the
-     title back in its box. Nine one-line sections in a single fill is the screen of one
-     hue that rule was written about; this is the tab it was written about. */
   #panel-settings .group-head::before{ content:none; }
-  #panel-settings .group-head{ background:var(--ground); color:var(--bg);
-    border-top:1px solid var(--hair); padding:var(--sp-2) var(--gutter) var(--sp-1); }
-  #panel-settings .group-title{ padding:3px 9px; border-radius:6px;
-    background:var(--band); color:var(--band-ink); -webkit-text-stroke:0.4px var(--band-ink); }
-  #panel-settings .group-head .group-sub, #panel-settings .group-head .head-est{
-    color:var(--dim); opacity:1; }
   /* ONE COLUMN FOR THE CHEVRONS.
 
      The auto margin that pushes the right-hand group over lives on .head-est, and .head-est
@@ -1100,12 +1045,11 @@
   .group-head .head-action{ order:1; flex:none; margin-left:auto;
     font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase;
-    background:transparent; color:inherit;
-    border:1px solid currentColor; border-radius:4px;
-    padding:4px 10px; min-height:0; width:auto; cursor:pointer; opacity:0.82; }
-  .group-head .head-action:hover{ opacity:1; }
-  .group-head .group-sub{ order:2; color:inherit; opacity:0.74; }
-  .group-head .head-est{ color:inherit; opacity:0.8; }
+    background:transparent; color:var(--bg);
+    border:1px solid rgba(var(--ink-rgb),0.45); border-radius:4px;
+    padding:4px 10px; min-height:0; width:auto; cursor:pointer; }
+  .group-head .head-action:hover{ border-color:var(--bg); }
+  .group-head .group-sub{ order:2; }
   .group-sub{ font-family:var(--sans); font-size:var(--fs-tag); color:var(--dim);
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   /* The middle of the three levels. A band names the section, this is the section. Bled to
@@ -1508,7 +1452,7 @@
      for the thing it is about. The band is the one light surface that carries prose, so a
      bold word there goes the other way. */
   b, strong{ color:var(--bg); font-weight:var(--fw-bold); }
-  .group-head b, .group-head strong{ color:inherit; }
+  .group-head b, .group-head strong{ color:var(--text); }
   /* One computation of the score, and what was different about it. */
   /* The section's answer, above its transcript. Reads as a statement rather than a row: no
      rule under it, the key in the same plate the plan's leads use, the count quiet behind. */
@@ -1526,7 +1470,7 @@
     display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
   /* Same treatment as a .group-title box: dark ink on the tab's band, not on the ground. */
   .score-log-reload{ font-size:var(--fs-tag); letter-spacing:0.06em; text-transform:uppercase;
-    color:var(--band-ink); background:var(--band); border-radius:4px; padding:1px 6px; }
+    color:var(--text); background:var(--band); border-radius:4px; padding:1px 6px; }
   .score-log-what{ font-family:var(--mono); font-size:var(--fs-tag); color:var(--dim);
     margin-top:3px; overflow-wrap:anywhere; }
   /* A superset is one unit of work, so the paired rows sit closer together and the rule
@@ -3844,9 +3788,7 @@
     border-bottom-width:1px; border-bottom-color:var(--line); }
   /* .form-panel paints its chevrons and summaries cream, which was right when the head was
      a black slab and is wrong now the band is the tab's colour. */
-  .group-head .collapse-chevron, .group-head summary{ color:inherit; opacity:0.8; }
-  #panel-settings .group-head .collapse-chevron,
-  #panel-settings .group-head summary{ color:var(--dim); opacity:1; }
+  .group-head .collapse-chevron, .group-head summary{ color:var(--dim); }
   .group-title{ font-size:var(--fs-md); letter-spacing:0.04em; -webkit-text-stroke:0; }
   /* The estimate rides on the heading's own line; a real group-sub still gets its own,
      or "why today looks like this" ends up flushed to the far right of "Session source". */
@@ -3899,8 +3841,7 @@
      a third line under the subtitle. Order puts it back beside the title without moving it
      in the DOM, where it belongs for the tap target and for reading order. */
   .group-head .collapse-chevron{ order:1; }
-  .group-head .group-sub{ order:2; color:inherit; opacity:0.74; }
-  .group-head .head-est{ color:inherit; opacity:0.8; }
+  .group-head .group-sub{ order:2; }
   /* One left edge. A group's heading is full-bleed and sits at the page's own content
      edge; .fields then added a second 14px, so every heading started 14px to the left of
      the content under it. Two indents for one column. The rule under each heading already
@@ -11032,7 +10973,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.499';
+const APP_VERSION = '2026.09.12.500';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11255,7 +11196,7 @@ const APP_NOTES = {
   '2026.09.12.496': 'The log sheet names each session instead of calling them AM and PM.',
   '2026.09.12.497': 'On Data, the six things to chart and the three ways to draw them stop looking like one keypad of nine.',
   '2026.09.12.498': 'The dot field is thinner \u2014 wider rows, more space along each one, a lighter ink.',
-  '2026.09.12.499': 'Every section header is a plate of flat colour with its number on a card of its own.',
+  '2026.09.12.500': 'Section headers go back to the band and box they had before.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
