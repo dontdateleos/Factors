@@ -7468,12 +7468,22 @@ function mcMounts(){
     out.push({ host:header, id:'mcClipH',
                svg:document.getElementById('headerMarkCube'),
                shell:'var(--mark-shell)', ink:'var(--mark-ink)', lit:'var(--mark-lit)' });
-  /* The disc at the bottom of Today, while it is wearing the mark. Same tokens as the
-     header's, because it IS the header's on the way down. */
+  /* THE FLYING MARK WEARS WHAT IT IS FLYING TO.
+
+     This used to read "same tokens as the header's, because it IS the header's on the way
+     down", and that stopped being true in .484: the drop flies between the disc and the CHIP,
+     not the masthead. So the thing that left was the chip in your colour and the thing that
+     arrived was the header's near-black, and the swap landed on one frame. Measured: on the
+     disc it drew rgb(21,19,32); the chip it landed on drew rgb(110,201,138).
+
+     It cannot resolve the chip's dress itself — --mc-shell and currentColor are set on
+     #todayFaceDock and the disc is not inside it — so the flight captures them once when it
+     starts and this reads that. The header's tokens stay as the fallback for a flight that
+     somehow began without a chip, which dropMarkToDisc does not allow. */
   const fab = document.getElementById('logFab');
   if(fab && fab.classList.contains('is-mark'))
-    out.push({ host:fab, id:'mcClipF', svg:document.getElementById('fabMarkCube'),
-               shell:'var(--mark-shell)', ink:'var(--mark-ink)', lit:'var(--mark-lit)' });
+    out.push(Object.assign({ host:fab, id:'mcClipF', svg:document.getElementById('fabMarkCube') },
+             markFlightDress || { shell:'var(--mark-shell)', ink:'var(--mark-ink)', lit:'var(--mark-lit)' }));
   const dock = document.getElementById('todayFaceDock');
   const dsvg = dock && dock.style.display !== 'none' && document.getElementById('dockMarkCube');
   if(dsvg) out.push(dock.classList.contains('asking')
@@ -8901,6 +8911,9 @@ function syncLogDisc(){
   disc.classList.toggle('is-away', canDrop && !eyeCtx.perched);
 }
 let markDropTimer = null, markDropEnd = null, markDropGen = 0;
+/* What the chip was wearing when the current flight began. See THE FLYING MARK WEARS WHAT IT
+   IS FLYING TO in mcMounts. */
+let markFlightDress = null;
 const MARK_DROP_MORPH = 0.62;   // of the flight, before the plus starts coming up
 
 /* THE OTHER END OF THE FLIGHT IS THE CHIP, NOT #scoreEyes.
@@ -8917,10 +8930,23 @@ const MARK_DROP_MORPH = 0.62;   // of the flight, before the plus starts coming 
    restored when the disc lands rather than when it sets off. Restoring it at the start meant
    the chip was sitting on the band for the whole 640ms while the sphere was still flying up
    to it: two marks on screen, which is exactly what it looked like. */
+/* What the chip is wearing, as literals the disc can use from outside it. The asking dress is
+   root tokens and resolves the same anywhere, so it passes through; the answered one has to be
+   read, because --mc-shell is the face colour you gave and currentColor is the knockout. */
+function chipDressNow(chip){
+  if(!chip) return null;
+  if(chip.classList.contains('asking'))
+    return { line:'rgba(var(--ink-rgb),0.55)', ink:'rgba(var(--ink-rgb),0.55)' };
+  const cs = getComputedStyle(chip);
+  const shell = cs.getPropertyValue('--mc-shell').trim();
+  return { shell: shell || 'var(--mark-shell)', ink: cs.color, lit:'rgba(255,255,255,0.22)' };
+}
 function dropMarkToDisc(down){
   const disc = document.getElementById('logFab');
   const chip = todayChipEl();
   if(!disc) return;
+  // Read before anything is hidden or faded: a chip on its way out is the wrong colour.
+  markFlightDress = chipDressNow(chip);
   const gen = ++markDropGen;
   clearTimeout(markDropTimer);
   if(markDropEnd){ disc.removeEventListener('transitionend', markDropEnd); markDropEnd = null; }
@@ -10878,7 +10904,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.494';
+const APP_VERSION = '2026.09.12.495';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11097,6 +11123,7 @@ const APP_NOTES = {
   '2026.09.12.492': 'Logging a session asks you what you did, in the voice the rest of the app asks things in \u2014 and the whole session fits on one screen.',
   '2026.09.12.493': 'Which half of the day you are logging reads at a glance.',
   '2026.09.12.494': 'The log sheet is set in four sizes and two faces, and each face means something.',
+  '2026.09.12.495': 'The mark keeps your colour the whole way up from the log button.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
