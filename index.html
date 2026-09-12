@@ -2332,8 +2332,32 @@
      Save — was 1267px of content in that 743 before this. */
   /* 14 above, not 18. The date line going to 13px added 8px to the sheet and put Save back
      under the fold at 390 — it was clearing it by three. Three questions pay it back. */
-  .log-sheet .ask-q{ font-size:19px; line-height:1.2; margin:14px 0 7px; }
-  .log-sheet .ask-a{ font-size:16px; padding-top:5px; padding-bottom:5px;
+  /* ============ FOUR SIZES, TWO FAMILIES, ONE RULE EACH ============
+
+     Audited on a filled strength session at 390: TEN distinct sizes in this one sheet —
+     9, 9.5, 10, 11, 13, 16, 17, 18, 19 and a font-size:0 trick — across two families mixed
+     by accident rather than by rule. Two of them were outright faults:
+
+       - The question over the rpe rendered at 16 while every other .ask-q rendered at 19,
+         because .subj-name carries its own size and won.
+       - The exercise NAME and the three number boxes rendered at 13 while the x, the @ and
+         the kg beside them rendered at 17. #blockEditPanel input[type=text] is (1,1,1) and
+         out-specifies .log-sheet .log-fields-row input at (0,3,0); the border and padding
+         next to it carried !important and the size did not. So every lift on the page had
+         its numbers one size and its operators another.
+
+     THE FAMILY IS THE ROLE. --wordmark is what the app says and what you write: the
+     questions, the exercise names, the numbers you type, the notes. --mono is what the app
+     labels and reports: the sheet's name, the date line, the flags, the target, the actions,
+     the clock. Nothing is in a face because of where it happens to sit.
+
+     THE SIZE IS THE RANK. Four, with real gaps between them — a near-miss like 18 against 19
+     reads as a mistake, which is exactly what it was. */
+  .log-sheet{ --log-ask:18px; --log-write:16px; --log-nav:13px; --log-note:10px; }
+  .log-sheet .ask-q{ font-size:var(--log-ask); line-height:1.2; margin:14px 0 7px; }
+  /* .subj-name is (0,1,0) and set 16 elsewhere; naming both classes takes this to (0,3,0). */
+  .log-sheet .subj-head .subj-name.ask-q{ font-size:var(--log-ask); }
+  .log-sheet .ask-a{ font-size:var(--log-write); padding-top:5px; padding-bottom:5px;
     height:auto; min-height:0; width:auto; display:block; text-align:left;
     background:transparent; border:0; letter-spacing:0; text-transform:none;
     font-family:var(--wordmark); font-weight:var(--fw-medium); line-height:1.3;
@@ -2345,14 +2369,14 @@
   .log-sheet .log-date-row{ gap:11px; align-items:baseline; margin-bottom:0; }
   /* 13, not 11, across the whole line. Once the slot went up for legibility, the DAY — the
      more consequential half of this row — was the smaller of the two. */
-  .log-sheet .log-date-row button{ font-family:var(--mono); font-size:13px; font-weight:var(--fw-bold);
+  .log-sheet .log-date-row button{ font-family:var(--mono); font-size:var(--log-nav); font-weight:var(--fw-bold);
     letter-spacing:0.08em; text-transform:uppercase; height:auto; min-height:0; padding:0;
     background:transparent; border:0; border-radius:0; position:relative;
     color:rgba(var(--ink-rgb),0.58); }
   .log-sheet .log-date-row button::after{ content:''; position:absolute; inset:-10px -8px; }
   .log-sheet .log-date-row button:disabled{ opacity:0.28; }
   .log-sheet .log-date-words{ flex:0 1 auto !important; color:var(--bg); }
-  .log-sheet .log-date-step{ width:auto; font-size:16px; }
+  .log-sheet .log-date-step{ width:auto; font-size:var(--log-write); }
   /* WHICH HALF OF THE DAY, AT A GLANCE.
      Chosen and not-chosen were the same 11px, the same weight and the same word, separated
      only by a tint — cream against cream at 0.58, in a box 15 wide and 12 tall. That is one
@@ -2362,9 +2386,9 @@
   .log-sheet .log-slot-pair{ margin-left:auto; gap:9px; align-items:baseline; }
   /* 0.34 measured 2.97:1 against the pocket, which is under the 3:1 a visible mark needs
      even when it is aria-hidden. 0.5 is 5.16. */
-  .log-sheet .log-slot-sep{ font-family:var(--mono); font-size:13px; color:rgba(var(--ink-rgb),0.5); }
+  .log-sheet .log-slot-sep{ font-family:var(--mono); font-size:var(--log-nav); color:rgba(var(--ink-rgb),0.5); }
   .log-sheet .log-date-row .log-slot-btn{ width:auto !important; padding:0 0 3px !important;
-    font-size:13px; border-bottom:2px solid transparent !important; }
+    font-size:var(--log-nav); border-bottom:2px solid transparent !important; }
   .log-sheet .log-date-row .log-slot-btn.on{ background:transparent; color:var(--bg);
     border-bottom-color:var(--block-lime) !important; }
   .log-sheet .log-slot-sep{ align-self:center; }
@@ -2381,13 +2405,14 @@
      which cost a whole line on every row, 58px to 90. It shrinks; the numbers do not. */
   .log-sheet .week-ex-name{ order:-3; flex:1 1 60px !important; min-width:0 !important;
     border:0 !important; border-radius:0; padding:0 !important;
-    font-family:var(--wordmark); font-size:17px; text-overflow:ellipsis; }
+    font-family:var(--wordmark) !important; font-size:var(--log-write) !important;
+    text-overflow:ellipsis; }
   /* They sit on the wrapped line with the tags rather than on the entry line. Reserving room
      for them up there cost the exercise NAME forty pixels on every row, set or not — and
      "Incline dumbbell press" is already the width that fits at 390. */
   .log-sheet .log-toggle-row{ order:10; flex:0 0 auto; display:flex; gap:9px; margin:4px 0 0; }
   .log-sheet .log-toggle-row button{ height:auto; min-height:0; padding:0; background:transparent;
-    border:0; font-family:var(--mono); font-size:9px; font-weight:var(--fw-bold);
+    border:0; font-family:var(--mono); font-size:var(--log-note); font-weight:var(--fw-bold);
     letter-spacing:0.1em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.5); flex:0 0 auto;
     position:relative; }
   /* The words were two bordered caps buttons with the same weight as the lift itself. As a
@@ -2395,23 +2420,26 @@
   .log-sheet .log-toggle-row button::after{ content:''; position:absolute; inset:-11px -5px; }
   .log-sheet .log-toggle-row button.on{ color:var(--block-lime); }
   .log-sheet .week-ex-bw{ font-size:0 !important; }
-  .log-sheet .week-ex-bw::before{ content:'BW'; font-size:9px; }
+  .log-sheet .week-ex-bw::before{ content:'BW'; font-size:var(--log-note); }
   .log-sheet .week-ex-fail{ font-size:0 !important; }
-  .log-sheet .week-ex-fail::before{ content:'FAIL'; font-size:9px; }
+  .log-sheet .week-ex-fail::before{ content:'FAIL'; font-size:var(--log-note); }
   .log-sheet .week-ex-fail.on{ background:transparent; border-color:transparent; color:var(--block-lime); }
   .log-sheet .log-fields-row{ order:-1; flex:0 0 auto; display:flex; align-items:baseline;
     gap:2px; margin:0; font-variant-numeric:tabular-nums; }
   .log-sheet .log-fields-row input{ flex:0 0 auto !important; min-width:0 !important;
     text-align:center; border:0 !important;
     border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
-    padding:0 2px !important; font-size:17px; font-variant-numeric:tabular-nums; }
+    padding:0 2px !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; font-variant-numeric:tabular-nums; }
   .log-sheet .week-ex-sets{ width:2em; }
   .log-sheet .week-ex-reps{ width:2.4em; }
   .log-sheet .week-ex-weight{ width:3.2em; }
-  .log-sheet .log-op{ font-family:var(--wordmark); font-size:17px; color:rgba(var(--ink-rgb),0.5); }
+  .log-sheet .log-op{ font-family:var(--wordmark); font-size:var(--log-write); color:rgba(var(--ink-rgb),0.5); }
   .log-sheet .log-unit{ padding-left:1px; }
+  /* It sits inline with the name and the numbers, so it takes their face. The family is the
+     role, and on this line the role is the lift. */
   .log-sheet #weekExerciseRows .remove-row{ order:0; flex:0 0 auto; margin-left:2px;
-    color:rgba(var(--ink-rgb),0.5); }
+    font-family:var(--wordmark); font-size:var(--log-write); color:rgba(var(--ink-rgb),0.5); }
   /* A FORCED BREAK, BECAUSE WHAT IS ON THE ROW VARIES. The quiet items below are optional —
      a manual row has no target and no history — so on a short-named row with none of them
      the flags floated up onto the entry line and the rows stopped agreeing with each other.
@@ -2432,18 +2460,18 @@
   .log-sheet .ex-target-hint{ display:none; }
   .log-sheet .ex-tags-row{ order:12; flex-basis:100%; }
   .log-sheet .ex-target-line,
-  .log-sheet .ex-last-line{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.04em;
+  .log-sheet .ex-last-line{ font-family:var(--mono); font-size:var(--log-note); letter-spacing:0.04em;
     color:rgba(var(--ink-rgb),0.5); margin-top:3px; }
-  .log-sheet .ex-tags-toggle{ order:11; flex:0 0 auto; font-family:var(--mono); font-size:9px;
+  .log-sheet .ex-tags-toggle{ order:11; flex:0 0 auto; font-family:var(--mono); font-size:var(--log-note);
     font-weight:var(--fw-bold); letter-spacing:0.1em; text-transform:uppercase;
     color:rgba(var(--ink-rgb),0.5); cursor:pointer; margin-top:4px; }
   .log-sheet .ex-tags-row{ gap:6px; margin-top:6px; }
-  .log-sheet .set-breakdown{ font-size:9.5px; margin-top:3px; }
+  .log-sheet .set-breakdown{ font-size:var(--log-note); margin-top:3px; }
   /* The badge itself is .evidence-badge inside this span, and it carries its own tier fill
      and border — a plate, which is right in the library where it is the row's subject, and
      which on the quiet line under a lift is the loudest thing there. Here it is a word. */
   .log-sheet .week-ex-evidence{ margin-top:4px; }
-  .log-sheet .week-ex-evidence .evidence-badge{ font-family:var(--mono); font-size:9px;
+  .log-sheet .week-ex-evidence .evidence-badge{ font-family:var(--mono); font-size:var(--log-note);
     font-weight:var(--fw-bold); letter-spacing:0.1em; background:transparent; border:0;
     box-shadow:none; padding:0; color:rgba(var(--ink-rgb),0.5); }
 
@@ -2453,7 +2481,7 @@
   .log-sheet .ask-a{ text-transform:none; letter-spacing:0; }
   .log-sheet .add-row{ border:0; border-radius:0; text-align:left; padding:7px 0 7px 1.35em;
     text-indent:-1.35em; font-family:var(--wordmark); font-weight:var(--fw-medium);
-    font-size:16px; color:rgba(var(--ink-rgb),0.92); }
+    font-size:var(--log-write); color:rgba(var(--ink-rgb),0.92); }
   /* The base button rule is a full-width filled pill; an answer is a line of text that
      happens to be tappable, so the width has to come back to the words. */
   .log-sheet .ask-a{ width:auto; max-width:100%; margin-right:auto; }
@@ -2461,7 +2489,7 @@
   .log-sheet .ask-a::before{ content:'\2192'; display:inline-block; width:1.35em; text-indent:0; }
   .log-sheet .log-fill{ padding-left:1.35em; text-indent:-1.35em; margin-left:0; }
   .log-sheet .log-step{ display:flex; align-items:baseline; gap:10px; }
-  .log-sheet .log-step-pos{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em;
+  .log-sheet .log-step-pos{ font-family:var(--mono); font-size:var(--log-note); letter-spacing:0.1em;
     text-transform:uppercase; color:rgba(var(--ink-rgb),0.5); margin-left:auto; }
   /* THE OTHER TWO SESSION TYPES SPEAK THE SAME WAY. A run was four full-width bordered
      boxes stacked; a distance and a duration are two numbers and a unit each, so they sit on
@@ -2470,27 +2498,32 @@
   .log-sheet .log-one select,
   .log-sheet .log-one input{ flex:1 1 auto; border:0 !important;
     border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
-    border-radius:0; padding:3px 0 5px !important; font-size:17px; background:transparent; }
+    border-radius:0; padding:3px 0 5px !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; background:transparent; }
   .log-sheet .log-run-row{ gap:2px; align-items:baseline; margin-bottom:0; }
   .log-sheet .log-run-row input{ flex:0 0 auto !important; min-width:0 !important; width:3.4em;
     text-align:center; border:0 !important;
     border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
-    padding:0 2px !important; font-size:17px; font-variant-numeric:tabular-nums; }
+    padding:0 2px !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; font-variant-numeric:tabular-nums; }
   .log-sheet #weekStretchRows .edit-row{ display:flex; flex-wrap:wrap; align-items:baseline;
     gap:0 8px; margin:0; padding:8px 0 7px;
     border-bottom:1px solid rgba(var(--ink-rgb),0.22); }
   .log-sheet #weekStretchRows input[type=text]{ flex:1 1 90px !important; min-width:0 !important;
-    border:0 !important; padding:0 !important; font-family:var(--wordmark); font-size:17px; }
+    border:0 !important; padding:0 !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; }
   .log-sheet #weekStretchRows input[type=number]{ flex:0 0 auto !important; min-width:0 !important;
     width:2.6em; text-align:center; border:0 !important;
     border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
-    padding:0 2px !important; font-size:17px; }
+    padding:0 2px !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; }
   .log-sheet .run-pace{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.06em;
     color:rgba(var(--ink-rgb),0.5); margin-top:4px; }
   .log-sheet .log-notes-row{ margin-bottom:0; }
   .log-sheet .log-notes-row input{ border:0 !important;
     border-bottom:1px solid rgba(var(--ink-rgb),0.28) !important;
-    padding:4px 0 6px !important; font-size:16px; }
+    padding:4px 0 6px !important; font-family:var(--wordmark) !important;
+    font-size:var(--log-write) !important; }
 
   /* The four filled buttons at the foot were four decisions of equal weight. Save keeps the
      one colour; the rest stop asking to be pressed. */
@@ -2498,17 +2531,21 @@
   .log-sheet .log-acts{ display:flex; align-items:baseline; gap:16px; margin-top:12px;
     padding-top:10px; border-top:1px solid rgba(var(--ink-rgb),0.16); }
   .log-sheet .log-act{ height:auto; min-height:0; padding:0; background:transparent; border:0;
-    border-radius:0; font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
+    border-radius:0; font-family:var(--mono); font-size:var(--log-note); font-weight:var(--fw-bold);
     letter-spacing:0.1em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58);
     flex:0 0 auto; position:relative; cursor:pointer; }
   .log-sheet .log-act::after{ content:''; position:absolute; inset:-12px -8px; }
   .log-sheet .log-act.go{ color:var(--block-lime); }
   .log-sheet .log-acts .log-act:last-child:not(:first-child){ margin-left:auto; }
   .log-sheet .rest-timer{ margin-top:9px; gap:10px; align-items:baseline; }
+  /* The last two the audit caught: the rpe's anchor at 11 and the rest presets at 11, both
+     secondary labels sitting a size away from every other secondary label in the sheet. */
+  .log-sheet .subj-anchor{ font-size:var(--log-note); }
+  .log-sheet .rest-preset{ font-size:var(--log-note); }
   .log-sheet .rest-go{ height:auto; min-height:0; padding:0; background:transparent; border:0;
-    font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold); letter-spacing:0.1em;
+    font-family:var(--mono); font-size:var(--log-note); font-weight:var(--fw-bold); letter-spacing:0.1em;
     text-transform:uppercase; color:rgba(var(--ink-rgb),0.58); flex:0 0 auto; }
-  .log-sheet .rest-clock{ font-size:var(--fs-md); flex:0 0 auto; }
+  .log-sheet .rest-clock{ font-size:var(--log-nav); flex:0 0 auto; }
   .log-date-row{ display:flex; align-items:center; gap:6px; margin-bottom:var(--sp-3); }
   .log-date-row button{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.06em; text-transform:uppercase; height:32px; min-height:0; padding:0 10px;
@@ -10841,7 +10878,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.493';
+const APP_VERSION = '2026.09.12.494';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11059,6 +11096,7 @@ const APP_NOTES = {
   '2026.09.11.491': 'The five faces you rate the day with are big enough to hit \u2014 and big enough to tell apart.',
   '2026.09.12.492': 'Logging a session asks you what you did, in the voice the rest of the app asks things in \u2014 and the whole session fits on one screen.',
   '2026.09.12.493': 'Which half of the day you are logging reads at a glance.',
+  '2026.09.12.494': 'The log sheet is set in four sizes and two faces, and each face means something.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
