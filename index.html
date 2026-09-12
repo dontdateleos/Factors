@@ -9777,11 +9777,13 @@ async function updateFooterVisibility(){
   const onToday = document.getElementById('panel-insights').classList.contains('active');
   const colophon = document.querySelector('.app-colophon');
   const strip = document.getElementById('todayLogStrip');
-  // The strip was a second way into logging, doing exactly what the "Log this workout"
-  // button under the exercises already does — and taking a black band across the bottom of
-  // every Today to say so. The button is the way in: it sits beside the thing it logs. The
-  // strip only stands once a session is under way, where it is not a duplicate but the way
-  // back to a panel you have scrolled past, and Today closes in the colophon like every
+  // The strip was a second way into logging, doing exactly what the button under the
+  // exercises used to do — and taking a black band across the bottom of every Today to say
+  // so. That button has gone too: the disc IS the way in, it is on screen at every scroll
+  // position, and a full-width button repeating the offer forty pixels above it was the same
+  // room with two doors. The strip only stands once a session is under way, where it is not
+  // a duplicate but the way back to a panel you have scrolled past, and Today closes in the
+  // colophon like every
   // other tab the rest of the time.
   let started = false;
   try{ started = !!(await loggingStartedAt(todayStr)); } catch(e){}
@@ -11075,7 +11077,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.504';
+const APP_VERSION = '2026.09.12.505';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11303,6 +11305,7 @@ const APP_NOTES = {
   '2026.09.12.502': 'The masthead carries a tint of the tab you are on.',
   '2026.09.12.503': 'The five faces you pick from are five expressions, not five heights of the same one.',
   '2026.09.12.504': 'The mark wears the face you picked, not just its colour.',
+  '2026.09.12.505': 'Today drops its Log this workout button \u2014 the disc at the bottom already does it.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -17647,8 +17650,8 @@ async function placeBlock(date, slot, type){
    two exits: opening a session to look at it and changing your mind meant either writing
    something you did not mean or leaving the tab. It also hides the day wheel on the way in, so
    backing out of it left the Weekly tab without its picker until something else re-rendered.
-   Close puts both back, and if it was reached from Today's "Log this workout" it hands you
-   back to Today — in and out by the same door you came through. */
+   Close puts both back, and if it was reached from Today's disc it hands you back to Today —
+   in and out by the same door you came through. */
 let blockEditDirty = false;
 let blockEditDate = null;
 let blockEditSlot = 'am';
@@ -17897,9 +17900,9 @@ function minimiseBlockEditor(){
   closeLogSheet();
   logMinimised = true;
   updateLogBar();
-  // Today keeps its own offer to open the session and it has to agree with the bar: leaving
-  // it reading "log this workout" while a half-typed one is sitting on the bar gives you two
-  // doors into the same room, one of which is lying about what is behind it.
+  // Today's block has to agree with the bar about what state the session is in: a summary
+  // that still reads as unstarted while a half-typed one is sitting on the bar is the page
+  // disagreeing with itself about what you were last doing.
   renderTodayWorkoutSummary();
   updateFooterVisibility();
 }
@@ -29860,7 +29863,6 @@ async function renderTodayWorkoutSummary(){
         ${rows || '<div class="score-note">Planned but no specific exercises added yet.</div>'}
         ${deloadNote}
         ${adjustmentNote}
-        <button class="primary" id="goLogWorkoutBtn">Log this workout</button>
       </div>
     </div>`;
   budgetBar(container);
@@ -29907,10 +29909,6 @@ async function renderTodayWorkoutSummary(){
     refreshLogStripWord();   // the strip is offering to resume something that no longer exists
     refreshHeaderLogBtn().catch(()=>{});   // and so is the masthead button
   });
-  // The button and the strip make the same offer and were taking two different routes — one
-  // jumped to Weekly, the other opened in place. One route.
-  const goBtn = document.getElementById('goLogWorkoutBtn');
-  if(goBtn) goBtn.addEventListener('click', ()=> startTodayLogging());
 }
 document.querySelectorAll('#todaySessionTypePills .type-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
