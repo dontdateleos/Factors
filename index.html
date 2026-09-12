@@ -7458,6 +7458,46 @@ const MC_LIT_R = 1.534, MC_LIT_DY = 0.922, MC_RAD = Math.PI / 180;
    They are much smaller and much closer together than the pair the cube wore — that pair was
    0.15 wide, 0.45 tall and 0.25 apart. */
 const MC_EYE_W = 0.099, MC_EYE_H = 0.176, MC_EYE_GAP = 0.082;
+/* WHAT THE MARK WEARS WHEN YOU HAVE ANSWERED.
+
+   The note further down at the dock says the chip is the MARK in the colour of the face you
+   chose, rather than the face itself, so that the thing arriving beside the number is the
+   same drawing as the thing that left the perch. That still holds and this does not break
+   it: the mark keeps its silhouette, its two lines and its round caps, and the flight is
+   still a transition of the same two elements. What changes is only how those two lines are
+   ANGLED and how far they open — which is the whole expressive range a line with a round cap
+   has, and enough to tell five ratings apart.
+
+   Colour said which of the five and shape said nothing, which is half a chip. Now both say
+   it: hf is how open, gf how far apart, gy where the pair sits inside the sphere, tilt the
+   slant with the two eyes mirrored.
+
+   WHICH OF THOSE ACTUALLY READS DEPENDS ON THE MOUNT, and the chip is the small one. At the
+   chip the drawing is about 40px, so an eye is 3.96 wide and 7.04 tall at full open — the
+   straight part of the capsule between its two round caps is three pixels. Measured: a first
+   pass leaned on tilt and on closing the eye, and neither survived. Tilting a 3px segment
+   inside a 4px cap is invisible, and eh under ew makes `half` clamp to zero, which the note
+   in the eye loop already warned about — it turns the eye into a dot. Three of the five came
+   out as the same two dots.
+
+   So the weight goes on what does survive four pixels. Height alone is not enough — a short
+   eye clamps to a dot and every dot looks alike — so WIDTH moves against it: wrecked is a
+   wide flat dash, raring a narrow tall bar, and a fat dot against a thin bar is a difference
+   you can still see at five pixels when two capsule lengths are not. Position carries the
+   rest: the pair sits low when you are wrecked and high when you are raring. Tilt stays
+   because it costs nothing and the masthead and the disc are big enough to show it.
+
+   HONEST LIMIT. Five is more than a 22px chip can really hold. Openness, width and position
+   give it three clear levels and two half steps, and the colour is what makes it five — the
+   note at the dock always said colour says which of the five, and that is still doing the
+   heavier half of the work here. */
+const MC_FACE = [
+  { hf:0.34, wf:1.40, gf:0.74, gy:0.34,  tilt:20 },   // wrecked — a wide flat dash, low
+  { hf:0.60, wf:1.18, gf:0.88, gy:0.18,  tilt:12 },   // rough   — still wide, still low
+  { hf:0.86, wf:1.00, gf:1.00, gy:0.02,  tilt:0  },   // ok      — the mark's own proportion
+  { hf:1.16, wf:0.94, gf:1.06, gy:-0.06, tilt:-3 },   // good    — taller, narrower, lifted
+  { hf:1.06, wf:0.80, gf:1.28, gy:-0.20, tilt:-14 }   // raring  — a thin tall pair, high and wide
+];
 /* THE RIM, AS FRACTIONS OF THE DIAMETER.
    Weight was 0.037 — a hairline that held the silhouette and said nothing else. At 0.06 it
    is 2.4px on a 40px mark and 1.4px on the 24px perch: still a rim rather than a second
@@ -7577,8 +7617,10 @@ function mcMounts(){
         ink:'rgba(var(--ink-rgb),0.55)' }
     /* The chip's body is the day's answer, so its crescent cannot be a colour of its own —
        it is white at an alpha, which lands as the same top-lit sphere on any of the five. */
+    /* ...and the answer itself, which is what makes the eyes the rating's rather than the
+       mark's default. Only this mount takes it: the masthead is the app, not your morning. */
     : { host:dock, id:'mcClipD', svg:dsvg, shell:'var(--mc-shell)', ink:'currentColor',
-        lit:'rgba(255,255,255,0.22)' });
+        lit:'rgba(255,255,255,0.22)', face:faceValues[faceDate()] });
   return out;
 }
 function drawMarkCube(){ for(const m of mcMounts()) mcPaint(m); }
@@ -7652,7 +7694,7 @@ function mcPaint(m){
      Clipped to the sphere, which the cube never needed — a cube's silhouette grows as it
      turns and the eyes stayed inside it, where a circle's does not, so at a steep angle the
      pair would otherwise slide off the edge. */
-  const ew = MC_EYE_W*s, gap = MC_EYE_GAP*s, z = h + 0.4;
+  const z = h + 0.4;
   let eyes = '';
   for(const face of [0, 180]){
     const Q = mcProject(0, face, 0), n = P(Q([0,0,1]));
@@ -7663,13 +7705,23 @@ function mcPaint(m){
        zero-length line — a dot. Two beady circles where the capsules were, on every tab,
        whenever the app had been left alone for two and a half minutes. The z's say it is
        asleep; they do not need the face deformed to help. */
-    const eh = MC_EYE_H*s * mcState.blink;
+    const fc = MC_FACE[(m.face | 0) - 1];
+    const ew = MC_EYE_W*s * (fc ? fc.wf : 1);
+    const gap = MC_EYE_GAP*s * (fc ? fc.gf : 1);
+    const eh = MC_EYE_H*s * mcState.blink * (fc ? fc.hf : 1);
     const ax = P(Q([1,0,0])), w = Math.max(0.6, ew * Math.hypot(ax[0], ax[1]));
     const half = Math.max(0, eh/2 - ew/2);
-    const gx = mcState.gx * ew * 0.85, gy = mcState.gy * s * 0.06;
+    const gx = mcState.gx * ew * 0.85;
+    const gy = (mcState.gy + (fc ? fc.gy : 0)) * s * 0.06;
+    /* The slant is applied to the line's own endpoints rather than as a transform, because
+       these two points are already going through the projection — rotating afterwards would
+       fight the turn. Mirrored on sg so the pair angles together instead of in parallel. */
+    const th = (fc ? fc.tilt : 0) * Math.PI / 180;
+    const sn = Math.sin(th), cs2 = Math.cos(th);
     for(const sg of [-1,1]){
       const x = sg * (gap/2 + ew/2) + gx;
-      const a = P(Q([x, -half + gy, z])), b = P(Q([x, half + gy, z]));
+      const dx = half * sn * sg, dy = half * cs2;
+      const a = P(Q([x - dx, -dy + gy, z])), b = P(Q([x + dx, dy + gy, z]));
       eyes += `<line x1="${(c+a[0]).toFixed(2)}" y1="${(c+a[1]).toFixed(2)}"`
            + ` x2="${(c+b[0]).toFixed(2)}" y2="${(c+b[1]).toFixed(2)}"`
            + ` style="stroke:${m.ink}" stroke-width="${w.toFixed(2)}" stroke-linecap="round"/>`;
@@ -11023,7 +11075,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.503';
+const APP_VERSION = '2026.09.12.504';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11250,6 +11302,7 @@ const APP_NOTES = {
   '2026.09.12.501': 'The five faces take their colours from the new palette, and get their light-to-dark order back.',
   '2026.09.12.502': 'The masthead carries a tint of the tab you are on.',
   '2026.09.12.503': 'The five faces you pick from are five expressions, not five heights of the same one.',
+  '2026.09.12.504': 'The mark wears the face you picked, not just its colour.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
