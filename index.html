@@ -2314,6 +2314,187 @@
      surface on BOTH grounds, so these need no per-ground rules of their own. Borders at 0.5
      rather than 0.45: measured, 0.45 is 3.09:1 on bone, which clears the 3:1 a component
      boundary needs by four hundredths. 0.5 is 3.62. */
+  /* ============ THE LOG SHEET SPEAKS LIKE THE REST OF THEM ============
+
+     It is the same .lift-sheet-panel every other pop-up is, and until now nothing inside it
+     sounded like one. Counted on the strength screen at 390: thirteen outlined boxes, eight
+     mono-caps controls at the same volume as the three fields you came to fill, and a
+     four-line paragraph explaining how the form worked.
+
+     Beside it the injury sheet asks "Where does it hurt?" in the wordmark at 26 and takes its
+     answers as words with an arrow. That idiom is already in this stylesheet as .ask-q /
+     .ask-list / .ask-field; the log sheet was the one asking surface that never got it.
+
+     AT NINETEEN, NOT TWENTY-SIX. The voice is the face and the phrasing, not the size. The
+     injury sheet asks four questions on a screen with nothing else on it. This one is a form
+     with a question over each part, and three of them at 26 cost 60px of a 743px sheet on
+     their own. Measured: the whole session — five lifts filled in, the rpe, the notes and
+     Save — was 1267px of content in that 743 before this. */
+  .log-sheet .ask-q{ font-size:19px; line-height:1.2; margin:18px 0 7px; }
+  .log-sheet .ask-a{ font-size:16px; padding-top:5px; padding-bottom:5px;
+    height:auto; min-height:0; width:auto; display:block; text-align:left;
+    background:transparent; border:0; letter-spacing:0; text-transform:none;
+    font-family:var(--wordmark); font-weight:var(--fw-medium); line-height:1.3;
+    color:rgba(var(--ink-rgb),0.92); cursor:pointer; }
+
+  /* THE DATE IS A LINE, NOT FOUR BUTTONS. You change it once in twenty sessions and it was
+     four filled rectangles across the top of the sheet. The chevrons are the one thing here
+     that loses target size by becoming text, so they take it back with an ::after. */
+  .log-sheet .log-date-row{ gap:11px; align-items:baseline; margin-bottom:0; }
+  .log-sheet .log-date-row button{ font-family:var(--mono); font-size:11px; font-weight:var(--fw-bold);
+    letter-spacing:0.08em; text-transform:uppercase; height:auto; min-height:0; padding:0;
+    background:transparent; border:0; border-radius:0; position:relative;
+    color:rgba(var(--ink-rgb),0.58); }
+  .log-sheet .log-date-row button::after{ content:''; position:absolute; inset:-10px -8px; }
+  .log-sheet .log-date-row button:disabled{ opacity:0.28; }
+  .log-sheet .log-date-words{ flex:0 1 auto !important; color:var(--bg); }
+  .log-sheet .log-date-step{ width:auto; font-size:14px; }
+  .log-sheet .log-slot-pair{ margin-left:auto; gap:7px; align-items:baseline; }
+  /* 0.34 measured 2.97:1 against the pocket, which is under the 3:1 a visible mark needs
+     even when it is aria-hidden. 0.5 is 5.16. */
+  .log-sheet .log-slot-sep{ font-family:var(--mono); font-size:11px; color:rgba(var(--ink-rgb),0.5); }
+  .log-sheet .log-slot-btn{ width:auto !important; padding:0 !important; }
+  .log-sheet .log-slot-btn.on{ background:transparent; color:var(--bg); border-color:transparent; }
+
+  /* ONE LINE A LIFT. Name takes the room, the numbers take what they need, and everything
+     else on the row wraps under it. order rather than moving the markup: the rows are wired
+     by class in a dozen places and none of that wants to know about a layout change. */
+  .log-sheet #weekExerciseRows .edit-row{ display:flex; flex-wrap:wrap; align-items:baseline;
+    gap:0 6px; margin:0; padding:8px 0 7px;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.22); }
+  .log-sheet #weekExerciseRows > .edit-row + .edit-row{ border-top:0; padding-top:8px; }
+  /* 60, not 90. The numbers and their units are about 185px and the remove control 14, so
+     at 320 a 90px basis left the row 25px short and the x wrapped to a line of its own —
+     which cost a whole line on every row, 58px to 90. It shrinks; the numbers do not. */
+  .log-sheet .week-ex-name{ order:-3; flex:1 1 60px !important; min-width:0 !important;
+    border:0 !important; border-radius:0; padding:0 !important;
+    font-family:var(--wordmark); font-size:17px; text-overflow:ellipsis; }
+  /* They sit on the wrapped line with the tags rather than on the entry line. Reserving room
+     for them up there cost the exercise NAME forty pixels on every row, set or not — and
+     "Incline dumbbell press" is already the width that fits at 390. */
+  .log-sheet .log-toggle-row{ order:10; flex:0 0 auto; display:flex; gap:9px; margin:4px 0 0; }
+  .log-sheet .log-toggle-row button{ height:auto; min-height:0; padding:0; background:transparent;
+    border:0; font-family:var(--mono); font-size:9px; font-weight:var(--fw-bold);
+    letter-spacing:0.1em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.5); flex:0 0 auto;
+    position:relative; }
+  /* The words were two bordered caps buttons with the same weight as the lift itself. As a
+     tick they say nothing until they are set, which is the point: most rows have neither. */
+  .log-sheet .log-toggle-row button::after{ content:''; position:absolute; inset:-11px -5px; }
+  .log-sheet .log-toggle-row button.on{ color:var(--block-lime); }
+  .log-sheet .week-ex-bw{ font-size:0 !important; }
+  .log-sheet .week-ex-bw::before{ content:'BW'; font-size:9px; }
+  .log-sheet .week-ex-fail{ font-size:0 !important; }
+  .log-sheet .week-ex-fail::before{ content:'FAIL'; font-size:9px; }
+  .log-sheet .week-ex-fail.on{ background:transparent; border-color:transparent; color:var(--block-lime); }
+  .log-sheet .log-fields-row{ order:-1; flex:0 0 auto; display:flex; align-items:baseline;
+    gap:2px; margin:0; font-variant-numeric:tabular-nums; }
+  .log-sheet .log-fields-row input{ flex:0 0 auto !important; min-width:0 !important;
+    text-align:center; border:0 !important;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
+    padding:0 2px !important; font-size:17px; font-variant-numeric:tabular-nums; }
+  .log-sheet .week-ex-sets{ width:2em; }
+  .log-sheet .week-ex-reps{ width:2.4em; }
+  .log-sheet .week-ex-weight{ width:3.2em; }
+  .log-sheet .log-op{ font-family:var(--wordmark); font-size:17px; color:rgba(var(--ink-rgb),0.5); }
+  .log-sheet .log-unit{ padding-left:1px; }
+  .log-sheet #weekExerciseRows .remove-row{ order:0; flex:0 0 auto; margin-left:2px;
+    color:rgba(var(--ink-rgb),0.5); }
+  /* A FORCED BREAK, BECAUSE WHAT IS ON THE ROW VARIES. The quiet items below are optional —
+     a manual row has no target and no history — so on a short-named row with none of them
+     the flags floated up onto the entry line and the rows stopped agreeing with each other.
+     A zero-height full-width pseudo-element at order 7 ends the first line whatever is on it. */
+  .log-sheet #weekExerciseRows .edit-row::after{ content:''; order:7; flex-basis:100%; height:0; }
+  /* Everything that is context rather than entry wraps under the line, small and quiet. */
+  .log-sheet .week-ex-evidence{ order:9; flex:0 0 auto; }
+  /* ONE QUIET LINE, NOT TWO. Measured on a real five-lift session, the target on its own
+     line and the evidence-and-flags on the next put each row at 70px and the sheet at 875 —
+     still 132 over the 743 it is given, with Save under the fold. Sharing the line takes
+     28px off every row. They fit: the target is about 100px, the evidence badge 90 and the
+     three flags 120, against 358 of content width. */
+  .log-sheet .ex-target-line{ order:8; flex:0 0 auto; margin-right:2px; }
+  .log-sheet .ex-last-line,
+  .log-sheet .set-breakdown{ order:8; flex-basis:100%; }
+  /* The words "tap to fill" were the line explaining itself. The line is still role=button,
+     and the session has "Fill it in as planned" over the whole lot. */
+  .log-sheet .ex-target-hint{ display:none; }
+  .log-sheet .ex-tags-row{ order:12; flex-basis:100%; }
+  .log-sheet .ex-target-line,
+  .log-sheet .ex-last-line{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.04em;
+    color:rgba(var(--ink-rgb),0.5); margin-top:3px; }
+  .log-sheet .ex-tags-toggle{ order:11; flex:0 0 auto; font-family:var(--mono); font-size:9px;
+    font-weight:var(--fw-bold); letter-spacing:0.1em; text-transform:uppercase;
+    color:rgba(var(--ink-rgb),0.5); cursor:pointer; margin-top:4px; }
+  .log-sheet .ex-tags-row{ gap:6px; margin-top:6px; }
+  .log-sheet .set-breakdown{ font-size:9.5px; margin-top:3px; }
+  /* The badge itself is .evidence-badge inside this span, and it carries its own tier fill
+     and border — a plate, which is right in the library where it is the row's subject, and
+     which on the quiet line under a lift is the loudest thing there. Here it is a word. */
+  .log-sheet .week-ex-evidence{ margin-top:4px; }
+  .log-sheet .week-ex-evidence .evidence-badge{ font-family:var(--mono); font-size:9px;
+    font-weight:var(--fw-bold); letter-spacing:0.1em; background:transparent; border:0;
+    box-shadow:none; padding:0; color:rgba(var(--ink-rgb),0.5); }
+
+  /* Add a lift, and fill the session in — two things you could say, in the voice the rest of
+     the sheet now says things in. */
+  .log-sheet .add-row,
+  .log-sheet .ask-a{ text-transform:none; letter-spacing:0; }
+  .log-sheet .add-row{ border:0; border-radius:0; text-align:left; padding:7px 0 7px 1.35em;
+    text-indent:-1.35em; font-family:var(--wordmark); font-weight:var(--fw-medium);
+    font-size:16px; color:rgba(var(--ink-rgb),0.92); }
+  /* The base button rule is a full-width filled pill; an answer is a line of text that
+     happens to be tappable, so the width has to come back to the words. */
+  .log-sheet .ask-a{ width:auto; max-width:100%; margin-right:auto; }
+  .log-sheet .add-row::before,
+  .log-sheet .ask-a::before{ content:'\2192'; display:inline-block; width:1.35em; text-indent:0; }
+  .log-sheet .log-fill{ padding-left:1.35em; text-indent:-1.35em; margin-left:0; }
+  .log-sheet .log-step{ display:flex; align-items:baseline; gap:10px; }
+  .log-sheet .log-step-pos{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em;
+    text-transform:uppercase; color:rgba(var(--ink-rgb),0.5); margin-left:auto; }
+  /* THE OTHER TWO SESSION TYPES SPEAK THE SAME WAY. A run was four full-width bordered
+     boxes stacked; a distance and a duration are two numbers and a unit each, so they sit on
+     one line the way a lift's do. The select stays a select — eight kinds of run is a list,
+     not three things you could say — but it loses the box. */
+  .log-sheet .log-one select,
+  .log-sheet .log-one input{ flex:1 1 auto; border:0 !important;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
+    border-radius:0; padding:3px 0 5px !important; font-size:17px; background:transparent; }
+  .log-sheet .log-run-row{ gap:2px; align-items:baseline; margin-bottom:0; }
+  .log-sheet .log-run-row input{ flex:0 0 auto !important; min-width:0 !important; width:3.4em;
+    text-align:center; border:0 !important;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
+    padding:0 2px !important; font-size:17px; font-variant-numeric:tabular-nums; }
+  .log-sheet #weekStretchRows .edit-row{ display:flex; flex-wrap:wrap; align-items:baseline;
+    gap:0 8px; margin:0; padding:8px 0 7px;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.22); }
+  .log-sheet #weekStretchRows input[type=text]{ flex:1 1 90px !important; min-width:0 !important;
+    border:0 !important; padding:0 !important; font-family:var(--wordmark); font-size:17px; }
+  .log-sheet #weekStretchRows input[type=number]{ flex:0 0 auto !important; min-width:0 !important;
+    width:2.6em; text-align:center; border:0 !important;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.45) !important;
+    padding:0 2px !important; font-size:17px; }
+  .log-sheet .run-pace{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.06em;
+    color:rgba(var(--ink-rgb),0.5); margin-top:4px; }
+  .log-sheet .log-notes-row{ margin-bottom:0; }
+  .log-sheet .log-notes-row input{ border:0 !important;
+    border-bottom:1px solid rgba(var(--ink-rgb),0.28) !important;
+    padding:4px 0 6px !important; font-size:16px; }
+
+  /* The four filled buttons at the foot were four decisions of equal weight. Save keeps the
+     one colour; the rest stop asking to be pressed. */
+  .log-sheet .log-acts{ display:flex; align-items:baseline; gap:16px; margin-top:16px;
+    padding-top:11px; border-top:1px solid rgba(var(--ink-rgb),0.16); }
+  .log-sheet .log-act{ height:auto; min-height:0; padding:0; background:transparent; border:0;
+    border-radius:0; font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold);
+    letter-spacing:0.1em; text-transform:uppercase; color:rgba(var(--ink-rgb),0.58);
+    flex:0 0 auto; position:relative; cursor:pointer; }
+  .log-sheet .log-act::after{ content:''; position:absolute; inset:-12px -8px; }
+  .log-sheet .log-act.go{ color:var(--block-lime); }
+  .log-sheet .log-acts .log-act:last-child:not(:first-child){ margin-left:auto; }
+  .log-sheet .rest-timer{ margin-top:9px; gap:10px; align-items:baseline; }
+  .log-sheet .rest-go{ height:auto; min-height:0; padding:0; background:transparent; border:0;
+    font-family:var(--mono); font-size:10px; font-weight:var(--fw-bold); letter-spacing:0.1em;
+    text-transform:uppercase; color:rgba(var(--ink-rgb),0.58); flex:0 0 auto; }
+  .log-sheet .rest-clock{ font-size:var(--fs-md); flex:0 0 auto; }
   .log-date-row{ display:flex; align-items:center; gap:6px; margin-bottom:var(--sp-3); }
   .log-date-row button{ font-family:var(--mono); font-size:var(--fs-tag); font-weight:var(--fw-bold);
     letter-spacing:0.06em; text-transform:uppercase; height:32px; min-height:0; padding:0 10px;
@@ -5446,6 +5627,7 @@
       <button type="button" class="log-date-step" data-step="1" aria-label="Day after">&rsaquo;</button>
       <span class="log-slot-pair">
         <button type="button" class="log-slot-btn" data-slot="am">AM</button>
+        <span class="log-slot-sep" aria-hidden="true">&middot;</span>
         <button type="button" class="log-slot-btn" data-slot="pm">PM</button>
       </span>
     </div>
@@ -10645,7 +10827,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.11.491';
+const APP_VERSION = '2026.09.12.492';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10861,6 +11043,7 @@ const APP_NOTES = {
   '2026.09.11.489': 'The mark\u2019s edge has weight, and sits off register against wherever it is looking.',
   '2026.09.11.490': 'Coming back to Today no longer flashes the black mark in the masthead before the coloured one returns.',
   '2026.09.11.491': 'The five faces you rate the day with are big enough to hit \u2014 and big enough to tell apart.',
+  '2026.09.12.492': 'Logging a session asks you what you did, in the voice the rest of the app asks things in \u2014 and the whole session fits on one screen.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -18332,14 +18515,14 @@ async function openBlockEditor(date, slot, block){
   if(!block){
     panel.style.display = 'block';
     panel.innerHTML = `
-      <div class="log-title" style="margin-bottom:10px;">What kind of session?</div>
-      <div class="session-type">
-        <div class="type-btn" data-pick-type="strength">Strength</div>
-        <div class="type-btn" data-pick-type="run">Run</div>
-        <div class="type-btn" data-pick-type="mobility">Mobility</div>
+      <div class="ask-q">What did you do?</div>
+      <div class="ask-list">
+        <button type="button" class="ask-a" data-pick-type="strength">Lifted</button>
+        <button type="button" class="ask-a" data-pick-type="run">Ran</button>
+        <button type="button" class="ask-a" data-pick-type="mobility">Stretched</button>
       </div>
-      <div style="display:flex; margin-top:12px;">
-        <button id="closeWeekBlockBtn" class="small outline">Close</button>
+      <div class="log-acts">
+        <button id="closeWeekBlockBtn" class="log-act">Close</button>
       </div>`;
     panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
       btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
@@ -18351,18 +18534,21 @@ async function openBlockEditor(date, slot, block){
   let fieldsHtml = '';
   if(block.type === 'strength'){
     fieldsHtml = `<div class="log-step" id="logStep">
+        <span class="ask-q">What did you lift?</span>
         <span class="log-step-pos" id="logPos"></span>
-        <button type="button" class="small outline log-fill" id="logFillAll">As planned</button>
       </div>
-      <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">+ add exercise</div>
+      <div id="weekExerciseRows"></div><div class="add-row" id="addWeekExerciseRow">Add a lift</div>
+      <button type="button" class="ask-a log-fill" id="logFillAll">Fill it in as planned</button>
       <!-- The run block has always had one. A strength session did not, so "gym was rammed,
            shoulder twinged on set three" — the context the score cannot see and cannot
            infer — had nowhere to go. session.notes already existed in the record and was
            written as an empty string every time. -->
-      <div class="edit-row"><input type="text" id="weekSessionNotes" placeholder="notes — how it actually went"></div>`;
+      <div class="ask-q">Anything worth noting?</div>
+      <div class="edit-row log-notes-row"><input type="text" id="weekSessionNotes" placeholder="how it actually went"></div>`;
   } else if(block.type === 'run'){
     fieldsHtml = `
-      <div class="edit-row"><select id="weekRunType">
+      <div class="ask-q">What kind of run?</div>
+      <div class="edit-row log-one"><select id="weekRunType">
         <option value="">— type —</option>
         <option value="easy" ${block.details.runType==='easy'?'selected':''}>Easy / Recovery</option>
         <option value="long" ${block.details.runType==='long'?'selected':''}>Long run</option>
@@ -18373,38 +18559,42 @@ async function openBlockEditor(date, slot, block){
         <option value="hills" ${block.details.runType==='hills'?'selected':''}>Hill repeats</option>
         <option value="race" ${block.details.runType==='race'?'selected':''}>Race</option>
       </select></div>
-      <div class="edit-row"><input type="number" id="weekRunDistance" placeholder="distance (km)" value="${block.details.distanceKm ?? ''}" step="any" inputmode="decimal"></div>
-      <div class="edit-row"><input type="number" id="weekRunActualDuration" placeholder="actual duration (min) — for logging" step="0.1"></div>
+      <div class="ask-q">How far, and how long?</div>
+      <div class="edit-row log-fields-row log-run-row">
+        <input type="number" id="weekRunDistance" placeholder="" value="${block.details.distanceKm ?? ''}" step="any" inputmode="decimal"><span class="log-op log-unit">km</span>
+        <span class="log-op">in</span>
+        <input type="number" id="weekRunActualDuration" placeholder="" step="0.1"><span class="log-op log-unit">min</span>
+      </div>
       <div class="run-pace" id="weekRunPace"></div>
-      <div class="edit-row"><input type="text" id="weekRunNotes" placeholder="notes" value="${block.details.notes||''}"></div>
+      <div class="ask-q">Anything worth noting?</div>
+      <div class="edit-row log-notes-row"><input type="text" id="weekRunNotes" placeholder="how it actually went" value="${block.details.notes||''}"></div>
       <div id="weekRunHistory"></div>`;
   } else if(block.type === 'mobility'){
-    fieldsHtml = `<div id="weekStretchRows"></div><div class="add-row" id="addWeekStretchRow">+ add stretch</div>`;
+    fieldsHtml = `<div class="ask-q">What did you stretch?</div>
+      <div id="weekStretchRows"></div><div class="add-row" id="addWeekStretchRow">Add a stretch</div>`;
   }
-  const logNoteByType = {
-    strength: 'Edits to exercise names/tags always save. Fill in what you actually did (sets × reps @ kg) too, and Save also records it to your training history.',
-    run: 'Fill in distance + actual duration and tap Log Session to save it to your training history — separate from the plan above.',
-    mobility: 'The sets/hold values above are used for logging too — tap Log Session to save what you actually did to your training history.'
-  };
+  /* THE INSTRUCTIONS ARE GONE. Four lines under every session explaining that filling in
+     sets x reps @ kg also records it to your history — which is a paragraph telling you the
+     form is wrong. There is nothing left to explain once the question over the rows says
+     "What did you lift?" and the answer is the row filled in. */
   panel.innerHTML = `
     ${fieldsHtml}
-    <div class="score-note" style="margin-top:8px;">${logNoteByType[block.type]}</div>
     <!-- Session RPE. Foster's session-RPE is the only load currency validated across
          modalities — ICC 0.88-0.95 for resistance training — and it is the only one that sees
          a hard session the heart rate missed. Borg CR-10, collected at the end rather than
          during, which is how it was validated. -->
     <div class="rpe-row" id="sessionRpeRow">
-      <div class="subj-head"><span class="subj-name">How hard was that</span><span class="subj-anchor">easy &middot; all out</span></div>
+      <div class="subj-head"><span class="subj-name ask-q">How hard was that?</span><span class="subj-anchor">easy &middot; all out</span></div>
       <div class="rpe-scale" id="rpeScale">${RPE_STEPS.map(rpeFaceHtml).join('')}</div>
       <input type="hidden" id="sessionRpe">
     </div>
-    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-      <button id="closeWeekBlockBtn" class="small outline">Minimise</button>
-      <button id="logWeekSessionBtn" class="primary">Save</button>
-      <button id="deleteWeekBlockBtn" class="small outline" style="margin-left:auto; flex:0 0 auto;">Delete</button>
+    <div class="log-acts">
+      <button id="logWeekSessionBtn" class="log-act go">Save</button>
+      <button id="closeWeekBlockBtn" class="log-act">Put away</button>
+      <button id="deleteWeekBlockBtn" class="log-act">Delete</button>
     </div>
     ${block.type === 'strength' ? `<div class="rest-timer" id="restTimer">
-      <button type="button" class="small outline rest-go" id="restGoBtn">Rest</button>
+      <button type="button" class="rest-go" id="restGoBtn">Rest</button>
       <span class="rest-clock" id="restClock">2:00</span>
       <span class="rest-steps">${REST_PRESETS.map(sec=>`<button type="button" class="rest-preset" data-rest="${sec}">${restLabel(sec)}</button>`).join('')}</span>
     </div>` : ''}`;
@@ -18463,7 +18653,7 @@ async function openBlockEditor(date, slot, block){
         : '';
       const ph = (v, fallback) => (v === 0 || v) ? String(v) : fallback;
       const targetLine = (sets!=null && repLow!=null)
-        ? `<div class="ex-target-line ex-target-tap" role="button" tabindex="0" style="flex-basis:100%; font-size:var(--fs-tag); color:var(--dim); margin-top:2px;">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}<span class="ex-target-hint">tap to fill</span></div>`
+        ? `<div class="ex-target-line ex-target-tap" role="button" tabindex="0">Target: ${sets} × ${repLow}${repHigh && repHigh!==repLow ? '-'+repHigh : ''}<span class="ex-target-hint">tap to fill</span></div>`
         : '';
       row.innerHTML = `
         <input type="text" class="week-ex-name" placeholder="exercise" value="${name}">
@@ -18471,17 +18661,17 @@ async function openBlockEditor(date, slot, block){
         <span class="remove-row">×</span>
         ${targetLine}
         ${lastLoggedLine(name)}
-        <div class="log-fields-row" style="flex-basis:100%; display:flex; gap:6px; align-items:center; margin-top:4px;">
-          <input type="number" class="week-ex-sets" placeholder="${ph(ghost && ghost.sets, 'sets')}" title="sets actually done">
-          <span style="font-size:var(--fs-tag); color:var(--dim);">×</span>
-          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="${ph(ghostReps, 'reps')}" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
-          <span style="font-size:var(--fs-tag); color:var(--dim);">@</span>
+        <div class="log-fields-row">
+          <input type="number" class="week-ex-sets" placeholder="${ph(ghost && ghost.sets, '')}" title="sets actually done">
+          <span class="log-op">×</span>
+          <input type="text" inputmode="numeric" class="week-ex-reps" placeholder="${ph(ghostReps, '')}" title="reps actually done — one number for all sets (12), or per-set to track effort (12,10,7)">
+          <span class="log-op">@</span>
       <!-- step="any" is what makes 62.5 a legal value. Without it the browser's implied
            step is 1, so a half-kilo is a stepMismatch: the field goes invalid and iOS
            offers a keypad with no decimal point. Everything downstream has always used
            parseFloat, so the model handled halves all along — the form was the only
            thing refusing them. -->
-          <input type="text" class="week-ex-weight" placeholder="${ph(ghostWeight, 'kg')}" title="weight actually used \u2014 one number for every set (100), or per-set for a ramp or a drop set (60,80,100)" inputmode="decimal">
+          <input type="text" class="week-ex-weight" placeholder="${ph(ghostWeight, '')}" title="weight actually used \u2014 one number for every set (100), or per-set for a ramp or a drop set (60,80,100)" inputmode="decimal"><span class="log-op log-unit">kg</span>
         </div>
         <div class="set-breakdown" hidden></div>
         <!-- BW and F were two unlabelled letters on the row you touch more than any other in
@@ -18491,8 +18681,8 @@ async function openBlockEditor(date, slot, block){
           <button type="button" class="week-ex-bw small outline" title="fill the weight box with your logged bodyweight">Bodyweight</button>
           <button type="button" class="week-ex-fail small outline" title="mark that the last set was taken to failure">To failure</button>
         </div>
-        <div class="ex-tags-toggle" style="flex-basis:100%; font-size:var(--fs-tag); font-weight:700; color:var(--dim); cursor:pointer; text-decoration:underline; margin-top:2px;">edit tags</div>
-        <div class="ex-tags-row" style="display:none; flex-basis:100%; gap:6px; margin-top:6px;">
+        <div class="ex-tags-toggle">edit tags</div>
+        <div class="ex-tags-row" style="display:none;">
           <select class="week-ex-area">${areaOptionsHtml(area)}</select>
           <select class="week-ex-area2">${areaOptionsHtml(secondaryArea)}</select>
           <select class="week-ex-movement">${movementOptionsHtml(movement)}</select>
