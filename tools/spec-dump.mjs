@@ -88,11 +88,12 @@ const golden = await p.evaluate(() => {
   const rows = cases.map(([name, entry, trailing]) => ({
     name, entry, trailing, out: scoresForEntry(entry, trailing)
   }));
-  /* Two more pure ones worth pinning: the band split the score log uses, and the ladder word
-     the number turns into. Both are decisions a port has to make identically. */
+  /* One more pure one worth pinning: the band split the score log uses, which is a decision
+     a port has to make identically. scoreLadderLabel used to be pinned beside it; it existed
+     only to relabel a figure the morning rating had been blended into, and went with the
+     rating in .508. */
   const bands = [0, 19, 20, 39, 40, 69, 70, 100].map(n => ({ n, band: bandOf(n, 40, 70) }));
-  const ladder = [0, 10, 25, 45, 60, 75, 90, 100].map(n => ({ n, word: scoreLadderLabel(n) }));
-  return { scoresForEntry: rows, bandOf: bands, scoreLadderLabel: ladder };
+  return { scoresForEntry: rows, bandOf: bands };
 });
 
 const scenarios = await p.evaluate(async () => {

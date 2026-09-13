@@ -1,5 +1,5 @@
 {
- "generatedFrom": "2026.09.13.507",
+ "generatedFrom": "2026.09.13.509",
  "generatedBy": "tools/spec-dump.mjs",
  "constants": {
   "EYE_ANIM": {
@@ -287,10 +287,6 @@
     "was": "The white of the eyes dulls with your sleep debt, on Today only",
     "floorPerNight": 1.5
    },
-   "looksAway": {
-    "on": true,
-    "note": "Closes while you are choosing your morning face, so it is not watching you answer"
-   },
    "readsWithYou": {
     "on": true,
     "note": "Now and then, reads along a line of a long explanation you have just opened",
@@ -540,43 +536,6 @@
   "MARK_SETTLE_AT": 120,
   "MC_LIT_R": 1.534,
   "MC_EYE_W": 0.099,
-  "MC_FACE": [
-   {
-    "hf": 0.34,
-    "wf": 1.4,
-    "gf": 0.74,
-    "gy": 0.34,
-    "tilt": 20
-   },
-   {
-    "hf": 0.6,
-    "wf": 1.18,
-    "gf": 0.88,
-    "gy": 0.18,
-    "tilt": 12
-   },
-   {
-    "hf": 0.86,
-    "wf": 1,
-    "gf": 1,
-    "gy": 0.02,
-    "tilt": 0
-   },
-   {
-    "hf": 1.16,
-    "wf": 0.94,
-    "gf": 1.06,
-    "gy": -0.06,
-    "tilt": -3
-   },
-   {
-    "hf": 1.06,
-    "wf": 0.8,
-    "gf": 1.28,
-    "gy": -0.2,
-    "tilt": -14
-   }
-  ],
   "MC_RIM_W": 0.06,
   "MC_BODY": {
    "boing": {
@@ -1043,42 +1002,6 @@
    "sleepScore": 10,
    "wakeTime": 10
   },
-  "SUBJECTIVE_ITEMS": [
-   {
-    "id": "subjEnergy",
-    "name": "Energy",
-    "good": "high"
-   },
-   {
-    "id": "subjSoreness",
-    "name": "Soreness",
-    "good": "low"
-   },
-   {
-    "id": "subjStress",
-    "name": "Life stress",
-    "good": "low"
-   },
-   {
-    "id": "subjMotivation",
-    "name": "Motivation",
-    "good": "high"
-   }
-  ],
-  "SUBJECTIVE_WORDS": [
-   "wrecked",
-   "rough",
-   "ok",
-   "good",
-   "raring"
-  ],
-  "SUBJECTIVE_WORDS_CAP": [
-   "Wrecked",
-   "Rough",
-   "OK",
-   "Good",
-   "Raring"
-  ],
   "FACE_SCALE": 0.38,
   "DOCK_W": 22,
   "DOCK_DRAW": 43,
@@ -1116,7 +1039,7 @@
    "DEC"
   ],
   "EPOCH_SANE": 946684800000,
-  "APP_VERSION": "2026.09.13.507",
+  "APP_VERSION": "2026.09.13.509",
   "APP_NOTES": {
    "2026.08.31.229": "A chart with nothing in it says why, and names the tab to log it on.",
    "2026.08.31.232": "Recent entries moved next to the form it fills, and repaints when you open it.",
@@ -1328,7 +1251,9 @@
    "2026.09.12.504": "The mark wears the face you picked, not just its colour.",
    "2026.09.12.505": "Today drops its Log this workout button — the disc at the bottom already does it.",
    "2026.09.13.506": "The tab’s tint is the masthead’s alone — the warm-up and cool-down keep their rule and give up their fill.",
-   "2026.09.13.507": "Every section sits on the ground now, on every tab — the tint is the masthead’s and nothing else’s."
+   "2026.09.13.507": "Every section sits on the ground now, on every tab — the tint is the masthead’s and nothing else’s.",
+   "2026.09.13.508": "The morning rating no longer feeds the score. What it reads is what was measured.",
+   "2026.09.13.509": "The morning question is gone. Today opens on a number, not a thing to answer."
   },
   "UPDATE_CHECK_INTERVAL_MS": 1800000,
   "UPDATE_VALIDATOR_KEY": "settings:updateValidator",
@@ -1397,12 +1322,9 @@
   "LEARN_FULL_AT": 60,
   "LEARN_MAX_SHIFT": 0.6,
   "LEARN_UNBLINDED_WEIGHT": 0.25,
-  "FACE_TRACE_GAP": 9,
-  "FACE_NOTE_GAP": 6,
   "PLACEBO_MIN_PER_CELL": 4,
   "VALIDITY_MIN": 8,
   "SR_COMPONENT_LABELS": {
-   "subjective": "How you feel",
    "hrvTrend": "HRV trend",
    "rhr": "Resting HR",
    "sleep": "Sleep",
@@ -1465,15 +1387,14 @@
   "TR_CAPACITY_PCTL": 0.9,
   "TR_MIN_LOADED_DAYS": 5,
   "SR_WEIGHTS": {
-   "subjective": 0.18,
-   "hrvTrend": 0.18,
-   "rhr": 0.14,
-   "load": 0.1,
-   "sleep": 0.12,
-   "hrvAcute": 0.08,
-   "sleepDebt": 0.08,
-   "regularity": 0.05,
-   "illnessCh": 0.07
+   "hrvTrend": 0.219,
+   "rhr": 0.171,
+   "load": 0.122,
+   "sleep": 0.146,
+   "hrvAcute": 0.098,
+   "sleepDebt": 0.098,
+   "regularity": 0.061,
+   "illnessCh": 0.085
   },
   "SR_HRV_ACUTE_DAMP": 0.5,
   "SR_TANH_K": 0.8,
@@ -2085,16 +2006,14 @@
   },
   "CONF_RULER_SEGMENTS": 5,
   "ACCEPTANCE_STATS_VISIBLE": false,
-  "SUBJ_FALLBACK_W": 0.28,
   "READING_FULL": 3,
   "TICK_H": 4,
   "TRACE_MIN_W": 56,
-  "FACE_COL_W": 74,
   "TRACE_GAP": 16,
   "DOCK_GAP": 9,
   "DOCK_OVERLAP": 10,
   "DOCK_TRACE_GAP": 9,
-  "DOCK_RESERVE_MAX": 61,
+  "DOCK_RESERVE": 61,
   "SESSION_FACE_SCALE": 0.3,
   "RECLEFT_MIN_W": 84,
   "TICK_SVG": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4.5 12.5L9.5 17.5L19.5 6.5\"/></svg>",
