@@ -1,0 +1,3371 @@
+{
+ "generatedFrom": "2026.09.13.507",
+ "generatedBy": "tools/spec-dump.mjs",
+ "constants": {
+  "EYE_ANIM": {
+   "blinkByScore": {
+    "on": true,
+    "note": "Blink rate and weight follow the score band — quick and frequent when fresh, slow and heavy when wrecked"
+   },
+   "sway": {
+    "on": true,
+    "note": "The pair rocks a degree or so, endlessly",
+    "deg": 1.5,
+    "ms": 7400
+   },
+   "breathe": {
+    "on": true,
+    "note": "…and swells a percent on the same loop",
+    "scale": 0.022
+   },
+   "lookAround": {
+    "on": true,
+    "note": "Glances off to one side and back, as if scanning",
+    "px": 3.5
+   },
+   "saccade": {
+    "on": true,
+    "note": "A one-pixel flick. Rare. Alive rather than paused",
+    "px": 1.5
+   },
+   "sleepAtNight": {
+    "on": true,
+    "note": "Past bedtime the lids sit heavy",
+    "fromHour": 22,
+    "toHour": 5,
+    "lid": 0.72
+   },
+   "wakeOnScore": {
+    "on": true,
+    "note": "Shut, then opens to the band as the number counts up"
+   },
+   "widenOnPR": {
+    "on": true,
+    "note": "A beat of surprise when a logged lift beats your best"
+   },
+   "wince": {
+    "on": true,
+    "note": "A squint when you log an injury, or a REDUCE card lands"
+   },
+   "deloadFatigue": {
+    "on": true,
+    "note": "Lids get heavier as a deload week wears on",
+    "perDay": 0.05,
+    "floor": 0.76
+   },
+   "restDayFace": {
+    "on": true,
+    "note": "Z’s float up from the mark on a rest day"
+   },
+   "markForms": {
+    "on": true,
+    "note": "The mark builds itself on the first load — the light comes up on the body, then the eye opens"
+   },
+   "blinkOnTap": {
+    "on": true,
+    "note": "Tap the mark and it blinks back"
+   },
+   "glanceAtTab": {
+    "on": true,
+    "note": "Looks toward the tab you just tapped — at once, or once the mark has landed if it had to fly there"
+   },
+   "scrollLook": {
+    "on": true,
+    "note": "Looks down as you scroll down, up as you scroll up",
+    "px": 3
+   },
+   "rollWithScore": {
+    "on": true,
+    "note": "The mark runs through every face and lands on the day’s as the score counts up"
+   },
+   "glanceAtNumber": {
+    "on": true,
+    "note": "One look down at the score after landing, then back up"
+   },
+   "nodOnSave": {
+    "on": true,
+    "note": "Nods when something saves; shakes when it fails"
+   },
+   "lookAtCard": {
+    "on": true,
+    "note": "Looks at the recommendation card you accept or dismiss"
+   },
+   "collapseSquash": {
+    "on": true,
+    "note": "Squashes rather than scaling flat as the header collapses",
+    "amt": 0.16
+   },
+   "popOnArrival": {
+    "on": true,
+    "note": "A pop as the plate closes around it up top"
+   },
+   "busyOnGenerate": {
+    "on": true,
+    "note": "Scans side to side while the week is being built"
+   },
+   "firstOpenOfDay": {
+    "on": true,
+    "note": "Opens from shut, once, the first time you look each day"
+   },
+   "dizzySpin": {
+    "on": true,
+    "note": "Spins if you hammer the tabs",
+    "taps": 5,
+    "withinMs": 2600
+   },
+   "idleSleep": {
+    "on": true,
+    "note": "Nods off if you leave the app open and untouched, and wakes on your next touch",
+    "afterMs": 150000
+   },
+   "plateIsHome": {
+    "on": true,
+    "note": "Off Today, tapping the plate takes you back to it"
+   },
+   "busyEverywhere": {
+    "on": true,
+    "note": "The scan shows for anything slow, not just Generate"
+   },
+   "toastEyes": {
+    "on": true,
+    "note": "The toast leads with the pair, nodding or shaking, instead of a tick or a cross"
+   },
+   "glanceAtDay": {
+    "on": true,
+    "note": "Looks at each day as a generated week lands on the board"
+   },
+   "attentionOnCard": {
+    "on": true,
+    "note": "A brief look straight at you when a recommendation lands"
+   },
+   "doubleTake": {
+    "on": true,
+    "note": "A double blink when today jumps a long way from the last score it saw",
+    "delta": 18
+   },
+   "streakPerk": {
+    "on": true,
+    "note": "Blinks livelier once you have a run of logged days going",
+    "days": 4,
+    "factor": 0.72
+   },
+   "blearyReturn": {
+    "on": true,
+    "note": "A slower, heavier open if it has been a while since you looked",
+    "afterDays": 5
+   },
+   "timeOfDayGaze": {
+    "on": true,
+    "note": "Rides fractionally high in the morning, low at night",
+    "px": 2
+   },
+   "flinch": {
+    "on": true,
+    "note": "A recoil before anything irreversible"
+   },
+   "sideEye": {
+    "on": true,
+    "note": "A look, after three dismissals in a row",
+    "after": 3,
+    "px": 5
+   },
+   "rareBeat": {
+    "on": true,
+    "note": "One open in a few hundred it does something you have not seen",
+    "chance": 0.004
+   },
+   "flightTrail": {
+    "on": true,
+    "note": "The eyes lag the plate through the flight and catch up on landing",
+    "px": 5
+   },
+   "jelly": {
+    "on": true,
+    "note": "Every arrival wobbles like jelly instead of a single bounce",
+    "ms": 560
+   },
+   "peek": {
+    "on": true,
+    "note": "Now and then it ducks below the edge and peeks back up",
+    "px": 6,
+    "chance": 0.04
+   },
+   "perEyeLag": {
+    "on": true,
+    "note": "The two lids move a hair apart, and not always the same one first",
+    "minFrac": 0.08,
+    "maxFrac": 0.16
+   },
+   "lidVolume": {
+    "on": true,
+    "note": "The eye bulges a little as it squeezes shut, like something with substance in it",
+    "px": 1.4
+   },
+   "lookBeforeLeaving": {
+    "on": true,
+    "note": "Glances where it is about to go before the flight starts"
+   },
+   "emptyStateEyes": {
+    "on": true,
+    "note": "Empty blocks get the pair, looking at whatever fills them"
+   },
+   "sectionBusy": {
+    "on": true,
+    "note": "A pair scans where a section is about to fill in, so you can see which part is thinking"
+   },
+   "gestureSmear": {
+    "on": true,
+    "note": "The quick gestures stretch along the way they are moving, like the flight already does",
+    "amt": 0.16
+   },
+   "focusGaze": {
+    "on": true,
+    "note": "Looks at the field you are typing in"
+   },
+   "converge": {
+    "on": false,
+    "note": "RETIRED — the mark is one aperture in a solid, and this needs two eyes",
+    "was": "The two eyes turn very slightly toward each other for something close",
+    "px": 1.6,
+    "far": 220
+   },
+   "plateSag": {
+    "on": false,
+    "note": "RETIRED — the plate only exists mid-flight now, so there is nothing to sag",
+    "was": "The whole plate sits lower on a bad score, not just the lids",
+    "px": 3
+   },
+   "blinkOnReturn": {
+    "on": true,
+    "note": "A blink when you come back to the app after a look away",
+    "afterMs": 20000
+   },
+   "impatience": {
+    "on": true,
+    "note": "The scan tightens when something runs longer than it should",
+    "afterMs": 1600,
+    "floorMs": 150
+   },
+   "anticipate": {
+    "on": true,
+    "note": "Learns which tab usually follows which, and looks at the next one",
+    "minVisits": 6,
+    "minShare": 0.55
+   },
+   "chevronEyes": {
+    "on": false,
+    "note": "The collapse chevrons are the mark, shut when the section is"
+   },
+   "restingPulse": {
+    "on": true,
+    "note": "The idle blink keeps time with your logged resting heart rate"
+   },
+   "uncertainGaze": {
+    "on": true,
+    "note": "Unsteady while the score is unsure, settling as the baseline matures"
+   },
+   "refusesHeld": {
+    "on": true,
+    "note": "Starts the glance down at a held score, then turns away instead"
+   },
+   "weekArc": {
+    "on": true,
+    "note": "Fresher at the start of a training week, worn by the end of it"
+   },
+   "dilate": {
+    "on": true,
+    "note": "The eye opens up a little in the dark"
+   },
+   "wink": {
+    "on": false,
+    "note": "RETIRED — the mark is one aperture in a solid, and this needs two eyes; a full close is now just a blink",
+    "was": "One eye, rarely, when a logged lift beats your best"
+   },
+   "sleepDebtFresh": {
+    "on": false,
+    "note": "RETIRED — the solid has no whites to dull; the bias carries tiredness instead",
+    "was": "The white of the eyes dulls with your sleep debt, on Today only",
+    "floorPerNight": 1.5
+   },
+   "looksAway": {
+    "on": true,
+    "note": "Closes while you are choosing your morning face, so it is not watching you answer"
+   },
+   "readsWithYou": {
+    "on": true,
+    "note": "Now and then, reads along a line of a long explanation you have just opened",
+    "chance": 0.34
+   },
+   "sessionHeaviness": {
+    "on": true,
+    "note": "Heavier lids for the rest of the day once you have logged a real session",
+    "afterMin": 45,
+    "lid": 0.76
+   },
+   "sittingSettles": {
+    "on": true,
+    "note": "The longer you are in the app in one visit, the slower the idle gets",
+    "overMin": 20,
+    "maxExtra": 0.6
+   },
+   "holdGaze": {
+    "on": true,
+    "note": "Press and hold the mark and it looks straight at you until you let go",
+    "afterMs": 340
+   },
+   "stayVisible": {
+    "on": true,
+    "note": "Perches back up in the wordmark when the score scrolls away, and drops again when it returns"
+   },
+   "colophonEyes": {
+    "on": true,
+    "note": "A pair on the definition at the foot of every page"
+   },
+   "tabGaze": {
+    "on": true,
+    "note": "Each tab sets the eyes a hair differently"
+   },
+   "lookAtToast": {
+    "on": true,
+    "note": "Looks at a toast when one lands"
+   },
+   "startleOnError": {
+    "on": true,
+    "note": "A jump, not a polite shake, when something fails"
+   },
+   "lookAtSave": {
+    "on": true,
+    "note": "Looks at the button you are heading for the moment a form goes dirty"
+   },
+   "thinkBeforeCard": {
+    "on": true,
+    "note": "A beat of looking away before a recommendation lands"
+   },
+   "lookAtPanel": {
+    "on": true,
+    "note": "Looks at a panel that opens over the page"
+   },
+   "tabWander": {
+    "on": true,
+    "note": "Glances at the tab bar if you sit on one tab a long time",
+    "afterMs": 180000,
+    "everyMs": 120000
+   },
+   "glitch": {
+    "on": true,
+    "note": "Now and then the pair tears for a moment, the way it blinks",
+    "ms": 200,
+    "chance": 0.07
+   },
+   "chipBlinks": {
+    "on": true,
+    "note": "The docked face blinks on its own clock — set by what you told it, not by what the score says"
+   },
+   "chipAndMark": {
+    "on": true,
+    "note": "The pair and the docked face notice each other now and then, and what passes between them depends on whether they agree",
+    "chance": 0.22,
+    "restMs": 24000
+   },
+   "tearOnFlight": {
+    "on": true,
+    "note": "The mark tears as it lands — flying between the wordmark and the score, and perching as you scroll past it",
+    "px": 6
+   }
+  },
+  "EYE_CALM_KEEP": [
+   "plateIsHome",
+   "toastEyes",
+   "nodOnSave",
+   "busyEverywhere",
+   "wakeOnScore",
+   "blinkByScore",
+   "wince",
+   "widenOnPR"
+  ],
+  "EYE_ANIM_DEFAULTS": {
+   "blinkByScore": true,
+   "sway": true,
+   "breathe": true,
+   "lookAround": true,
+   "saccade": true,
+   "sleepAtNight": true,
+   "wakeOnScore": true,
+   "widenOnPR": true,
+   "wince": true,
+   "deloadFatigue": true,
+   "restDayFace": true,
+   "markForms": true,
+   "blinkOnTap": true,
+   "glanceAtTab": true,
+   "scrollLook": true,
+   "rollWithScore": true,
+   "glanceAtNumber": true,
+   "nodOnSave": true,
+   "lookAtCard": true,
+   "collapseSquash": true,
+   "popOnArrival": true,
+   "busyOnGenerate": true,
+   "firstOpenOfDay": true,
+   "dizzySpin": true,
+   "idleSleep": true,
+   "plateIsHome": true,
+   "busyEverywhere": true,
+   "toastEyes": true,
+   "glanceAtDay": true,
+   "attentionOnCard": true,
+   "doubleTake": true,
+   "streakPerk": true,
+   "blearyReturn": true,
+   "timeOfDayGaze": true,
+   "flinch": true,
+   "sideEye": true,
+   "rareBeat": true,
+   "flightTrail": true,
+   "jelly": true,
+   "peek": true,
+   "perEyeLag": true,
+   "lidVolume": true,
+   "lookBeforeLeaving": true,
+   "emptyStateEyes": true,
+   "sectionBusy": true,
+   "gestureSmear": true,
+   "focusGaze": true,
+   "converge": false,
+   "plateSag": false,
+   "blinkOnReturn": true,
+   "impatience": true,
+   "anticipate": true,
+   "chevronEyes": false,
+   "restingPulse": true,
+   "uncertainGaze": true,
+   "refusesHeld": true,
+   "weekArc": true,
+   "dilate": true,
+   "wink": false,
+   "sleepDebtFresh": false,
+   "looksAway": true,
+   "readsWithYou": true,
+   "sessionHeaviness": true,
+   "sittingSettles": true,
+   "holdGaze": true,
+   "stayVisible": true,
+   "colophonEyes": true,
+   "tabGaze": true,
+   "lookAtToast": true,
+   "startleOnError": true,
+   "lookAtSave": true,
+   "thinkBeforeCard": true,
+   "lookAtPanel": true,
+   "tabWander": true,
+   "glitch": true,
+   "chipBlinks": true,
+   "chipAndMark": true,
+   "tearOnFlight": true
+  },
+  "EYE_STATES": [
+   {
+    "h": "5px",
+    "w": "20px",
+    "g": "6px",
+    "r": "0px",
+    "rb": "2.5px",
+    "bl": "0%",
+    "rot": "-24deg",
+    "gy": 0.34,
+    "h2f": 0.68,
+    "rot2d": "12deg"
+   },
+   {
+    "h": "11px",
+    "w": "18px",
+    "g": "8px",
+    "r": "1.5px",
+    "rb": "5.5px",
+    "bl": "52%",
+    "rot": "-15deg",
+    "gy": 0.2,
+    "h2f": 0.74,
+    "rot2d": "8deg"
+   },
+   {
+    "h": "17px",
+    "w": "15px",
+    "g": "11px",
+    "r": "3px",
+    "rb": "3px",
+    "bl": "0%",
+    "rot": "0deg",
+    "gy": 0.04,
+    "h2f": 0.92,
+    "rot2d": "2deg"
+   },
+   {
+    "h": "28px",
+    "w": "13px",
+    "g": "12px",
+    "r": "6.5px",
+    "rb": "6.5px",
+    "bl": "0%",
+    "rot": "0deg",
+    "gy": -0.02
+   },
+   {
+    "h": "13px",
+    "w": "22px",
+    "g": "11px",
+    "r": "11px",
+    "rb": "0px",
+    "bl": "0%",
+    "rot": "0deg",
+    "gy": -0.1
+   }
+  ],
+  "EYE_NEUTRAL": {
+   "h": "13px",
+   "w": "22px",
+   "g": "11px",
+   "r": "11px",
+   "rb": "0px",
+   "bl": "0%",
+   "rot": "0deg",
+   "gy": -0.1
+  },
+  "EYE_FLIGHT_MS": 640,
+  "EYE_INNER_HTML": "<div class=\"eye-gaze\"><div class=\"eye-motion\"><span></span><span></span></div></div>",
+  "EYE_SITES": {
+   "header": {
+    "--eye-box-w": "40px",
+    "--eye-box-h": "40px",
+    "--eye-gap": "10px",
+    "--eye-plate": "var(--mark-shell)",
+    "--eye-plate-r": "12px",
+    "--eye-w": "6px",
+    "--eye-h": "18px",
+    "--eye-r": "3px",
+    "--eye-rb": "3px",
+    "--eye-bl": "0%",
+    "--eye-rot": "0deg",
+    "--eye-ink": "var(--mark-ink)"
+   },
+   "score": {
+    "--eye-box-w": "42px",
+    "--eye-box-h": "32px",
+    "--eye-gap": "12px",
+    "--eye-plate": "transparent",
+    "--eye-plate-r": "0px",
+    "--eye-w": "15px",
+    "--eye-h": "32px",
+    "--eye-r": "7.5px",
+    "--eye-rb": "7.5px",
+    "--eye-bl": "0%",
+    "--eye-rot": "0deg",
+    "--eye-ink": "var(--bg)"
+   }
+  },
+  "SCORE_LOG_MAX": 60,
+  "SCORE_LOG_KEEP_DAYS": 7,
+  "SCORE_LOAD_ID": "mtz8xanpud5e",
+  "SCORE_SAMPLES": [
+   {
+    "at": 1789269604486,
+    "for": "2026-09-13",
+    "shown": 50,
+    "raw": 50,
+    "pct": null,
+    "gate": 1,
+    "gated": null,
+    "held": false,
+    "present": 0,
+    "complete": 0,
+    "mature": 0,
+    "avail": false,
+    "learnedN": null,
+    "wsum": null,
+    "load": "mtz8xanpud5e"
+   }
+  ],
+  "SCORE_FIELD_LABEL": {
+   "raw": "raw score",
+   "pct": "percentile",
+   "gate": "gate",
+   "gated": "gate reason",
+   "held": "held",
+   "present": "inputs present",
+   "complete": "window completeness",
+   "mature": "baseline maturity",
+   "avail": "readiness available",
+   "learnedN": "sessions learned from",
+   "wsum": "sum of weights"
+  },
+  "BLINK_CLOSED": "2px",
+  "SLEEP_FRESH_FLOOR": [
+   168,
+   165,
+   155
+  ],
+  "BLINK_BY_BAND": [
+   {
+    "gap": 6200,
+    "span": 6800,
+    "shut": 110,
+    "open": 340
+   },
+   {
+    "gap": 5200,
+    "span": 6200,
+    "shut": 95,
+    "open": 290
+   },
+   {
+    "gap": 4200,
+    "span": 5600,
+    "shut": 80,
+    "open": 230
+   },
+   {
+    "gap": 3400,
+    "span": 4800,
+    "shut": 68,
+    "open": 185
+   },
+   {
+    "gap": 2700,
+    "span": 4200,
+    "shut": 58,
+    "open": 160
+   }
+  ],
+  "MARK_SETTLE_MS": 260,
+  "MARK_SETTLE_AT": 120,
+  "MC_LIT_R": 1.534,
+  "MC_EYE_W": 0.099,
+  "MC_FACE": [
+   {
+    "hf": 0.34,
+    "wf": 1.4,
+    "gf": 0.74,
+    "gy": 0.34,
+    "tilt": 20
+   },
+   {
+    "hf": 0.6,
+    "wf": 1.18,
+    "gf": 0.88,
+    "gy": 0.18,
+    "tilt": 12
+   },
+   {
+    "hf": 0.86,
+    "wf": 1,
+    "gf": 1,
+    "gy": 0.02,
+    "tilt": 0
+   },
+   {
+    "hf": 1.16,
+    "wf": 0.94,
+    "gf": 1.06,
+    "gy": -0.06,
+    "tilt": -3
+   },
+   {
+    "hf": 1.06,
+    "wf": 0.8,
+    "gf": 1.28,
+    "gy": -0.2,
+    "tilt": -14
+   }
+  ],
+  "MC_RIM_W": 0.06,
+  "MC_BODY": {
+   "boing": {
+    "ms": 620,
+    "f": "[fn]"
+   }
+  },
+  "MC_MOVES": [
+   {
+    "w": 5,
+    "name": "glance",
+    "steps": "[fn]"
+   },
+   {
+    "w": 4,
+    "name": "turn",
+    "steps": "[fn]"
+   },
+   {
+    "w": 3,
+    "name": "corner",
+    "steps": "[fn]"
+   },
+   {
+    "w": 3,
+    "name": "nod",
+    "steps": "[fn]"
+   },
+   {
+    "w": 2,
+    "name": "tilt",
+    "steps": "[fn]"
+   },
+   {
+    "w": 2,
+    "name": "peek",
+    "steps": "[fn]"
+   },
+   {
+    "w": 1,
+    "name": "roll",
+    "steps": "[fn]"
+   },
+   {
+    "w": 1,
+    "name": "flip",
+    "steps": "[fn]"
+   },
+   {
+    "w": 3,
+    "name": "boing",
+    "body": "boing"
+   }
+  ],
+  "MC_W": 24,
+  "TOAST_MS": 1800,
+  "STREAK_MILESTONES": [
+   7,
+   14,
+   30,
+   50,
+   100,
+   200,
+   365
+  ],
+  "CONFETTI_INK": [
+   "var(--block-lime)",
+   "var(--block-orange)",
+   "var(--block-yellow)",
+   "var(--block-blue)",
+   "var(--block-purple)",
+   "var(--bg)"
+  ],
+  "EYE_FLINCH_SELECTOR": "#clearAllWeekBtn, #clearAllDataBtn, .remove-row, .rec-actions .dismiss-btn",
+  "EYE_EMPTY_TABS": {
+   "today": "insights",
+   "weekly": "training",
+   "body": "injuries",
+   "function": "injuries",
+   "goals": "training",
+   "data": "data",
+   "settings": "settings"
+  },
+  "EYE_NO_PREVIEW": {
+   "plateIsHome": "Tap the plate off Today",
+   "emptyStateEyes": "Shows on any empty block",
+   "toastEyes": "Every toast in the app",
+   "collapseSquash": "Scroll the header away",
+   "flightTrail": "Switch to or from Today",
+   "lookBeforeLeaving": "Switch to or from Today",
+   "popOnArrival": "Switch away from Today",
+   "blinkByScore": "Changes the rate below",
+   "streakPerk": "Changes the rate below",
+   "timeOfDayGaze": "Shifts where it rests",
+   "perEyeLag": "Watch a blink closely",
+   "lidVolume": "Watch a blink closely",
+   "firstOpenOfDay": "Once a day, on opening",
+   "blearyReturn": "After a week away",
+   "rareBeat": "One open in a few hundred",
+   "jelly": "Any time the mark pops in",
+   "peek": "Now and then, on its own"
+  },
+  "MARK_DROP_MORPH": 0.62,
+  "EYE_PERCH_SCALE": 0.6,
+  "EYE_TAB_GAZE": {
+   "insights": {
+    "x": 0,
+    "y": -1
+   },
+   "training": {
+    "x": 1.5,
+    "y": 0
+   },
+   "injuries": {
+    "x": -1.5,
+    "y": 0.5
+   },
+   "goals": {
+    "x": 0,
+    "y": -1.5
+   },
+   "data": {
+    "x": 0,
+    "y": 1.5
+   },
+   "settings": {
+    "x": 1.5,
+    "y": 1
+   }
+  },
+  "EYE_SAVE_TEXT": {},
+  "UI_ANIM": {
+   "traceDraw": {
+    "on": true,
+    "note": "The trend chart draws its line, and the band fills in behind it",
+    "ms": 1000
+   },
+   "loadTilt": {
+    "on": true,
+    "note": "A week that beat its plan pushes past the tick and rocks back",
+    "ms": 520,
+    "over": 0.06
+   },
+   "gapDots": {
+    "on": true,
+    "note": "The trend line goes dotted across a gap where you logged nothing",
+    "gapDays": 9
+   },
+   "dayHandoff": {
+    "on": true,
+    "note": "Midnight passing with the app open turns the date over",
+    "ms": 620
+   },
+   "firstLight": {
+    "on": true,
+    "note": "Your first generated week arrives a day at a time",
+    "ms": 300,
+    "stagger": 70
+   },
+   "strikeThrough": {
+    "on": true,
+    "note": "A drill you tick is struck through rather than switching to done",
+    "ms": 300
+   },
+   "sessionProgress": {
+    "on": true,
+    "note": "The drill count carries a bar that fills as you cross them off"
+   },
+   "staleBreath": {
+    "on": true,
+    "note": "A section that has gone stale exhales once when you land on it"
+   },
+   "overscroll": {
+    "on": true,
+    "note": "The page stretches at the top and springs back"
+   },
+   "flipReorder": {
+    "on": true,
+    "note": "Reordered goals slide past each other instead of teleporting",
+    "ms": 340
+   },
+   "chipActsOut": {
+    "on": true,
+    "note": "A card’s chip acts out its own symbol as the card lands",
+    "ms": 520
+   },
+   "rankFlip": {
+    "on": true,
+    "note": "A goal’s rank turns over when its place changes",
+    "ms": 300
+   },
+   "cardExit": {
+    "on": true,
+    "note": "Accepted cards settle in, dismissed ones flick away",
+    "ms": 300
+   },
+   "collapseMotion": {
+    "on": true,
+    "note": "Sections open and close instead of blinking in and out",
+    "ms": 260
+   },
+   "growBars": {
+    "on": true,
+    "note": "Bars grow from nothing, one after another",
+    "ms": 520,
+    "stagger": 45
+   },
+   "digitRoll": {
+    "on": true,
+    "note": "The score rolls its digits like a counter",
+    "ms": 620,
+    "stagger": 70
+   },
+   "digitStep": {
+    "on": true,
+    "note": "…and the counter ticks between digits rather than sliding through them"
+   },
+   "scoreGlitch": {
+    "on": true,
+    "note": "A day you swipe to tears itself in rather than simply appearing",
+    "ms": 340
+   },
+   "markGlitch": {
+    "on": true,
+    "note": "How long the mark's own tear lasts — whether it happens at all is the eyes' own row",
+    "ms": 320
+   },
+   "tickLevel": {
+    "on": true,
+    "note": "Ticking a level in a picker lands with a beat",
+    "ms": 340
+   },
+   "rungFill": {
+    "on": true,
+    "note": "Ticking a rung fills the ones under it in order rather than all at once",
+    "ms": 170,
+    "stagger": 42
+   },
+   "landsWhereSent": {
+    "on": true,
+    "note": "A section a card sent you to draws its own rule down as you arrive",
+    "ms": 520
+   },
+   "budgetBar": {
+    "on": true,
+    "note": "Today’s session carries a bar showing its length against your setting",
+    "ms": 620
+   },
+   "weightsDrift": {
+    "on": true,
+    "note": "Each channel’s bar travels from its starting weight to the one your data learned",
+    "ms": 760,
+    "stagger": 55
+   },
+   "streakBurst": {
+    "on": true,
+    "note": "The mark throws confetti the first time you log on a new day",
+    "ms": 1100
+   },
+   "staggerIn": {
+    "on": true,
+    "note": "List entries arrive one after another rather than all at once",
+    "ms": 260,
+    "stagger": 32,
+    "max": 12
+   },
+   "toastFrom": {
+    "on": true,
+    "note": "The toast comes from wherever you just tapped",
+    "px": 22
+   },
+   "panelDirection": {
+    "on": true,
+    "note": "A panel arrives from the side its tab sits on — what runs when the deal is off, since both write the same transform",
+    "ms": 280,
+    "px": 26
+   },
+   "tabIndicator": {
+    "on": true,
+    "note": "The light runs along the tab bar to where you tapped, rather than jumping there",
+    "ms": 300
+   },
+   "rowRemove": {
+    "on": true,
+    "note": "A removed row closes up instead of vanishing",
+    "ms": 220
+   },
+   "crossFade": {
+    "on": true,
+    "note": "A redrawn detail fades rather than hard-swaps",
+    "ms": 180
+   },
+   "fieldUnderline": {
+    "on": true,
+    "note": "A focused field draws its underline in from the left",
+    "ms": 220
+   },
+   "buttonPress": {
+    "on": true,
+    "note": "Buttons press down under the finger",
+    "ms": 90
+   },
+   "headerHairline": {
+    "on": true,
+    "note": "A hairline appears under the header once the page has scrolled"
+   },
+   "bannerSlide": {
+    "on": true,
+    "note": "The update banner slides down rather than appearing",
+    "ms": 320
+   },
+   "skeleton": {
+    "on": true,
+    "note": "Waiting shows the shape of what is coming, pulsing",
+    "ms": 1200
+   },
+   "stickyHeads": {
+    "on": true,
+    "note": "A section’s heading sticks to the top while you read it"
+   },
+   "tabLift": {
+    "on": true,
+    "note": "A new page is dealt in from the side you swiped, over the app’s own black",
+    "axis": "X",
+    "ms": 440
+   },
+   "planDeal": {
+    "on": true,
+    "note": "A generated week is dealt out day by day rather than appearing whole",
+    "ms": 200
+   },
+   "pillExtend": {
+    "on": true,
+    "note": "A section’s title pill extends out as the page lands, rather than arriving whole",
+    "ms": 400,
+    "stagger": 80,
+    "max": 8
+   },
+   "facesRollIn": {
+    "on": true,
+    "note": "The five faces roll in as balls when the question is put to you",
+    "ms": 560,
+    "stagger": 62
+   },
+   "firstRunThread": {
+    "on": true,
+    "note": "The setup questions arrive one at a time, each as the last is answered",
+    "ms": 340
+   },
+   "fieldDrift": {
+    "on": true,
+    "note": "A dot field ripples half a wave through, in the direction you swiped, once its page has landed",
+    "ms": 900
+   }
+  },
+  "CHIP_MOTION": {
+   "add": [
+    {
+     "transform": "scale(0.62)"
+    },
+    {
+     "transform": "scale(1.16)",
+     "offset": 0.55
+    },
+    {
+     "transform": "scale(1)"
+    }
+   ],
+   "reduce": [
+    {
+     "transform": "scale(1.3)"
+    },
+    {
+     "transform": "scale(0.9)",
+     "offset": 0.55
+    },
+    {
+     "transform": "scale(1)"
+    }
+   ],
+   "hold": [
+    {
+     "transform": "translateY(-7px)"
+    },
+    {
+     "transform": "translateY(3px)",
+     "offset": 0.6
+    },
+    {
+     "transform": "translateY(0)"
+    }
+   ],
+   "modify": [
+    {
+     "transform": "rotate(-9deg)"
+    },
+    {
+     "transform": "rotate(6deg)",
+     "offset": 0.55
+    },
+    {
+     "transform": "rotate(0deg)"
+    }
+   ],
+   "deload_suggest": [
+    {
+     "transform": "translateY(-12px)"
+    },
+    {
+     "transform": "translateY(5px)",
+     "offset": 0.62
+    },
+    {
+     "transform": "translateY(0)"
+    }
+   ]
+  },
+  "UI_BAR_SELECTOR": ".conf-bar-fill, .skg-bar-fill, .vol-bar-fill, .blc-bar",
+  "FIRST_LIGHT_KEY": "firstLightSeen",
+  "UI_TAB_ORDER": [
+   "insights",
+   "training",
+   "injuries",
+   "data",
+   "settings"
+  ],
+  "UI_TAB_COLOUR": {
+   "insights": "--block-lime",
+   "training": "--block-yellow",
+   "injuries": "--block-red",
+   "data": "--block-purple",
+   "settings": "--block-blue"
+  },
+  "UI_CSS_ANIMS": [
+   "tabIndicator",
+   "fieldUnderline",
+   "buttonPress",
+   "headerHairline",
+   "bannerSlide",
+   "stickyHeads"
+  ],
+  "TAB_BACKDROP_COLOR": {
+   "insights": "var(--ground)",
+   "training": "var(--ground)",
+   "injuries": "var(--ground)",
+   "data": "var(--ground)",
+   "settings": "var(--ground)"
+  },
+  "RETIRED_TABS": {
+   "goals": "training"
+  },
+  "A11Y_INTERACTIVE_SELECTOR": ".type-btn, .remove-row, .ex-tags-toggle, .add-row, .rating-btn, .goal-priority-btn, .flow-header, .group-head.collapsible, .mob-check-row[data-level], .wheel-add-card",
+  "SWEEP_TABS": [
+   "insights",
+   "training",
+   "injuries",
+   "data",
+   "settings"
+  ],
+  "SWEEP_RENDER_MS": 900,
+  "SWEEP_NATIVE": {},
+  "THRESH": {
+   "hrv": 10,
+   "sleepScore": 10,
+   "wakeTime": 10
+  },
+  "SUBJECTIVE_ITEMS": [
+   {
+    "id": "subjEnergy",
+    "name": "Energy",
+    "good": "high"
+   },
+   {
+    "id": "subjSoreness",
+    "name": "Soreness",
+    "good": "low"
+   },
+   {
+    "id": "subjStress",
+    "name": "Life stress",
+    "good": "low"
+   },
+   {
+    "id": "subjMotivation",
+    "name": "Motivation",
+    "good": "high"
+   }
+  ],
+  "SUBJECTIVE_WORDS": [
+   "wrecked",
+   "rough",
+   "ok",
+   "good",
+   "raring"
+  ],
+  "SUBJECTIVE_WORDS_CAP": [
+   "Wrecked",
+   "Rough",
+   "OK",
+   "Good",
+   "Raring"
+  ],
+  "FACE_SCALE": 0.38,
+  "DOCK_W": 22,
+  "DOCK_DRAW": 43,
+  "MARK_FORM": {
+   "g": "12px",
+   "w": "15px",
+   "r": "7.5px",
+   "h": "32px",
+   "rb": "7.5px",
+   "bl": "0%",
+   "rot": "0deg"
+  },
+  "DOT_SCALES": [
+   [
+    "alcoholScale",
+    "alcohol"
+   ],
+   [
+    "unwellScale",
+    "unwell"
+   ]
+  ],
+  "STAMP_MONTHS": [
+   "JAN",
+   "FEB",
+   "MAR",
+   "APR",
+   "MAY",
+   "JUN",
+   "JUL",
+   "AUG",
+   "SEP",
+   "OCT",
+   "NOV",
+   "DEC"
+  ],
+  "EPOCH_SANE": 946684800000,
+  "APP_VERSION": "2026.09.13.507",
+  "APP_NOTES": {
+   "2026.08.31.229": "A chart with nothing in it says why, and names the tab to log it on.",
+   "2026.08.31.232": "Recent entries moved next to the form it fills, and repaints when you open it.",
+   "2026.08.31.233": "Offline now works whichever address you launch from, not just the one you last loaded.",
+   "2026.08.31.234": "Checking for a new version no longer downloads the whole app to read one line.",
+   "2026.08.31.235": "This line, and the ones before it. This section now says what changed in the build you are on.",
+   "2026.08.31.258": "A day with both a lift and a run now says how long to leave between them.",
+   "2026.08.31.259": "Bridge, middle split and pancake now steer your mobility sessions toward what they actually train.",
+   "2026.08.31.260": "The skill list now opens on the ladders you can start today, not the order they were written in.",
+   "2026.08.31.261": "Muscle-up and one-arm pull-up now show what to get first, instead of counting it as their level one.",
+   "2026.08.31.262": "The progress box under a skill now counts the same levels the wheel above it does.",
+   "2026.08.31.263": "A skill you have not met the prerequisites for now trains the prerequisites, on the right days.",
+   "2026.08.31.264": "The exercise you named as your goal is now actually in the plan — and first, when it is an isolation lift.",
+   "2026.08.31.265": "The pistol squat stopped counting \"be good at bodyweight squats\" as its level one.",
+   "2026.08.31.266": "Picking two skills that train the same movement now says so.",
+   "2026.08.31.267": "The mobility picker now shows your assessment score for whatever skill you are looking at.",
+   "2026.08.31.268": "A Sunday review: what the week actually was, on the Weekly tab, on Sunday and Monday.",
+   "2026.08.31.269": "Share the shape of your week — seven marks and the dates, no numbers to be ranked by.",
+   "2026.08.31.270": "A short static hold opens the warm-up when a tested-tight area is what is limiting the session.",
+   "2026.08.31.271": "The week picker takes the Weekly tab’s own yellow, faded.",
+   "2026.08.31.272": "The block chart is its own section now, titled Training load.",
+   "2026.08.31.273": "Every wheel wears its tab’s colour, and the sections around them sit on the plain ground.",
+   "2026.08.31.274": "Today separates the session from the warm-up and cool-down that bracket it.",
+   "2026.08.31.275": "Once you answer, the day’s rating is just the word — no second face beside the score.",
+   "2026.08.31.276": "The face you picked sits beside the score at the size you picked it.",
+   "2026.08.31.277": "The five faces have their colour back — the middle of the scale is no longer grey.",
+   "2026.08.31.278": "The five faces take the brighter scale, sand through the middle.",
+   "2026.08.31.279": "Today only offers the sessions you actually have — no Run button on a day with no run.",
+   "2026.08.31.280": "Less to read — the longest explanations are about half the length.",
+   "2026.08.31.281": "Tighter section headings, and the ones that only repeated their own title are gone.",
+   "2026.08.31.282": "The two skill pickers fold away, with what you are working on in the heading.",
+   "2026.08.31.283": "Settings is half the height — the two sections that never folded now do.",
+   "2026.08.31.284": "Fewer paragraphs — rules read as rules, and the reasoning sits one tap away.",
+   "2026.08.31.285": "The tab bar is one stack of plates now, with the lit one climbing a slot per tab.",
+   "2026.08.31.286": "The lit plate climbs the pile when you switch tabs, instead of jumping there.",
+   "2026.08.31.287": "The tab plates are thinner, and each tab now carries its number beside them.",
+   "2026.08.31.288": "The seven-day strip moved to Data, under Trends. Today keeps the swipe back through the week.",
+   "2026.08.31.289": "Seven small ticks beside the date show the day you are on, and that Today swipes back through the week.",
+   "2026.08.31.290": "The suggestion sits beside the score now, not in a row beneath it. Tap it for the reasoning.",
+   "2026.08.31.291": "Accept or dismiss a suggestion from beside the score, without opening it.",
+   "2026.08.31.292": "The tab numbers are gone — the pile and the word were already saying it.",
+   "2026.08.31.293": "Accept and dismiss are a tick and a cross now, not two words.",
+   "2026.08.31.295": "The face you pick is an outline now, and it no longer carries its own word.",
+   "2026.08.31.296": "The five faces stand in a column on the right, each with its word beside it.",
+   "2026.08.31.297": "The score holds still again, and the face column is smaller.",
+   "2026.08.31.298": "The marks are smaller again, and your answer tucks into the corner of the score.",
+   "2026.08.31.299": "Your answer is a filled chip again, sitting a little further off the digits.",
+   "2026.08.31.300": "One mark, not two: it comes down off the score and becomes the answer beside it.",
+   "2026.08.31.301": "The mark falls as itself now, turns over once, and only colours in when it lands.",
+   "2026.08.31.302": "Nothing happens above the number any more. Tap a face and the mark just goes.",
+   "2026.08.31.303": "The Sunday review says where each thing stands: lime ahead, cream on target, red short.",
+   "2026.08.31.304": "No mark above the number any more. It comes down from the wordmark straight into the chip.",
+   "2026.08.31.305": "The mark slides behind the wordmark and comes out from under the number, and settles.",
+   "2026.08.31.307": "The mark tears out of the wordmark and tears in beside the number, then settles.",
+   "2026.08.31.308": "One malformed plan block could stop the whole week grid drawing. It cannot now.",
+   "2026.08.31.309": "Leaving Today, the mark is simply back in the wordmark, in its own colour.",
+   "2026.08.31.310": "The tab bar is a scale now: five lines, lit up to the one you are on.",
+   "2026.08.31.311": "Swipe left and right to change tab. The scale moved up beside the wordmark.",
+   "2026.08.31.312": "Every faded ink in the app now comes from one value instead of seventy.",
+   "2026.08.31.313": "The app can now be put on a bone ground, header and colours unchanged.",
+   "2026.08.31.314": "Settings > Ground switches the pages between black and bone.",
+   "2026.08.31.315": "Accessory work goes to the biggest gap again, so the back stops being skipped.",
+   "2026.08.31.316": "Side and rear delts are their own areas, so a press can no longer stand in for a lateral raise.",
+   "2026.08.31.317": "Past a skill's entry condition, the prerequisites stay in the plan at a keeping dose.",
+   "2026.08.31.318": "An upper day is a press and a row again, and a lower day a squat and a hinge.",
+   "2026.08.31.319": "The app is set in Courier Prime now, a typewriter face rather than a code one.",
+   "2026.08.31.320": "Anything that is not a sentence is set in caps, and the four that are came down.",
+   "2026.08.31.321": "Exercise names, doses and warm-up drills are in caps with the rest of it.",
+   "2026.08.31.322": "In the warm-up and cool-down the dose is no longer bold, so the drill name reads first.",
+   "2026.08.31.323": "Set in Azeret Mono now, and the three weights in the type scale are finally three weights.",
+   "2026.08.31.324": "The progression note under an exercise is in caps with the rest of the row.",
+   "2026.08.31.325": "The warm-up, the workout and the cool-down are one list now, at one row height.",
+   "2026.08.31.326": "No lines between exercises. The space does the separating instead.",
+   "2026.08.31.327": "The skill ladders are in caps, and no row runs past two lines.",
+   "2026.08.31.328": "Shorter names on every progression rung — the ladder says the movement, not the paragraph.",
+   "2026.08.31.329": "The score sits on a dotted field now, the way the watch face prints its readings.",
+   "2026.08.31.330": "The field behind the score is a halftone now, fine enough to read as a tint.",
+   "2026.08.31.331": "The dotted field runs the whole page now, and breaks wherever something sits on it.",
+   "2026.08.31.332": "The dotted field is back to the score alone, edge to edge, and off the rest of the page.",
+   "2026.08.31.333": "The field runs down to the suggestions head now, and every reading on it knocks its own gap.",
+   "2026.08.31.334": "The field is a rippled sheet now, and it is cut on that wave at both ends rather than on a line.",
+   "2026.08.31.335": "The readings sit straight on the field again — no boxes cut out behind the words and the number.",
+   "2026.08.31.336": "The Sunday review is a heading you open at the bottom of Weekly, not a wall at the top of it.",
+   "2026.08.31.337": "A day on Weekly shows its whole session now — every exercise, with the sets and reps beside it.",
+   "2026.08.31.338": "The mark in the wordmark is a solid now — the same square face on, a cube once it turns.",
+   "2026.08.31.339": "The mark turns wherever it likes now, looks around while it does it, and has eyes on two sides.",
+   "2026.08.31.340": "The mark takes its shading from a fixed light, so it turns instead of flipping.",
+   "2026.08.31.341": "The mark beside the score is a solid too.",
+   "2026.08.31.342": "The seam of half-cut dots above the bottom of the field is gone.",
+   "2026.08.31.343": "Both marks keep their size when they turn, instead of shrinking and springing back.",
+   "2026.08.31.344": "The mark is ink now, and rests off its corner rather than square on.",
+   "2026.08.31.345": "The app icon is the mark again — the ink solid on its corner.",
+   "2026.08.31.346": "The score is wider, and carries the same weight as the wordmark rather than less.",
+   "2026.08.31.347": "The score is set in the same face as every other number in the app.",
+   "2026.08.31.348": "The tab label is sand, and the page ticks moved to the middle of the bar on an arc.",
+   "2026.08.31.349": "Less bend in the page ticks.",
+   "2026.08.31.350": "The score is heavier and its figures sit closer together.",
+   "2026.08.31.351": "Section titles extend out as the page lands instead of arriving whole.",
+   "2026.08.31.352": "Tabs are dealt in from the side you swiped, rather than up from the bottom.",
+   "2026.08.31.353": "The mark in the top bar tears as a new page is dealt in.",
+   "2026.08.31.354": "The mark in the top bar sits a touch further off the wordmark.",
+   "2026.08.31.355": "On the bone ground, an armed Clear all and a ticked skill rung are readable again.",
+   "2026.08.31.356": "The mark beside the wordmark is smaller, in the same place.",
+   "2026.08.31.357": "The dot field flows as Today arrives, the way you swiped.",
+   "2026.08.31.358": "The dot field drifts slower, at something nearer an even rate.",
+   "2026.08.31.359": "The dot field ripples in place now, instead of sliding sideways.",
+   "2026.08.31.360": "The dot field ripples half as far.",
+   "2026.08.31.361": "Training load sits on the dot field now, not a yellow tint, and ripples in with the page.",
+   "2026.08.31.362": "The dots run behind the load chart only, not the reading under it.",
+   "2026.08.31.363": "Data’s trace and trend chart sit on the dot field too, and ripple in with the page.",
+   "2026.08.31.364": "Goals are a sheet you open from beside Generate, not a section to scroll past.",
+   "2026.08.31.365": "Logging an injury and taking the mobility test are sheets off a button too.",
+   "2026.08.31.366": "The morning check-in moved to Settings, under Your data, as Logging.",
+   "2026.08.31.367": "Trends is the charts. The seven-day strip has gone.",
+   "2026.08.31.368": "Athlete Level has gone. Nothing here ranks you against anyone else.",
+   "2026.08.31.369": "Adaptation Tracking has gone. Trends is the chart.",
+   "2026.08.31.370": "The week spinner says the whole day, not the first three letters.",
+   "2026.08.31.371": "Search a lift on Workout History and see how it has actually gone.",
+   "2026.08.31.372": "Each injury has a button asking what the week before it held.",
+   "2026.08.31.373": "The spinners put the dot field under the row you are on.",
+   "2026.08.31.374": "The dots under the selected row run to the page edges.",
+   "2026.08.31.375": "The spinner’s dots ripple in with the page too.",
+   "2026.08.31.376": "Turning a spinner ripples the band under the row you land on.",
+   "2026.08.31.377": "The trend metrics fit the screen — three to a row, two rows.",
+   "2026.08.31.378": "The mark is a sphere with one eye now, in the wordmark and beside the score.",
+   "2026.08.31.379": "The mark in the wordmark is sand rather than ink.",
+   "2026.08.31.380": "The mark in the wordmark is green.",
+   "2026.08.31.381": "The mark’s eye is half again as wide — an aperture rather than a slot.",
+   "2026.08.31.382": "The mark’s eye is bored into the body, with its edge catching the light.",
+   "2026.08.31.383": "The mark is ink again, lit in four steps so it reads as a solid rather than a hole.",
+   "2026.08.31.384": "The chip beside the score is the flat mark again — its colour and the eye, nothing else.",
+   "2026.08.31.385": "The mark builds itself on load, and has seven new things to do with one eye.",
+   "2026.08.31.386": "The mark arrives one shading band at a time, then opens its eye.",
+   "2026.08.31.387": "The mark has eyelids — two of them, at their own angles, so it can have a mood.",
+   "2026.08.31.388": "The mark shows the day again — rest days, deloads and bedtime sit on its lids.",
+   "2026.08.31.389": "The mark beside the score is the size of the one in the wordmark.",
+   "2026.08.31.390": "The mark beside the score sits on the number’s centre line, and over its last digit.",
+   "2026.08.31.391": "The mark beside the score is lit like the one in the wordmark — one mark, two homes.",
+   "2026.08.31.392": "The mark’s eye is a machined slot in a bezel now, not a shape on a ball.",
+   "2026.08.31.393": "The mark’s lids are plates that slide across the opening, not cuts in it.",
+   "2026.09.09.435": "Settings reads as four sections, and the version below is finally the one you are running.",
+   "2026.09.09.436": "Every section’s open-arrow sits in one column instead of wherever the row left it.",
+   "2026.09.09.437": "The mark sits still again — back in the wordmark on every tab.",
+   "2026.09.09.438": "The mark no longer tears when you swipe between tabs.",
+   "2026.09.09.439": "A streak beside the tab’s name — consecutive workouts done, ended by one missed.",
+   "2026.09.09.440": "Last session’s numbers sit in the logging boxes until you type over them.",
+   "2026.09.09.441": "A lift within reach of your best says how far off it is.",
+   "2026.09.09.442": "Why the score moved opens with what actually moved it.",
+   "2026.09.09.443": "Every skill ladder at once, above the wheel — tap one to spin to it.",
+   "2026.09.09.444": "Sunday review ranks the week, compares it to the last block, and closes the block.",
+   "2026.09.09.445": "A skill says how far the top of its ladder is at the rate you are going.",
+   "2026.09.09.446": "The mark sleeps on a rest day and when you wander off — shut eyes, and z’s.",
+   "2026.09.09.447": "Skills run easiest to hardest, each with how hard it is.",
+   "2026.09.09.448": "The skill sections are half the length — the board is the picker now.",
+   "2026.09.10.449": "Tapping a skill opens it in a sheet, so the board stays the length of the board.",
+   "2026.09.10.450": "The mobility test shows all eleven areas at once, with what you rated each one.",
+   "2026.09.10.451": "Weekly shows the whole week at once instead of one day through a window.",
+   "2026.09.10.452": "Nothing in the app is a spinning wheel any more — the code for them is gone with them.",
+   "2026.09.10.453": "The mark keeps its eyes when it sleeps — the z’s say it instead.",
+   "2026.09.10.454": "Weekly says which workouts are morning and which are evening.",
+   "2026.09.10.455": "Goal Profile is now “How hard to push”, it actually changes the advice, and the card says when it did.",
+   "2026.09.10.456": "Goals are a list you open one at a time, and each one says how much it matters instead of being ranked.",
+   "2026.09.10.457": "The controls under the week are one list with one action row instead of three scattered ones.",
+   "2026.09.10.458": "The skills you are training are marked by weight and a filled tag, not an orange disc.",
+   "2026.09.10.459": "Every progression strip starts and ends in the same place, whatever the ladder’s length.",
+   "2026.09.10.460": "A skill opens on its whole ladder, not two rungs and a “show all”.",
+   "2026.09.10.461": "Injuries is a heading and a button until something hurts.",
+   "2026.09.10.462": "Logging an injury asks all six things the same way instead of three and a form.",
+   "2026.09.10.463": "Every field in the app is outlined instead of a white box.",
+   "2026.09.10.464": "An answer you type is set like an answer you pick.",
+   "2026.09.10.465": "You can log an injury from Today, where you are when something twinges.",
+   "2026.09.10.466": "The Log an injury button on Today is a real button, and it actually opens the sheet.",
+   "2026.09.10.467": "Log an injury wears the app’s injury red on Today.",
+   "2026.09.10.468": "A session can no longer give you the same lift twice under two names.",
+   "2026.09.10.469": "The exercise list holds one entry per exercise — six lifts that had been entered twice are one entry each now.",
+   "2026.09.10.470": "A Log button in the masthead, on every tab — and it can start a workout that was never planned.",
+   "2026.09.10.471": "Logging is a popup now, the same shape as everything else in the app, and it opens from anywhere.",
+   "2026.09.10.472": "The masthead button is a plus.",
+   "2026.09.10.473": "You can log a workout you did days ago — the popup steps back a day at a time.",
+   "2026.09.10.474": "A workout you have logged counts as being set up — Today stops asking you to build a week.",
+   "2026.09.10.475": "Start typing a lift and it offers the ones you already do, then the rest of the library.",
+   "2026.09.10.476": "A lift you entered yourself keeps the sets and reps you gave it instead of being re-prescribed.",
+   "2026.09.10.477": "The weight box takes a set at a time — 60,80,100 for a ramp, or a drop set, or a back-off.",
+   "2026.09.10.478": "The plus sits in the middle of the masthead beside the mark, and tucks into the corner as you scroll.",
+   "2026.09.10.479": "Type different reps and weights per set and the row says back what it read, set by set.",
+   "2026.09.10.480": "Different reps and weights per set: the row says back what it read, set by set.",
+   "2026.09.10.481": "The log button is a disc at the bottom of Today, where your thumb already is.",
+   "2026.09.10.482": "The log button is the size of the mark, and sits on the page without a ring around it.",
+   "2026.09.10.483": "On Today the mark no longer hides in the masthead — it falls to the bottom of the page and opens as the log button.",
+   "2026.09.10.484": "The mark flies to the mark, one at a time — the drop lands where it should now.",
+   "2026.09.10.485": "The black mark stays out of the masthead on Today, however you got there.",
+   "2026.09.10.486": "The log button is a proper size — and the mark stays mark-sized on the way down to it.",
+   "2026.09.10.487": "The mark flies on nothing again — the cream plate behind it is gone.",
+   "2026.09.10.488": "The mark carries a hairline, everywhere it is drawn.",
+   "2026.09.11.489": "The mark’s edge has weight, and sits off register against wherever it is looking.",
+   "2026.09.11.490": "Coming back to Today no longer flashes the black mark in the masthead before the coloured one returns.",
+   "2026.09.11.491": "The five faces you rate the day with are big enough to hit — and big enough to tell apart.",
+   "2026.09.12.492": "Logging a session asks you what you did, in the voice the rest of the app asks things in — and the whole session fits on one screen.",
+   "2026.09.12.493": "Which half of the day you are logging reads at a glance.",
+   "2026.09.12.494": "The log sheet is set in four sizes and two faces, and each face means something.",
+   "2026.09.12.495": "The mark keeps your colour the whole way up from the log button.",
+   "2026.09.12.496": "The log sheet names each session instead of calling them AM and PM.",
+   "2026.09.12.497": "On Data, the six things to chart and the three ways to draw them stop looking like one keypad of nine.",
+   "2026.09.12.498": "The dot field is thinner — wider rows, more space along each one, a lighter ink.",
+   "2026.09.12.500": "Section headers go back to the band and box they had before.",
+   "2026.09.12.501": "The five faces take their colours from the new palette, and get their light-to-dark order back.",
+   "2026.09.12.502": "The masthead carries a tint of the tab you are on.",
+   "2026.09.12.503": "The five faces you pick from are five expressions, not five heights of the same one.",
+   "2026.09.12.504": "The mark wears the face you picked, not just its colour.",
+   "2026.09.12.505": "Today drops its Log this workout button — the disc at the bottom already does it.",
+   "2026.09.13.506": "The tab’s tint is the masthead’s alone — the warm-up and cool-down keep their rule and give up their fill.",
+   "2026.09.13.507": "Every section sits on the ground now, on every tab — the tint is the masthead’s and nothing else’s."
+  },
+  "UPDATE_CHECK_INTERVAL_MS": 1800000,
+  "UPDATE_VALIDATOR_KEY": "settings:updateValidator",
+  "COLLAPSE_REMEMBERED": [
+   "devices",
+   "goalprofile",
+   "trainingsetup",
+   "backupampr",
+   "bodymetrics",
+   "scorelog",
+   "blinding",
+   "weights",
+   "version",
+   "legal",
+   "calm",
+   "strengthskills",
+   "mobilityskills",
+   "reportproblem",
+   "datagoes"
+  ],
+  "OURA_CLIENT_ID": "62367975-4a6e-445d-a195-1936ce98c7af",
+  "OURA_TOKEN_WORKER_URL": "https://dogfoodoura.jordandf1.workers.dev",
+  "OURA_REDIRECT_URI": "http://127.0.0.1:8899/index.html",
+  "OURA_SCOPES": "personal daily heartrate",
+  "APPLE_HEALTH_KNOWN_FIELDS": [
+   "hrvOura",
+   "restingHR",
+   "steps",
+   "activeCalories",
+   "respiratoryRate",
+   "sleepScoreOura",
+   "wakeTimeOura",
+   "readinessOura"
+  ],
+  "INSTALL_KEY_STORAGE": "installKey",
+  "APPLE_HEALTH_SYNC_KEY": "settings:appleHealthSync",
+  "GOAL_PROFILES": {
+   "perform": {
+    "scoreLow": 35,
+    "scoreHigh": 65
+   },
+   "balanced": {
+    "scoreLow": 40,
+    "scoreHigh": 70
+   },
+   "longevity": {
+    "scoreLow": 45,
+    "scoreHigh": 75
+   }
+  },
+  "GOAL_PROFILE_LABELS": {
+   "perform": "Perform",
+   "balanced": "Balanced",
+   "longevity": "Longevity"
+  },
+  "CONFIRM_FILL_STEPS": 14,
+  "SIG_TAU": 7,
+  "SIG_ALPHA": 0.1331221002498184,
+  "SIG_BASE_DAYS": 60,
+  "SIG_MATURITY_N": 40,
+  "SIG_CLAMP": 3,
+  "SCORE_ALGO_VERSION": 2,
+  "HRV_SOURCE_KEY": "settings:hrvSource",
+  "SIG_CACHE_MS": 2000,
+  "LEARN_MIN_SESSIONS": 12,
+  "LEARN_FULL_AT": 60,
+  "LEARN_MAX_SHIFT": 0.6,
+  "LEARN_UNBLINDED_WEIGHT": 0.25,
+  "FACE_TRACE_GAP": 9,
+  "FACE_NOTE_GAP": 6,
+  "PLACEBO_MIN_PER_CELL": 4,
+  "VALIDITY_MIN": 8,
+  "SR_COMPONENT_LABELS": {
+   "subjective": "How you feel",
+   "hrvTrend": "HRV trend",
+   "rhr": "Resting HR",
+   "sleep": "Sleep",
+   "hrvAcute": "HRV last night",
+   "sleepDebt": "Sleep debt",
+   "regularity": "Sleep regularity",
+   "illnessCh": "Breathing & temp"
+  },
+  "LOAD_TAU_ACUTE": 7,
+  "RUN_INTENSITY": {
+   "easy": 1,
+   "long": 1.1,
+   "recovery": 0.8,
+   "tempo": 1.6,
+   "threshold": 1.6,
+   "interval": 1.9,
+   "sprint": 1.9,
+   "fartlek": 1.5,
+   "hills": 1.7,
+   "race": 2
+  },
+  "LOAD_UNITS": {
+   "mechanical": "kg",
+   "cardio": "min",
+   "perceived": "au"
+  },
+  "LOAD_LABELS": {
+   "mechanical": "Mechanical",
+   "cardio": "Cardio",
+   "perceived": "Perceived"
+  },
+  "TRAJ_WEEKS": 8,
+  "CUSUM_K": 0.5,
+  "ILLNESS_GATE": 0.4,
+  "CR_WEIGHTS": {
+   "sleepDebt": 0.32,
+   "sleepLastNight": 0.22,
+   "regularity": 0.16,
+   "circadian": 0.2
+  },
+  "CR_ALCOHOL_PENALTY": {
+   "1": 0.25,
+   "2": 0.6
+  },
+  "CR_EARLY_PEAK_H": 6.7,
+  "CR_EARLY_WAKE_MIN": 300,
+  "TR_HALFLIFE_H": {
+   "general": 36,
+   "eccentric": 60,
+   "connective": 120
+  },
+  "TR_ECCENTRIC_MOVEMENTS": [
+   "hinge",
+   "lunge",
+   "squat"
+  ],
+  "TR_ECCENTRIC_MULT": 2.5,
+  "TR_NOVELTY_K": 0.35,
+  "TR_WINDOW_DAYS": 90,
+  "TR_CAPACITY_PCTL": 0.9,
+  "TR_MIN_LOADED_DAYS": 5,
+  "SR_WEIGHTS": {
+   "subjective": 0.18,
+   "hrvTrend": 0.18,
+   "rhr": 0.14,
+   "load": 0.1,
+   "sleep": 0.12,
+   "hrvAcute": 0.08,
+   "sleepDebt": 0.08,
+   "regularity": 0.05,
+   "illnessCh": 0.07
+  },
+  "SR_HRV_ACUTE_DAMP": 0.5,
+  "SR_TANH_K": 0.8,
+  "SR_MIN_COMPLETENESS": 0.4,
+  "SR_MIN_MATURITY": 0.3,
+  "CV_RECENT_DAYS": 14,
+  "SHIFT_RECENT_DAYS": 10,
+  "WAKE_TIME_PENALTY": 1.5,
+  "BODY_AREAS": {
+   "hips": "Hips",
+   "glutes": "Glutes",
+   "hamstrings": "Hamstrings",
+   "quads_knees": "Quads/Knees",
+   "adductors": "Adductors",
+   "calves": "Calves",
+   "ankles": "Ankles",
+   "shoulders": "Shoulders",
+   "side_delts": "Side delts",
+   "rear_delts": "Rear delts",
+   "chest": "Chest",
+   "thoracic": "Thoracic/Upper back",
+   "lower_back": "Lower back",
+   "core": "Core",
+   "biceps": "Biceps",
+   "triceps": "Triceps",
+   "forearms": "Forearms/Grip",
+   "neck": "Neck",
+   "full_body": "Full body"
+  },
+  "MOVEMENT_TYPES": {
+   "squat": "Squat",
+   "hinge": "Hinge",
+   "push": "Push",
+   "pull": "Pull",
+   "lunge": "Lunge",
+   "carry": "Carry",
+   "core": "Core",
+   "isolation": "Isolation"
+  },
+  "VOLUME_SPLIT": {
+   "primary": 1,
+   "secondary": 0.5
+  },
+  "EVIDENCE_BADGE_INFO": {
+   "meta_analysis": {
+    "label": "META-ANALYSIS",
+    "tier": "strong",
+    "note": "Backed by a pooled analysis of many studies — the strongest evidence here."
+   },
+   "systematic_review": {
+    "label": "REVIEW",
+    "tier": "strong",
+    "note": "Backed by a formal review of the published research."
+   },
+   "rct": {
+    "label": "RCT",
+    "tier": "moderate",
+    "note": "Backed by a randomised controlled trial — one good study rather than many."
+   },
+   "coaching_consensus": {
+    "label": "CONSENSUS",
+    "tier": "practical",
+    "note": "What coaches broadly agree on, rather than a lab finding. Useful, just a different kind of evidence."
+   }
+  },
+  "MERGED_EXERCISE_IDS": {
+   "single_leg_squat": "pistol_squat",
+   "hip_thrust_glute": "hip_thrust",
+   "lying_leg_curl": "leg_curl",
+   "cable_hip_abduction": "hip_abduction",
+   "hip_abduction_machine": "hip_abduction",
+   "rear_delt_fly": "reverse_fly"
+  },
+  "EXERCISE_AREA_MAP": [
+   [
+    [
+     "back squat",
+     "squat",
+     "front squat",
+     "goblet squat",
+     "cossack squat"
+    ],
+    "quads_knees",
+    "hips",
+    "squat"
+   ],
+   [
+    [
+     "deadlift",
+     "rdl",
+     "romanian deadlift",
+     "good morning"
+    ],
+    "hamstrings",
+    "lower_back",
+    "hinge"
+   ],
+   [
+    [
+     "hip thrust",
+     "glute bridge",
+     "bulgarian split"
+    ],
+    "hips",
+    "hamstrings",
+    "hinge"
+   ],
+   [
+    [
+     "incline press",
+     "bench press",
+     "push up",
+     "machine press",
+     "chest press"
+    ],
+    "chest",
+    "triceps",
+    "push"
+   ],
+   [
+    [
+     "overhead press",
+     "shoulder press"
+    ],
+    "shoulders",
+    "triceps",
+    "push"
+   ],
+   [
+    [
+     "pull up",
+     "row",
+     "lat pulldown",
+     "face pull"
+    ],
+    "thoracic",
+    "biceps",
+    "pull"
+   ],
+   [
+    [
+     "bicep curl",
+     "hammer curl",
+     "preacher curl",
+     "curl"
+    ],
+    "biceps",
+    "",
+    "isolation"
+   ],
+   [
+    [
+     "tricep pushdown",
+     "tricep extension",
+     "skull crusher",
+     "overhead extension",
+     "dip"
+    ],
+    "triceps",
+    "",
+    "isolation"
+   ],
+   [
+    [
+     "calf raise"
+    ],
+    "calves",
+    "",
+    "isolation"
+   ],
+   [
+    [
+     "ankle"
+    ],
+    "ankles",
+    "",
+    "isolation"
+   ],
+   [
+    [
+     "back extension",
+     "superman"
+    ],
+    "lower_back",
+    "hamstrings",
+    "hinge"
+   ]
+  ],
+  "SESSION_FOCUS_INFO": {
+   "strength": {
+    "repLow": 3,
+    "repHigh": 6,
+    "increment": {
+     "lower": 2.5,
+     "upper": 1.25
+    },
+    "label": "Strength — work toward a top set of ~5, or 5×5/3×5. Bigger jumps, lower reps."
+   },
+   "hypertrophy": {
+    "repLow": 8,
+    "repHigh": 12,
+    "increment": {
+     "lower": 2.5,
+     "upper": 1.25
+    },
+    "label": "Hypertrophy — 3×8-12 or 4×8-10. Progress reps within range before adding weight."
+   },
+   "power": {
+    "repLow": 1,
+    "repHigh": 5,
+    "increment": {
+     "lower": 2.5,
+     "upper": 1.25
+    },
+    "label": "Power — low reps, high intent, full rest between sets. Weight increases are small and infrequent — technical quality matters more than the number."
+   },
+   "general": {
+    "repLow": 8,
+    "repHigh": 12,
+    "increment": {
+     "lower": 2.5,
+     "upper": 1.25
+    },
+    "label": "General / mixed — standard 8-12 rep range."
+   }
+  },
+  "GOAL_TYPE_FIELDS": {
+   "strength": [
+    "exercise",
+    "weight"
+   ],
+   "hypertrophy": [
+    "exercise",
+    "weight"
+   ],
+   "running": [
+    "distance",
+    "time"
+   ],
+   "hyrox": [
+    "time"
+   ]
+  },
+  "GOAL_ROLES": [
+   "main",
+   "also",
+   "maintenance"
+  ],
+  "GOAL_ROLE_LABEL": {
+   "main": "Main",
+   "also": "Also",
+   "maintenance": "Keeping"
+  },
+  "WEEKDAY_NAMES": [
+   "Mon",
+   "Tue",
+   "Wed",
+   "Thu",
+   "Fri",
+   "Sat",
+   "Sun"
+  ],
+  "SKILL_PICKERS": {
+   "exercise": {
+    "host": "strengthSkillPicker",
+    "wheel": "strengthSkillWheel",
+    "levels": "strengthSkillLevels",
+    "active": "strengthSkillActive",
+    "activeLabel": "strengthSkillActiveLabel",
+    "note": "strengthSkillNote",
+    "progress": "exerciseProgressBody",
+    "board": "strengthSkillBoard"
+   },
+   "mobility": {
+    "host": "mobilitySkillPicker",
+    "wheel": "mobilitySkillWheel",
+    "levels": "mobilitySkillLevels",
+    "active": "mobilitySkillActive",
+    "activeLabel": "mobilitySkillActiveLabel",
+    "note": "mobilitySkillNote",
+    "progress": "mobilityProgressBody",
+    "board": "mobilitySkillBoard"
+   }
+  },
+  "SKILL_ACTIVE_CAP": 2,
+  "SKILL_TIERS": {
+   "1": {
+    "word": "Easy",
+    "hue": "var(--block-lime)"
+   },
+   "2": {
+    "word": "Medium",
+    "hue": "var(--block-yellow)"
+   },
+   "3": {
+    "word": "Hard",
+    "hue": "var(--block-orange)"
+   },
+   "4": {
+    "word": "Elite",
+    "hue": "var(--block-red)"
+   }
+  },
+  "MOBILITY_DOMAIN_MAX": 5,
+  "SKILL_SUMMARY_IDS": {
+   "exercise": "strengthSkillsSummary",
+   "mobility": "mobilitySkillsSummary"
+  },
+  "MOBILITY_JUMP_WARN_RUNGS": 2,
+  "WEEK_DAY_LABELS": [
+   "MON",
+   "TUE",
+   "WED",
+   "THU",
+   "FRI",
+   "SAT",
+   "SUN"
+  ],
+  "MONTH_SHORT": [
+   "Jan",
+   "Feb",
+   "Mar",
+   "Apr",
+   "May",
+   "Jun",
+   "Jul",
+   "Aug",
+   "Sep",
+   "Oct",
+   "Nov",
+   "Dec"
+  ],
+  "WEEK_DAY_FULL": [
+   "Monday",
+   "Tuesday",
+   "Wednesday",
+   "Thursday",
+   "Friday",
+   "Saturday",
+   "Sunday"
+  ],
+  "DELOAD_CUT": 0.5,
+  "SCORE_PLACEHOLDER_SVG": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><line x1=\"12\" y1=\"2\" x2=\"12\" y2=\"22\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><line x1=\"4.5\" y1=\"4.5\" x2=\"19.5\" y2=\"19.5\"/><line x1=\"19.5\" y1=\"4.5\" x2=\"4.5\" y2=\"19.5\"/></svg>",
+  "WEEK_LOAD_UNITS": [
+   {
+    "key": "sets",
+    "label": "sets",
+    "unit": "sets"
+   },
+   {
+    "key": "mechanical",
+    "label": "kg",
+    "unit": "kg"
+   },
+   {
+    "key": "cardio",
+    "label": "min",
+    "unit": "min"
+   },
+   {
+    "key": "perceived",
+    "label": "au",
+    "unit": "au"
+   }
+  ],
+  "BARE_IMPLEMENT_KG": {
+   "barbell": 20,
+   "trap_bar": 25,
+   "ez_bar": 10
+  },
+  "REST_PRESETS": [
+   60,
+   90,
+   120,
+   180
+  ],
+  "REST_DEFAULT": 120,
+  "RPE_STEPS": [
+   2,
+   4,
+   6,
+   8,
+   10
+  ],
+  "LOG_GRAB_PX": 40,
+  "LOG_GRAB_HOLD_MS": 420,
+  "SESSION_MIN_MINUTES": 4,
+  "SESSION_MAX_MINUTES": 240,
+  "TYPICAL_MIN_SESSIONS": 3,
+  "RUN_TYPE_PLURAL": {
+   "easy": "easy runs",
+   "tempo": "tempo runs",
+   "long": "long runs",
+   "interval": "intervals",
+   "sprint": "sprint sessions",
+   "race": "races",
+   "fartlek": "fartlek runs",
+   "hills": "hill sessions"
+  },
+  "WORKOUT_TAG_PLURAL": {
+   "full_body": "full body days",
+   "upper": "upper body days",
+   "lower": "lower body days",
+   "push": "push days",
+   "pull": "pull days",
+   "legs": "leg days"
+  },
+  "EX_SWAP_KEY": "settings:exerciseSwaps",
+  "SWAP_LEARN_AT": 2,
+  "EX_SEARCH_MAX": 12,
+  "EX_SUGGEST_MAX": 6,
+  "VOLUME_LANDMARKS": {
+   "chest": {
+    "mev": 7,
+    "mavLow": 10,
+    "mavHigh": 16,
+    "mrv": 20
+   },
+   "thoracic": {
+    "mev": 9,
+    "mavLow": 12,
+    "mavHigh": 18,
+    "mrv": 22
+   },
+   "shoulders": {
+    "mev": 2,
+    "mavLow": 4,
+    "mavHigh": 8,
+    "mrv": 12
+   },
+   "side_delts": {
+    "mev": 4,
+    "mavLow": 6,
+    "mavHigh": 12,
+    "mrv": 16
+   },
+   "rear_delts": {
+    "mev": 3,
+    "mavLow": 5,
+    "mavHigh": 10,
+    "mrv": 14
+   },
+   "quads_knees": {
+    "mev": 7,
+    "mavLow": 10,
+    "mavHigh": 16,
+    "mrv": 19
+   },
+   "hamstrings": {
+    "mev": 5,
+    "mavLow": 8,
+    "mavHigh": 14,
+    "mrv": 18
+   },
+   "hips": {
+    "mev": 5,
+    "mavLow": 8,
+    "mavHigh": 14,
+    "mrv": 18
+   },
+   "biceps": {
+    "mev": 5,
+    "mavLow": 10,
+    "mavHigh": 16,
+    "mrv": 22
+   },
+   "triceps": {
+    "mev": 5,
+    "mavLow": 8,
+    "mavHigh": 14,
+    "mrv": 17
+   },
+   "calves": {
+    "mev": 7,
+    "mavLow": 10,
+    "mavHigh": 15,
+    "mrv": 18
+   },
+   "glutes": {
+    "mev": 5,
+    "mavLow": 8,
+    "mavHigh": 14,
+    "mrv": 18
+   },
+   "adductors": {
+    "mev": 3,
+    "mavLow": 6,
+    "mavHigh": 12,
+    "mrv": 16
+   },
+   "lower_back": {
+    "mev": 4,
+    "mavLow": 6,
+    "mavHigh": 10,
+    "mrv": 14
+   },
+   "ankles": {
+    "mev": 3,
+    "mavLow": 5,
+    "mavHigh": 9,
+    "mrv": 12
+   },
+   "core": {
+    "mev": 4,
+    "mavLow": 8,
+    "mavHigh": 14,
+    "mrv": 20
+   },
+   "forearms": {
+    "mev": 3,
+    "mavLow": 6,
+    "mavHigh": 12,
+    "mrv": 16
+   },
+   "neck": {
+    "mev": 3,
+    "mavLow": 5,
+    "mavHigh": 9,
+    "mrv": 12
+   }
+  },
+  "CONFIDENCE_STAGE": {
+   "defaults": 0,
+   "learning": 1,
+   "personalised": 2
+  },
+  "CONFIDENCE_LABEL": {
+   "defaults": "Defaults",
+   "learning": "Learning",
+   "personalised": "Yours"
+  },
+  "INJURY_TYPE_HALFLIFE_DEFAULT": {
+   "general": 14,
+   "tendinopathy": 25,
+   "sprain_strain": 10
+  },
+  "REC_THRESH": {
+   "injurySeverityFlag": 3,
+   "injurySevereBlock": 5
+  },
+  "REC_TONE": {
+   "add": "up",
+   "prescription_add": "up",
+   "reduce": "down",
+   "prescription_reduce": "down",
+   "deload_suggest": "down",
+   "modify": "side",
+   "prescription_modify": "side",
+   "mobility_retest": "side",
+   "injury_check": "side",
+   "hold": "flat",
+   "week_review": "flat",
+   "block_review": "flat"
+  },
+  "REC_TYPE_SYMBOL": {
+   "add": {
+    "label": "Add",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"15.00\" width=\"3\" height=\"4\"/><rect x=\"8.00\" y=\"12.00\" width=\"3\" height=\"7\"/><rect x=\"13.00\" y=\"9.00\" width=\"3\" height=\"10\"/><rect x=\"18.00\" y=\"5.00\" width=\"3\" height=\"14\"/></svg>"
+   },
+   "reduce": {
+    "label": "Reduce",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"5.00\" width=\"3\" height=\"14\"/><rect x=\"8.00\" y=\"9.00\" width=\"3\" height=\"10\"/><rect x=\"13.00\" y=\"12.00\" width=\"3\" height=\"7\"/><rect x=\"18.00\" y=\"15.00\" width=\"3\" height=\"4\"/></svg>"
+   },
+   "hold": {
+    "label": "Hold",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"10.00\" width=\"3\" height=\"9\"/><rect x=\"8.00\" y=\"10.00\" width=\"3\" height=\"9\"/><rect x=\"13.00\" y=\"10.00\" width=\"3\" height=\"9\"/><rect x=\"18.00\" y=\"10.00\" width=\"3\" height=\"9\"/></svg>"
+   },
+   "modify": {
+    "label": "Modify",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"8.00\" width=\"3\" height=\"11\"/><rect x=\"8.00\" y=\"16.00\" width=\"3\" height=\"3\"/><rect x=\"13.00\" y=\"8.00\" width=\"3\" height=\"11\"/><rect x=\"18.00\" y=\"8.00\" width=\"3\" height=\"11\"/></svg>"
+   },
+   "prescription_reduce": {
+    "label": "Reduce",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"5.00\" width=\"3\" height=\"14\"/><rect x=\"8.00\" y=\"9.00\" width=\"3\" height=\"10\"/><rect x=\"13.00\" y=\"12.00\" width=\"3\" height=\"7\"/><rect x=\"18.00\" y=\"15.00\" width=\"3\" height=\"4\"/></svg>"
+   },
+   "prescription_modify": {
+    "label": "Modify",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"8.00\" width=\"3\" height=\"11\"/><rect x=\"8.00\" y=\"16.00\" width=\"3\" height=\"3\"/><rect x=\"13.00\" y=\"8.00\" width=\"3\" height=\"11\"/><rect x=\"18.00\" y=\"8.00\" width=\"3\" height=\"11\"/></svg>"
+   },
+   "prescription_add": {
+    "label": "Add",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.00\" y=\"15.00\" width=\"3\" height=\"4\"/><rect x=\"8.00\" y=\"12.00\" width=\"3\" height=\"7\"/><rect x=\"13.00\" y=\"9.00\" width=\"3\" height=\"10\"/><rect x=\"18.00\" y=\"5.00\" width=\"3\" height=\"14\"/></svg>"
+   },
+   "deload_suggest": {
+    "label": "Deload",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"1.90\" y=\"5.00\" width=\"2.6\" height=\"14\"/><rect x=\"6.30\" y=\"5.00\" width=\"2.6\" height=\"14\"/><rect x=\"10.70\" y=\"15.00\" width=\"2.6\" height=\"4\"/><rect x=\"15.10\" y=\"15.00\" width=\"2.6\" height=\"4\"/><rect x=\"19.50\" y=\"15.00\" width=\"2.6\" height=\"4\"/></svg>"
+   },
+   "week_review": {
+    "label": "Week",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"0.80\" y=\"14.00\" width=\"2\" height=\"5\"/><rect x=\"4.20\" y=\"10.00\" width=\"2\" height=\"9\"/><rect x=\"7.60\" y=\"13.00\" width=\"2\" height=\"6\"/><rect x=\"11.00\" y=\"8.00\" width=\"2\" height=\"11\"/><rect x=\"14.40\" y=\"11.00\" width=\"2\" height=\"8\"/><rect x=\"17.80\" y=\"9.00\" width=\"2\" height=\"10\"/><rect x=\"21.20\" y=\"12.00\" width=\"2\" height=\"7\"/><rect x=\"0.80\" y=\"20.60\" width=\"22.40\" height=\"1.2\" opacity=\"0.5\"/></svg>"
+   },
+   "block_review": {
+    "label": "Block",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"1.00\" y=\"9.00\" width=\"4\" height=\"10\"/><rect x=\"7.00\" y=\"6.00\" width=\"4\" height=\"13\"/><rect x=\"13.00\" y=\"4.00\" width=\"4\" height=\"15\"/><rect x=\"19.00\" y=\"13.00\" width=\"4\" height=\"6\"/></svg>"
+   },
+   "mobility_retest": {
+    "label": "Retest",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"3.40\" y=\"14.00\" width=\"2\" height=\"5\"/><rect x=\"7.20\" y=\"5.00\" width=\"2\" height=\"14\"/><rect x=\"11.00\" y=\"14.00\" width=\"2\" height=\"5\"/><rect x=\"14.80\" y=\"5.00\" width=\"2\" height=\"14\"/><rect x=\"18.60\" y=\"14.00\" width=\"2\" height=\"5\"/><rect x=\"3.40\" y=\"20.60\" width=\"17.20\" height=\"1.2\" opacity=\"0.5\"/></svg>"
+   },
+   "injury_check": {
+    "label": "Check",
+    "svg": "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"2.40\" y=\"5.00\" width=\"2.4\" height=\"14\"/><rect x=\"6.60\" y=\"8.00\" width=\"2.4\" height=\"11\"/><rect x=\"10.80\" y=\"11.00\" width=\"2.4\" height=\"8\"/><rect x=\"15.00\" y=\"14.00\" width=\"2.4\" height=\"5\"/><rect x=\"19.20\" y=\"7.00\" width=\"2.4\" height=\"12\"/></svg>"
+   }
+  },
+  "CONF_STEPS": {
+   "low": 2,
+   "medium": 3,
+   "high": 5
+  },
+  "CONF_RULER_SEGMENTS": 5,
+  "ACCEPTANCE_STATS_VISIBLE": false,
+  "SUBJ_FALLBACK_W": 0.28,
+  "READING_FULL": 3,
+  "TICK_H": 4,
+  "TRACE_MIN_W": 56,
+  "FACE_COL_W": 74,
+  "TRACE_GAP": 16,
+  "DOCK_GAP": 9,
+  "DOCK_OVERLAP": 10,
+  "DOCK_TRACE_GAP": 9,
+  "DOCK_RESERVE_MAX": 61,
+  "SESSION_FACE_SCALE": 0.3,
+  "RECLEFT_MIN_W": 84,
+  "TICK_SVG": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4.5 12.5L9.5 17.5L19.5 6.5\"/></svg>",
+  "CROSS_SVG": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"><path d=\"M6 6L18 18M18 6L6 18\"/></svg>",
+  "GLITCH_FRAMES": [
+   [
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    0.08,
+    14,
+    52,
+    -1
+   ],
+   [
+    0.16,
+    0,
+    0,
+    0
+   ],
+   [
+    0.28,
+    62,
+    10,
+    0.86
+   ],
+   [
+    0.36,
+    0,
+    0,
+    0
+   ],
+   [
+    0.52,
+    38,
+    38,
+    -0.57
+   ],
+   [
+    0.6,
+    0,
+    0,
+    0
+   ],
+   [
+    0.76,
+    6,
+    74,
+    0.43
+   ],
+   [
+    0.84,
+    0,
+    0,
+    0
+   ],
+   [
+    1,
+    0,
+    0,
+    0
+   ]
+  ],
+  "MARK_BLEED": 40,
+  "SCORE_FADE_STEP": 0.065,
+  "LOWER_BODY_AREAS": [
+   "hips",
+   "hamstrings",
+   "quads_knees",
+   "calves"
+  ],
+  "WORKOUT_TIME_ESTIMATE": {
+   "strength": {
+    "defaultSetsByCategory": {
+     "main_strength": 4,
+     "secondary_strength": 3,
+     "isolation": 3,
+     "calisthenics": 3,
+     "default": 3
+    },
+    "workSecondsPerSetByFocus": {
+     "power": 18,
+     "strength": 21,
+     "hypertrophy": 45,
+     "general": 45
+    },
+    "restSecondsHeavy": 240,
+    "restSecondsHypertrophyCompound": 150,
+    "restSecondsIsolation": 90,
+    "generalWarmupMin": 7,
+    "perCompoundExerciseRampUpMin": 2,
+    "cooldownMin": 3,
+    "transitionSeconds": {
+     "barbell": 45,
+     "machine": 30,
+     "default": 18
+    }
+   },
+   "running": {
+    "defaultPaceMinPerKm": {
+     "easy": 6.5,
+     "tempo": 5.2,
+     "interval": 6.5,
+     "long": 6.75,
+     "sprint": 7,
+     "race": 5,
+     "fartlek": 5.4,
+     "hills": 6
+    },
+    "warmupCooldownMin": 20,
+    "intervalRecoveryBufferMin": {
+     "interval": 9,
+     "tempo": 5,
+     "sprint": 14,
+     "easy": 0,
+     "long": 0,
+     "race": 0
+    },
+    "defaultDurationMin": {
+     "easy": 40,
+     "tempo": 45,
+     "interval": 42,
+     "long": 75,
+     "sprint": 36,
+     "race": 40,
+     "fartlek": 40,
+     "hills": 35
+    }
+   },
+   "mobility": {
+    "restSecondsBetweenSets": 35,
+    "transitionSeconds": 15,
+    "generalWarmupMin": 2.5
+   }
+  },
+  "GOAL_TYPE_LABELS": {
+   "strength": "Strength",
+   "hypertrophy": "Hypertrophy / muscle gain",
+   "running": "Running performance",
+   "hyrox": "Hyrox"
+  },
+  "GOAL_TYPE_SHORT": {
+   "strength": "Strength",
+   "hypertrophy": "Muscle",
+   "running": "Running",
+   "hyrox": "Hyrox"
+  },
+  "STANDARD_LIFT_KEYWORDS": {
+   "squat": [
+    "back squat",
+    "squat"
+   ],
+   "bench": [
+    "bench press"
+   ],
+   "deadlift": [
+    "deadlift"
+   ],
+   "ohp": [
+    "overhead press",
+    "strict press",
+    "shoulder press"
+   ]
+  },
+  "STRENGTH_STANDARDS_MALE": {
+   "squat": {
+    "beginner": 0.75,
+    "novice": 1.25,
+    "intermediate": 1.5,
+    "advanced": 1.75,
+    "elite": 2,
+    "anchor90th": 2.83
+   },
+   "bench": {
+    "beginner": 0.5,
+    "novice": 0.75,
+    "intermediate": 1,
+    "advanced": 1.25,
+    "elite": 1.5,
+    "anchor90th": 1.95
+   },
+   "deadlift": {
+    "beginner": 1,
+    "novice": 1.5,
+    "intermediate": 2,
+    "advanced": 2.25,
+    "elite": 2.5,
+    "anchor90th": 3.25
+   },
+   "ohp": {
+    "beginner": 0.35,
+    "novice": 0.55,
+    "intermediate": 0.7,
+    "advanced": 0.85,
+    "elite": 1,
+    "anchor90th": null
+   }
+  },
+  "FEMALE_ADJUSTMENT": {
+   "squat": 0.8,
+   "bench": 0.69,
+   "deadlift": 0.82,
+   "ohp": 0.69
+  },
+  "STANDARD_DISTANCES": {
+   "5K": 5,
+   "10K": 10,
+   "Half marathon": 21.1,
+   "Marathon": 42.2
+  },
+  "WEEK_REVIEW_TYPES": [
+   "strength",
+   "run",
+   "mobility"
+  ],
+  "WR_STATUS_WORD": {
+   "ahead": "ahead of target",
+   "on": "on target",
+   "below": "short of target"
+  },
+  "MIN": 60,
+  "WEEK_SHARE_MARKS": {
+   "done": "■",
+   "part": "■",
+   "extra": "■",
+   "missed": "□",
+   "rest": "·",
+   "ahead": "·"
+  },
+  "STRENGTH_PROGRESS_EXPECTATIONS": {
+   "beginner": {
+    "pct": 0.12,
+    "weeks": 12
+   },
+   "novice": {
+    "pct": 0.1,
+    "weeks": 12
+   },
+   "intermediate": {
+    "pct": 0.05,
+    "weeks": 12
+   },
+   "advanced": {
+    "pct": 0.025,
+    "weeks": 12
+   },
+   "elite": {
+    "pct": 0.015,
+    "weeks": 12
+   }
+  },
+  "RUNNING_PROGRESS_EXPECTATION": {
+   "pct": 0.06,
+   "weeks": 12
+  },
+  "ADAPTATION_WINDOW_DAYS": 18,
+  "ADAPTATION_NOISE_THRESHOLD": 0.02,
+  "RUNNING_INJURY_AREAS": [
+   "ankles",
+   "calves",
+   "quads_knees",
+   "hips",
+   "hamstrings",
+   "lower_back"
+  ],
+  "RUN_TIER_RANK": {
+   "beginner": 1,
+   "consolidation": 2,
+   "base": 3,
+   "intermediate": 4,
+   "advanced": 5
+  },
+  "RUN_TIER_BY_RANK": {
+   "1": "beginner",
+   "2": "consolidation",
+   "3": "base",
+   "4": "intermediate",
+   "5": "advanced"
+  },
+  "BODYWEIGHT_MAIN_LIFTS": {
+   "squat": {
+    "name": "Bulgarian Split Squat",
+    "area": "quads_knees",
+    "secondaryArea": "hips",
+    "movement": "squat",
+    "exerciseId": "bulgarian_split_squat"
+   },
+   "push": {
+    "name": "Push-up",
+    "area": "chest",
+    "secondaryArea": "triceps",
+    "movement": "push",
+    "exerciseId": "pushup"
+   },
+   "hinge": {
+    "name": "Nordic Hamstring Curl",
+    "area": "hamstrings",
+    "secondaryArea": "glutes",
+    "movement": "hinge",
+    "exerciseId": "nordic_curl"
+   },
+   "pull": {
+    "name": "Pull-up",
+    "area": "thoracic",
+    "secondaryArea": "biceps",
+    "movement": "pull",
+    "exerciseId": "pullup"
+   }
+  },
+  "SPINE_NEUTRAL_BY_PATTERN": {
+   "push|chest": [
+    {
+     "name": "Machine Chest Press",
+     "area": "chest",
+     "secondaryArea": "triceps",
+     "movement": "push",
+     "spineLoad": "low"
+    },
+    {
+     "name": "Floor Press",
+     "area": "chest",
+     "secondaryArea": "triceps",
+     "movement": "push",
+     "spineLoad": "low"
+    }
+   ],
+   "push|shoulders": [
+    {
+     "name": "Seated Supported DB Press",
+     "area": "shoulders",
+     "secondaryArea": "triceps",
+     "movement": "push",
+     "spineLoad": "low"
+    }
+   ],
+   "push|triceps": [
+    {
+     "name": "Cable Triceps Pushdown",
+     "area": "triceps",
+     "secondaryArea": "",
+     "movement": "push",
+     "spineLoad": "low"
+    }
+   ],
+   "pull|back": [
+    {
+     "name": "Chest-Supported Row",
+     "area": "back",
+     "secondaryArea": "biceps",
+     "movement": "pull",
+     "spineLoad": "low"
+    }
+   ],
+   "pull|thoracic": [
+    {
+     "name": "Chest-Supported Row",
+     "area": "thoracic",
+     "secondaryArea": "biceps",
+     "movement": "pull",
+     "spineLoad": "low"
+    }
+   ]
+  },
+  "HINGE_MAIN_LIFTS": [
+   {
+    "name": "Romanian Deadlift",
+    "area": "hamstrings",
+    "secondaryArea": "lower_back",
+    "movement": "hinge"
+   },
+   {
+    "name": "Deadlift",
+    "area": "hamstrings",
+    "secondaryArea": "lower_back",
+    "movement": "hinge"
+   }
+  ],
+  "MAIN_LIFT_DEFAULTS": {
+   "lower": {
+    "name": "Back Squat",
+    "area": "quads_knees",
+    "secondaryArea": "hips",
+    "movement": "squat"
+   },
+   "legs": {
+    "name": "Back Squat",
+    "area": "quads_knees",
+    "secondaryArea": "hips",
+    "movement": "squat"
+   },
+   "upper": {
+    "name": "Bench Press",
+    "area": "chest",
+    "secondaryArea": "triceps",
+    "movement": "push"
+   },
+   "push": {
+    "name": "Bench Press",
+    "area": "chest",
+    "secondaryArea": "triceps",
+    "movement": "push"
+   },
+   "hinge": {
+    "name": "Romanian Deadlift",
+    "area": "hamstrings",
+    "secondaryArea": "lower_back",
+    "movement": "hinge"
+   },
+   "pull": {
+    "name": "Pull-up",
+    "area": "thoracic",
+    "secondaryArea": "biceps",
+    "movement": "pull"
+   },
+   "full_body": {
+    "name": "Back Squat",
+    "area": "quads_knees",
+    "secondaryArea": "hips",
+    "movement": "squat"
+   }
+  },
+  "TAG_TO_MOVEMENT": {
+   "lower": "squat",
+   "legs": "squat",
+   "upper": "push",
+   "push": "push",
+   "pull": "pull",
+   "full_body": "squat"
+  },
+  "ALTERNATING_TAG_MOVEMENTS": {
+   "upper": [
+    "push",
+    "pull"
+   ],
+   "lower": [
+    "squat",
+    "hinge"
+   ],
+   "legs": [
+    "squat",
+    "hinge"
+   ]
+  },
+  "VARIATION_ROTATION_WEEKS": 6,
+  "GOAL_LIFT_MAX_DAYS": 2,
+  "TAG_TO_AREAS": {
+   "upper": [
+    "chest",
+    "thoracic",
+    "shoulders",
+    "side_delts",
+    "rear_delts",
+    "biceps",
+    "triceps",
+    "forearms",
+    "core",
+    "neck"
+   ],
+   "push": [
+    "chest",
+    "shoulders",
+    "side_delts",
+    "triceps",
+    "core",
+    "neck"
+   ],
+   "pull": [
+    "thoracic",
+    "rear_delts",
+    "biceps",
+    "forearms",
+    "core"
+   ],
+   "lower": [
+    "quads_knees",
+    "hamstrings",
+    "hips",
+    "glutes",
+    "adductors",
+    "calves",
+    "core",
+    "lower_back",
+    "ankles"
+   ],
+   "legs": [
+    "quads_knees",
+    "hamstrings",
+    "hips",
+    "glutes",
+    "adductors",
+    "calves",
+    "core",
+    "lower_back",
+    "ankles"
+   ],
+   "full_body": [
+    "chest",
+    "thoracic",
+    "shoulders",
+    "side_delts",
+    "rear_delts",
+    "biceps",
+    "triceps",
+    "forearms",
+    "core",
+    "neck",
+    "quads_knees",
+    "hamstrings",
+    "hips",
+    "glutes",
+    "adductors",
+    "calves",
+    "lower_back",
+    "ankles"
+   ]
+  },
+  "EMPHASIS_AREAS_PER_BLOCK": 3,
+  "EMPHASIS_BLOCK_WEEKS": 4,
+  "GOAL_EMPHASIS_POOLS": {
+   "hypertrophy": [
+    "shoulders",
+    "side_delts",
+    "rear_delts",
+    "chest",
+    "biceps",
+    "triceps",
+    "thoracic",
+    "glutes",
+    "quads_knees",
+    "calves",
+    "core"
+   ],
+   "strength": [
+    "quads_knees",
+    "hips",
+    "glutes",
+    "hamstrings",
+    "thoracic",
+    "chest",
+    "shoulders",
+    "lower_back",
+    "core",
+    "forearms"
+   ],
+   "running": [
+    "hamstrings",
+    "calves",
+    "glutes",
+    "adductors",
+    "hips",
+    "core",
+    "ankles"
+   ],
+   "hyrox": [
+    "quads_knees",
+    "hamstrings",
+    "glutes",
+    "core",
+    "forearms",
+    "shoulders",
+    "calves",
+    "thoracic"
+   ]
+  },
+  "EMPHASIS_REGION": {
+   "quads_knees": "lower",
+   "hamstrings": "lower",
+   "hips": "lower",
+   "glutes": "lower",
+   "adductors": "lower",
+   "calves": "lower",
+   "ankles": "lower",
+   "chest": "upper",
+   "thoracic": "upper",
+   "shoulders": "upper",
+   "side_delts": "upper",
+   "rear_delts": "upper",
+   "biceps": "upper",
+   "triceps": "upper",
+   "forearms": "upper",
+   "neck": "upper",
+   "core": "trunk",
+   "lower_back": "trunk"
+  },
+  "EMPHASIS_MAX_PER_REGION": 2,
+  "BODYWEIGHT_OK_EQUIPMENT": [
+   "bodyweight",
+   "band",
+   "bench",
+   "box",
+   "partner",
+   "other"
+  ],
+  "MOBILITY_NEEDS_EQUIPMENT": {},
+  "ACCESSORY_EXCLUDED_CATEGORIES": [
+   "main_strength",
+   "power",
+   "running_drill"
+  ],
+  "HYPERTROPHY_TIER_RANK": {
+   "S": 4,
+   "A": 3,
+   "B": 2,
+   "C": 1
+  },
+  "POWER_TIER_RANK": {
+   "S": 4,
+   "A": 3,
+   "B": 2,
+   "C": 1
+  },
+  "POWER_GOAL_TYPES": [
+   "running",
+   "hyrox"
+  ],
+  "POWER_PICKS_MAX": 1,
+  "GOAL_TIER_FIELD": {
+   "hypertrophy": "hypertrophyTier",
+   "strength": "strengthTier",
+   "running": "strengthTier",
+   "hyrox": "strengthTier"
+  },
+  "CATEGORY_VALUE": {
+   "secondary_strength": 0.4,
+   "calisthenics": 0.3,
+   "isolation": 0,
+   "bulletproofing": 0.1
+  },
+  "SUPERSET_SHARED_REST_FACTOR": 0.55,
+  "SUPERSET_STRESS_MULTIPLIER": 1.2,
+  "DROPSET_STRESS_MULTIPLIER": 1.1,
+  "DROPSET_EXTRA_SECONDS": 35,
+  "RESTPAUSE_EXTRA_SECONDS": 45,
+  "SUPERSET_ANTAGONIST": {
+   "chest": [
+    "thoracic",
+    "biceps"
+   ],
+   "thoracic": [
+    "chest",
+    "triceps"
+   ],
+   "shoulders": [
+    "thoracic",
+    "biceps"
+   ],
+   "side_delts": [
+    "thoracic",
+    "biceps"
+   ],
+   "rear_delts": [
+    "chest",
+    "triceps"
+   ],
+   "biceps": [
+    "triceps",
+    "chest"
+   ],
+   "triceps": [
+    "biceps",
+    "thoracic"
+   ],
+   "quads_knees": [
+    "hamstrings",
+    "glutes"
+   ],
+   "hamstrings": [
+    "quads_knees"
+   ],
+   "glutes": [
+    "quads_knees"
+   ],
+   "hips": [
+    "quads_knees"
+   ],
+   "adductors": [
+    "glutes"
+   ],
+   "calves": [
+    "ankles"
+   ],
+   "ankles": [
+    "calves"
+   ],
+   "core": [
+    "calves",
+    "forearms",
+    "neck"
+   ],
+   "forearms": [
+    "core",
+    "calves"
+   ],
+   "neck": [
+    "core",
+    "calves"
+   ],
+   "lower_back": [
+    "core"
+   ]
+  },
+  "GOAL_DOMAIN": {
+   "strength": "lift",
+   "hypertrophy": "lift",
+   "running": "run"
+  },
+  "SESSION_STRESS_WEIGHT": {
+   "heavy_lower": 3,
+   "upper": 1,
+   "quality_run": 3,
+   "long_run": 2.5,
+   "easy_run": 1,
+   "mobility": 0.3
+  },
+  "SESSION_OVERLAP": {
+   "heavy_lower|quality_run": 1,
+   "heavy_lower|long_run": 0.85,
+   "heavy_lower|easy_run": 0.5,
+   "heavy_lower|heavy_lower": 0.9,
+   "quality_run|quality_run": 0.9,
+   "upper|quality_run": 0.15,
+   "upper|long_run": 0.15,
+   "upper|easy_run": 0.1,
+   "upper|upper": 0.3,
+   "upper|heavy_lower": 0.2,
+   "easy_run|long_run": 0.4,
+   "easy_run|easy_run": 0.2,
+   "mobility|heavy_lower": 0.05,
+   "mobility|upper": 0.05,
+   "mobility|quality_run": 0.05,
+   "mobility|long_run": 0.05,
+   "mobility|easy_run": 0.05
+  },
+  "PATTERN_RECOVERY_HOURS": {
+   "squat": 72,
+   "hinge": 72,
+   "push": 48,
+   "pull": 48,
+   "lunge": 48,
+   "isolation": 24,
+   "core": 24
+  },
+  "FULL_BODY_CYCLE_5PLUS": [
+   "squat",
+   "push",
+   "hinge",
+   "pull",
+   "squat",
+   "push",
+   "hinge"
+  ],
+  "MOBILITY_ONLY_MAX_SESSIONS": 4,
+  "MOBILITY_SESSION_TIME_CAP": 30,
+  "MOBILITY_SKILL_TARGET_AREAS": {
+   "pike": [
+    "hamstrings"
+   ],
+   "frontsplits": [
+    "hamstrings",
+    "hips"
+   ],
+   "bridge": [
+    "thoracic",
+    "shoulders"
+   ],
+   "middlesplit": [
+    "adductors",
+    "hips"
+   ],
+   "pancake": [
+    "adductors",
+    "hips",
+    "hamstrings"
+   ],
+   "deepsquat": [
+    "quads_knees",
+    "ankles"
+   ],
+   "overheadsquat": [
+    "shoulders"
+   ]
+  },
+  "MOBILITY_SKILL_DOSING": {
+   "pike": {
+    "sets": 4,
+    "holdSeconds": 45
+   },
+   "bridge": {
+    "sets": 4,
+    "holdSeconds": 30
+   },
+   "frontsplits": {
+    "sets": 4,
+    "holdSeconds": 45
+   },
+   "middlesplit": {
+    "sets": 4,
+    "holdSeconds": 45
+   },
+   "pancake": {
+    "sets": 4,
+    "holdSeconds": 45
+   },
+   "deepsquat": {
+    "sets": 3,
+    "holdSeconds": 45
+   },
+   "overheadsquat": {
+    "sets": 4,
+    "holdSeconds": 30
+   }
+  },
+  "MOBILITY_DOMAINS": [
+   "ankles",
+   "calves",
+   "knees",
+   "hips",
+   "hamstrings",
+   "adductors",
+   "spine",
+   "shoulders",
+   "chest",
+   "scapula",
+   "wrists"
+  ],
+  "MOBILITY_DOMAIN_TO_AREA": {
+   "ankles": "ankles",
+   "calves": "calves",
+   "knees": "quads_knees",
+   "hips": "hips",
+   "hamstrings": "hamstrings",
+   "adductors": "adductors",
+   "spine": "thoracic",
+   "shoulders": "shoulders",
+   "chest": "chest",
+   "scapula": "shoulders",
+   "wrists": "forearms"
+  },
+  "MOBILITY_SCALE_VERSION": 2,
+  "MOBILITY_REP_PATTERNS": {},
+  "MOBILITY_HOLD_PATTERNS": {},
+  "MOBILITY_TYPE_OVERRIDE": {
+   "Bridge preparation": "reps",
+   "Deep squat to overhead reach": "reps",
+   "Cossack squat to standing reach": "reps",
+   "Crab walk to bridge": "reps",
+   "Bear crawl to downward dog flow": "reps",
+   "Seated pike compression": "reps",
+   "Wall-sit isometric": "hold",
+   "Copenhagen plank": "hold",
+   "Overhead carries": "hold",
+   "Deep split squat": "hold",
+   "Supported deep squat": "hold",
+   "Active knee flexion-extension through range": "reps",
+   "Active hip flexion": "reps",
+   "Full-ROM RDL": "reps",
+   "Weighted good morning": "reps",
+   "Single-leg RDL, bodyweight": "reps",
+   "Controlled spinal extension": "reps",
+   "Knee-to-wall": "reps",
+   "Active/loaded knee-to-wall": "reps",
+   "Loaded wrist extension": "reps",
+   "Loaded shoulder flexion": "reps",
+   "Segmental cat-cow": "reps",
+   "Nordic curl eccentric": "reps",
+   "Reverse Nordic eccentric": "reps",
+   "Thoracic rotations": "reps"
+  },
+  "MOBILITY_REPS_BY_HOLD": {
+   "15": 5,
+   "20": 6,
+   "30": 8,
+   "40": 8,
+   "45": 8,
+   "60": 10
+  },
+  "MOBILITY_SECONDS_PER_REP": 4,
+  "SKILL_TO_INTEGRATE": {
+   "deepsquat": "Deep squat to overhead reach",
+   "overheadsquat": "Deep squat to overhead reach",
+   "middlesplit": "Cossack squat to standing reach",
+   "frontsplits": "Cossack squat to standing reach",
+   "pike": "Bear crawl to downward dog flow",
+   "bridge": "Crab walk to bridge"
+  },
+  "MOBILITY_DOMAIN_TO_SKILL": {
+   "ankles": "deepsquat",
+   "calves": null,
+   "knees": "deepsquat",
+   "hips": "frontsplits",
+   "hamstrings": "pike",
+   "adductors": "middlesplit",
+   "spine": "bridge",
+   "shoulders": "overheadsquat",
+   "chest": null,
+   "scapula": "overheadsquat",
+   "wrists": null
+  },
+  "MOBILITY_REASSESS_DAYS": 42,
+  "MOBILITY_LEVEL_TO_CATEGORY": {
+   "1": "access",
+   "2": "control",
+   "3": "load"
+  },
+  "AREA_TO_MOBILITY_DOMAIN": {
+   "ankles": "ankles",
+   "calves": "calves",
+   "quads_knees": "knees",
+   "hips": "hips",
+   "hamstrings": "hamstrings",
+   "adductors": "adductors",
+   "thoracic": "spine",
+   "shoulders": "shoulders",
+   "chest": "chest",
+   "forearms": "wrists"
+  },
+  "MOBILITY_LEVEL_DOSE": {
+   "1": {
+    "sets": 2,
+    "holdSeconds": 60
+   },
+   "2": {
+    "sets": 2,
+    "holdSeconds": 40
+   },
+   "3": {
+    "sets": 3,
+    "holdSeconds": 20
+   }
+  },
+  "MOBILITY_MAINTENANCE_DOSE": {
+   "sets": 2,
+   "holdSeconds": 20
+  },
+  "MOBILITY_LOAD_DOSE": {
+   "1": {
+    "sets": 2,
+    "holdSeconds": 15,
+    "rangeNote": "partial range"
+   },
+   "2": {
+    "sets": 3,
+    "holdSeconds": 20,
+    "rangeNote": "through your current range"
+   },
+   "3": {
+    "sets": 3,
+    "holdSeconds": 20,
+    "rangeNote": "full range"
+   }
+  },
+  "MOBILITY_PICK_WINDOW": 2,
+  "REST_HIDDEN": [
+   "todaySessionTypePills",
+   "todayWorkoutArea"
+  ],
+  "RECOVERY_MORE_IDS": [
+   "sleepScoreOura",
+   "sleepScoreGarmin",
+   "wakeTimeOura",
+   "wakeTimeGarmin",
+   "hrvBaseline",
+   "hrvStatus",
+   "loadRatio",
+   "trainingStatus",
+   "readinessOura",
+   "bodyBattery"
+  ],
+  "RACE_LONG_MIN_KM": 15,
+  "RUN_RAISE_BY_TYPE": {
+   "easy": "Walk, then run the first kilometre slower than target pace — that is the warm-up",
+   "recovery": "Walk, then run the first kilometre slower than target pace — that is the warm-up",
+   "long": "Easy jog to open up, starting slower than feels necessary — 5-10 min",
+   "tempo": "Easy jog, last 2 minutes lifting toward steady — 10-15 min",
+   "interval": "Easy jog — 10-15 min",
+   "fartlek": "Easy jog — 10 min",
+   "hills": "Easy jog to the hill, then one relaxed uphill at half effort — 10-15 min",
+   "sprint": "Easy jog. Never sprint cold — 15 min",
+   "race": "Easy jog, finishing 25-30 min before the start — 10-15 min",
+   "race_long": "Easy jog to loosen off, finishing 15-20 min before the start — 5-10 min. The opening kilometres are the rest of the warm-up"
+  },
+  "RUN_WARMUP_BY_TYPE": {
+   "easy": "Walk, then ease into the first kilometre slower than target pace. The run is the warm-up.",
+   "long": "5-10 min easy jog to open up, then settle. Start slower than feels necessary.",
+   "tempo": "10-15 min easy jog, last 2 min lifting toward steady · 4-6 × 80-100m strides · first rep within 2 min.",
+   "interval": "10-15 min easy jog · 4-6 × 80-100m strides at target pace · rep one within 2 min.",
+   "fartlek": "10 min easy jog · 3 × 20s strides. The first surge is the warm-up for the rest.",
+   "hills": "10-15 min easy jog to the hill · one relaxed uphill at half effort before the working reps.",
+   "sprint": "15 min easy jog · 4-6 progressive strides. Never sprint cold.",
+   "race": "10-15 min easy jog finishing 25-30 min out · 4-6 strides · keep moving with layers on, gap to the gun under 5 min. At half or full marathon distance cut the jog to 5-10 min and treat the first kilometres as the rest of it."
+  },
+  "RUN_SESSIONS_PER_LEVEL": 3,
+  "STATIC_EXCLUDED_MODALITIES": [
+   "foamroll",
+   "foam_roll",
+   "dynamic"
+  ],
+  "MOBILITY_SKILL_MIN_WEEKS_AT_LEVEL": {
+   "pike": 3,
+   "bridge": 3,
+   "deepsquat": 3,
+   "overheadsquat": 3,
+   "pancake": 4,
+   "frontsplits": 4,
+   "middlesplit": 4
+  },
+  "MOBILITY_SKILL_TEST_SETS": 2,
+  "MOBILITY_SKILL_TEST_SECONDS": 30,
+  "MOBILITY_WEEKLY_TARGET_SECONDS": 600,
+  "MOBILITY_WEEKLY_FLOOR_SECONDS": 300,
+  "LOADED_ROM_CREDIT_SECONDS": 112,
+  "MOBILITY_WEEKLY_PRODUCTIVE_SECONDS": 300,
+  "MOBILITY_SESSION_CAP_SECONDS": 240,
+  "MOBILITY_MIN_WEEKS_AT_DOSE": 2,
+  "MOBILITY_ADVANCE_WINDOW_DAYS": 21,
+  "SKILL_FORECAST_WINDOW_WEEKS": 8,
+  "EXERCISE_SKILL_SESSIONS_TO_ADVANCE": 6,
+  "SKILL_WORK_PRESCRIPTION": "1-2 easy sets, short of failure",
+  "SKILL_MAINTENANCE_PRESCRIPTION": "1 set, keeping it",
+  "INJURY_LOOKBACK_DAYS": 7,
+  "INJURY_MOVEMENT_LABELS": {
+   "squat": "squat pattern",
+   "hinge": "hinge pattern",
+   "push": "push pattern",
+   "pull": "pull pattern",
+   "isolation": "isolation work"
+  },
+  "BLOCK_LENGTH_DEFAULT": 4,
+  "BLOCK_LENGTH_MIN": 3,
+  "BLOCK_LENGTH_MAX": 8,
+  "REINTRO_LOAD_CUT": 0.1,
+  "REINTRO_TARGET_RIR": 3,
+  "GENERATE_FAULTS": {
+   "no-setup": "NO SETUP · SET YOUR TRAINING DAYS",
+   "no-goals": "NO GOALS · ADD ONE FIRST",
+   "no-lift-or-run-goal": "NO MATCHING GOAL · ADD A STRENGTH, RUN OR MOBILITY GOAL",
+   "nothing-selected": "NOTHING SELECTED · TURN ONE BACK ON"
+  },
+  "DAY_OFF_PREFIX": "dayoff:",
+  "ISOLATION_REP_RANGE": {
+   "repLow": 8,
+   "repHigh": 12
+  },
+  "PROGRESSION_STALL_LIMIT": 2,
+  "TISSUE_HOLD_LOAD": 55,
+  "TISSUE_FLAG_REDUCE": 40,
+  "TISSUE_FLAG_SKIP": 25,
+  "RUN_TYPE_LABELS": {
+   "easy": "Easy run",
+   "tempo": "Tempo run",
+   "long": "Long run",
+   "interval": "Intervals",
+   "sprint": "Sprints",
+   "race": "Race",
+   "fartlek": "Fartlek",
+   "hills": "Hills"
+  },
+  "WORKOUT_TAG_LABELS": {
+   "full_body": "Full body",
+   "upper": "Upper body",
+   "lower": "Lower body",
+   "push": "Push",
+   "pull": "Pull",
+   "legs": "Legs"
+  },
+  "MOBILITY_RETEST_FLOOR_DAYS": 28,
+  "INJURY_CHECK_MIN_DAYS": 7,
+  "INJURY_CHECK_MIN_DRIFT": 2,
+  "METRIC_LABELS": {
+   "hrv": "HRV",
+   "sleepScore": "Sleep score",
+   "loadRatio": "Load ratio",
+   "sleepDebt": "Sleep debt",
+   "weight": "Weight",
+   "bodyFat": "Body fat %"
+  },
+  "BODY_FAT_BAND": {
+   "low": -6.6,
+   "high": 4.6
+  },
+  "TREND_H": 200,
+  "TREND_LABEL_GAP_PX": 46,
+  "PLAN_TYPES": {
+   "squat_legs": {
+    "label": "Squat/Legs",
+    "areas": [
+     "hips",
+     "ankles",
+     "quads_knees"
+    ]
+   },
+   "hinge": {
+    "label": "Hinge/Posterior",
+    "areas": [
+     "hamstrings",
+     "lower_back",
+     "hips"
+    ]
+   },
+   "upper_push": {
+    "label": "Upper Push",
+    "areas": [
+     "shoulders",
+     "thoracic"
+    ]
+   },
+   "upper_pull": {
+    "label": "Upper Pull",
+    "areas": [
+     "thoracic",
+     "shoulders"
+    ]
+   },
+   "running": {
+    "label": "Running",
+    "areas": [
+     "ankles",
+     "calves",
+     "hips"
+    ]
+   },
+   "full_body": {
+    "label": "Full Body / Mixed",
+    "areas": [
+     "full_body",
+     "hips",
+     "thoracic"
+    ]
+   }
+  },
+  "LOAD_RATIO_THRESH": 1.3,
+  "WARMUP_TIME_CAP": 12,
+  "WARMUP_TIME_PER_AREA": 3,
+  "MOBILITY_TIME_CAP": 15,
+  "MOBILITY_TIME_PER_AREA": 7,
+  "MOBILITY_STATIC_SHARE_PER_AREA": 5,
+  "WARMUP_STATIC_SHARE_PER_AREA": 0,
+  "RUN_WARMUP_BUDGET": {
+   "easy": 3,
+   "recovery": 3,
+   "long": 6,
+   "tempo": 9,
+   "fartlek": 9,
+   "interval": 12,
+   "hills": 12,
+   "sprint": 12,
+   "race": 12,
+   "race_long": 3
+  },
+  "RUN_DYNAMIC_CAP_S": 220,
+  "RUN_COOLDOWN_BUDGET": {
+   "easy": 7,
+   "recovery": 7,
+   "long": 14,
+   "tempo": 14,
+   "fartlek": 14,
+   "interval": 14,
+   "hills": 14,
+   "sprint": 14,
+   "race": 14,
+   "race_long": 7
+  },
+  "DRILL_TRANSITION_S": 18,
+  "DRILL_DOSE_TAIL": {},
+  "EFFORT_DROPOFF": {
+   "nearFailure": 0.25,
+   "moderate": 0.1
+  },
+  "DEV_TAPS_NEEDED": 7
+ }
+}

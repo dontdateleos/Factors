@@ -1,0 +1,309 @@
+{
+ "generatedFrom": "2026.09.13.507",
+ "generatedBy": "tools/spec-dump.mjs",
+ "scoresForEntry": [
+  {
+   "name": "empty",
+   "entry": {},
+   "trailing": null,
+   "out": {
+    "targetScore": null,
+    "adaptiveScore": null
+   }
+  },
+  {
+   "name": "duration only",
+   "entry": {
+    "durationHrs": 8
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "short sleep",
+   "entry": {
+    "durationHrs": 5
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 63,
+    "adaptiveScore": 63
+   }
+  },
+  {
+   "name": "over 8h",
+   "entry": {
+    "durationHrs": 9.5
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "wake 0",
+   "entry": {
+    "wakeTimeOura": 0
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "wake 30",
+   "entry": {
+    "wakeTimeOura": 30
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 55,
+    "adaptiveScore": 55
+   }
+  },
+  {
+   "name": "wake 90 (clamps)",
+   "entry": {
+    "wakeTimeOura": 90
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 0,
+    "adaptiveScore": 0
+   }
+  },
+  {
+   "name": "hrv at baseline",
+   "entry": {
+    "hrvOura": 60,
+    "hrvBaseline": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "hrv under",
+   "entry": {
+    "hrvOura": 40,
+    "hrvBaseline": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 67,
+    "adaptiveScore": 67
+   }
+  },
+  {
+   "name": "hrv over (clamps)",
+   "entry": {
+    "hrvOura": 120,
+    "hrvBaseline": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "garmin wins hrv",
+   "entry": {
+    "hrvOura": 40,
+    "hrvGarmin": 70,
+    "hrvBaseline": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 100,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "oura wins wake",
+   "entry": {
+    "wakeTimeOura": 10,
+    "wakeTimeGarmin": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 85,
+    "adaptiveScore": 85
+   }
+  },
+  {
+   "name": "all three",
+   "entry": {
+    "durationHrs": 7.5,
+    "wakeTimeOura": 20,
+    "hrvOura": 55,
+    "hrvBaseline": 60
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 85,
+    "adaptiveScore": 85
+   }
+  },
+  {
+   "name": "trailing under min",
+   "entry": {
+    "durationHrs": 7.5,
+    "wakeTimeOura": 20,
+    "hrvOura": 55,
+    "hrvBaseline": 60
+   },
+   "trailing": {
+    "durationN": 2,
+    "avgDuration": 8,
+    "wakeTimeN": 2,
+    "avgWakeTime": 15,
+    "hrvN": 2,
+    "avgHRV": 60
+   },
+   "out": {
+    "targetScore": 85,
+    "adaptiveScore": 85
+   }
+  },
+  {
+   "name": "trailing at min",
+   "entry": {
+    "durationHrs": 7.5,
+    "wakeTimeOura": 20,
+    "hrvOura": 55,
+    "hrvBaseline": 60
+   },
+   "trailing": {
+    "durationN": 3,
+    "avgDuration": 8,
+    "wakeTimeN": 3,
+    "avgWakeTime": 15,
+    "hrvN": 3,
+    "avgHRV": 60
+   },
+   "out": {
+    "targetScore": 85,
+    "adaptiveScore": 93
+   }
+  },
+  {
+   "name": "trailing rich",
+   "entry": {
+    "durationHrs": 7.5,
+    "wakeTimeOura": 20,
+    "hrvOura": 55,
+    "hrvBaseline": 60
+   },
+   "trailing": {
+    "durationN": 30,
+    "avgDuration": 7,
+    "wakeTimeN": 30,
+    "avgWakeTime": 25,
+    "hrvN": 30,
+    "avgHRV": 50
+   },
+   "out": {
+    "targetScore": 85,
+    "adaptiveScore": 100
+   }
+  },
+  {
+   "name": "hrv no baseline",
+   "entry": {
+    "hrvOura": 55
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": null,
+    "adaptiveScore": null
+   }
+  },
+  {
+   "name": "zero duration",
+   "entry": {
+    "durationHrs": 0
+   },
+   "trailing": null,
+   "out": {
+    "targetScore": 0,
+    "adaptiveScore": 0
+   }
+  }
+ ],
+ "bandOf": [
+  {
+   "n": 0,
+   "band": "low"
+  },
+  {
+   "n": 19,
+   "band": "low"
+  },
+  {
+   "n": 20,
+   "band": "low"
+  },
+  {
+   "n": 39,
+   "band": "low"
+  },
+  {
+   "n": 40,
+   "band": "mid"
+  },
+  {
+   "n": 69,
+   "band": "mid"
+  },
+  {
+   "n": 70,
+   "band": "high"
+  },
+  {
+   "n": 100,
+   "band": "high"
+  }
+ ],
+ "scoreLadderLabel": [
+  {
+   "n": 0,
+   "word": "Back off today"
+  },
+  {
+   "n": 10,
+   "word": "Back off today"
+  },
+  {
+   "n": 25,
+   "word": "Ease into it"
+  },
+  {
+   "n": 45,
+   "word": "On track"
+  },
+  {
+   "n": 60,
+   "word": "On track"
+  },
+  {
+   "n": 75,
+   "word": "Ready to train"
+  },
+  {
+   "n": 90,
+   "word": "Ready to train"
+  },
+  {
+   "n": 100,
+   "word": "Ready to train"
+  }
+ ]
+}

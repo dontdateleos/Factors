@@ -1,0 +1,160 @@
+{
+ "generatedFrom": "2026.09.13.507",
+ "generatedBy": "tools/spec-dump.mjs",
+ "scenarios": [
+  {
+   "id": "heavy_lower_interval_never_combine",
+   "backlogRef": "§26/§10",
+   "description": "Heavy lower-body + interval run",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "heavy_lower_easy_run_lower_conflict_than_quality",
+   "backlogRef": "§26/§10",
+   "description": "Heavy lower-body + easy run should score meaningfully lower conflict than heavy lower-body + quality run, even though neither crosses into combinable territory",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "mild_pain_flags_not_skips",
+   "backlogRef": "§31",
+   "description": "Mild pain — should flag the exercise, not remove it",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "significant_pain_skips_movement",
+   "backlogRef": "§32",
+   "description": "Significant pain — should skip the movement entirely",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "spine_neutral_passes_high_back_flag",
+   "backlogRef": "v1.1",
+   "description": "spineLoad:low exercise survives a HIGH back flag, clearly labelled",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "spine_exemption_is_tissue_not_pattern",
+   "backlogRef": "v1.1",
+   "description": "spineLoad:low does NOT bypass a HIGH shoulder flag on the same movement",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "plateau_despite_good_recovery",
+   "backlogRef": "§19",
+   "description": "Plateau despite good recovery — should suggest stimulus change, not fatigue",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "performance_decline_detected",
+   "backlogRef": "§20",
+   "description": "Performance decline should be detected",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "rapid_improvement_detected",
+   "backlogRef": "§21",
+   "description": "Rapid improvement should be detected",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "under_completion_pattern",
+   "backlogRef": "§23/§24",
+   "description": "User consistently under-completes training",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "over_completion_pattern",
+   "backlogRef": "§25/§27",
+   "description": "User consistently exceeds prescribed training",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "missed_session_no_cramming",
+   "backlogRef": "§22/§26",
+   "description": "Missed workout should recalculate remaining demand, not cram",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "new_user_gets_calibration_not_fabricated_target",
+   "backlogRef": "§35/§32",
+   "description": "New user with no baseline should get a calibration message, not a fabricated number",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "5k_vs_marathon_different_structure",
+   "backlogRef": "§14/§15",
+   "description": "5K goal and marathon goal at identical fitness should NOT get the same training architecture",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "strength_plus_running_splits_by_priority",
+   "backlogRef": "§17",
+   "description": "Strength + running goal should split sessions by real priority weighting",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "aggressive_timeline_biases_dose",
+   "backlogRef": "§3 (Training Dose Engine)",
+   "description": "A genuinely tight timeline should bias session focus toward strength, when load allows",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "deload_signal_on_decline_plus_load",
+   "backlogRef": "§17 (Adaptive Deload)",
+   "description": "Declining goal + rising load should trigger a strong deload signal",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "deload_actually_cuts_displayed_volume",
+   "backlogRef": "DELOAD_CUT wiring",
+   "description": "Checking the deload week box should actually reduce displayed sets on Today's plan, not just save a flag nothing reads",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "tiered_recommendation_strong_signal_uses_weight_lever",
+   "backlogRef": "Tiered recommendation levers",
+   "description": "A strong signal (4+ corroborating) reduce recommendation should adjust weight, not sets or reps",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "mobility_log_coverage_deprioritizes_domain",
+   "backlogRef": "Mobility weekly-awareness loop",
+   "description": "A recently logged mobility session covering a domain should deprioritize it in future generation, even when it is the weakest assessed domain",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "mobility_area_vocabulary_is_consistent",
+   "backlogRef": "Domain/area vocabulary",
+   "description": "Every domain-to-area mapping and every stretch-library key should be a real BODY_AREAS key, so charging and crediting agree on which body part a stretch belongs to",
+   "pass": true,
+   "note": null
+  },
+  {
+   "id": "every_mobility_domain_is_fully_wired",
+   "backlogRef": "Domain completeness",
+   "description": "Every mobility domain should have five checklist rungs, a body area, a skill mapping and access/control/load exercises",
+   "pass": true,
+   "note": null
+  }
+ ]
+}
