@@ -10712,13 +10712,6 @@ const recoveryFieldIds = ['durationHrs','sleepScoreOura','sleepScoreGarmin','wak
    The value is stored as `subjOverall` on the day's entry. It is written straight from the
    tap on Today; the hidden field of the same id on the Data tab exists only so an edit
    there round-trips it rather than erasing it. */
-// Kept for reading history written before the four items became one. Nothing writes them now.
-const SUBJECTIVE_ITEMS = [
-  { id:'subjEnergy',     name:'Energy',     good:'high' },
-  { id:'subjSoreness',   name:'Soreness',   good:'low'  },
-  { id:'subjStress',     name:'Life stress',good:'low'  },
-  { id:'subjMotivation', name:'Motivation', good:'high' }
-];
 // What each face means, said in a word once it is chosen. Five faces are five shades of one
 // idea and the middle three differ by a few pixels of eyelid, so the word is what makes the
 // reading unambiguous — and it only appears after you have answered, so it never leads you.
@@ -11124,7 +11117,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.507';
+const APP_VERSION = '2026.09.13.508';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11355,6 +11348,7 @@ const APP_NOTES = {
   '2026.09.12.505': 'Today drops its Log this workout button \u2014 the disc at the bottom already does it.',
   '2026.09.13.506': 'The tab\u2019s tint is the masthead\u2019s alone \u2014 the warm-up and cool-down keep their rule and give up their fill.',
   '2026.09.13.507': 'Every section sits on the ground now, on every tab \u2014 the tint is the masthead\u2019s and nothing else\u2019s.',
+  '2026.09.13.508': 'The morning rating no longer feeds the score. What it reads is what was measured.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -12973,88 +12967,9 @@ async function buildSignalWindowUncached(asOfDate, days){
                available:true, zSeries: regSeries, zAcuteSeries: regSeries };
     })()
   };
-  // Each item against its own rolling distribution, then averaged — not a raw mean of the
-  // five-point taps. People use different portions of a scale, and someone who never says 5
-  // would otherwise read as permanently tired.
-  const subjective = {};
-  // One overall rating now. Entries written before that change carry the four separate items
-  // instead, so a day is read from whichever it has — the history stays continuous rather
-  // than the channel going blank for everything logged before today.
-  const legacyMean = (e)=>{
-    const vals = SUBJECTIVE_ITEMS
-      .map(it=> e[it.id] == null ? null : (it.good === 'low' ? 6 - e[it.id] : e[it.id]))
-      .filter(v=>v != null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
-  };
-  /* The rating is masked for baselining like every other channel, which it was not.
-
-     A night you drank is excluded from the baseline for HRV, resting HR, sleep, respiratory
-     rate and temperature — the reading is real and still scores, but it must not move what
-     normal means. The rating you give the morning after was the one channel exempt from
-     that, so a run of heavy weekends quietly taught the model that feeling rough IS your
-     normal, and an ordinary Tuesday then read as unusually good.
-
-     It matters more here than anywhere else: at 0.28 this is the heaviest weight in
-     Systemic Readiness, above HRV and resting HR. The channel most able to move the score
-     was the one whose sense of normal was most easily corrupted. */
-  subjective.subjOverall = normaliseChannel(
-    pick(e=> e.subjOverall != null ? +e.subjOverall : legacyMean(e)), { baselineMask });
-  const subjParts = Object.values(subjective).filter(c=>c.available);
-  const avg = (arr, f)=> arr.length ? arr.reduce((a,c)=>a + f(c), 0) / arr.length : 0;
-  // Per-day too: the composite has to rank against your own days like every other channel.
-  const meanAcross = (key)=> dates.map((_, i)=>{
-    const vals = subjParts.map(c=> c[key] ? c[key][i] : null).filter(v=>v != null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
-  });
-  // Averaging four independent z-scores halves the spread, so a composite built that way
-  // swings about half as far as any single channel and its 0.28 weight would quietly buy less
-  // influence than the number says. Re-standardised against its own distribution so the
-  // weights mean what they claim.
-  // The mask has to be applied here too, not only inside normaliseChannel. This is a SECOND
-  // standardisation, and it was taking its centre and spread from every day including the
-  // ones the mask exists to exclude — so masking the channel underneath had no effect at
-  // all on what came out. With a single subjective item this pass is the one that decides.
-  // Masked days are still scored; they just do not get a vote on where the middle is.
-  const rescale = (arr, mask)=>{
-    const obs = arr.filter((v, i)=> v != null && (!mask || !mask[i]));
-    if(obs.length < 4) return arr;
-    const m = obs.reduce((a,b)=>a+b,0) / obs.length;
-    const sd = Math.sqrt(obs.reduce((a,b)=>a + (b-m)*(b-m), 0) / (obs.length - 1));
-    if(!sd || sd < 1e-9) return arr;
-    return arr.map(v=> v == null ? null : Math.max(-SIG_CLAMP, Math.min(SIG_CLAMP, (v - m) / sd)));
-  };
-  /* THE RE-STANDARDISATION ONLY APPLIES IF SOMETHING WAS AVERAGED.
-
-     The note above is exactly right about four items: averaging four independent z-scores
-     halves the spread, so the composite has to be stretched back or its weight buys less
-     than it says. But there is one item now, and averaging one series changes nothing — so
-     there is no halved spread to undo, and the pass stopped correcting and started
-     amplifying. Measured on 40 seeded days: the channel's own z ran -0.15 to +0.21 and came
-     out of here at -2.84 to +3.00, about fourteen times, hard against SIG_CLAMP at the top.
-
-     Three things followed from that. The rating swung the score 42.7 points end to end,
-     against 9.7 for resting HR and 4.8 for HRV. The top of the scale compressed, because 5
-     clamped and 4 did not. And a rating of 3 - your own median, by definition no news at all
-     - came out at +0.65 instead of 0, so an ordinary day read as better than ordinary. */
-  const singleItem = subjParts.length === 1;
-  const subjZ = singleItem ? meanAcross('zSeries')      : rescale(meanAcross('zSeries'), baselineMask);
-  const subjA = singleItem ? meanAcross('zAcuteSeries') : rescale(meanAcross('zAcuteSeries'), baselineMask);
-  const lastOf = (arr)=>{ const v = [...arr].reverse().find(x=>x != null); return v == null ? 0 : v; };
-  channels.subjective = subjParts.length ? {
-    available: true,
-    n:      Math.max(...subjParts.map(c=>c.n)),
-    nEff:   avg(subjParts, c=>c.nEff),
-    M:      avg(subjParts, c=>c.M),
-    z:      lastOf(subjZ),
-    zAcute: lastOf(subjA),
-    zUsed:  avg(subjParts, c=>c.M) * lastOf(subjZ),
-    zSeries:      subjZ,
-    zAcuteSeries: subjA,
-    items:  subjParts.length
-  } : { available:false, n:0, nEff:0, M:0, z:0, zAcute:0, zUsed:0, items:0 };
   const observedNights = present.length;
   return {
-    dates, entries, channels, subjective,
+    dates, entries, channels,
     hrvSource: hrvRec.source, hrvSourceSince: hrvRec.since,
     hrvBaseline: hrvBaselineFrom(hrvSeries.filter((v, i)=> !baselineMask[i])),
     wakeMedianMin: wakeMedian, wakeMinutes: wakeMin, drinkMask, unwellMask, baselineMask,
@@ -14133,7 +14048,7 @@ async function renderScoreValidity(tagged){
 /* What the engine has actually concluded, shown rather than applied silently. The whole
    difference between this and a sealed vendor score is that the weights are visible. */
 const SR_COMPONENT_LABELS = {
-  subjective:'How you feel', hrvTrend:'HRV trend', rhr:'Resting HR', sleep:'Sleep',
+  hrvTrend:'HRV trend', rhr:'Resting HR', sleep:'Sleep',
   hrvAcute:'HRV last night', sleepDebt:'Sleep debt', regularity:'Sleep regularity',
   illnessCh:'Breathing & temp'
 };
@@ -14701,18 +14616,11 @@ async function computeTissueReadiness(asOfDate){
     const v = [...arr].sort((x,y)=>x-y);
     return v[Math.min(v.length - 1, Math.floor(q * v.length))];
   };
-  // Global soreness nudges every group by the same amount, which is weaker than the brief
-  // wants — it specifies a per-group soreness item and a proper Bayesian update. This is the
-  // prior on its own until per-group reports exist, and it is deliberately gentle.
-  let soreZ = 0;
-  try{
-    const win = await buildSignalWindow(date);
-    // Soreness is no longer its own item, so the overall rating stands in for it. A weaker
-    // signal than a per-group soreness report, and gentler for it.
-    const sore = win.subjective && win.subjective.subjOverall;
-    if(sore && sore.available) soreZ = sore.zAcute || 0;
-  } catch(e){}
-  const soreMult = Math.max(0.75, Math.min(1.1, 1 + soreZ * 0.12));
+  /* There was a global soreness multiplier here, 0.75 to 1.1, taken from the morning rating
+     standing in for a per-group soreness report. The rating is gone, and nothing objective
+     substitutes for it: tissue readiness is now damage against capacity and nothing else.
+     The brief's per-group soreness item would have been a self-report too, so this is not a
+     gap waiting to be filled — it is a term that does not belong in a measured score. */
 
   const areas = {};
   Object.keys(damage).forEach(a=>{
@@ -14727,7 +14635,7 @@ async function computeTissueReadiness(asOfDate){
     const tr = 100 * Math.exp(-damage[a] / cap);
     areas[a] = {
       area: a, label: BODY_AREAS[a] || a,
-      tr: Math.max(0, Math.min(100, Math.round(tr * soreMult))),
+      tr: Math.max(0, Math.min(100, Math.round(tr))),
       damage: damage[a], capacity: cap, lastHit: lastHit[a] || null
     };
   });
@@ -14738,8 +14646,7 @@ async function computeTissueReadiness(asOfDate){
     worst: list[0] || null,
     // The threshold the prescription layer reads: below this, substitute away from the group
     // and leave everything else at full intensity.
-    limited: list.filter(a=>a.tr < 40),
-    soreMult
+    limited: list.filter(a=>a.tr < 40)
   };
 }
 
@@ -14785,41 +14692,35 @@ function cnsWindowLine(cr){
    zero, which pulls the composite toward a typical day — that is the intended behaviour, and
    the confidence readout is what says so out loud. */
 /* These sum to 1.00 and srRawFrom does not normalise, so a weight cannot be lowered on its
-   own — the composite would simply shrink toward 50 for everybody. The other seven carry the
-   difference, scaled in proportion so their order and their ratios to each other are
-   untouched.
+   own — the composite would simply shrink toward 50 for everybody. Every weight here is
+   therefore a share of a fixed budget, and removing a channel means redistributing its share
+   rather than leaving a hole.
 
-   subjective was 0.28, more than half again the next channel, and it moved the score further
-   than any physiological input by a factor of three: measured, one tap of the morning dial
-   was 21 to 52 points where three hours of lost sleep was 34. Some of that is real — Saw 2016
-   is the reason it leads, and it is still the only channel that sees psychosocial load at all
-   — but a self-report that outweighs HRV, resting heart rate and sleep duration combined is
-   reporting the rating rather than the athlete, and one tap should not be able to say more
-   about your day than the night you actually had.
-
-   It is level with hrvTrend now: joint-first, not dominant. The stable autonomic signal and
-   the one thing that knows about your life, weighted the same. */
+   There were nine. `subjective` — one tap of a morning dial — was the ninth, and it is gone:
+   the app does not track subjective state. Its 0.180 went back to the other eight in
+   proportion, so their order and their ratios to each other are exactly what they were and
+   the composite keeps its scale. What the score says now is what was measured, not what was
+   reported. */
 const SR_WEIGHTS = {
-  subjective:  0.180,  // Saw 2016 — highest sensitivity of any category, and the only channel
-                       // that sees psychosocial load at all. Level with hrvTrend, not above it.
-  hrvTrend:    0.180,  // the stable autonomic signal, insensitive to single nights by design
-  rhr:         0.140,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  hrvTrend:    0.219,  // the stable autonomic signal, insensitive to single nights by design
+  rhr:         0.171,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
   /* What you are carrying into the morning, decayed over the three days behind it. The score
-     had eight channels about recovery and none about the thing being recovered from, so a
+     had seven channels about recovery and none about the thing being recovered from, so a
      rest day and the morning after a hard session read identically if you happened to sleep
-     the same. Ten per cent: enough to be felt, and below every physiological channel,
-     because it is an input to fatigue rather than a measurement of it. */
-  load:        0.100,
+     the same. Enough to be felt, and below every physiological channel, because it is an
+     input to fatigue rather than a measurement of it. */
+  load:        0.122,
   // Duration and fragmentation together — the brief defines this component as duration
   // against personal need times an efficiency term, and minutes-awake is that term. It was
-  // briefly a ninth component of its own, which pushed the weights to 1.05 and quietly
-  // diluted every other one.
-  sleep:       0.120,  // acute and largely behavioural, so below the physiology
-  hrvAcute:    0.080,  // damped, so one catastrophic night registers without noise driving it
-  sleepDebt:   0.080,  // Van Dongen — accrues linearly, no adaptation
-  regularity:  0.050,  // Windred 2023 — predicts independently of duration, near-zero cost
-  illnessCh:   0.070   // respiratory rate and skin temperature, negative-only
+  // briefly a component of its own, which pushed the weights past 1.00 and quietly diluted
+  // every other one.
+  sleep:       0.146,  // acute and largely behavioural, so below the physiology
+  hrvAcute:    0.098,  // damped, so one catastrophic night registers without noise driving it
+  sleepDebt:   0.098,  // Van Dongen — accrues linearly, no adaptation
+  regularity:  0.061,  // Windred 2023 — predicts independently of duration, near-zero cost
+  illnessCh:   0.085   // respiratory rate and skin temperature, negative-only
 };
+
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
 const SR_MIN_COMPLETENESS = 0.40;   // below this, show components and refuse to composite
@@ -14853,16 +14754,9 @@ function srComponentsAt(win, i, debtZ){
   };
   const saturated = hrvSaturated(win);
   return {
-    /* The acute series, not the smoothed one, for the reason already given below about
-       resting HR: an EWMA of a daily reading sits on its own median and never leaves the
-       deadband. It applies with more force here. A rating is an answer about TODAY, and Saw
-       2016 - the citation this channel's weight rests on - is a finding about tracking
-       ACUTE load. Reading it as a seven-day level throws away the property that earned it
-       the heaviest weight in the model. */
-    subjective: at(win.channels.subjective, 'zAcuteSeries'),
-    /* Acute, like the rating and for the same reason: this is a question about the last few
-       days, and an EWMA of it would sit on its own median and never say anything. The decay
-       across three days is already the smoothing. */
+    /* Acute, not the smoothed series: this is a question about the last few days, and an
+       EWMA of it would sit on its own median and never say anything. The decay across three
+       days is already the smoothing. */
     load: at(win.channels.load, 'zAcuteSeries'),
     // The guard does not merely discount a saturated HRV reading, it refuses to read it as
     // positive: high vagal tone with a heart rate that does not agree is the documented
@@ -20654,36 +20548,6 @@ async function checkReturnToRunRule(){
   return null;
 }
 
-/* THE TAP HAS TO MOVE THE NUMBER FROM DAY ONE.
-
-   Systemic Readiness carries the rating at 0.28 — the heaviest single input it has — but it
-   refuses to composite at all until the baseline is about 30 days old, and until then the
-   headline comes from the capacity model, which has never read this field. So for the first
-   month you tapped a face and the number did not move: measured at ten days of history, 90
-   before and 90 after, whichever face you pressed. That is not a gate doing its job, it is
-   the one thing the app asks you for going nowhere.
-
-   The gate exists because Z-SCORING needs a distribution — a rating means nothing against
-   your own days until there are days to compare it with. It says nothing about the rating on
-   an ABSOLUTE scale, where 1 of 5 is a bad morning by definition and needs no history at all.
-   So the fallback blends it in flat, at the same 0.28 it will carry once the real model takes
-   over, and the changeover is therefore a change of method rather than a jump in weight.
-
-   Never applied on top of Systemic Readiness: that already contains the rating, and adding it
-   again would count it twice. */
-const SUBJ_FALLBACK_W = 0.28;
-function withSubjective(base, entry){
-  if(base == null || isNaN(base) || !entry) return base;
-  const v = entry.subjOverall != null ? +entry.subjOverall : null;
-  if(v == null || isNaN(v)) return base;
-  const said = ((Math.max(1, Math.min(5, v)) - 1) / 4) * 100;
-  return Math.round(base * (1 - SUBJ_FALLBACK_W) + said * SUBJ_FALLBACK_W);
-}
-// The ladder Systemic Readiness uses, so the words under the number mean the same thing
-// before and after the changeover.
-function scoreLadderLabel(n){
-  return n >= 70 ? 'Ready to train' : n >= 40 ? 'On track' : n >= 20 ? 'Ease into it' : 'Back off today';
-}
 function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, entry, srResult){
   const out = document.getElementById('overallScoreOut');
   const label = document.getElementById('overallScoreLabel');
@@ -20741,16 +20605,15 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     // know there is no previous value so it can come up from zero, and substituting the
     // target is what made it animate from its final position to its final position.
     const prevNum = parseInt(out.dataset.value || out.textContent);
-    const shown = withSubjective(capacityResult.score, entry);
+    const shown = capacityResult.score;
     if(!rollNumber(out, prevNum, shown)){
       animateNumber(out, isNaN(prevNum) ? 0 : prevNum, shown, 500);
     }
     setEyeScore(shown);
-    // Capacity's own three words describe capacity, so once the rating has moved the number
-    // they can contradict it — "above typical" over a 62. The ladder follows the figure.
-    label.textContent = shown === capacityResult.score
-      ? ({ 'above typical':'Ready to train', 'typical':'On track', 'below typical':'Ease into it' }[capacityResult.label] || 'On track')
-      : scoreLadderLabel(shown);
+    // Capacity's own three words, said in the ladder's wording so the phrase under the number
+    // means the same thing before and after Systemic Readiness takes over.
+    label.textContent = { 'above typical':'Ready to train', 'typical':'On track',
+                          'below typical':'Ease into it' }[capacityResult.label] || 'On track';
     return shown;
   }
 
@@ -20773,7 +20636,7 @@ function updateOverallScore(targetScore, adaptiveScore, capacityResult, goalT, e
     else label.textContent = 'Not enough to score yet';
     return null;
   }
-  const overall = withSubjective(Math.round(parts.reduce((a,b)=>a+b,0)/parts.length), entry);
+  const overall = Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
   const prevNum = parseInt(out.dataset.value || out.textContent);
   // Arriving on Today counts up from zero every time, whether or not the score has moved.
   // Rolling only on a change meant it never rolled: the number is the same all day, so the
@@ -20808,10 +20671,9 @@ function readingDepth(entry){
   // reading counts as an HRV reading.
   if((entry.hrvGarmin ?? entry.hrvOura) != null) n++;
   if(entry.restingHR != null) n++;
-  if(entry.subjOverall != null || SUBJECTIVE_ITEMS.some(i=>entry[i.id] != null)) n++;
   return n;
 }
-const READING_FULL = 3;   // of five; below this the mark is drawn half width
+const READING_FULL = 3;   // of four; below this the mark is drawn half width
 
 async function overallScoreForEntry(entry){
   // Same score the headline shows, so swiping back through the week compares like with like.
@@ -20821,12 +20683,12 @@ async function overallScoreForEntry(entry){
   } catch(e){}
   try{
     const cap = await getCapacityForEntry(entry);
-    if(cap && cap.available) return withSubjective(cap.score, entry);
+    if(cap && cap.available) return cap.score;
   } catch(e){}
   const trailing = await getTrailingAverages(entry.date);
   const { targetScore, adaptiveScore } = scoresForEntry(entry, trailing);
   const parts = [targetScore, adaptiveScore].filter(v=>v!=null);
-  return parts.length ? withSubjective(Math.round(parts.reduce((a,b)=>a+b,0)/parts.length), entry) : null;
+  return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
 }
 
 // The window the trace is drawn in is at least this many points wide, and wider only if the
