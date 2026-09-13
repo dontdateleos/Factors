@@ -1068,9 +1068,24 @@
     letter-spacing:0.05em; flex-basis:100%; text-align:left; -webkit-text-stroke:0; }
   /* The middle of the three levels. A band names the section, this is the section. Bled to
      the band's own edges where the group does not already bleed — inside .form-panel the
-     panel has done it and doing it twice runs 14px off each side of the screen. */
+     panel has done it and doing it twice runs 14px off each side of the screen.
+
+     IT IS THE GROUND NOW, AND THE EXCEPTIONS ARE WHY. This painted var(--field), the tab's
+     tint, and four rules below already pushed it back to the ground — the week panel's
+     controls, Today's session block, both skill pickers with the mobility assessment, and
+     the warm-up and cool-down. Each was argued separately and they all reached the same
+     place: a tint claims a region, and a region is not what a list of controls is.
+
+     .502 finished the argument by giving the masthead that same tint. Measured across the
+     five tabs with every collapsible section opened: Settings had six surfaces and Training
+     two painting the EXACT colour of their own banner — #142325 and #242010 — so the page
+     said "you are on Settings" at the top of the screen and again, in the same ink, around
+     a box of toggles. The exceptions were the rule; this is the rule being written down.
+
+     --field keeps its definition. Nothing reads it today, and something that genuinely wants
+     a tinted region should take it rather than invent a second one. */
   .fields{ padding:var(--sp-3) var(--gutter) var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2);
-    background:var(--field); }
+    background:var(--ground); }
   .group:not(.form-panel) > .fields{ margin-left:calc(-1 * var(--gutter)); margin-right:calc(-1 * var(--gutter));
     padding-left:var(--gutter); padding-right:var(--gutter); }
   .field-row{ display:flex; gap:10px; align-items:center; }
@@ -2004,8 +2019,8 @@
      the deload row is what you OPERATE — controls belong on the ground, like every other
      control in the app. The block chart under them is what you READ, so it keeps the field.
      The chart bleeds to the panel's edges and pulls down over the field's bottom padding,
-     so the colour runs to the end of the panel rather than stopping short of it. */
-  .week-panel > .fields{ background:var(--ground); }
+     so the colour runs to the end of the panel rather than stopping short of it.
+     The rule that did this is gone: .fields is the ground for everything now. */
   /* TODAY: TWO KINDS OF BLOCK, TOLD APART.
 
      The warm-up, the session and the cool-down all sat in the same lime field, so the page
@@ -2035,7 +2050,6 @@
      pickers and the mobility assessment have each had the field taken off them already, for
      the same reason written a different way each time. */
   #warmupSection > .group > .fields, #mobilitySection > .group > .fields{
-    background:var(--ground);
     border-left:2px solid var(--band); }
   /* AND THE RULE HAS TO CARRY ON BONE, WHICH IT DID NOT HAVE TO BEFORE.
      --band is the tab's hue at full strength, which is a PALE colour: lime on bone measures
@@ -2050,13 +2064,14 @@
   html[data-ground="bone"] #warmupSection > .group > .fields,
   html[data-ground="bone"] #mobilitySection > .group > .fields{
     border-left-color:var(--hue-faded); }
-  #todayWorkoutSummary > .group > .fields{ background:var(--ground); }
+  /* (the session's own rule is gone with it — .fields is the ground by default) */
   /* The same rule, applied where it was not. Both skill pickers and the mobility
      assessment are entirely things you OPERATE — a wheel you spin, a box you tick, a
      ladder you tap — and they were sitting in the tab's field, which made the whole
      section read as one large tinted block with the controls inside it. On the ground,
-     with the wheel carrying the hue instead, they match the week picker. */
-  .spin-panel > .fields, #mobilityAssessmentBody{ background:var(--ground); }
+     with the wheel carrying the hue instead, they match the week picker. Also gone: the
+     base is the ground, so there is nothing left to override. */
+  #mobilityAssessmentBody{ background:var(--ground); }
   /* Seven cells, one per day, in the order the week ran.
 
      This used to carry state by FILL rather than colour, on the reasoning that a review is
@@ -3135,9 +3150,11 @@
      butted straight onto that reads as part of it.
 
      NOT wrapped in .fields, which is what a button normally sits in around here: .fields
-     paints var(--field), the tab's own tint, and on Today that is the lime the cooldown band
-     is made of — so the button arrived sitting in a strip of the section above it. The
-     padding .fields would have given it is on this instead. */
+     used to paint the tab's own tint, and on Today that is the lime the cooldown band is
+     made of — so the button arrived sitting in a strip of the section above it. .fields is
+     the ground now and that particular hazard is gone, but the padding it would have given
+     this button is still on the button, and moving it back would be a change for its own
+     sake. */
   .today-foot{ margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
   /* RED, BECAUSE RED IS WHAT INJURY MEANS HERE — the Injuries section's own band is
      --block-red, and this button is the way into it from a page whose every other accent is
@@ -11107,7 +11124,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.506';
+const APP_VERSION = '2026.09.13.507';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11337,6 +11354,7 @@ const APP_NOTES = {
   '2026.09.12.504': 'The mark wears the face you picked, not just its colour.',
   '2026.09.12.505': 'Today drops its Log this workout button \u2014 the disc at the bottom already does it.',
   '2026.09.13.506': 'The tab\u2019s tint is the masthead\u2019s alone \u2014 the warm-up and cool-down keep their rule and give up their fill.',
+  '2026.09.13.507': 'Every section sits on the ground now, on every tab \u2014 the tint is the masthead\u2019s and nothing else\u2019s.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
