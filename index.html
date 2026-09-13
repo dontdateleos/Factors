@@ -569,7 +569,7 @@
   html[data-ground="bone"] :is(
     .rating-btn.active, .evidence-badge.strong, .plan-key:not([data-stage]), .ss-tag,
     .update-banner, .lift-sheet-panel, .morning-panel, .goal-row-panel,
-    .rpe-scale .subj-dot.on, .rest-preset.on, .confirm-armed
+    .rest-preset.on, .confirm-armed
   ){
     /* The native chrome follows the POCKET, not the page. color-scheme is declared per
        ground, and on bone that is light — correct for the page and wrong in here, where the
@@ -3125,34 +3125,6 @@
   .log-grab:active{ cursor:grabbing; }
   .log-grab-hint{ font-family:var(--mono); font-size:var(--fs-tag); letter-spacing:0.04em;
     text-transform:none; opacity:0.5; white-space:nowrap; }
-  .rpe-row{ margin-top:12px; display:flex; flex-direction:column; gap:7px; }
-  /* --on-light is "text on any light fill", and every other use of it in this file is on
-     --accent or --block-yellow. This row is not on a fill at all: it sits on the block
-     editor's own ground, which is the page's. So the question and its anchor were #0c0d0b on
-     #0c0d0b — measured at 1.00:1, invisible, and invisible since before this was a question.
-     They follow the ink now, the way .subj-name and .subj-anchor already do everywhere else.
-     0.6 on the anchor rather than the 0.45 those carry: it is 11px, which owes the full
-     4.5:1, and 0.45 pays 4.3 on the dark ground and 3.1 on bone. */
-  .rpe-row .subj-name{ color:rgba(var(--ink-rgb),0.9); opacity:1; }
-  .rpe-row .subj-anchor{ color:rgba(var(--ink-rgb),0.6); opacity:1; }
-  /* THE QUESTION ONLY. "How hard was that" is a question and was set as a mono caps label
-     like every reading around it; it takes the asking face now. The SCALE stays a scale —
-     Borg CR-10 is ten steps, and ten steps is a dial rather than a list of answers, so it
-     keeps its faces. Arrow rows here would make rating a session feel like a decision.
-     Sized to the row rather than to a question standing alone on a page: it sits inside the
-     log sheet a few pixels under a set of numbers, and 26px there would out-shout them. */
-  .rpe-row .subj-name{ font-family:var(--prose); font-size:var(--fs-lg);
-    font-weight:var(--fw-bold); letter-spacing:-0.01em; text-transform:none; }
-  /* Ten across a phone leaves about 28px each, so the padding the numbered version needed
-     goes and the face fills the box. Same fill-on-choose as everywhere else the mark is a
-     control: chosen is solid, and the eyes inside it invert with it. */
-  .rpe-face{ padding:0; height:40px; }
-  .rpe-face .eyes{ pointer-events:none; }
-  .rpe-face.on .eyes{ --eye-ink:var(--bg); }
-  .rpe-scale{ display:flex; gap:6px; }
-  .rpe-scale .subj-dot{ height:32px; border-color:var(--border-bold); color:var(--on-light-dim);
-    background:var(--panel); padding:0 2px; }
-  .rpe-scale .subj-dot.on{ background:var(--reverse-bg); color:var(--bg); border-color:var(--reverse-bg); }
   .log-toggle-row{ flex-basis:100%; display:flex; gap:6px; margin-top:6px; }
   .log-toggle-row button{ height:28px; padding:0 10px; font-size:var(--fs-tag); flex:0 0 auto; }
   .log-step{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -10654,7 +10626,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.509';
+const APP_VERSION = '2026.09.13.510';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10887,6 +10859,7 @@ const APP_NOTES = {
   '2026.09.13.507': 'Every section sits on the ground now, on every tab \u2014 the tint is the masthead\u2019s and nothing else\u2019s.',
   '2026.09.13.508': 'The morning rating no longer feeds the score. What it reads is what was measured.',
   '2026.09.13.509': 'The morning question is gone. Today opens on a number, not a thing to answer.',
+  '2026.09.13.510': 'Session RPE is gone. Nothing in the app asks you to rate anything now.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -12565,7 +12538,7 @@ async function sessionOutcome(session){
     return t + reps;
   }, 0);
   if(!planned || !achieved) return null;
-  return { completion: achieved / planned, rpe: session.sessionRpe || null,
+  return { completion: achieved / planned,
            blinded: !!session.scoreBlinded, date: session.date };
 }
 
@@ -12592,7 +12565,11 @@ async function learnWeights(asOfDate){
   }
 
   // Both halves of the outcome standardised against their own spread, then combined: more of
-  // the plan completed is good, and a higher effort for it is not.
+  // the plan completed is good. It used to be halved with a session-RPE term — how much
+  // effort it cost — which was a better outcome on paper and a self-report in practice: a
+  // morning rating correlated against an afternoon rating from the same person on the same
+  // day measures the habit as much as the day. The rating is gone and so is the RPE, and
+  // what is left is the one half of it that was ever a measurement.
   const zs = (vals)=>{
     const v = vals.filter(x=>x != null);
     if(v.length < 4) return null;
@@ -12601,12 +12578,9 @@ async function learnWeights(asOfDate){
     return sd ? (x)=> x == null ? null : Math.max(-3, Math.min(3, (x - m) / sd)) : null;
   };
   const zComp = zs(outcomes.map(o=>o.completion));
-  const zRpe  = zs(outcomes.map(o=>o.rpe));
   if(!zComp){ _learnedCache = { date, at:Date.now(), value:null }; return null; }
   outcomes.forEach(o=>{
-    const c = zComp(o.completion);
-    const r = zRpe ? zRpe(o.rpe) : null;
-    o.y = r == null ? c : (c - r) / 2;
+    o.y = zComp(o.completion);
     o.w = o.blinded ? 1 : LEARN_UNBLINDED_WEIGHT;
   });
 
@@ -13035,7 +13009,6 @@ async function renderBlindingStats(){
   // are always drawn. Returning before them left a fresh account with two silent gaps where
   // a promise about what is being measured should be.
   const mean = a => a.length ? a.reduce((x,y)=>x+y,0) / a.length : null;
-  const rpeOf = g => mean(g.filter(s=>s.sessionRpe).map(s=>s.sessionRpe));
   const volOf = g => mean(g.filter(s=>s.totalVolume).map(s=>s.totalVolume));
   const blind = tagged.filter(s=>s.scoreBlinded), seen = tagged.filter(s=>!s.scoreBlinded);
   const finish = ()=>{ renderPlaceboEffect(tagged); renderScoreValidity(tagged); renderLearnedWeights(); };
@@ -13044,8 +13017,6 @@ async function renderBlindingStats(){
   const bits = [`${blind.length} blinded vs ${seen.length} seen.`];
   const bv = volOf(blind), sv = volOf(seen);
   if(bv && sv) bits.push(`Volume ${Math.round(bv)} vs ${Math.round(sv)} kg.`);
-  const br = rpeOf(blind), sr2 = rpeOf(seen);
-  if(br && sr2) bits.push(`Effort ${br.toFixed(1)} vs ${sr2.toFixed(1)}.`);
   bits.push('A raw gap between them is not yet an effect — blinded days are not dealt out evenly across good and bad mornings, so the two columns are not comparing like with like. The two readings below are.');
   el.textContent = bits.join(' ');
   finish();
@@ -13106,20 +13077,33 @@ const VALIDITY_MIN = 8;
 async function renderScoreValidity(tagged){
   const el = document.getElementById('scoreValidity');
   if(!el) return;
-  const usable = tagged.filter(s=>s.scoreBlinded && s.morningScore != null && s.sessionRpe && s.totalVolume);
-  if(usable.length < VALIDITY_MIN){
-    el.innerHTML = `<div class="score-note">Does the score predict your day? <b>Not enough honest days yet</b> — ${usable.length} of ${VALIDITY_MIN}. Only blinded sessions can answer this, so it is roughly ${VALIDITY_MIN} weeks from a standing start.</div>`;
+  /* HOW MUCH OF THE PLAN YOU GOT THROUGH. This was volume per unit of effort — what the
+     session got done for what it cost — which is the better question and is no longer one
+     this app can ask: the effort half was session RPE, a self-report, and nothing
+     self-reported is collected any more.
+
+     Completion rather than raw tonnage, which would have been the easy substitute and a bad
+     one: a deadlift day is several times an accessory day's kilos whatever your morning was,
+     so a correlation against volume would mostly report which session was scheduled.
+     Achieved reps against planned reps is the same work normalised by what was asked, so the
+     sessions are comparable with each other. */
+  const rows = [];
+  for(const s of tagged.filter(s=>s.scoreBlinded && s.morningScore != null)){
+    const out = await sessionOutcome(s);
+    if(out) rows.push({ x:s.morningScore, y:out.completion });
+  }
+  if(rows.length < VALIDITY_MIN){
+    el.innerHTML = `<div class="score-note">Does the score predict your day? <b>Not enough honest days yet</b> — ${rows.length} of ${VALIDITY_MIN}. Only blinded sessions can answer this, so it is roughly ${VALIDITY_MIN} weeks from a standing start.</div>`;
     return;
   }
-  const xs = usable.map(s=>s.morningScore);
-  // Volume per unit of effort: what the session got done for what it cost. A score that
-  // means anything should say something about this before the day starts.
-  const ys = usable.map(s=>s.totalVolume / s.sessionRpe);
+  const usable = rows;
+  const xs = rows.map(p=>p.x);
+  const ys = rows.map(p=>p.y);
   const r = pearson(xs, ys);
   const pctVar = Math.round(r * r * 100);
   const verdict = Math.abs(r) < 0.2
     ? `On the days it could not have influenced you, the score explains <b>almost none</b> of how your session actually went (r=${r.toFixed(2)}). That is worth knowing, and it is not what the score claims.`
-    : `On the days it could not have influenced you, the score explains <b>${pctVar}%</b> of the variation in what your session got done per unit of effort (r=${r.toFixed(2)}).`;
+    : `On the days it could not have influenced you, the score explains <b>${pctVar}%</b> of the variation in how much of your session you got through (r=${r.toFixed(2)}).`;
   el.innerHTML = `<div class="score-note">${verdict} From ${usable.length} blinded sessions. This is the only version of this sentence anyone can currently support — every other readiness score is checked, if at all, against days it was visible on.</div>`;
 }
 
@@ -13276,15 +13260,21 @@ async function buildPrescription(sr){
            meta:{ taxonomy: TITLES[kind], signalCount: lines.length } };
 }
 
-/* ================= SCORE 5 — LOAD, IN THREE CURRENCIES =================
+/* ================= SCORE 5 — LOAD, IN TWO CURRENCIES =================
    No ratio, no sweet spot, no colour band on a number that has been formally refuted. This is
    what replaces the ACWR signal that was deleted earlier.
 
-   Three parallel currencies, which is the single best structural idea in the commercial
-   category and only Polar ships it. One number cannot carry cardiovascular, mechanical and
-   perceived cost at once — Firstbeat's own EPOC white paper admits "in strength training,
-   EPOC may be low although the individual would be exhausted", and that one sentence
-   generates the entire hybrid-athlete failure mode.
+   Parallel currencies, which is the single best structural idea in the commercial category
+   and only Polar ships it. One number cannot carry cardiovascular and mechanical cost at
+   once — Firstbeat's own EPOC white paper admits "in strength training, EPOC may be low
+   although the individual would be exhausted", and that one sentence generates the entire
+   hybrid-athlete failure mode.
+
+   THERE WERE THREE. The third was perceived load — minutes times session RPE, Foster's own
+   unit — and it was the only one of them that was not measured. It went with every other
+   self-report. What is lost is real and worth stating: a condensed session and a straight-set
+   session of the same tonnage cost different amounts, and mechanical load cannot tell them
+   apart. Nothing objective substitutes for it, so nothing is put in its place.
 
    Reported as ABSOLUTE change, never a ratio. 200 to 300 and 2000 to 3000 are both "1.5" and
    are obviously not the same event; the ratio deliberately discards the magnitude that
@@ -13301,7 +13291,7 @@ function loadSeriesFor(sessions, asOfDate, days){
   const byDate = {};
   for(let d = span - 1; d >= 0; d--){
     const dt = new Date(asOfDate); dt.setDate(dt.getDate() - d);
-    byDate[localDateStr(dt)] = { mechanical:0, cardio:0, perceived:0, hardSets:{} };
+    byDate[localDateStr(dt)] = { mechanical:0, cardio:0, hardSets:{} };
   }
   sessions.forEach(s=>{
     const slot = byDate[s.date];
@@ -13319,8 +13309,6 @@ function loadSeriesFor(sessions, asOfDate, days){
       const mins = s.durationMin || 0;
       slot.cardio += mins * (RUN_INTENSITY[s.runType] || 1.0);
     }
-    const mins = s.durationMin || 0;
-    if(s.sessionRpe && mins) slot.perceived += mins * s.sessionRpe;
   });
   return byDate;
 }
@@ -13337,7 +13325,7 @@ async function computeLoad(asOfDate){
   const byDate = loadSeriesFor(sessions, date, 365);
   const dates = Object.keys(byDate).sort();
   const out = {};
-  ['mechanical','cardio','perceived'].forEach(k=>{
+  ['mechanical','cardio'].forEach(k=>{
     const vals = dates.map(d=> byDate[d][k]);
     if(!vals.some(v=>v > 0)){ out[k] = { available:false }; return; }
     const acute = ewmaSeries(vals, LOAD_TAU_ACUTE);
@@ -13377,8 +13365,8 @@ async function computeLoad(asOfDate){
 /* LOAD_LABELS survives renderLoadPanel, which does not. The three currencies are drawn by
    the block chart on Weekly now rather than tabulated under it; only the labels and the
    flag sentence are still written out. */
-const LOAD_UNITS = { mechanical:'kg', cardio:'min', perceived:'au' };
-const LOAD_LABELS = { mechanical:'Mechanical', cardio:'Cardio', perceived:'Perceived' };
+const LOAD_UNITS = { mechanical:'kg', cardio:'min' };
+const LOAD_LABELS = { mechanical:'Mechanical', cardio:'Cardio' };
 
 /* ================= SCORE 6 — ADAPTATION TRAJECTORY =================
    Garmin's Training Status fails hybrid athletes because it merges a strength-driven VO2max
@@ -16219,8 +16207,7 @@ function closeWeekDaySheet(){
 const WEEK_LOAD_UNITS = [
   { key:'sets',       label:'sets', unit:'sets' },
   { key:'mechanical', label:'kg',   unit:'kg'   },
-  { key:'cardio',     label:'min',  unit:'min'  },
-  { key:'perceived',  label:'au',   unit:'au'   }
+  { key:'cardio',     label:'min',  unit:'min'  }
 ];
 let weekLoadUnit = 'sets';
 function compactLoad(v){
@@ -16258,7 +16245,7 @@ async function renderBlockLoadChart(){
     try{ adapt = await computeAdaptation(todayStr); } catch(e){}
 
     let plannedByWeek = {}, setsByWeek = {}, runKmByWeek = {}, doneSetsByWeek = {};
-    const currencyByWeek = { mechanical:{}, cardio:{}, perceived:{} };
+    const currencyByWeek = { mechanical:{}, cardio:{} };
     try{
       for(let w=0; w<pos.length; w++){
         const offset = w - (pos.weekInBlock - 1);
@@ -16280,7 +16267,7 @@ async function renderBlockLoadChart(){
         setsByWeek[w+1] = sets;
         runKmByWeek[w+1] = Math.round(km);
         doneSetsByWeek[w+1] = wd.reduce((t,d)=> t + (loggedSetsByDate[d] || 0), 0);
-        ['mechanical','cardio','perceived'].forEach(k=>{
+        ['mechanical','cardio'].forEach(k=>{
           currencyByWeek[k][w+1] = wd.reduce((t,d)=> t + ((loadByDate[d] && loadByDate[d][k]) || 0), 0);
         });
       }
@@ -16401,7 +16388,7 @@ async function renderBlockLoadChart(){
     // What survives of the old panel's paragraph: the sentence that is actionable, and the
     // two figures the chart cannot draw. Everything else it said is now the picture.
     const notes = [];
-    const flagged = ['mechanical','cardio','perceived']
+    const flagged = ['mechanical','cardio']
       .filter(k=> load && load[k] && load[k].flagged).map(k=> LOAD_LABELS[k]);
     if(flagged.length){
       const named = flagged.length > 1
@@ -16798,12 +16785,6 @@ function applyLoggedSession(session){
     const fail = row.querySelector('.week-ex-fail');
     if(fail) fail.classList.toggle('on', !!ex.toFailure);
   });
-  const rpe = document.getElementById('sessionRpe');
-  if(rpe && session.sessionRpe != null){
-    rpe.value = session.sessionRpe;
-    document.querySelectorAll('#rpeScale .subj-dot').forEach(btn=>
-      btn.classList.toggle('on', +btn.dataset.v === +session.sessionRpe));
-  }
   // Reopening a logged session brings its note back with everything else, or the note is
   // lost the first time you go in to correct a weight.
   const note = document.getElementById('weekSessionNotes');
@@ -16818,16 +16799,10 @@ function collectLogDraft(panel){
     fail: !!r.querySelector('.week-ex-fail')?.classList.contains('on')
   }));
   const runMin = panel.querySelector('#weekRunActualDuration')?.value || '';
-  const rpe = panel.querySelector('#sessionRpe')?.value || '';
-  return { rows, runMin, rpe };
+  return { rows, runMin };
 }
 function applyLogDraft(panel, draft){
   if(!draft) return;
-  const rpeInput = panel.querySelector('#sessionRpe');
-  if(rpeInput && draft.rpe){
-    rpeInput.value = draft.rpe;
-    panel.querySelectorAll('#rpeScale .subj-dot').forEach(b=> b.classList.toggle('on', b.dataset.v === String(draft.rpe)));
-  }
   const rows = [...panel.querySelectorAll('.edit-row')].filter(r=>r.querySelector('.week-ex-name'));
   (draft.rows || []).forEach(d=>{
     // Matched by name, not by position: a row added or removed since should not shift someone
@@ -17154,48 +17129,6 @@ function tickRestTimer(){
   showToast('Rest done');
   // Whatever the mark is doing, it looks up when the set is over.
   try{ eyeLidPulse(BLINK_CLOSED, 90, 60); }catch(e){}
-}
-/* HOW HARD WAS THAT, IN THE SAME FIVE FACES.
-
-   Five, not ten, so it is the same gesture as the row on Today — and they run the OTHER WAY,
-   because this scale means the opposite thing. Up there a wide-open eye is you saying you are
-   fresh; down here it is a session that barely touched you, and the hardest one is a face
-   with its eyes shut. That inversion is the whole reason the icon works here: what a hard
-   session does to you is what the mark draws.
-
-   What is STORED is still the Borg CR-10 value — 2, 4, 6, 8, 10. Foster's session-RPE is
-   validated on that scale and every consumer of this field is built on it: perceived load is
-   minutes times RPE, the block comparisons average it, and there is history already written
-   in those units. Five buttons that quietly wrote 1 to 5 would halve every load figure in the
-   app and silently break comparisons against every session logged before today. So the choice
-   narrows and the units do not.
-
-   The cost, plainly: five steps where there were ten. Foster's granularity is part of the
-   instrument, and odd values can no longer be expressed. Against that, an RPE nobody fills in
-   is worth less than a coarse one they do — and a scale that matches the one they already use
-   every morning is the one they will use.
-
-   No colour ramp, deliberately. Red at the top would read as "that was bad", and a session
-   that took everything out of you is usually the point of the session. */
-const RPE_STEPS = [2, 4, 6, 8, 10];
-function rpeFaceHtml(v, i){
-  const st = EYE_STATES[EYE_STATES.length - 1 - i];
-  const words = ['barely felt it','easy','moderate','hard','all out'];
-  return `<button type="button" class="subj-dot rpe-face" data-v="${v}" aria-label="${words[i]} — ${v} of 10">`
-    + faceEyesHtml(st, 0.52, 'currentColor') + `</button>`;
-}
-function wireSessionRpe(panel){
-  const box = panel.querySelector('#rpeScale');
-  const input = panel.querySelector('#sessionRpe');
-  if(!box || !input) return;
-  box.addEventListener('click', e=>{
-    const btn = e.target.closest('.subj-dot');
-    if(!btn) return;
-    const same = input.value === btn.dataset.v;
-    input.value = same ? '' : btn.dataset.v;
-    box.querySelectorAll('.subj-dot').forEach(b=> b.classList.toggle('on', !same && b === btn));
-    input.dispatchEvent(new Event('input', { bubbles:true }));
-  });
 }
 function wireRestTimer(panel){
   const go = panel.querySelector('#restGoBtn');
@@ -17862,15 +17795,6 @@ async function openBlockEditor(date, slot, block){
      "What did you lift?" and the answer is the row filled in. */
   panel.innerHTML = `
     ${fieldsHtml}
-    <!-- Session RPE. Foster's session-RPE is the only load currency validated across
-         modalities — ICC 0.88-0.95 for resistance training — and it is the only one that sees
-         a hard session the heart rate missed. Borg CR-10, collected at the end rather than
-         during, which is how it was validated. -->
-    <div class="rpe-row" id="sessionRpeRow">
-      <div class="subj-head"><span class="subj-name ask-q">How hard was that?</span><span class="subj-anchor">easy &middot; all out</span></div>
-      <div class="rpe-scale" id="rpeScale">${RPE_STEPS.map(rpeFaceHtml).join('')}</div>
-      <input type="hidden" id="sessionRpe">
-    </div>
     <div class="log-acts">
       <button id="logWeekSessionBtn" class="log-act go">Save</button>
       <button id="closeWeekBlockBtn" class="log-act">Put away</button>
@@ -18134,7 +18058,6 @@ async function openBlockEditor(date, slot, block){
   }
   wireBlockEditorClose(panel);
   wireRestTimer(panel);
-  wireSessionRpe(panel);
   document.getElementById('deleteWeekBlockBtn').addEventListener('click', async (e)=>{
     // It sat in the same row as Save and removed the day's plan on one tap, with nothing to
     // undo it — while "Clear all data" three tabs away makes you hold for two seconds. Same
@@ -18293,7 +18216,6 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
       // Only recorded when it is plausible: a session left open overnight is not a four-hour
       // workout, it is a session you forgot to save, and writing that down would poison every
       // estimate that reads it.
-      const rpe = parseFloat(document.getElementById('sessionRpe')?.value);
       // The label the learning engine needs: was the score visible while this was done. A
       // session logged on a blinded day is the only kind whose outcome the prediction cannot
       // have influenced.
@@ -18315,7 +18237,6 @@ document.getElementById('logWeekSessionBtn').addEventListener('click', async ()=
         // logging the workout a second time. Slot goes in so tomorrow's reopen can find it.
         date, slot, type:'strength',
         timestamp: blockEditLoggedTs || Date.now(),
-        sessionRpe: isNaN(rpe) ? null : rpe,
         scoreBlinded: wasBlind, morningScore,
         workoutTag: block.details.workoutTag || '', focus: block.details.plannedFocus || '',
         notes: (document.getElementById('weekSessionNotes') || {}).value || '',
@@ -19835,8 +19756,6 @@ let scoreDayIndex = null;  // which one the block is showing; the last scored on
 let scoreTodayLabel = '';  // the label today had, to put back when you return to it
 let scoreWeights = [];     // bodyweight on the same seven days, or empty if too sparse to draw
 let pendingScoreDate = null;   // a browsed day to land back on once the strip is rebuilt
-let scoreSessions = {};        // date -> the hardest session RPE logged that day
-const SESSION_FACE_SCALE = 0.30;
 
 async function renderScoreTrace(todayScore){
   // Also here, not only on the tab swap: a night logged while you are already on Today
@@ -19899,22 +19818,6 @@ async function renderScoreTrace(todayScore){
     }
     if(scoreWeights.filter(w=>w != null).length < 3) scoreWeights = [];
   } catch(e){ scoreWeights = []; }
-  /* WHAT YOU DID, UNDER WHAT IT COST. The trace has always been seven readings of the score
-     — a number about your body — with nothing about the training that produced it, so swiping
-     back through the week told you how a Tuesday felt and never that Tuesday was the hardest
-     session of it. The session's own face goes under its day, on the same seven slots.
-     The hardest of the day where there are two: a day with a heavy session and a walk is
-     characterised by the heavy session. */
-  scoreSessions = {};
-  try{
-    const want = new Set(scoreDays.map(d=>d.date));
-    (await getAllTrainingSessions()).forEach(sn=>{
-      if(!sn || !want.has(sn.date)) return;
-      const r = +sn.sessionRpe;
-      if(!r || isNaN(r)) return;
-      scoreSessions[sn.date] = Math.max(scoreSessions[sn.date] || 0, r);
-    });
-  } catch(e){ scoreSessions = {}; }
   /* Land on the most recent day that has a mark. Normally that is today; on a held morning
      today is the hole, and selecting it would open the trace on nothing.
 
