@@ -2572,6 +2572,19 @@
   /* The base button rule is a full-width filled pill; an answer is a line of text that
      happens to be tappable, so the width has to come back to the words. */
   .log-sheet .ask-a{ width:auto; max-width:100%; margin-right:auto; }
+  /* NOT ONE OF THE THREE, and said with a rule rather than a colour. The row it replaces on
+     Today was outlined in --ink-bad, which is the red that follows the PAGE ground; this
+     panel is a --reverse-bg pocket, fixed near-black on both grounds, so that token would be
+     the bone red on a dark fill in here — the exact trap the tokens' own note warns about.
+     The separation is what carries the meaning: three things you did, then a line, then the
+     thing that happened to you.
+
+     width, not align-self:stretch, and it has to sit BELOW .log-sheet .ask-a rather than
+     above it: that rule sets width:auto at the same specificity, so the one written later
+     wins. Stretch reported as applied and still left the box at its own 130px content width
+     inside a 346px column, and a divider that stops short of the column is not a divider. */
+  .log-sheet .ask-a-other{ width:100%; margin-top:9px; padding-top:13px;
+    border-top:1px solid rgba(var(--ink-rgb),0.22); }
   .log-sheet .add-row::before,
   .log-sheet .ask-a::before{ content:'\2192'; display:inline-block; width:1.35em; text-indent:0; }
   .log-sheet .log-fill{ padding-left:1.35em; text-indent:-1.35em; margin-left:0; }
@@ -2942,37 +2955,6 @@
   #scoreTrace{ z-index:3; }
   /* Once one is chosen the other four step back — the answer should read as an answer, not
      as five options with one of them ticked. */
-  /* The foot of Today. The button is the plain outline one — the same control, the same
-     words, as the Body tab's own way in, because it opens the same sheet and there is no
-     reason for one page's version to be a different species from the other's.
-     It shipped for one version as a bare text link on the reasoning that the foot of a page
-     wants something quiet. Quiet went too far: with no border and no fill it read as a
-     caption on the colophon below it rather than as something you press.
-     The rule above stays. The cooldown ends in a full-bleed coloured band, and a button
-     butted straight onto that reads as part of it.
-
-     NOT wrapped in .fields, which is what a button normally sits in around here: .fields
-     used to paint the tab's own tint, and on Today that is the lime the cooldown band is
-     made of — so the button arrived sitting in a strip of the section above it. .fields is
-     the ground now and that particular hazard is gone, but the padding it would have given
-     this button is still on the button, and moving it back would be a change for its own
-     sake. */
-  .today-foot{ margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--hair); }
-  /* RED, BECAUSE RED IS WHAT INJURY MEANS HERE — the Injuries section's own band is
-     --block-red, and this button is the way into it from a page whose every other accent is
-     lime. On the foot of a long page it is also the one thing that has to be findable
-     without being read.
-
-     --ink-bad, NOT --block-red. The section's hue is a FILL: 7.14 on the dark ground and
-     2.61 on bone, under even the 3:1 a border needs, because a fill never has to survive as
-     a line on the ground behind it. Exactly the trap --band set on the week board in .451.
-     --ink-bad is the red that follows the ground — 5.91 dark, 4.99 bone — and is already the
-     app's red-as-text everywhere it appears.
-
-     The border only. "Clear all data" is the one other red outline button in here and it
-     reddens its LABEL as well, because that one is destructive; this one is a thing you log,
-     not a thing you lose, and it should not wear the same coat. */
-  .today-foot button{ width:100%; border-color:var(--ink-bad); }
   .cta-strip{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     cursor:pointer; margin:0 calc(-1 * var(--gutter)) var(--sp-3); padding:16px var(--gutter); background:var(--accent);
     color:var(--reverse-bg); font-family:var(--mono); font-size:var(--fs-tag);
@@ -3171,10 +3153,23 @@
     letter-spacing:0.02em; margin:-2px 0 8px; }
   .ex-last-tap{ cursor:pointer; }
   .ex-last-more{ margin-left:8px; text-decoration:underline; text-underline-offset:2px; opacity:0.8; }
+  /* ONE ARRIVAL FOR ALL OF THEM. The scrim fades and the panel comes up off the bottom
+     edge; closing runs the same two backwards. 260ms matches SHEET_MS, which is what the
+     controller waits before it takes the element away — a shorter wait would cut the panel
+     off mid-slide and a longer one would leave a transparent overlay swallowing taps. */
   .lift-sheet, .morning-sheet{ position:fixed; inset:0; z-index:70; background:rgba(12,13,11,0.72);
-    display:flex; align-items:flex-end; justify-content:center; }
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; transition:opacity 260ms ease; }
+  .lift-sheet.sheet-open, .morning-sheet.sheet-open{ opacity:1; }
   .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
-    background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
+    background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+    transform:translateY(100%); transition:transform 260ms cubic-bezier(.2,.8,.2,1); }
+  .sheet-open > .lift-sheet-panel, .sheet-open > .morning-panel{ transform:none; }
+  /* The sheet still arrives and leaves; it just does so in one frame. The controller's own
+     timing is unchanged, so nothing downstream has to know which of these ran. */
+  @media (prefers-reduced-motion: reduce){
+    .lift-sheet, .morning-sheet, .lift-sheet-panel, .morning-panel{ transition:none; }
+  }
   .morning-q{ font-family:var(--mono); font-size:var(--fs-tag); text-transform:uppercase;
     letter-spacing:0.08em; color:rgba(var(--ink-rgb),0.6); margin:var(--sp-3) 0 6px; }
   .morning-panel .subj-scale{ display:flex; gap:6px; }
@@ -4287,26 +4282,10 @@
       <div id="recHistory"></div>
     </div>
 
-    <!-- WHERE YOU ARE WHEN SOMETHING TWINGES.
-
-         Logging an injury lived only on the Body tab, which is where the RECORD belongs —
-         the list, the severity curves, "what led to this" — but not where the event happens.
-         You tweak something mid-session, and mid-session you are here. It matters more than
-         a tap saved: addInjury re-runs generateWarmup, so the warm-up on this very page
-         re-targets the area the moment you log it.
-
-         A line, not a section. Today is three numbered bands, each a thing to do today, and
-         a fourth called "Injuries" would be a section-sized answer to "nothing is wrong" —
-         exactly what .461 just took off the Body tab. So it is one row at the foot, under
-         everything you came here to do, and it costs 40px of a 2,153px page.
-
-         The Body tab keeps its own button. This is a second way in, not a move: take the
-         button off that head and the section is a title and a sub-line with no way to act
-         on it, and the list, the update and the resolve all live behind it. -->
-    <div class="today-foot">
-      <button type="button" class="outline" id="todayLogInjuryBtn">Log an injury</button>
-    </div>
-
+    <!-- The row that used to sit here said "Log an injury", because logging one lived only
+         on the Body tab and mid-session you are not on the Body tab. It is on the disc's own
+         list now, beside the three things you might have done — which is the same argument
+         made in the place you already reach for, and Today gets its foot back. -->
   </div>
 
 
@@ -10626,7 +10605,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.510';
+const APP_VERSION = '2026.09.13.511';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10860,6 +10839,7 @@ const APP_NOTES = {
   '2026.09.13.508': 'The morning rating no longer feeds the score. What it reads is what was measured.',
   '2026.09.13.509': 'The morning question is gone. Today opens on a number, not a thing to answer.',
   '2026.09.13.510': 'Session RPE is gone. Nothing in the app asks you to rate anything now.',
+  '2026.09.13.511': 'Every sheet comes up off the bottom edge and goes back down the same way, and the disc can log an injury.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -12842,7 +12822,15 @@ async function maybeAskMorning(){
       <button type="button" class="primary morning-done">Done</button>
     </div>`;
 
-  const close = async ()=>{ sheet.remove(); document.removeEventListener('keydown', esc); await markMorningAsked(); };
+  /* Down the way it came up, and taken out of the DOM when it has gone rather than on the
+     frame you dismissed it. Hand-rolled because this one builds itself; the class and the
+     duration are the shared sheet's, so it behaves like the six wireSheet owns. */
+  const close = async ()=>{
+    sheet.classList.remove('sheet-open');
+    setTimeout(()=> sheet.remove(), SHEET_MS);
+    document.removeEventListener('keydown', esc);
+    await markMorningAsked();
+  };
   function esc(e){ if(e.key === 'Escape') close(); }
   document.addEventListener('keydown', esc);
 
@@ -12862,6 +12850,7 @@ async function maybeAskMorning(){
     }
   });
   document.body.appendChild(sheet);
+  requestAnimationFrame(()=> sheet.classList.add('sheet-open'));
 }
 
 function chipTiming(){
@@ -16666,12 +16655,11 @@ let blockEditSlot = 'am';
 /* One sheet, wired once. Its close routes back through the same two functions the grab
    gesture and the Minimise button use, so the ×, the backdrop, Escape, the swipe and the
    button are five ways of doing one thing rather than five behaviours to keep in step.
-   logSheetClosing guards the recursion: those two functions close the sheet themselves. */
+   closeLogSheet closes it silently, because those two functions are already tearing the
+   editor down and the callback would send them round again. */
 let logSheet = null;
-let logSheetClosing = false;
 function ensureLogSheet(){
   if(!logSheet) logSheet = wireSheet('logSheet', ()=>{
-    if(logSheetClosing) return;
     saveLogDraftNow().catch(()=>{}).then(()=>{
       // A live session is put AWAY, not thrown out: the numbers go to the draft, the bar
       // picks it up, and Today keeps its marker. Only a type picker has nothing to keep.
@@ -16682,8 +16670,7 @@ function ensureLogSheet(){
   return logSheet;
 }
 function closeLogSheet(){
-  logSheetClosing = true;
-  try{ ensureLogSheet().close(); } finally { logSheetClosing = false; }
+  ensureLogSheet().close({ silent:true });
 }
 let blockEditMinimisable = false;  // a session can be put on the bar; a type picker cannot
 function closeBlockEditor(opts){
@@ -17736,12 +17723,22 @@ async function openBlockEditor(date, slot, block){
         <button type="button" class="ask-a" data-pick-type="strength">Lifted</button>
         <button type="button" class="ask-a" data-pick-type="run">Ran</button>
         <button type="button" class="ask-a" data-pick-type="mobility">Stretched</button>
+        <!-- Not a session type, and it does not go through placeBlock: nothing is being put
+             on the plan. It is here because this list is what the disc opens and a tweak is
+             the other thing that happens to you mid-session. -->
+        <button type="button" class="ask-a ask-a-other" id="pickInjury">Hurt something</button>
       </div>
       <div class="log-acts">
         <button id="closeWeekBlockBtn" class="log-act">Close</button>
       </div>`;
     panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
       btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
+    });
+    // The picker goes down before the injury sheet comes up, rather than the two stacking.
+    const hurt = panel.querySelector('#pickInjury');
+    if(hurt) hurt.addEventListener('click', ()=>{
+      closeBlockEditor();
+      setTimeout(openInjurySheet, SHEET_MS);
     });
     wireBlockEditorClose(panel);
     return;
@@ -21795,13 +21792,56 @@ async function saveGoalsFromForm(resultElId){
    why the save functions report a boolean — a save that fails validation has to leave its
    sheet open, with its message in it, which is where you are going to fix it. The toast says
    what happened from outside the sheet, so the confirmation survives the sheet going. */
+/* EVERY SHEET IS A TOP-LEVEL OVERLAY, AND THEY ALL ARRIVE THE SAME WAY.
+
+   Two things were wrong with these and both were structural rather than visual.
+
+   WHERE THEY LIVED. A position:fixed overlay inside a transformed ancestor is positioned
+   against that ancestor rather than the viewport — and <main> carries a transform on every
+   overscroll pull, with a 480ms ease back afterwards, so a sheet opened near one rode the
+   page instead of covering it. Two of them sat deeper still, inside tab panels that go
+   display:none with their tab. So the first thing wireSheet does is hoist the element to the
+   body, wherever its markup happens to be written. It is done here rather than by moving six
+   blocks of markup because this is the guarantee that holds for the seventh.
+
+   HOW THEY MOVED. They did not. open() set display and close() cleared it, so a sheet
+   appeared and vanished between two frames — no relation between the button you pressed and
+   the thing that answered. They come up from the bottom edge and go back down to it now, one
+   duration and one curve for all of them, which is the standard the log sheet was missing.
+
+   onClose fires when the panel has finished leaving rather than when it starts, so nothing
+   blanks the sheet mid-slide. close({silent:true}) skips it entirely: that is for the callers
+   who are already inside their own teardown and would otherwise re-enter it. */
+const SHEET_MS = 260;
 function wireSheet(id, onClose){
   const el = document.getElementById(id);
   if(!el) return { open(){}, close(){}, isOpen(){ return false; } };
+  if(el.parentElement !== document.body) document.body.appendChild(el);
+  let leaving = null;
   const api = {
-    open(){ el.style.display = ''; },
-    close(){ el.style.display = 'none'; if(onClose) onClose(); },
-    isOpen(){ return el.style.display !== 'none'; }
+    open(){
+      clearTimeout(leaving); leaving = null;
+      el.style.display = '';
+      // Next frame. A class added in the same frame as display has nothing to travel from,
+      // and the panel would simply be there — which is the behaviour this replaces.
+      requestAnimationFrame(()=> el.classList.add('sheet-open'));
+    },
+    close(opts){
+      const fire = !(opts && opts.silent) && onClose;
+      if(leaving || el.style.display === 'none'){
+        // Already on its way down, or never up. Still owes the callback if this caller
+        // wanted one, because the first close may have been a silent one.
+        if(fire && leaving){ clearTimeout(leaving); leaving = setTimeout(()=>{ leaving = null; el.style.display = 'none'; onClose(); }, SHEET_MS); }
+        return;
+      }
+      el.classList.remove('sheet-open');
+      leaving = setTimeout(()=>{
+        leaving = null;
+        el.style.display = 'none';
+        if(fire) onClose();
+      }, SHEET_MS);
+    },
+    isOpen(){ return el.style.display !== 'none' && !leaving; }
   };
   el.addEventListener('click', e=>{
     if(e.target === el || e.target.closest('.lift-sheet-x')) api.close();
@@ -21834,8 +21874,9 @@ wireSheet('mobilityAssessmentSheet', ()=> setMobilityAssessmentOpen(false));
 /* Logging an injury. The list stays on the tab; the form comes to you. */
 const injurySheet = wireSheet('injurySheet');
 const logInjuryBtn = document.getElementById('logInjuryBtn');
-/* Two buttons, one sheet, one handler. The Body tab's head button and the row at the foot of
-   Today open exactly the same thing — a second entry point, not a second implementation. */
+/* Two ways in, one sheet, one handler. The Body tab's head button is where the record
+   lives; the disc's own list is where the event happens, which is mid-session and nowhere
+   near the Body tab. A second entry point, not a second implementation. */
 const openInjurySheet = ()=>{
   // Today, unless you say otherwise: an onset date is a thing you correct, not a thing you
   // fill in, and an empty date field fails stampableDate rather than defaulting.
@@ -21844,8 +21885,6 @@ const openInjurySheet = ()=>{
   injurySheet.open();
 };
 if(logInjuryBtn) logInjuryBtn.addEventListener('click', openInjurySheet);
-const todayLogInjuryBtn = document.getElementById('todayLogInjuryBtn');
-if(todayLogInjuryBtn) todayLogInjuryBtn.addEventListener('click', openInjurySheet);
 document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
 // Adaptation Engine (backlog §4 — "one of the most important changes"). Classifies each
