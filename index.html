@@ -2317,13 +2317,11 @@
   /* Borrowed wholesale from the goals sheet, which is the same shape: a head, a form, and
      more of it than fits. The tier tag rides in the head beside the name, at the size the
      lanes use, so the sheet says how hard this one is without a second row to say it. */
-  .skill-sheet .lift-sheet-panel{ max-height:88vh; }
   .skill-sheet .lift-sheet-head .skill-lane-tier{ margin-left:8px; vertical-align:2px; }
   .skill-sheet #skillSheetBody{ padding-bottom:4px; }
   /* Inline, the detail sat under a board and needed the gap. In the sheet the head is the
      separator, so the first control comes straight up to it. */
   .skill-sheet .skill-active-row{ margin-top:0; }
-  .goal-sheet .lift-sheet-panel{ max-height:88vh; }
   .goal-sheet .group.form-panel{ margin-bottom:0; }
   /* Still the Settings toggles' row — three of them use it — it is only the week's own
      deload that has left for the setup list above. */
@@ -2384,7 +2382,6 @@
      as its own object. Inside the sheet the sheet IS the object, and a second frame drawn
      just inside the first is the thing that makes a popup look like a page in a box. */
   #blockEditPanel{ border:0; border-radius:0; padding:0; background:transparent; margin-top:0; }
-  .log-sheet .lift-sheet-panel{ max-height:88vh; }
   /* Title and ×, which is what every other sheet’ head is. It carried the swipe handle’s
      "swipe or hold to put away" for one build: at 390 that ran under the × and the two drew
      on top of each other. The gesture is still on this row — it just does not need labelling
@@ -3167,7 +3164,25 @@
     display:flex; align-items:flex-end; justify-content:center;
     opacity:0; transition:opacity 260ms ease; }
   .lift-sheet.sheet-open, .morning-sheet.sheet-open{ opacity:1; }
-  .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px; max-height:76vh; overflow-y:auto;
+  /* ONE FLOOR AND ONE CAP, SO THEY OPEN TO THE SAME PLACE.
+     These are bottom-aligned and sized by their content, so each one's TOP edge landed
+     wherever its own text happened to stop: measured at 390x844, the six came to rest at
+     203, 427, 541, 570, 607 and 698. Six sheets, six starting heights, and two different
+     caps on top of that — 76vh here and 88vh written over it three times.
+
+     A single fixed height was the other way to do this and is worse: the skill sheet holds
+     146px of content and the log sheet's type picker 237, and standing either of those in a
+     641px panel is mostly empty ground. The floor is what does the work instead — everything
+     shorter than it opens at exactly the same line, and the only sheet that opens higher is
+     the one with more in it than the floor, which is a reason you can see.
+
+     The cap is the ORIGINAL 76vh, not the 88 the three overrides asked for. Taking 88 as the
+     common value made the one sheet that actually reaches its cap — injuries — 743px of an
+     844px screen, which is not a sheet any more, it is a page with a gap above it. At 76 it
+     comes back to 641 and keeps a hand's width of the page behind it. The log form loses a
+     hundred pixels of visible height and scrolls for them, which it already did. */
+  .lift-sheet-panel, .morning-panel{ width:100%; max-width:520px;
+    min-height:50vh; max-height:76vh; overflow-y:auto;
     background:var(--reverse-bg); color:var(--bg); padding:var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
     transform:translateY(100%); transition:transform 260ms cubic-bezier(.2,.8,.2,1); }
   .sheet-open > .lift-sheet-panel, .sheet-open > .morning-panel{ transform:none; }
@@ -10621,7 +10636,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.512';
+const APP_VERSION = '2026.09.13.513';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10857,6 +10872,7 @@ const APP_NOTES = {
   '2026.09.13.510': 'Session RPE is gone. Nothing in the app asks you to rate anything now.',
   '2026.09.13.511': 'Every sheet comes up off the bottom edge and goes back down the same way, and the disc can log an injury.',
   '2026.09.13.512': 'Hurt something is at the foot of the log sheet, on every day rather than only an empty one.',
+  '2026.09.13.513': 'Sheets open at one line instead of six, whichever one you opened.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
