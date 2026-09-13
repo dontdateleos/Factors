@@ -10642,7 +10642,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.515';
+const APP_VERSION = '2026.09.13.516';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10881,6 +10881,7 @@ const APP_NOTES = {
   '2026.09.13.513': 'Sheets open at one line instead of six, whichever one you opened.',
   '2026.09.13.514': 'The evidence badge now says what it grades \u2014 how the research was done, not who it was done on.',
   '2026.09.13.515': 'Every sheet opens on one line now, whatever is in it \u2014 the log sheet included, whichever session you are logging.',
+  '2026.09.13.516': 'No user-visible change \u2014 the load-ratio threshold now says what stands behind it.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -11703,6 +11704,14 @@ document.addEventListener('click', e=>{
    AGAINST a widely-adopted sports-science metric in the last decade, and this app was
    pushing a "reduce" card off a sweet-spot band built on it.
 
+   THIS IS ABOUT THE DELETED CARD, NOT ABOUT THE RATIO THAT SURVIVED. areaLoadRatio and
+   getRunLoadRatio still exist and are a different computation — disjoint week-on-week
+   windows with no shared term, so none of the coupling argument below touches them. The
+   note at LOAD_RATIO_THRESH_RUN says why in full. Written down because this teardown is the
+   only ACWR discussion in the file and sits eighteen thousand lines from the code it does
+   not describe: a reviewer of this app read it, mapped it onto the surviving ratio, and
+   filed a finding that the implementation was unsound. It is not.
+
    The acute window sits inside the chronic window, so load appears in both numerator and
    denominator — that produces correlation under pure random data (Lolli 2017) and caps the
    ratio at 4. An athlete injured mid-week accrues artificially low acute load, manufacturing
@@ -11711,6 +11720,20 @@ document.addEventListener('click', e=>{
    Impellizzeri (2020, IJSPP), verbatim: "There is no evidence supporting the use of ACWR in
    training-load-management systems or for training recommendations aimed at reducing injury
    risk."
+
+   THE COUPLING HALF IS CONTESTED, IN BOTH DIRECTIONS. Coyne et al. 2019 (IJSPP, PMID
+   31672929) took real training data from Olympic-qualifying basketballers and weightlifters,
+   compared coupled against uncoupled ACWR, and found the differences almost all trivial
+   (g = 0.04-0.21) — concluding the risk of coupling producing spurious correlation is low in
+   practice, because acute and chronic load correlate naturally whether you couple them or
+   not. That paper then drew a published rebuttal of its own (PMID 32240976). Presenting the
+   coupling objection as settled would be overstating it.
+
+   It does not change the decision, because the decision does not rest on coupling.
+   Impellizzeri's objection is CONCEPTUAL and survives whatever the statistics do: the ratio
+   reflects training load rather than biomechanical loading, and its window lengths — 7 and
+   28 days — have no physiological justification behind them. A metric can be arithmetically
+   innocent and still be measuring the wrong thing on an arbitrary timebase.
 
    The coaching principle survives — don't add too much too soon. The metric does not. What
    should replace it is absolute chronic load, week-over-week change in absolute units, and a
@@ -29976,7 +29999,40 @@ const PLAN_TYPES = {
   full_body: { label: 'Full Body / Mixed', areas: ['full_body','hips','thoracic'] }
 };
 
-const LOAD_RATIO_THRESH = 1.3;
+/* WEEK ON WEEK, AND WHY THIS IS NOT THE ACWR THE APP THREW OUT.
+
+   There is a long teardown of the acute:chronic workload ratio next to GOAL_PROFILES, and it
+   is about a DELETED feature — the old loadRatioHigh card. Nothing here had a note of its
+   own, so a reader who found the teardown first could reasonably map it onto this and decide
+   the surviving metric is the discredited one. It is not, and the difference is structural:
+
+     areaLoadRatio / getRunLoadRatio compare days 0-7 against days 7-14. Disjoint windows, no
+     shared term. Conventional ACWR divides a 7-day acute load by a 28-day chronic load that
+     CONTAINS those same seven days, which is where the mathematical coupling comes from and
+     what caps the ratio at 4. There is no coupling here because there is nothing in both
+     halves. There is also no rolling chronic baseline, no sweet-spot BAND, and no low-end
+     flag — only a top end, which is the half of the idea that was never the contested part.
+
+   WHY 1.3, which is the question the bare constant used to leave open. It is a +30% step
+   week on week, and the number has support — but less of it than its reuse here implies, so
+   it is split in two and each half says what stands behind it.
+
+   Nielsen et al. 2014 (JOSPT, October 2014) followed 874 novice runners and found
+   progressions above 30% associated with distance-related injury — patellofemoral pain, ITB
+   syndrome, medial tibial stress syndrome among them — against a reference group progressing
+   under 10%. Three things that finding is not: it measured progression over TWO weeks where
+   this takes a one-week step, so it is not the same quantity; it is novice runners, and this
+   app's own evidence badges now say out loud that a population is not a detail; and it is
+   RUNNING DISTANCE, with nothing in it about tonnage.
+
+   So the running threshold cites Nielsen and the strength one does not, because nothing
+   licenses carrying a running-distance finding onto per-muscle volume. Both sit at 1.3 today
+   and the behaviour is unchanged — the point of two names is that the next person to move
+   one of them can see which one has a paper under it. The strength figure is a coaching
+   heuristic: don't add too much too soon, which is the half of the ACWR story that survived
+   the teardown intact. It is a flag on a warm-up, not a diagnosis. */
+const LOAD_RATIO_THRESH_RUN = 1.3;    // +30% week on week — Nielsen 2014, with the caveats above
+const LOAD_RATIO_THRESH_AREA = 1.3;   // the same step for per-area tonnage, on judgement alone
 let selectedPlanTypes = new Set();
 
 function initWarmupTab(){
@@ -30105,14 +30161,14 @@ async function computeWarmupAreas(){
   const loadFlagged = {};
   for(const area of allAreas){
     const ratio = await areaLoadRatio(area);
-    if(ratio!=null && ratio > LOAD_RATIO_THRESH) loadFlagged[area] = ratio;
+    if(ratio!=null && ratio > LOAD_RATIO_THRESH_AREA) loadFlagged[area] = ratio;
   }
   Object.keys(loadFlagged).forEach(a=>allAreas.add(a));
 
   // running load — flags ankles/calves/hips if weekly running volume spiked
   const runFlagged = {};
   const runRatio = await getRunLoadRatio();
-  if(runRatio!=null && runRatio > LOAD_RATIO_THRESH){
+  if(runRatio!=null && runRatio > LOAD_RATIO_THRESH_RUN){
     ['ankles','calves','hips'].forEach(a=>{ runFlagged[a] = runRatio; allAreas.add(a); });
   }
 
