@@ -5637,6 +5637,51 @@
    same "throws on missing key" behavior). Nothing else in the app needs to
    change; every existing storage.get/set/list/delete call works unmodified
    whether running as a Claude artifact or as a standalone page. */
+/* A FAILED WRITE USED TO BE SILENT.
+
+   set() returns null when the write throws, and 82 of the 97 call sites in this app do not
+   look at the return value — they have no reason to, because a save that works needs no
+   handling. So a quota error or a locked-down storage API meant the app carried on as if the
+   session had been recorded, and the only trace was a null nobody read.
+
+   The alarm goes here rather than at the call sites, because here is the one place that knows
+   the write failed and it covers all 97 of them at once. Throttled to one message every eight
+   seconds: a full storage is not twenty separate problems, and twenty toasts would bury the
+   one sentence that matters. showToast is defined much further down the file, so it is looked
+   up at call time rather than captured. */
+let _storeFailAt = 0;
+function storageWriteFailed(key, err){
+  try{ console.error('FACTORS: storage write failed for', key, err); } catch(e){}
+  const now = Date.now();
+  if(now - _storeFailAt < 8000) return;
+  _storeFailAt = now;
+  const full = err && (err.name === 'QuotaExceededError' || err.code === 22);
+  if(typeof showToast === 'function'){
+    showToast(full ? 'Out of space \u2014 export your data, then clear some room'
+                   : 'Could not save that \u2014 your last change may not have been kept', true);
+  }
+}
+/* ASK THE BROWSER TO KEEP IT.
+
+   Measured on a year of simulated use: 746 keys, 0.84MB. The 5MB localStorage ceiling is
+   years away, so quota is not the near-term risk — EVICTION is. Storage is "best-effort" by
+   default, which means the browser may reclaim the whole origin under pressure, and
+   navigator.storage.persisted() reported false on a fresh install. The Backup & Restore
+   section has always said "the browser deciding to reclaim it takes the lot" and the app
+   never did the one thing that asks it not to.
+
+   persist() is granted silently on an installed PWA in Chromium and by engagement heuristics
+   elsewhere; where it is refused, or the API is missing entirely, this returns false and the
+   Settings readout says so rather than pretending. It is never a guarantee, which is why the
+   export is still the real backup and the note above it still says so. */
+let storagePersisted = null;
+async function requestPersistentStorage(){
+  try{
+    if(!navigator.storage || !navigator.storage.persist) return null;
+    if(await navigator.storage.persisted()) return (storagePersisted = true);
+    return (storagePersisted = await navigator.storage.persist());
+  } catch(e){ return (storagePersisted = null); }
+}
 if(!window.storage){
   window.storage = {
     async set(key, value){
@@ -5644,6 +5689,7 @@ if(!window.storage){
         localStorage.setItem(key, value);
         return { key, value, shared: false };
       } catch(e){
+        storageWriteFailed(key, e);
         return null;
       }
     },
@@ -10642,7 +10688,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.517';
+const APP_VERSION = '2026.09.13.518';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10883,6 +10929,7 @@ const APP_NOTES = {
   '2026.09.13.515': 'Every sheet opens on one line now, whatever is in it \u2014 the log sheet included, whichever session you are logging.',
   '2026.09.13.516': 'No user-visible change \u2014 the load-ratio threshold now says what stands behind it.',
   '2026.09.13.517': 'A muscle group that got a fifth more work than last week now gets the warm-up, where it used to take a third.',
+  '2026.09.13.518': 'The app now asks the browser not to bin your data, says whether it agreed, and tells you when a save fails.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -15087,7 +15134,14 @@ async function renderSettingsSummaries(){
     put('startFreshSummary', said || 'nothing stored yet');
     let exported = null;
     try{ exported = JSON.parse((await window.storage.get('settings:lastExport')).value).at; } catch(e){}
-    put('backupSummary', exported ? `last export ${daysAgoWord(exported)}` : 'never exported');
+    /* The section's own sub-line has always said the browser might reclaim this. Now that
+       the app actually asks it not to, the head says which answer it got — and when the
+       answer is no, or the browser will not say, the export stops being good practice and
+       starts being the only copy. */
+    const backup = exported ? `last export ${daysAgoWord(exported)}` : 'never exported';
+    put('backupSummary', storagePersisted === true ? `${backup} \u00b7 storage kept`
+                       : storagePersisted === false ? `${backup} \u00b7 storage not kept`
+                       : backup);
   }
   try{
     const L = await learnWeights(todayStr);
@@ -32082,6 +32136,12 @@ loadGoalProfile().then(async ()=>{
     document.getElementById('morningBanner').style.display = 'block';
   }
   activateTab('insights');
+  /* Asked once the page is up rather than before it: nothing on screen waits on the answer,
+     and a permission prompt in the browsers that show one should not be the first thing a new
+     install does. Deliberately not awaited. */
+  requestPersistentStorage().then(ok=>{
+    if(ok === false) console.info('FACTORS: the browser did not grant persistent storage — the export is the backup.');
+  });
 });
 </script>
 
