@@ -9,6 +9,12 @@ Everything here is **generated from the running app**, never typed by hand:
 node tools/spec-dump.mjs      # with the app served on :8899
 ```
 
+The tool dumps twice and compares, and **exits non-zero if anything differed** — a spec you
+cannot regenerate byte-for-byte is one that has quietly drifted from the code it describes.
+Four names are excluded as runtime state rather than engine parameters (`SCORE_LOAD_ID`,
+`SCORE_SAMPLES`, `EYE_ANIM_DEFAULTS`, `AREA_TO_MOBILITY_DOMAIN`); they are listed in the tool
+so that anything else that moves still fails loudly.
+
 | file | what it is |
 |---|---|
 | `constants.json` | 315 engine parameters, **evaluated** — so `SIG_ALPHA` is `0.1331`, not `1 - Math.exp(-1/SIG_TAU)` |

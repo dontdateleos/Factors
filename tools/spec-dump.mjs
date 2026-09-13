@@ -25,13 +25,21 @@ const names = [...new Set([...src.matchAll(/^const ([A-Z][A-Z0-9_]{2,})\s*=/gm)]
    own file — a port needs them verbatim, but nobody wants them in a diff about a threshold. */
 const LIBRARY = /LIBRARY|_TESTS$|PROTOCOLS|TEMPLATES|PROGRESSION_TREES|SCENARIOS|_CUES$/;
 
+/* RUNTIME STATE THAT HAPPENS TO BE DECLARED const. These are not engine parameters and they
+   change on every load, which made the first version of this dump non-deterministic: a fresh
+   id and a fresh timestamped score sample landed in constants.json each run. Excluded by name
+   rather than by "looks like it changed", so a parameter that genuinely drifts still fails the
+   check at the bottom instead of being quietly tolerated. */
+const RUNTIME = new Set(['SCORE_LOAD_ID', 'SCORE_SAMPLES', 'EYE_ANIM_DEFAULTS',
+                         'AREA_TO_MOBILITY_DOMAIN']);
+
 const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const p = await b.newPage({ viewport:{ width:390, height:844 } });
 const errs = []; p.on('pageerror', e => errs.push(String(e)));
 await p.goto(`http://127.0.0.1:${PORT}/index.html`);
 await p.waitForTimeout(3500);
 
-const dumped = await p.evaluate(ns => {
+const dump = async page => page.evaluate(ns => {
   const out = {}, missing = [];
   for(const n of ns){
     try {
@@ -42,11 +50,19 @@ const dumped = await p.evaluate(ns => {
     } catch(e){ missing.push(n + ' (' + e.message.slice(0, 40) + ')'); }
   }
   return { out, missing };
-}, names);
+}, names.filter(n => !RUNTIME.has(n)));
 
 /* GOLDEN CASES for the pure scorer. scoresForEntry takes an entry and a trailing summary and
    returns two numbers; it touches no storage and no DOM, so it is the one part of the cascade
    that can be pinned exactly. The cases walk each input to its edges and past them. */
+const dumped = await dump(p);
+
+/* THE TOOL CHECKS ITSELF. A spec nobody can regenerate byte-for-byte is a spec that drifts
+   from the code it claims to describe, and the only way to know is to do it twice. */
+const second = await dump(p);
+const drifted = Object.keys(dumped.out).filter(k =>
+  JSON.stringify(dumped.out[k]) !== JSON.stringify(second.out[k]));
+
 const golden = await p.evaluate(() => {
   const T = (n, d, w, h) => ({ durationN:n, avgDuration:d, wakeTimeN:n, avgWakeTime:w, hrvN:n, avgHRV:h });
   const cases = [
@@ -105,3 +121,10 @@ console.log('golden    :', golden.scoresForEntry.length, 'scorer cases');
 console.log('scenarios :', scenarios.filter(s=>s.pass).length + '/' + scenarios.length, 'pass');
 if(dumped.missing.length) console.log('not dumped:', dumped.missing.length,
   '(' + dumped.missing.slice(0,4).join(', ') + (dumped.missing.length>4 ? ', …' : '') + ')');
+if(drifted.length){
+  console.error('NOT DETERMINISTIC — these changed between two dumps of the same page:');
+  drifted.forEach(k => console.error('   ' + k));
+  console.error('Either they are runtime state (add to RUNTIME) or the engine is not stable.');
+  process.exit(1);
+}
+console.log('determinism: two dumps identical across', Object.keys(dumped.out).length, 'values');
