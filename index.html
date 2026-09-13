@@ -2572,19 +2572,25 @@
   /* The base button rule is a full-width filled pill; an answer is a line of text that
      happens to be tappable, so the width has to come back to the words. */
   .log-sheet .ask-a{ width:auto; max-width:100%; margin-right:auto; }
-  /* NOT ONE OF THE THREE, and said with a rule rather than a colour. The row it replaces on
-     Today was outlined in --ink-bad, which is the red that follows the PAGE ground; this
-     panel is a --reverse-bg pocket, fixed near-black on both grounds, so that token would be
-     the bone red on a dark fill in here — the exact trap the tokens' own note warns about.
-     The separation is what carries the meaning: three things you did, then a line, then the
-     thing that happened to you.
+  /* THE WAY OUT OF THE SHEET THAT IS NOT THE SESSION. A rule rather than a colour: the
+     row this replaces on Today was outlined in --ink-bad, the red that follows the PAGE
+     ground, and this panel is a --reverse-bg pocket that is fixed near-black on BOTH — so
+     that token would put the bone red on a dark fill in here, the exact trap the tokens'
+     own note warns about. The separation is what carries the meaning.
 
-     width, not align-self:stretch, and it has to sit BELOW .log-sheet .ask-a rather than
-     above it: that rule sets width:auto at the same specificity, so the one written later
-     wins. Stretch reported as applied and still left the box at its own 130px content width
-     inside a 346px column, and a divider that stops short of the column is not a divider. */
-  .log-sheet .ask-a-other{ width:100%; margin-top:9px; padding-top:13px;
+     width:100%, not align-self:stretch, which reported as applied and still left the box at
+     its own content width inside the column. A divider that stops short is not a divider. */
+  .log-sheet .log-foot{ margin-top:var(--sp-3); padding-top:13px;
     border-top:1px solid rgba(var(--ink-rgb),0.22); }
+  /* The panel's own ink at the weight of a control rather than of an answer: it sits under
+     whatever you came here to do, and it is not one of the things you came to do. */
+  .log-sheet .log-foot-a{ width:100%; height:auto; min-height:0; padding:4px 0;
+    display:block; text-align:left; background:transparent; border:0; border-radius:0;
+    font-family:var(--wordmark); font-weight:var(--fw-medium); font-size:var(--log-write);
+    line-height:1.3; letter-spacing:0; text-transform:none;
+    color:rgba(var(--ink-rgb),0.62); cursor:pointer; }
+  .log-sheet .log-foot-a::before{ content:'\2192'; display:inline-block; width:1.35em; }
+  .log-sheet .log-foot-a:focus-visible{ outline:2px solid var(--bg); outline-offset:3px; }
   .log-sheet .add-row::before,
   .log-sheet .ask-a::before{ content:'\2192'; display:inline-block; width:1.35em; text-indent:0; }
   .log-sheet .log-fill{ padding-left:1.35em; text-indent:-1.35em; margin-left:0; }
@@ -5427,6 +5433,16 @@
       </span>
     </div>
     <div class="fields" id="logSheetBody"></div>
+    <!-- ALWAYS HERE, WHICHEVER OF THE TWO THE BODY IS SHOWING.
+         This was a fourth row in the type picker, which was wrong in a way that only shows
+         on a normal day: the picker is the `if(!block)` branch, so it exists only when the
+         day has nothing planned. On every day that does — which is most of them — the disc
+         opens straight into the session form and the row was not reachable at all. A tweak
+         does not wait for a rest day, so it belongs to the sheet rather than to one of the
+         two things the sheet can contain. -->
+    <div class="log-foot">
+      <button type="button" class="log-foot-a" id="pickInjury">Hurt something</button>
+    </div>
   </div>
 </div>
 
@@ -10605,7 +10621,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.511';
+const APP_VERSION = '2026.09.13.512';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10840,6 +10856,7 @@ const APP_NOTES = {
   '2026.09.13.509': 'The morning question is gone. Today opens on a number, not a thing to answer.',
   '2026.09.13.510': 'Session RPE is gone. Nothing in the app asks you to rate anything now.',
   '2026.09.13.511': 'Every sheet comes up off the bottom edge and goes back down the same way, and the disc can log an injury.',
+  '2026.09.13.512': 'Hurt something is at the foot of the log sheet, on every day rather than only an empty one.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -17723,22 +17740,12 @@ async function openBlockEditor(date, slot, block){
         <button type="button" class="ask-a" data-pick-type="strength">Lifted</button>
         <button type="button" class="ask-a" data-pick-type="run">Ran</button>
         <button type="button" class="ask-a" data-pick-type="mobility">Stretched</button>
-        <!-- Not a session type, and it does not go through placeBlock: nothing is being put
-             on the plan. It is here because this list is what the disc opens and a tweak is
-             the other thing that happens to you mid-session. -->
-        <button type="button" class="ask-a ask-a-other" id="pickInjury">Hurt something</button>
       </div>
       <div class="log-acts">
         <button id="closeWeekBlockBtn" class="log-act">Close</button>
       </div>`;
     panel.querySelectorAll('[data-pick-type]').forEach(btn=>{
       btn.addEventListener('click', ()=> placeBlock(date, slot, btn.dataset.pickType));
-    });
-    // The picker goes down before the injury sheet comes up, rather than the two stacking.
-    const hurt = panel.querySelector('#pickInjury');
-    if(hurt) hurt.addEventListener('click', ()=>{
-      closeBlockEditor();
-      setTimeout(openInjurySheet, SHEET_MS);
     });
     wireBlockEditorClose(panel);
     return;
@@ -21885,6 +21892,16 @@ const openInjurySheet = ()=>{
   injurySheet.open();
 };
 if(logInjuryBtn) logInjuryBtn.addEventListener('click', openInjurySheet);
+/* From inside the log sheet. Closed through its own controller rather than by calling
+   closeBlockEditor directly, so this goes the same way the × and Escape do: a half-typed
+   session is put on the bar and kept, a type picker has nothing to keep and simply goes.
+   Calling closeBlockEditor here instead would have thrown the draft away, which is a strange
+   price for saying you hurt something. The sheet is down before the other comes up. */
+const pickInjuryBtn = document.getElementById('pickInjury');
+if(pickInjuryBtn) pickInjuryBtn.addEventListener('click', ()=>{
+  ensureLogSheet().close();
+  setTimeout(openInjurySheet, SHEET_MS);
+});
 document.getElementById('saveFunctionBtn').addEventListener('click', ()=> saveGoalsFromForm('saveFunctionResult'));
 
 // Adaptation Engine (backlog §4 — "one of the most important changes"). Classifies each
