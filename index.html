@@ -10688,7 +10688,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.519';
+const APP_VERSION = '2026.09.13.520';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10931,6 +10931,7 @@ const APP_NOTES = {
   '2026.09.13.517': 'A muscle group that got a fifth more work than last week now gets the warm-up, where it used to take a third.',
   '2026.09.13.518': 'The app now asks the browser not to bin your data, says whether it agreed, and tells you when a save fails.',
   '2026.09.13.519': 'No wearable, real score: the reading is now scaled to what you can measure instead of what you cannot.',
+  '2026.09.13.520': 'The score weights what you did in the last three days above what your heart did last night.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -13859,35 +13860,62 @@ function cnsWindowLine(cr){
    store minutes-awake. Their weight is NOT redistributed. A missing component contributes
    zero, which pulls the composite toward a typical day — that is the intended behaviour, and
    the confidence readout is what says so out loud. */
-/* These sum to 1.00 and srRawFrom does not normalise, so a weight cannot be lowered on its
-   own — the composite would simply shrink toward 50 for everybody. Every weight here is
-   therefore a share of a fixed budget, and removing a channel means redistributing its share
-   rather than leaving a hole.
+/* THESE ARE PRIORS FOR PREDICTING TODAY'S SESSION, AND THEY USED TO BE ORDERED FOR
+   SOMETHING ELSE.
 
-   There were nine. `subjective` — one tap of a morning dial — was the ninth, and it is gone:
-   the app does not track subjective state. Its 0.180 went back to the other eight in
-   proportion, so their order and their ratios to each other are exactly what they were and
-   the composite keeps its scale. What the score says now is what was measured, not what was
-   reported. */
+   They sum to 1.00 and srRawFrom divides by the budget of channels this user can supply, so a
+   weight cannot be lowered on its own — the others carry the difference and the order here is
+   what the score believes about what predicts a day.
+
+   What it used to believe: hrvTrend first at 0.219, rhr second, the two HRV terms together
+   0.317, and the whole recovery set 82% against load's 0.122. That is a good OVERREACHING
+   MONITOR — which is a different instrument from a daily performance predictor, and the app
+   validates itself against performance (renderScoreValidity, on blinded days) while weighting
+   itself for overreaching.
+
+   The literature does not support the old order for THIS question:
+
+     - Acute sleep loss is weaker on strength than the weighting implied. A single night of
+       total deprivation has little effect on muscle strength; it is CONSECUTIVE nights that
+       impair multi-joint force output (Sports Medicine 2022 meta-analysis of acute sleep loss
+       on physical performance). So the accrued-debt term deserves more than the last-night
+       term, not less.
+     - HRV is weak for forecasting NEXT-DAY performance. The HRV-guided training literature
+       shows benefit for programming decisions across weeks, with small and non-significant
+       effects on performance outcomes — it is a slow signal being asked a fast question.
+     - What you did in the last seventy-two hours is the most direct determinant of what is
+       left in you today, and it was the fourth-largest term.
+
+   So: load first, and the sleep pair reweighted toward debt. HRV stays the largest autonomic
+   term because it is still the best-established autonomic signal and the rest of this file
+   rests on it — this is a reordering, not a purge. The redistribution is also worth stating
+   plainly for a second reason: load is computed from the app's own session history, so it is
+   one of the few channels a user with no wearable actually has, and making it the heaviest
+   widens the budget the .519 change gave them.
+
+   The honest limit. One person logs three to five sessions a week, so learnWeights — which
+   shrinks every correction by its own standard error — will take months to move any of these
+   far. The priors therefore do most of the work for most of the first year, which is exactly
+   why getting their ORDER right matters more than getting their values exact. */
 const SR_WEIGHTS = {
-  hrvTrend:    0.219,  // the stable autonomic signal, insensitive to single nights by design
-  rhr:         0.171,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
-  /* What you are carrying into the morning, decayed over the three days behind it. The score
-     had seven channels about recovery and none about the thing being recovered from, so a
-     rest day and the morning after a hard session read identically if you happened to sleep
-     the same. Enough to be felt, and below every physiological channel, because it is an
-     input to fatigue rather than a measurement of it. */
-  load:        0.122,
-  // Duration and fragmentation together — the brief defines this component as duration
-  // against personal need times an efficiency term, and minutes-awake is that term. It was
-  // briefly a component of its own, which pushed the weights past 1.00 and quietly diluted
-  // every other one.
-  sleep:       0.146,  // acute and largely behavioural, so below the physiology
-  hrvAcute:    0.098,  // damped, so one catastrophic night registers without noise driving it
-  sleepDebt:   0.098,  // Van Dongen — accrues linearly, no adaptation
-  regularity:  0.061,  // Windred 2023 — predicts independently of duration, near-zero cost
-  illnessCh:   0.085   // respiratory rate and skin temperature, negative-only
+  /* What you are carrying into this morning, decayed over the three days behind it, inverted
+     so more load reads as less readiness. First now rather than fourth: residual fatigue from
+     recent work is the most direct thing standing between you and today's session. */
+  load:        0.200,
+  hrvTrend:    0.170,  // the stable autonomic signal — still the largest physiological term
+  rhr:         0.150,  // better sensor validity than HRV (Oura HR r=0.993 vs rMSSD r=0.915)
+  /* Van Dongen — debt accrues linearly and does not adapt. Raised above the acute term
+     because consecutive short nights are the form of sleep loss that actually moves force
+     output; one bad night mostly does not. */
+  sleepDebt:   0.150,
+  // Duration and fragmentation together for last night alone. Lowered for the same reason
+  // sleepDebt was raised: it is the acute half, and the acute half is the weaker one.
+  sleep:       0.130,
+  illnessCh:   0.080,  // respiratory rate and skin temperature, negative-only
+  hrvAcute:    0.070,  // damped, so one catastrophic night registers without noise driving it
+  regularity:  0.050   // Windred 2023 — predicts independently of duration, near-zero cost
 };
+
 
 const SR_HRV_ACUTE_DAMP = 0.5;
 const SR_TANH_K   = 0.8;
