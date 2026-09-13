@@ -2018,8 +2018,38 @@
      The rule is --band, the tab's hue at full strength — the same value .score-note uses
      for the rule down its own side, so the vocabulary is already established. It runs
      beside the content and not the head: the head already carries the colour, in the chip. */
+  /* THE FILL COMES OFF, THE RULE STAYS.
+
+     .502 gave the masthead the tab's tint, and on the dark ground that tint is #202313 —
+     the same value, byte for byte, that these two blocks were already filled with. Measured
+     rather than noticed: the banner and the warm-up were painting rgb(32,35,19) each. One
+     colour cannot mean "you are on Today" across the top of the screen and "this brackets
+     the session" two hundred pixels below it; whichever you learn first makes the other one
+     look like a mistake.
+
+     So the app keeps ONE tinted surface — the banner — and the bracket goes on saying itself
+     with the rule down the left, which was already there doing that job. A 2px rule is the
+     cheaper mark for a relationship anyway: a fill claims a region, a rule points along one.
+
+     This is the last of five. The week panel's controls, the session block, both skill
+     pickers and the mobility assessment have each had the field taken off them already, for
+     the same reason written a different way each time. */
   #warmupSection > .group > .fields, #mobilitySection > .group > .fields{
+    background:var(--ground);
     border-left:2px solid var(--band); }
+  /* AND THE RULE HAS TO CARRY ON BONE, WHICH IT DID NOT HAVE TO BEFORE.
+     --band is the tab's hue at full strength, which is a PALE colour: lime on bone measures
+     1.58:1, under the 3:1 a non-text mark needs. That was survivable while the fill was
+     there to say the same thing a second way. With the fill gone the rule is load-bearing
+     and 1.58 is a rule you cannot see. --hue-faded is the darkened hue the bone ground
+     already keeps for exactly this, per tab, and it measures 4.45:1.
+
+     The contrast guard does not catch this and was never going to: it composites TEXT on
+     real backdrops, and a 2px border is not text. It returned 0 failures on both grounds
+     with the invisible rule in place. */
+  html[data-ground="bone"] #warmupSection > .group > .fields,
+  html[data-ground="bone"] #mobilitySection > .group > .fields{
+    border-left-color:var(--hue-faded); }
   #todayWorkoutSummary > .group > .fields{ background:var(--ground); }
   /* The same rule, applied where it was not. Both skill pickers and the mobility
      assessment are entirely things you OPERATE — a wheel you spin, a box you tick, a
@@ -11077,7 +11107,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.12.505';
+const APP_VERSION = '2026.09.13.506';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -11306,6 +11336,7 @@ const APP_NOTES = {
   '2026.09.12.503': 'The five faces you pick from are five expressions, not five heights of the same one.',
   '2026.09.12.504': 'The mark wears the face you picked, not just its colour.',
   '2026.09.12.505': 'Today drops its Log this workout button \u2014 the disc at the bottom already does it.',
+  '2026.09.13.506': 'The tab\u2019s tint is the masthead\u2019s alone \u2014 the warm-up and cool-down keep their rule and give up their fill.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
