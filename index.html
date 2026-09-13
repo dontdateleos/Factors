@@ -10688,7 +10688,7 @@ recoveryFieldIds.forEach(id=>{ document.getElementById(id).addEventListener('inp
    aggressively, and GitHub Pages serves index.html with its own cache headers on top.
    Neither is under this app's control, and a plain reload will often re-serve the cached
    document rather than fetching a new one. */
-const APP_VERSION = '2026.09.13.518';
+const APP_VERSION = '2026.09.13.519';
 /* What moved, in one line, for the builds worth naming. The banner has always been able to
    say a new version is available and never what is in it, which asks for a reload on faith.
    Only the current build needs an entry — anything older has already been read or missed. */
@@ -10930,6 +10930,7 @@ const APP_NOTES = {
   '2026.09.13.516': 'No user-visible change \u2014 the load-ratio threshold now says what stands behind it.',
   '2026.09.13.517': 'A muscle group that got a fifth more work than last week now gets the warm-up, where it used to take a third.',
   '2026.09.13.518': 'The app now asks the browser not to bin your data, says whether it agreed, and tells you when a save fails.',
+  '2026.09.13.519': 'No wearable, real score: the reading is now scaled to what you can measure instead of what you cannot.',
   '2026.09.10.479': 'Type different reps and weights per set and the row says back what it read, set by set.',
 };
 
@@ -13951,7 +13952,44 @@ function srComponentsAt(win, i, debtZ){
     })()
   };
 }
-function srRawFrom(parts, maturity, weights){
+/* THE BUDGET IS WHAT THIS USER CAN MEASURE, NOT THE FULL NINE.
+
+   The weights sum to 1.00 and this did not divide by anything, so a missing channel simply
+   dropped out of the numerator and the composite shrank toward 50. For a channel you normally
+   have and lost for one night that is exactly right — less evidence, less confidence, a
+   reading closer to neutral.
+
+   For a channel you will NEVER have it is not right, it is a permanent handicap. Measured on
+   seventy nights of phone-only logging — hours slept and a wake time, no ring, no watch — the
+   weight present was 0.305 and the whole reachable range of the score was FOUR POINTS: 52 on
+   nine hours' sleep, 48 on four. It still reported available:true. A number that cannot move
+   is worse than no number, because it looks like a reading.
+
+   So the composite is divided by the budget, and the budget is the weight of the channels
+   this user has supplied AT ALL across the window. Someone with a full sensor set has a
+   budget of 1.00 and nothing about their score changes. Someone with a phone gets the range
+   back on the three things they do measure. And a channel that IS in their budget but missing
+   TODAY still leaves a hole in the numerator and still pulls the day toward 50, which is the
+   conservatism kept where it belongs.
+
+   weightPresent stays what arrived today; weightBudget is what could have. The readout needs
+   both, because "all of your inputs arrived" and "your inputs are three of nine" are two
+   different sentences and a thin setup must not be able to hide behind the first.
+
+   ONE SIDE EFFECT, FOUND BY MEASURING RATHER THAN REASONING. Every channel here is z-scored
+   against your own days and therefore centres on zero — except regularity, which is absolute
+   by design, following Windred's SRI, because "is today unusual for you" always answers no
+   for a reliably chaotic sleeper. An absolute channel does not centre, so dividing by a small
+   budget amplifies its offset along with everything else: a regular sleeper on a phone sits
+   around +1.4 on it, and at 0.061 of a 0.305 budget that is a standing lift of roughly two
+   points of z where a full sensor set would give it a fifth of that. Their typical day reads
+   52 rather than 50.
+
+   Left alone, for a reason that is checkable rather than a shrug: the headline is the
+   PERCENTILE, and every day in the window carries the same offset, so the rank it reports is
+   untouched. What moves is the raw number under it, in the direction of "you sleep on a
+   schedule", which is true. */
+function srRawFrom(parts, maturity, weights, budget){
   const W = weights || SR_WEIGHTS;
   let sum = 0, present = 0;
   Object.keys(SR_WEIGHTS).forEach(k=>{
@@ -13960,10 +13998,11 @@ function srRawFrom(parts, maturity, weights){
     sum += (W[k] != null ? W[k] : SR_WEIGHTS[k]) * v;
     present += SR_WEIGHTS[k];
   });
+  const B = budget != null && budget > 0 ? budget : 1;
   // Maturity shrinks the whole composite, not each term twice — the channels already carry
   // their own M, and this is the model-level version of the same refusal to be confident.
-  const z = sum * (maturity == null ? 1 : maturity);
-  return { raw: 50 + 50 * Math.tanh(SR_TANH_K * z), z, weightPresent: present };
+  const z = (sum / B) * (maturity == null ? 1 : maturity);
+  return { raw: 50 + 50 * Math.tanh(SR_TANH_K * z), z, weightPresent: present, weightBudget: B };
 }
 
 /* ---------- SCORE 4 — CONFIDENCE ----------
@@ -13987,8 +14026,20 @@ async function computeSystemicReadiness(asOfDate){
   try{ learned = await learnWeights(asOfDate || todayStr); } catch(e){}
   const W = learned ? learned.weights : null;
 
-  const partsToday = srComponentsAt(win, win.dates.length - 1, debtZ);
-  const today = srRawFrom(partsToday, maturity, W);
+  /* Every day's components once, because the budget has to be read off the whole window
+     before any day can be scored against it — and the series below needs the same objects, so
+     computing them twice would be two chances to disagree about what this user measures. */
+  const partsSeries = win.dates.map((d, i)=> win.entries[i] ? srComponentsAt(win, i, debtZ) : null);
+  const partsToday = partsSeries[partsSeries.length - 1] || srComponentsAt(win, win.dates.length - 1, debtZ);
+  /* This user's instrument set, derived from what the window actually produced rather than
+     from a hand-written map of channel to sensor — the same srComponentsAt the score reads,
+     so the two cannot drift. A channel that never once returned a number in the window is one
+     this user does not have; it leaves the budget instead of docking the score forever. */
+  let srBudget = 0;
+  Object.keys(SR_WEIGHTS).forEach(k=>{
+    if(partsSeries.some(p=> p && p[k] != null && !isNaN(p[k]))) srBudget += SR_WEIGHTS[k];
+  });
+  const today = srRawFrom(partsToday, maturity, W, srBudget);
 
   // Gates multiply rather than adding another weighted term, because illness and acute injury
   // are not "a bit more fatigue" — they are a reason to stop interpreting training load.
@@ -14014,11 +14065,10 @@ async function computeSystemicReadiness(asOfDate){
   // The same score for every day in the window, so today can be ranked against your own
   // recent days rather than against a fixed 0-100 that saturates. 75 + 18z pinned at 100 by
   // about 1.4 SD, which is why a good week read as 99, 100, 100.
-  const series = win.dates.map((d, i)=>{
-    if(!win.entries[i]) return null;
-    const p = srComponentsAt(win, i, debtZ);
+  const series = partsSeries.map(p=>{
+    if(!p) return null;
     const anyPresent = Object.keys(SR_WEIGHTS).some(k=> p[k] != null && !isNaN(p[k]));
-    return anyPresent ? srRawFrom(p, maturity, W).raw : null;
+    return anyPresent ? srRawFrom(p, maturity, W, srBudget).raw : null;
   });
   const observed = series.filter(v=>v != null);
   const pctRank = (raw)=> observed.length ? Math.round(100 * observed.filter(v=> v < raw).length / observed.length) : null;
@@ -14078,6 +14128,7 @@ async function computeSystemicReadiness(asOfDate){
     maturity, completeness: win.completeness,
     observedNights: win.observedNights, windowNights: win.windowNights,
     weightPresent: today.weightPresent,
+    weightBudget: today.weightBudget,
     /* The headline is the score, not the rank of it.
 
        A percentile ranks you against your own recent days, and those days cluster: measured
@@ -18721,7 +18772,17 @@ function paintReadinessConfidence(){
     else bits.push(`${sr.shown}`);
     bits.push(`${sr.observedNights}/${sr.windowNights} nights`);
     bits.push(`baseline ${Math.round(sr.maturity * 100)}% mature`);
-    if(sr.weightPresent < 0.9) bits.push(`${Math.round(sr.weightPresent * 100)}% of inputs`);
+    /* Two different sentences, and a thin setup must not be able to hide behind the first.
+       "inputs" is what arrived today out of what this user CAN supply; "of the model" is how
+       much of the full nine channels their kit covers at all. Someone with a ring and a watch
+       sees neither line on a normal day. Someone logging sleep on a phone always sees the
+       second, because it is always true and it is the thing that qualifies their number. */
+    if(sr.weightBudget && sr.weightPresent < sr.weightBudget - 0.001){
+      bits.push(`${Math.round((sr.weightPresent / sr.weightBudget) * 100)}% of inputs`);
+    }
+    if(sr.weightBudget != null && sr.weightBudget < 0.9){
+      bits.push(`${Math.round(sr.weightBudget * 100)}% of the model`);
+    }
   } else if(sr.refused){
     // Below 40% completeness or 30% maturity the brief's rule is to show the components and
     // refuse to composite. A confident wrong number costs more trust than an honest gap.
